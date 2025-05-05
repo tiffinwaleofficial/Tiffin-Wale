@@ -1,0 +1,39 @@
+dispatch:
+  # API endpoints (backend)
+  - url: "api.tiffin-wale.com/*"
+    service: default
+
+  # API paths on main domain should redirect to website
+  - url: "tiffin-wale.com/api/*"
+    service: official-web
+
+  - url: "www.tiffin-wale.com/api/*" 
+    service: official-web
+
+  # Main website
+  - url: "tiffin-wale.com/*"
+    service: official-web
+
+  - url: "www.tiffin-wale.com/*"
+    service: official-web
+
+  # Mobile app endpoints
+  - url: "m.tiffin-wale.com/*"
+    service: app
+
+  - url: "mobile.tiffin-wale.com/*"
+    service: app
+
+  - url: "app.tiffin-wale.com/*"
+    service: app
+
+  # Partner app endpoints - Strict routing
+  - url: "partner.tiffin-wale.com/*"
+    service: partner-app
+
+  - url: "www.partner.tiffin-wale.com/*"
+    service: partner-app
+
+  # Catch-all for partner domain to ensure no other services are accessible
+  - url: "*.partner.tiffin-wale.com/*"
+    service: partner-app

@@ -1,0 +1,139 @@
+runtime: nodejs20
+service: official-web
+
+env_variables:
+  NODE_ENV: 'production'
+  BACKEND_API_URL: 'https://api.tiffinwale.com'
+  BACKEND_API_KEY: ''  # You'll need to provide this value during deployment
+  BACKEND_API_SECRET: ''  # You'll need to provide this value during deployment
+
+# Use a standard static file serving configuration
+handlers:
+  # Serve favicon.ico from the root
+  - url: /favicon\.ico
+    static_files: public/favicon.ico
+    upload: public/favicon\.ico
+    secure: always
+    http_headers:
+      Cache-Control: public, max-age=31536000, immutable
+      X-Content-Type-Options: nosniff
+
+  # Serve favicon.png from the root
+  - url: /favicon\.png
+    static_files: public/favicon.png
+    upload: public/favicon\.png
+    secure: always
+    http_headers:
+      Cache-Control: public, max-age=31536000, immutable
+      X-Content-Type-Options: nosniff
+
+  # Serve apple-touch-icon.png from the root
+  - url: /apple-touch-icon\.png
+    static_files: public/apple-touch-icon.png
+    upload: public/apple-touch-icon\.png
+    secure: always
+    http_headers:
+      Cache-Control: public, max-age=31536000, immutable
+      X-Content-Type-Options: nosniff
+
+  # Serve robots.txt from the root
+  - url: /robots\.txt
+    static_files: public/robots.txt
+    upload: public/robots\.txt
+    secure: always
+    http_headers:
+      Cache-Control: public, max-age=86400
+      X-Content-Type-Options: nosniff
+
+  # Serve sitemap.xml from the root
+  - url: /sitemap\.xml
+    static_files: public/sitemap.xml
+    upload: public/sitemap\.xml
+    secure: always
+    http_headers:
+      Cache-Control: public, max-age=86400
+      X-Content-Type-Options: nosniff
+
+  # Serve manifest.json from the root
+  - url: /manifest\.json
+    static_files: public/manifest.json
+    upload: public/manifest\.json
+    secure: always
+    http_headers:
+      Cache-Control: public, max-age=86400
+      X-Content-Type-Options: nosniff
+
+  # Serve icon.png from assets/images
+  - url: /assets/images/icon.png
+    static_files: public/assets/images/icon.png
+    upload: public/assets/images/icon.png
+    secure: always
+    http_headers:
+      Cache-Control: public, max-age=31536000, immutable
+      X-Content-Type-Options: nosniff
+      
+  # Serve JS files with long-term caching
+  - url: /assets/.*\.js$
+    static_files: public/assets/\1.js
+    upload: public/assets/.*\.js$
+    secure: always
+    http_headers:
+      Cache-Control: public, max-age=31536000, immutable
+      X-Content-Type-Options: nosniff
+
+  # Serve CSS files with long-term caching
+  - url: /assets/.*\.css$
+    static_files: public/assets/\1.css
+    upload: public/assets/.*\.css$
+    secure: always
+    http_headers:
+      Cache-Control: public, max-age=31536000, immutable
+      X-Content-Type-Options: nosniff
+
+  # Serve image assets with long-term caching
+  - url: /assets/.*\.(png|jpg|jpeg|gif|svg|webp|avif)$
+    static_files: public/assets/\1
+    upload: public/assets/.*\.(png|jpg|jpeg|gif|svg|webp|avif)$
+    secure: always
+    http_headers:
+      Cache-Control: public, max-age=31536000, immutable
+      X-Content-Type-Options: nosniff
+
+  # Serve font assets with long-term caching
+  - url: /assets/.*\.(woff|woff2|ttf|otf|eot)$
+    static_files: public/assets/\1
+    upload: public/assets/.*\.(woff|woff2|ttf|otf|eot)$
+    secure: always
+    http_headers:
+      Cache-Control: public, max-age=31536000, immutable
+      X-Content-Type-Options: nosniff
+
+  # Serve other static files
+  - url: /(.*\.(json|ico|js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot))$
+    static_files: public/\1
+    upload: public/.*\.(json|ico|js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$
+    secure: always
+    http_headers:
+      Cache-Control: public, max-age=31536000, immutable
+      X-Content-Type-Options: nosniff
+
+  # Handle all other routes by serving index.html (SPA pattern)
+  - url: /.*
+    static_files: public/index.html
+    upload: public/index.html
+    secure: always
+    http_headers:
+      X-Content-Type-Options: nosniff
+      Cache-Control: public, max-age=0, must-revalidate
+
+automatic_scaling:
+  min_idle_instances: 0
+  max_idle_instances: 1
+  min_instances: 0
+  max_instances: 10
+  min_pending_latency: 30ms
+  max_pending_latency: automatic
+  max_concurrent_requests: 50
+
+inbound_services:
+- warmup

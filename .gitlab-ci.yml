@@ -1,0 +1,375 @@
+stages:
+  - build
+  - test
+  - deploy
+
+# BUILD STAGE
+build_backend:
+  stage: build
+  image: node:20
+  script:
+    - cd monolith_backend
+    - npm ci
+    - npm run lint
+    - npm run build
+  artifacts:
+    paths:
+      - monolith_backend/dist/
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - monolith_backend/**/*
+        - .gitlab-ci.yml
+
+build_official_web:
+  stage: build
+  image: node:20
+  script:
+    - cd interface/official-web-app
+    - npm ci
+    - npm run lint || true
+    - npm run build
+  artifacts:
+    paths:
+      - interface/official-web-app/dist/
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - interface/official-web-app/**/*
+        - dispatch.yaml
+        - .gitlab-ci.yml
+
+build_mobile_app:
+  stage: build
+  image: node:20
+  script:
+    # Install Expo CLI
+    - npm install -g expo-cli
+    - cd interface/student-app
+    - npm ci
+    # Install missing dependencies
+    - npm install @react-native-async-storage/async-storage axios
+    - npm run lint || true
+    - npm run export:web || true
+  artifacts:
+    paths:
+      - interface/student-app/web-build-temp/
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - interface/student-app/**/*
+        - dispatch.yaml
+        - .gitlab-ci.yml
+
+build_partner_app:
+  stage: build
+  image: node:20
+  script:
+    # Check if Yarn is already installed
+    - yarn --version || npm install -g yarn
+    # Install Expo CLI
+    - npm install -g expo-cli || true
+    - cd interface/partner-app
+    - yarn install
+    - yarn lint || true
+    - yarn export:web || true
+  artifacts:
+    paths:
+      - interface/partner-app/web-build-temp/
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - interface/partner-app/**/*
+        - dispatch.yaml
+        - .gitlab-ci.yml
+
+# TEST STAGE
+test_backend:
+  stage: test
+  image: node:20
+  script:
+    - cd monolith_backend
+    - npm ci
+    - npm run test
+    - npm run test:api || true
+    # Security scanning
+    - npm audit --production || true
+  needs:
+    - build_backend
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - monolith_backend/**/*
+        - .gitlab-ci.yml
+
+test_official_web:
+  stage: test
+  image: node:20
+  script:
+    - cd interface/official-web-app
+    - npm ci
+    - npm test || true
+    # Security scanning
+    - npm audit --production || true
+  needs:
+    - build_official_web
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - interface/official-web-app/**/*
+        - dispatch.yaml
+        - .gitlab-ci.yml
+    
+test_mobile_app:
+  stage: test
+  image: node:20
+  script:
+    - cd interface/student-app
+    - npm ci
+    - npm test || true
+    # Security scanning
+    - npm audit --production || true
+  needs:
+    - build_mobile_app
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - interface/student-app/**/*
+        - dispatch.yaml
+        - .gitlab-ci.yml
+
+test_partner_app:
+  stage: test
+  image: node:20
+  script:
+    # Check if Yarn is already installed
+    - yarn --version || npm install -g yarn
+    - cd interface/partner-app
+    - yarn install
+    - yarn test || true
+    # Security scanning
+    - yarn audit || true
+  needs:
+    - build_partner_app
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - interface/partner-app/**/*
+        - dispatch.yaml
+        - .gitlab-ci.yml
+
+# DEPLOY STAGE
+deploy_backend:
+  stage: deploy
+  image: google/cloud-sdk:latest
+  script:
+    - echo "$GCP_SERVICE_KEY" > ${CI_PROJECT_DIR}/gcp-key.json
+    - gcloud auth activate-service-account --key-file=${CI_PROJECT_DIR}/gcp-key.json
+    - gcloud config set project tiffin-wale
+    - gcloud -q app deploy monolith_backend/app.yaml --quiet
+  needs:
+    - test_backend
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - monolith_backend/**/*
+        - .gitlab-ci.yml
+
+deploy_official_web:
+  stage: deploy
+  image: node:20
+  script:
+    # Install Google Cloud SDK - fixed approach
+    - apt-get update && apt-get install -y curl gnupg apt-transport-https ca-certificates
+    - curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+    - echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+    - apt-get update && apt-get install -y google-cloud-sdk
+    
+    # Setup GCP authentication
+    - echo "$GCP_SERVICE_KEY" > ${CI_PROJECT_DIR}/gcp-key.json
+    - gcloud auth activate-service-account --key-file=${CI_PROJECT_DIR}/gcp-key.json
+    - gcloud config set project tiffin-wale
+    
+    # Deploy frontend
+    - cd interface/official-web-app
+    # Install dependencies first
+    - npm install
+    # Fix the copy command for Linux CI environment properly
+    - node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json')); pkg.scripts['build:gcloud'] = 'npm run build && cp app.yaml dist/'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
+    - npm run build:gcloud
+    - gcloud -q app deploy app.yaml --quiet
+  needs:
+    - test_official_web
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - interface/official-web-app/**/*
+        - dispatch.yaml
+        - .gitlab-ci.yml
+
+deploy_mobile_app:
+  stage: deploy
+  image: node:20
+  script:
+    # Install Google Cloud SDK - fixed approach
+    - apt-get update && apt-get install -y curl gnupg apt-transport-https ca-certificates
+    - curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+    - echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+    - apt-get update && apt-get install -y google-cloud-sdk
+    
+    # Setup GCP authentication
+    - echo "$GCP_SERVICE_KEY" > ${CI_PROJECT_DIR}/gcp-key.json
+    - gcloud auth activate-service-account --key-file=${CI_PROJECT_DIR}/gcp-key.json
+    - gcloud config set project tiffin-wale
+    
+    # Install Expo CLI
+    - npm install -g expo-cli
+    
+    # Install required dependencies that might be missing
+    - cd interface/student-app
+    - npm install @react-native-async-storage/async-storage axios
+    - npm install
+    
+    # Build and deploy mobile app
+    - npm run build:gcloud || true
+    - gcloud -q app deploy app.yaml --quiet
+  needs:
+    - test_mobile_app
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - interface/student-app/**/*
+        - dispatch.yaml
+        - .gitlab-ci.yml
+
+deploy_partner_app:
+  stage: deploy
+  image: node:20
+  script:
+    # Install Google Cloud SDK - fixed approach
+    - apt-get update && apt-get install -y curl gnupg apt-transport-https ca-certificates
+    - curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+    - echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+    - apt-get update && apt-get install -y google-cloud-sdk
+    
+    # Setup GCP authentication
+    - echo "$GCP_SERVICE_KEY" > ${CI_PROJECT_DIR}/gcp-key.json
+    - gcloud auth activate-service-account --key-file=${CI_PROJECT_DIR}/gcp-key.json
+    - gcloud config set project tiffin-wale
+    
+    # Install Yarn, Expo CLI and serve for production use
+    - yarn --version || npm install -g yarn
+    - npm install -g expo-cli serve
+    
+    # Build and deploy partner app
+    - cd interface/partner-app
+    - yarn install
+    - yarn add --dev serve
+    
+    # Build the web app with source maps for better debugging
+    - npx expo export --platform web --dump-sourcemap
+    
+    # Verify the dist directory was created properly
+    - ls -la dist
+    
+    # Create a simple root index.html file that redirects to the app
+    - |
+      cat > index.html << 'EOL'
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="utf-8" />
+          <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+          <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+          <title>Tiffin Wale - Partner App</title>
+          <script>
+            // Immediately redirect to the main app
+            window.location.href = '/';
+          </script>
+          <style>
+            body {
+              margin: 0;
+              padding: 0;
+              font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+              background-color: #f9f9f9;
+              color: #333;
+            }
+            #loading {
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+              width: 100vw;
+            }
+            .spinner {
+              width: 40px;
+              height: 40px;
+              border: 4px solid rgba(0, 0, 0, 0.1);
+              border-radius: 50%;
+              border-left-color: #09d;
+              animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+            h2 {
+              margin-top: 20px;
+              font-weight: 500;
+            }
+          </style>
+        </head>
+        <body>
+          <div id="loading">
+            <div class="spinner"></div>
+            <h2>Loading Partner App...</h2>
+          </div>
+        </body>
+      </html>
+      EOL
+    
+    # Deploy directly to GCP
+    - gcloud -q app deploy app.yaml --quiet
+  needs:
+    - test_partner_app
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - interface/partner-app/**/*
+        - dispatch.yaml
+        - .gitlab-ci.yml
+
+# Final deployment of dispatch.yaml with all routes
+deploy_dispatch:
+  stage: deploy
+  image: google/cloud-sdk:latest
+  script:
+    - echo "$GCP_SERVICE_KEY" > ${CI_PROJECT_DIR}/gcp-key.json
+    - gcloud auth activate-service-account --key-file=${CI_PROJECT_DIR}/gcp-key.json
+    - gcloud config set project tiffin-wale
+    - gcloud -q app deploy dispatch.yaml --quiet
+  needs:
+    - deploy_backend
+    - deploy_official_web
+    - deploy_mobile_app
+    - deploy_partner_app
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - dispatch.yaml
+
+# Cache configuration to speed up builds
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - node_modules/
+    - monolith_backend/node_modules/
+    - interface/OfficialWeb/node_modules/
+    - interface/student-app/node_modules/
+    - interface/partner-app/node_modules/
+    - .npm/

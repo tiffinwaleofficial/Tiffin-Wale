@@ -1,0 +1,38 @@
+User-agent: *
+Allow: /
+Sitemap: https://tiffinwale.in/sitemap.xml
+
+# Allow all search engines to crawl all content
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+# Disallow access to specific file types
+User-agent: *
+Disallow: /*.json$
+Disallow: /*.xml$
+Disallow: /*.js$
+Disallow: /*.css$
+Disallow: /*.php$
+Disallow: /*.md$
+Disallow: /*.yml$
+Disallow: /*.yaml$
+Disallow: /*.svg$
+Disallow: /*.txt$
+
+# Allow sitemap explicitly
+Allow: /sitemap.xml

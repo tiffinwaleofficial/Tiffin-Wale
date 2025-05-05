@@ -1,0 +1,202 @@
+/* stylelint-disable */
+/* This file uses Tailwind CSS directives which are processed during build */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Add smooth scrolling behavior for all elements */
+html {
+  scroll-behavior: smooth;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 28 100% 63%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 28 100% 63%;
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'Open Sans', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Montserrat', sans-serif;
+  }
+}
+
+/* Custom Classes */
+.nav-link {
+  @apply relative;
+}
+
+.nav-link::after {
+  content: '';
+  @apply absolute block w-0 h-0.5 bg-primary transition-all duration-300 left-0 bottom-0;
+}
+
+.nav-link:hover::after {
+  @apply w-full;
+}
+
+.feature-card {
+  @apply transition-all duration-300;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+}
+
+.testimonial-card {
+  @apply transition-all duration-300;
+}
+
+.testimonial-card:hover {
+  transform: translateY(-5px);
+}
+
+.app-cta-btn {
+  @apply transition-all duration-300;
+}
+
+.app-cta-btn:hover {
+  transform: scale(1.03);
+}
+
+/* Container spacing for better responsive layout */
+@layer components {
+  .container {
+    @apply px-6 sm:px-10 md:px-16 lg:px-20 mx-auto;
+    max-width: 1440px;
+  }
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse 2s infinite ease-in-out;
+}
+
+.hover-float {
+  transition: transform 0.3s ease;
+}
+
+.hover-float:hover {
+  transform: translateY(-8px);
+}
+
+/* Accessibility Enhancement - Contrast Ratio Helper Classes */
+.a11y-text-primary {
+  /* Ensures text is dark enough when on light backgrounds */
+  color: #d35400 !important; /* Darker shade of primary orange that maintains brand identity but has better contrast */
+}
+
+.a11y-text-contrast {
+  /* For any text that needs improved contrast */
+  color: #333333 !important;
+}
+
+.a11y-bg-primary {
+  /* Ensures backgrounds have enough contrast with text */
+  background-color: #d35400 !important;
+}
+
+.a11y-focus-outline:focus {
+  /* Visible focus outline for keyboard navigation without changing normal appearance */
+  outline: 3px solid #d35400;
+  outline-offset: 2px;
+}
+
+/* Visually hidden but accessible to screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Loading animations */
+@keyframes bounce {
+  0%, 80%, 100% { 
+    transform: scale(0);
+  }
+  40% { 
+    transform: scale(1);
+  }
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}

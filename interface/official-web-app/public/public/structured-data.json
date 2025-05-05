@@ -1,0 +1,151 @@
+[
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "TiffinWale",
+    "url": "https://tiffinwale.in",
+    "logo": "https://tiffinwale.in/logo.png",
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "telephone": "+91-1234567890",
+      "contactType": "customer service",
+      "availableLanguage": ["English", "Hindi"]
+    },
+    "sameAs": [
+      "https://www.facebook.com/tiffinwale",
+      "https://www.instagram.com/tiffinwale",
+      "https://twitter.com/tiffinwale"
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "FoodService",
+    "name": "TiffinWale Meal Delivery Service",
+    "image": "https://tiffinwale.in/meal-service.jpg",
+    "url": "https://tiffinwale.in",
+    "telephone": "+91-1234567890",
+    "priceRange": "₹₹",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "123 Main Street",
+      "addressLocality": "Bangalore",
+      "addressRegion": "Karnataka",
+      "postalCode": "560001",
+      "addressCountry": "IN"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 12.9716,
+      "longitude": 77.5946
+    },
+    "servesCuisine": ["Indian", "Home-cooked"],
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+        "opens": "08:00",
+        "closes": "20:00"
+      }
+    ],
+    "offers": {
+      "@type": "AggregateOffer",
+      "priceCurrency": "INR",
+      "lowPrice": "3999",
+      "highPrice": "7999",
+      "offerCount": "3"
+    }
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "TiffinWale",
+    "url": "https://tiffinwale.in",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://tiffinwale.in/search?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How does TiffinWale's meal delivery service work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Our meal delivery service works on a subscription basis. You choose your preferred meal plan (Basic, Standard, or Premium), set your dietary preferences, and we deliver fresh, home-cooked meals directly to your doorstep daily at your preferred time."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What areas do you deliver to?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "We currently deliver across major areas in Bangalore. You can check delivery availability in your area by entering your pincode on our website."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I customize my meals?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, all our plans come with customization options. You can set your dietary preferences (vegetarian, non-vegetarian), specify any allergies, and choose meal rotations. Our Premium plan offers full menu customization."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How are the meals packaged?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "We use eco-friendly, microwave-safe containers for all our meals. The packaging is designed to keep your food fresh and warm until delivery."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I skip deliveries when I'm away?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, you can pause or skip deliveries through your account dashboard. We request at least 24 hours notice for any delivery changes."
+        }
+      }
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://tiffinwale.in"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Pricing",
+        "item": "https://tiffinwale.in/pricing"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": "How It Works",
+        "item": "https://tiffinwale.in/how-it-works"
+      },
+      {
+        "@type": "ListItem",
+        "position": 4,
+        "name": "Testimonials",
+        "item": "https://tiffinwale.in/testimonials"
+      },
+      {
+        "@type": "ListItem",
+        "position": 5,
+        "name": "FAQ",
+        "item": "https://tiffinwale.in/faq"
+      }
+    ]
+  }
+]

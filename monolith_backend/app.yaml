@@ -1,0 +1,30 @@
+runtime: nodejs20
+service: default
+instance_class: F2
+
+# Add this entrypoint to use the production start command
+entrypoint: npm run start:prod
+
+env_variables:
+  MONGODB_URI: "mongodb+srv://SupremeRahul:OptimusPrime@clusternse.wpf8cel.mongodb.net/TiffinWale"
+  NODE_ENV: "production"
+  PORT: "8080"
+  API_PREFIX: "api"
+  APP_NAME: "TiffinWale"
+  JWT_SECRET: "your_jwt_secret_key_change_in_production"
+
+# Setup to ensure proper building and startup
+automatic_scaling:
+  min_instances: 1
+  max_instances: 10
+  target_cpu_utilization: 0.65
+  min_pending_latency: 30ms
+  max_pending_latency: automatic
+  max_concurrent_requests: 50
+
+# Let App Engine handle the node.js setup
+handlers:
+  - url: /.*
+    secure: always
+    redirect_http_response_code: 301
+    script: auto 

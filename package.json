@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "tiffin-wale",
+  "version": "1.0.0",
+  "description": "TiffinMate - A comprehensive food delivery platform",
+  "private": true,
+  "scripts": {
+    "frontend": "cd interface/official-web-app && npm run dev",
+    "frontend:dev": "cd interface/official-web-app && npm run dev",
+    "frontend:build": "cd interface/official-web-app && npm run build",
+    "backend": "cd monolith_backend && npm start",
+    "backend:dev": "cd monolith_backend && npm run start:dev",
+    "backend:build": "cd monolith_backend && npm run build",
+    "mobile": "cd interface/student-app && npx expo start",
+    "mobile:dev": "cd interface/student-app && expo start",
+    "mobile:build:web": "cd interface/student-app && expo export --platform web",
+    "mobile:build:android": "cd interface/student-app && eas build -p android",
+    "mobile:build:ios": "cd interface/student-app && eas build -p ios",
+    "mobile:lint": "cd interface/student-app && expo lint",
+    "mobile:build:gcloud": "cd interface/student-app && npm run build:gcloud",
+    "mobile:deploy:gcloud": "cd interface/student-app && npm run deploy:gcloud",
+    "deploy:mobile": "cd interface/student-app && npm run build:gcloud && gcloud app deploy app.yaml",
+    "deploy:frontend": "cd interface/official-web-app && npm run build:gcloud && gcloud app deploy app.yaml",
+    "both": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "both:dev": "concurrently \"npm run backend:dev\" \"npm run frontend:dev\"",
+    "both:build": "concurrently \"npm run backend:build\" \"npm run frontend:build\"",
+    "all:dev": "concurrently \"npm run backend:dev\" \"npm run frontend:dev\" \"npm run mobile:dev\"",
+    "deploy:all": "npm run backend:build && cd monolith_backend && gcloud app deploy && cd ../interface/official-web-app && npm run build && gcloud app deploy && cd ../student-app && npm run deploy:gcloud && cd ../../ && gcloud app deploy dispatch.yaml",
+    "install:all": "npm install && cd monolith_backend && npm install && cd ../interface/official-web-app && npm install && cd ../student-app && npm install",
+    "install:backend": "cd monolith_backend && npm install",
+    "install:frontend": "cd interface/official-web-app && npm install",
+    "install:mobile": "cd interface/student-app && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+} 
