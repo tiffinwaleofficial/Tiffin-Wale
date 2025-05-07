@@ -27,6 +27,10 @@ dispatch:
   - url: "app.tiffin-wale.com/*"
     service: app
 
+  # Admin web application
+  - url: "admin.tiffin-wale.com/*"
+    service: super-admin-web
+
   # Partner app endpoints - Strict routing
   - url: "partner.tiffin-wale.com/*"
     service: partner-app
