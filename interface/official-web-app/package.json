@@ -13,10 +13,10 @@
     "check": "tsc",
     "db:push": "drizzle-kit push --force --config=./drizzle.config.ts",
     "db:seed": "tsx db/seed.ts",
-    "build:gcloud": "npm run build && npm run fix:images && xcopy /E /I /Y dist\\public .\\gcloud\\public && copy /Y app.yaml .\\gcloud\\",
-    "deploy:gcloud": "npm run build:gcloud && cd gcloud && gcloud app deploy app.yaml",
+    "build:gcloud": "pnpm run build && pnpm run fix:images && xcopy /E /I /Y dist\\public .\\gcloud\\public && copy /Y app.yaml .\\gcloud\\",
+    "deploy:gcloud": "pnpm run build:gcloud && cd gcloud && gcloud app deploy app.yaml",
     "fix:images": "node scripts/fix-missing-images.js",
-    "analyze": "cross-env ANALYZE=true npm run build",
+    "analyze": "cross-env ANALYZE=true pnpm run build",
     "build:optimized": "cross-env NODE_ENV=production vite build"
   },
   "dependencies": {

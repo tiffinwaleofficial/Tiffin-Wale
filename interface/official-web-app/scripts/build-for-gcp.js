@@ -6,8 +6,8 @@ import path from 'path';
 console.log('📦 Building application for Google Cloud Platform...');
 
 // Build frontend assets
-console.log('🔨 Building frontend assets...');
-execSync('npm run build', { stdio: 'inherit' });
+console.log('🔨 Building the application...');
+execSync('pnpm run build', { stdio: 'inherit' });
 
 // Create a production package.json
 console.log('📝 Creating production package.json...');

@@ -7,9 +7,9 @@
   "scripts": {
     "dev": "EXPO_NO_TELEMETRY=1 expo start",
     "build:web": "expo export --platform web",
-    "export:web": "expo export --platform web --output-dir web-build-temp && npx expo-pwa",
-    "build:gcloud": "npm run export:web && (if exist web-build rmdir /s /q web-build) && mkdir web-build && xcopy web-build-temp\\* web-build\\ /s /e /y && copy custom-fonts.css web-build\\ && node add-styles.js",
-    "deploy:gcloud": "npm run build:gcloud && gcloud app deploy --quiet",
+    "export:web": "expo export --platform web --output-dir web-build-temp && pnpm dlx expo-pwa",
+    "build:gcloud": "pnpm run export:web && (if exist web-build rmdir /s /q web-build) && mkdir web-build && xcopy web-build-temp\\* web-build\\ /s /e /y && copy custom-fonts.css web-build\\ && node add-styles.js",
+    "deploy:gcloud": "pnpm run build:gcloud && gcloud app deploy --quiet",
     "lint": "expo lint"
   },
   "dependencies": {

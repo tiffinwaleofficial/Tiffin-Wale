@@ -6,7 +6,7 @@ service: super-admin-web
 instance_class: F2
 
 # Add the entrypoint for Next.js
-entrypoint: npm start
+entrypoint: pnpm start
 
 env_variables:
   NODE_ENV: "production"

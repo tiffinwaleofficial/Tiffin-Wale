@@ -21,7 +21,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:menu": "node scripts/test-menu-api.js",
     "test:api": "jest --config ./tests/jest.config.js",
-    "gcp-build": "npm run build"
+    "gcp-build": "pnpm run build"
   },
   "dependencies": {
     "@nestjs/cli": "^10.0.0",

@@ -3,7 +3,7 @@ service: default
 instance_class: F2
 
 # Add this entrypoint to use the production start command
-entrypoint: npm run start:prod
+entrypoint: pnpm run start:prod
 
 env_variables:
   MONGODB_URI: "mongodb+srv://SupremeRahul:OptimusPrime@clusternse.wpf8cel.mongodb.net/TiffinWale"
