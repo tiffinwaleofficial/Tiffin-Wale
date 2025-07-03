@@ -26,6 +26,7 @@ import { UpdateOrderDto } from "./dto/update-order.dto";
 import { UpdateOrderStatusDto } from "./dto/update-order-status.dto";
 import { MarkOrderPaidDto } from "./dto/mark-order-paid.dto";
 import { AddOrderReviewDto } from "./dto/add-order-review.dto";
+import { GetCurrentUser } from "../../common/decorators/user.decorator";
 
 @ApiTags("orders")
 @Controller("orders")
@@ -88,6 +89,15 @@ export class OrderController {
   @ApiResponse({ status: 200, description: "Return partner orders" })
   findByPartner(@Param("partnerId") partnerId: string) {
     return this.orderService.findByPartner(partnerId);
+  }
+
+  @Get("customer")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get orders for current authenticated customer" })
+  @ApiResponse({ status: 200, description: "Return customer orders" })
+  getMyOrders(@GetCurrentUser("_id") userId: string) {
+    return this.orderService.findByCustomer(userId);
   }
 
   @Patch(":id")

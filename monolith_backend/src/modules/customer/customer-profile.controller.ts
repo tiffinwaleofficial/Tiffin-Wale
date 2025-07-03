@@ -30,6 +30,7 @@ import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { UserRole } from "../../common/interfaces/user.interface";
+import { GetCurrentUser } from "../../common/decorators/user.decorator";
 
 @ApiTags("customers")
 @Controller("customers")
@@ -227,5 +228,26 @@ export class CustomerProfileController {
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async getStatistics(): Promise<CustomerStatisticsDto> {
     return this.customerProfileService.getStatistics();
+  }
+
+  @Get("profile")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get current customer's profile" })
+  @ApiResponse({ status: 200, description: "Profile details returned successfully", type: CustomerProfileResponseDto })
+  getCurrentProfile(@GetCurrentUser("_id") userId: string): Promise<CustomerProfileResponseDto> {
+    return this.customerProfileService.findByUserId(userId);
+  }
+
+  @Patch("profile")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Update current customer's profile" })
+  @ApiResponse({ status: 200, description: "Profile updated successfully", type: CustomerProfileResponseDto })
+  updateCurrentProfile(
+    @GetCurrentUser("_id") userId: string,
+    @Body() updateProfileDto: UpdateCustomerProfileDto,
+  ): Promise<CustomerProfileResponseDto> {
+    return this.customerProfileService.update(userId, updateProfileDto);
   }
 }
