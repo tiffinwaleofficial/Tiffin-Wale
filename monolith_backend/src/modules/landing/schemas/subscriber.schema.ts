@@ -4,9 +4,9 @@ import { randomBytes } from "crypto";
 
 export type SubscriberDocument = Subscriber & Document;
 
-@Schema({ 
+@Schema({
   timestamps: true,
-  collection: 'subscribers'
+  collection: "subscribers",
 })
 export class Subscriber {
   @Prop({ required: true, unique: true })
@@ -28,9 +28,9 @@ export class Subscriber {
 
   @Prop({ default: "landing-page" })
   source: string;
-  
+
   createdAt: Date;
   updatedAt: Date;
 }
 
-export const SubscriberSchema = SchemaFactory.createForClass(Subscriber); 
+export const SubscriberSchema = SchemaFactory.createForClass(Subscriber);

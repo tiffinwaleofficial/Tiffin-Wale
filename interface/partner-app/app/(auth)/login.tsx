@@ -9,24 +9,39 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Eye, EyeOff, ArrowRight } from 'lucide-react-native';
+import { useAuthStore } from '../../store/authStore';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = () => {
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+  const { login, isLoading, error, clearError } = useAuthStore();
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
+      return;
+    }
+
+    try {
+      clearError();
+      await login(email, password);
+      
+      // Navigate to main app
       router.replace('/(tabs)');
-    }, 1500);
+    } catch (error: any) {
+      Alert.alert(
+        'Login Failed',
+        error.response?.data?.message || 'Invalid email or password. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   return (

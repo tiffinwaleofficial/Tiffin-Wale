@@ -6,7 +6,7 @@ export type FeedbackDocument = Feedback & Document;
 
 @Schema({ timestamps: true })
 export class Feedback {
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User' })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: "User" })
   user?: string;
 
   @Prop({ required: true, enum: Object.values(FeedbackType) })
@@ -49,9 +49,9 @@ export class Feedback {
 
   @Prop()
   resolvedAt?: Date;
-  
+
   createdAt: Date;
   updatedAt: Date;
 }
 
-export const FeedbackSchema = SchemaFactory.createForClass(Feedback); 
+export const FeedbackSchema = SchemaFactory.createForClass(Feedback);

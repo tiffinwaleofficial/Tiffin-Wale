@@ -110,4 +110,4 @@ export class Meal extends Document {
   updatedAt: Date;
 }
 
-export const MealSchema = SchemaFactory.createForClass(Meal); 
+export const MealSchema = SchemaFactory.createForClass(Meal);

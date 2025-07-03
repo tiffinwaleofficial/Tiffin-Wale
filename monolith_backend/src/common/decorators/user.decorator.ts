@@ -1,4 +1,4 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { createParamDecorator, ExecutionContext } from "@nestjs/common";
 
 /**
  * Custom decorator to extract the current authenticated user from the request.
@@ -23,4 +23,4 @@ export const GetCurrentUser = createParamDecorator(
     // Return the specified property if it exists
     return user && user[data] ? user[data] : null;
   },
-); 
+);

@@ -33,4 +33,4 @@ export class SystemController {
   async getVersion(): Promise<VersionDto> {
     return this.systemService.getVersion();
   }
-} 
+}

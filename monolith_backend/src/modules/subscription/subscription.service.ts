@@ -1,9 +1,16 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Subscription, SubscriptionStatus } from './schemas/subscription.schema';
-import { CreateSubscriptionDto } from './dto/create-subscription.dto';
-import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model } from "mongoose";
+import {
+  Subscription,
+  SubscriptionStatus,
+} from "./schemas/subscription.schema";
+import { CreateSubscriptionDto } from "./dto/create-subscription.dto";
+import { UpdateSubscriptionDto } from "./dto/update-subscription.dto";
 
 @Injectable()
 export class SubscriptionService {
@@ -12,46 +19,54 @@ export class SubscriptionService {
     private readonly subscriptionModel: Model<Subscription>,
   ) {}
 
-  async create(createSubscriptionDto: CreateSubscriptionDto): Promise<Subscription> {
+  async create(
+    createSubscriptionDto: CreateSubscriptionDto,
+  ): Promise<Subscription> {
     const newSubscription = new this.subscriptionModel(createSubscriptionDto);
     return newSubscription.save();
   }
 
   async findAll(): Promise<Subscription[]> {
-    return this.subscriptionModel.find()
-      .populate('customer')
-      .populate('plan')
+    return this.subscriptionModel
+      .find()
+      .populate("customer")
+      .populate("plan")
       .exec();
   }
 
   async findOne(id: string): Promise<Subscription> {
-    const subscription = await this.subscriptionModel.findById(id)
-      .populate('customer')
-      .populate('plan')
+    const subscription = await this.subscriptionModel
+      .findById(id)
+      .populate("customer")
+      .populate("plan")
       .exec();
-    
+
     if (!subscription) {
       throw new NotFoundException(`Subscription with ID ${id} not found`);
     }
-    
+
     return subscription;
   }
 
   async findByCustomer(customerId: string): Promise<Subscription[]> {
-    return this.subscriptionModel.find({ customer: customerId })
-      .populate('plan')
+    return this.subscriptionModel
+      .find({ customer: customerId })
+      .populate("plan")
       .exec();
   }
 
-  async update(id: string, updateSubscriptionDto: UpdateSubscriptionDto): Promise<Subscription> {
+  async update(
+    id: string,
+    updateSubscriptionDto: UpdateSubscriptionDto,
+  ): Promise<Subscription> {
     if (Object.keys(updateSubscriptionDto).length === 0) {
-      throw new BadRequestException('Update data cannot be empty');
+      throw new BadRequestException("Update data cannot be empty");
     }
 
     const subscription = await this.subscriptionModel
       .findByIdAndUpdate(id, updateSubscriptionDto, { new: true })
-      .populate('customer')
-      .populate('plan')
+      .populate("customer")
+      .populate("plan")
       .exec();
 
     if (!subscription) {
@@ -73,52 +88,52 @@ export class SubscriptionService {
 
   async cancelSubscription(id: string, reason: string): Promise<Subscription> {
     const subscription = await this.subscriptionModel.findById(id).exec();
-    
+
     if (!subscription) {
       throw new NotFoundException(`Subscription with ID ${id} not found`);
     }
-    
+
     if (subscription.status === SubscriptionStatus.CANCELLED) {
-      throw new BadRequestException('Subscription is already cancelled');
+      throw new BadRequestException("Subscription is already cancelled");
     }
-    
+
     subscription.status = SubscriptionStatus.CANCELLED;
     subscription.cancelledAt = new Date();
     subscription.cancellationReason = reason;
     subscription.autoRenew = false;
-    
+
     return subscription.save();
   }
 
   async pauseSubscription(id: string): Promise<Subscription> {
     const subscription = await this.subscriptionModel.findById(id).exec();
-    
+
     if (!subscription) {
       throw new NotFoundException(`Subscription with ID ${id} not found`);
     }
-    
+
     if (subscription.status === SubscriptionStatus.PAUSED) {
-      throw new BadRequestException('Subscription is already paused');
+      throw new BadRequestException("Subscription is already paused");
     }
-    
+
     subscription.status = SubscriptionStatus.PAUSED;
-    
+
     return subscription.save();
   }
 
   async resumeSubscription(id: string): Promise<Subscription> {
     const subscription = await this.subscriptionModel.findById(id).exec();
-    
+
     if (!subscription) {
       throw new NotFoundException(`Subscription with ID ${id} not found`);
     }
-    
+
     if (subscription.status !== SubscriptionStatus.PAUSED) {
-      throw new BadRequestException('Only paused subscriptions can be resumed');
+      throw new BadRequestException("Only paused subscriptions can be resumed");
     }
-    
+
     subscription.status = SubscriptionStatus.ACTIVE;
-    
+
     return subscription.save();
   }
-} 
+}

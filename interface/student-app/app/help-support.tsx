@@ -1,38 +1,87 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Linking, Alert } from 'react-native';
 import { ArrowLeft, MessageCircle, Phone, HelpCircle, ChevronRight } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
+import { useFeedbackStore } from '@/store/feedbackStore';
+
 export default function HelpSupportScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const { submitFeedback, isLoading, error, submitSuccess, clearError, clearSuccess } = useFeedbackStore();
 
   const supportEmail = 'support@tiffinwale.com';
   const supportPhone = '1800-123-4567';
+
+  const handleContactSupport = async (type: 'delivery' | 'food_quality' | 'account' | 'other', subject: string) => {
+    try {
+      await submitFeedback({
+        type: 'general',
+        subject: subject,
+        message: `User needs help with: ${type}`,
+        category: 'service'
+      });
+      
+      Alert.alert(
+        'Support Request Sent',
+        'Your support request has been sent. Our team will get back to you soon.',
+        [{ text: 'OK', onPress: () => clearSuccess() }]
+      );
+    } catch (err) {
+      Alert.alert(
+        'Error',
+        'Failed to send support request. Please try again.',
+        [{ text: 'OK', onPress: () => clearError() }]
+      );
+    }
+  };
 
   const helpCategories = [
     {
       title: 'Delivery Issues',
       description: 'Late deliveries, wrong location, etc.',
-      action: () => alert('Delivery issues help will be shown here'),
+      action: () => handleContactSupport('delivery', 'Delivery Issues'),
     },
     {
       title: 'Food Quality',
       description: 'Issues with food quality or packaging',
-      action: () => alert('Food quality help will be shown here'),
+      action: () => handleContactSupport('food_quality', 'Food Quality Issues'),
     },
     {
       title: 'Account & Payments',
       description: 'Subscription, payments, or account issues',
-      action: () => alert('Account and payments help will be shown here'),
+      action: () => handleContactSupport('account', 'Account & Payment Issues'),
     },
     {
       title: 'Other Issues',
       description: 'Any other concerns or feedback',
-      action: () => alert('Other issues help will be shown here'),
+      action: () => handleContactSupport('other', 'General Support Request'),
     },
   ];
+
+  const handleChatSupport = async () => {
+    try {
+      await submitFeedback({
+        type: 'general',
+        subject: 'Chat Support Request',
+        message: 'User requested chat support assistance',
+        category: 'service'
+      });
+      
+      Alert.alert(
+        'Chat Request Sent',
+        'Your chat support request has been received. We will connect you with an agent shortly.',
+        [{ text: 'OK', onPress: () => clearSuccess() }]
+      );
+    } catch (err) {
+      Alert.alert(
+        'Error',
+        'Failed to initiate chat support. Please try calling us instead.',
+        [{ text: 'OK', onPress: () => clearError() }]
+      );
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -64,8 +113,9 @@ export default function HelpSupportScreen() {
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.quickActionsContainer}>
             <TouchableOpacity 
-              style={styles.actionCard}
-              onPress={() => alert('Chat support will be shown here')}
+              style={[styles.actionCard, isLoading && styles.disabledCard]}
+              onPress={handleChatSupport}
+              disabled={isLoading}
             >
               <View style={[styles.iconCircle, { backgroundColor: '#E6F2FF' }]}>
                 <MessageCircle size={24} color="#3B82F6" />
@@ -104,8 +154,9 @@ export default function HelpSupportScreen() {
             {helpCategories.map((category, index) => (
               <TouchableOpacity 
                 key={index}
-                style={styles.categoryCard}
+                style={[styles.categoryCard, isLoading && styles.disabledCard]}
                 onPress={category.action}
+                disabled={isLoading}
               >
                 <View style={styles.categoryContent}>
                   <Text style={styles.categoryTitle}>{category.title}</Text>
@@ -304,5 +355,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Medium',
     fontSize: 16,
     color: '#333333',
+  },
+  disabledCard: {
+    backgroundColor: '#EEEEEE',
   },
 }); 

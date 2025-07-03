@@ -1,135 +1,247 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
-import { Check, ChevronRight } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { Check, Crown, Zap, Shield, RefreshCw } from 'lucide-react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 
-const SUBSCRIPTION_PLANS = [
-  {
-    id: 'basic',
-    name: 'Basic Plan',
-    price: 2999,
-    description: 'Perfect for students and individuals',
-    features: [
-      '2 meals per day',
-      'Basic menu rotation',
-      'Weekend delivery',
-    ],
-    inactiveFeatures: [
-      'Menu customization',
-      'Priority support',
-    ],
-    color: '#E3F2FD',
-    accentColor: '#1E88E5',
-  },
-  {
-    id: 'premium',
-    name: 'Premium Plan',
-    price: 3999,
-    description: 'Most popular choice for professionals',
-    features: [
-      '2 meals per day',
-      'Premium menu rotation',
-      'Weekend delivery',
-      'Basic menu customization',
-      'Priority support',
-    ],
-    popular: true,
-    color: '#FFF8EE',
-    accentColor: '#FF9B42',
-  },
-  {
-    id: 'family',
-    name: 'Family Plan',
-    price: 7999,
-    description: 'Ideal for families and small groups',
-    features: [
-      '3 meals per day',
-      'Premium menu rotation',
-      'Weekend delivery',
-      'Full menu customization',
-      '24/7 Priority support',
-    ],
-    color: '#E8F5E9',
-    accentColor: '#43A047',
-  },
-];
+import { useSubscriptionStore, SubscriptionPlan } from '@/store/subscriptionStore';
+import { useAuthStore } from '@/store/authStore';
 
 export default function PlansScreen() {
   const router = useRouter();
+  const { user } = useAuthStore();
+  const { 
+    activePlans, 
+    currentSubscription, 
+    isLoading, 
+    error, 
+    fetchActivePlans,
+    createSubscription 
+  } = useSubscriptionStore();
+  
+  const [refreshing, setRefreshing] = useState(false);
+  const [subscribingToPlan, setSubscribingToPlan] = useState<string | null>(null);
+
+  // Fetch plans on component mount
+  useEffect(() => {
+    fetchActivePlans();
+  }, [fetchActivePlans]);
+
+  // Pull to refresh handler
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchActivePlans();
+    } catch (error) {
+      console.error('Error refreshing plans:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleSubscribe = async (planId: string) => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
+    setSubscribingToPlan(planId);
+    try {
+      await createSubscription(planId);
+      // Navigate to success page or show success message
+      router.push('/(tabs)');
+    } catch (error) {
+      console.error('Error subscribing to plan:', error);
+      // Show error message to user
+    } finally {
+      setSubscribingToPlan(null);
+    }
+  };
+
+  const formatPrice = (price: number) => {
+    return `₹${price.toFixed(0)}`;
+  };
+
+  const getPlanIcon = (planName: string) => {
+    const name = planName.toLowerCase();
+    if (name.includes('premium') || name.includes('pro')) {
+      return <Crown size={24} color="#FF9B42" />;
+    } else if (name.includes('basic') || name.includes('starter')) {
+      return <Zap size={24} color="#4CAF50" />;
+    } else {
+      return <Shield size={24} color="#2196F3" />;
+    }
+  };
+
+  const isPlanActive = (planId: string) => {
+    return currentSubscription?.planId === planId && currentSubscription.status === 'active';
+  };
+
+  const renderPlanCard = (plan: SubscriptionPlan, index: number) => {
+    const isActive = isPlanActive(plan.id);
+    const isSubscribing = subscribingToPlan === plan.id;
+    
+    return (
+      <Animated.View
+        key={plan.id}
+        entering={FadeInDown.delay(index * 150).duration(400)}
+        style={[
+          styles.planCard,
+          isActive && styles.activePlanCard
+        ]}
+      >
+        <View style={styles.planHeader}>
+          <View style={styles.planTitleContainer}>
+            {getPlanIcon(plan.name)}
+            <Text style={styles.planName}>{plan.name}</Text>
+          </View>
+          {isActive && (
+            <View style={styles.activeLabel}>
+              <Text style={styles.activeLabelText}>Current Plan</Text>
+            </View>
+          )}
+        </View>
+
+        <Text style={styles.planDescription}>{plan.description}</Text>
+
+        <View style={styles.priceContainer}>
+          <Text style={styles.price}>{formatPrice(plan.price)}</Text>
+          <Text style={styles.pricePeriod}>/{plan.duration} days</Text>
+        </View>
+
+        {plan.features && plan.features.length > 0 && (
+          <View style={styles.featuresContainer}>
+            <Text style={styles.featuresTitle}>Features:</Text>
+            {plan.features.map((feature: string, idx: number) => (
+              <View key={idx} style={styles.featureItem}>
+                <Check size={16} color="#4CAF50" />
+                <Text style={styles.featureText}>{feature}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <TouchableOpacity
+          style={[
+            styles.subscribeButton,
+            isActive && styles.activeSubscribeButton,
+            isSubscribing && styles.loadingButton
+          ]}
+          onPress={() => !isActive && !isSubscribing && handleSubscribe(plan.id)}
+          disabled={isActive || isSubscribing}
+        >
+          {isSubscribing ? (
+            <RefreshCw size={16} color="#FFFFFF" />
+          ) : null}
+          <Text style={[
+            styles.subscribeButtonText,
+            isActive && styles.activeSubscribeButtonText
+          ]}>
+            {isSubscribing 
+              ? 'Subscribing...' 
+              : isActive 
+                ? 'Active Plan' 
+                : 'Subscribe Now'
+            }
+          </Text>
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  };
+
+  if (isLoading && !refreshing) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Subscription Plans</Text>
+        </View>
+        <View style={styles.centerContainer}>
+          <Text style={styles.loadingText}>Loading plans...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Subscription Plans</Text>
+        </View>
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity 
+            onPress={fetchActivePlans}
+            style={styles.retryButton}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <Animated.View entering={FadeIn.delay(100).duration(300)} style={styles.header}>
+      {/* Header */}
+      <View style={styles.header}>
         <Text style={styles.headerTitle}>Subscription Plans</Text>
-      </Animated.View>
+        <Text style={styles.headerSubtitle}>
+          Choose the perfect plan for your meal needs
+        </Text>
+      </View>
 
       <ScrollView 
-        style={styles.scrollView}
+        style={styles.content}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            colors={['#FF9B42']}
+            tintColor="#FF9B42"
+          />
+        }
       >
-        {SUBSCRIPTION_PLANS.map((plan, index) => (
-          <Animated.View 
-            key={plan.id}
-            entering={FadeInDown.delay(200 + (index * 100)).duration(400)}
-            style={[
-              styles.planCard,
-              { backgroundColor: plan.color }
-            ]}
-          >
-            {plan.popular && (
-              <View style={styles.popularBadge}>
-                <Text style={styles.popularText}>Most Popular</Text>
-              </View>
-            )}
-            
-            <View style={styles.planHeader}>
-              <Text style={styles.planName}>{plan.name}</Text>
-              <Text style={styles.planDescription}>{plan.description}</Text>
+        {activePlans.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Crown size={64} color="#CCCCCC" />
+            <Text style={styles.emptyTitle}>No plans available</Text>
+            <Text style={styles.emptyDescription}>
+              Check back later for available subscription plans
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.plansContainer}>
+            {activePlans.map((plan, index) => renderPlanCard(plan, index))}
+          </View>
+        )}
+
+        {/* Additional Info */}
+        <Animated.View 
+          entering={FadeInDown.delay(activePlans.length * 150 + 200).duration(400)}
+          style={styles.infoCard}
+        >
+          <Text style={styles.infoTitle}>Why Subscribe?</Text>
+          <View style={styles.infoList}>
+            <View style={styles.infoItem}>
+              <Check size={16} color="#4CAF50" />
+              <Text style={styles.infoText}>Regular, healthy meals delivered daily</Text>
             </View>
-
-            <View style={styles.priceContainer}>
-              <Text style={styles.currencySymbol}>₹</Text>
-              <Text style={styles.price}>{plan.price}</Text>
-              <Text style={styles.period}>/month</Text>
+            <View style={styles.infoItem}>
+              <Check size={16} color="#4CAF50" />
+              <Text style={styles.infoText}>Affordable pricing compared to ordering daily</Text>
             </View>
-
-            <View style={styles.featuresContainer}>
-              {plan.features.map((feature, idx) => (
-                <View key={idx} style={styles.featureRow}>
-                  <Check size={20} color={plan.accentColor} />
-                  <Text style={styles.featureText}>{feature}</Text>
-                </View>
-              ))}
-              
-              {plan.inactiveFeatures?.map((feature, idx) => (
-                <View key={idx} style={[styles.featureRow, styles.inactiveFeature]}>
-                  <Check size={20} color="#CCCCCC" />
-                  <Text style={styles.inactiveFeatureText}>{feature}</Text>
-                </View>
-              ))}
+            <View style={styles.infoItem}>
+              <Check size={16} color="#4CAF50" />
+              <Text style={styles.infoText}>Flexible pause and resume options</Text>
             </View>
-
-            <TouchableOpacity 
-              style={[styles.subscribeButton, { backgroundColor: plan.accentColor }]}
-              onPress={() => router.push('/subscription-checkout')}
-            >
-              <Text style={styles.subscribeButtonText}>Subscribe Now</Text>
-              <ChevronRight size={20} color="#FFFFFF" />
-            </TouchableOpacity>
-          </Animated.View>
-        ))}
-
-        <View style={styles.faqContainer}>
-          <Text style={styles.faqTitle}>Have questions?</Text>
-          <TouchableOpacity 
-            style={styles.faqButton}
-            onPress={() => router.push('/faq')}
-          >
-            <Text style={styles.faqButtonText}>Check our FAQ</Text>
-            <ChevronRight size={20} color="#FF9B42" />
-          </TouchableOpacity>
-        </View>
+            <View style={styles.infoItem}>
+              <Check size={16} color="#4CAF50" />
+              <Text style={styles.infoText}>No cooking or meal planning required</Text>
+            </View>
+          </View>
+        </Animated.View>
       </ScrollView>
     </View>
   );
@@ -141,139 +253,210 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFAF0',
   },
   header: {
-    paddingTop: 60,
     paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingTop: 60,
+    paddingBottom: 20,
     backgroundColor: '#FFFAF0',
   },
   headerTitle: {
-    fontFamily: 'Poppins-Bold',
     fontSize: 24,
-    color: '#333333',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 100,
-  },
-  planCard: {
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 20,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  popularBadge: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    backgroundColor: '#FF9B42',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-  },
-  popularText: {
-    fontFamily: 'Poppins-Medium',
-    fontSize: 12,
-    color: '#FFFFFF',
-  },
-  planHeader: {
-    marginBottom: 16,
-  },
-  planName: {
-    fontFamily: 'Poppins-Bold',
-    fontSize: 24,
+    fontWeight: '700',
     color: '#333333',
     marginBottom: 4,
   },
-  planDescription: {
-    fontFamily: 'Poppins-Regular',
+  headerSubtitle: {
     fontSize: 14,
     color: '#666666',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666666',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#F44336',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#FF9B42',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333333',
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  emptyDescription: {
+    fontSize: 14,
+    color: '#666666',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  plansContainer: {
+    paddingBottom: 20,
+  },
+  planCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  activePlanCard: {
+    borderWidth: 2,
+    borderColor: '#FF9B42',
+  },
+  planHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  planTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  planName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#333333',
+  },
+  activeLabel: {
+    backgroundColor: '#E8F5E8',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  activeLabelText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#4CAF50',
+    textTransform: 'uppercase',
+  },
+  planDescription: {
+    fontSize: 14,
+    color: '#666666',
+    lineHeight: 20,
+    marginBottom: 16,
   },
   priceContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginBottom: 24,
-  },
-  currencySymbol: {
-    fontFamily: 'Poppins-Medium',
-    fontSize: 24,
-    color: '#333333',
-    marginBottom: 4,
+    alignItems: 'baseline',
+    marginBottom: 16,
   },
   price: {
-    fontFamily: 'Poppins-Bold',
-    fontSize: 36,
-    color: '#333333',
-    marginRight: 4,
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#FF9B42',
   },
-  period: {
-    fontFamily: 'Poppins-Regular',
+  pricePeriod: {
     fontSize: 16,
     color: '#666666',
-    marginBottom: 8,
+    marginLeft: 4,
   },
   featuresContainer: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  featureRow: {
+  featuresTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333333',
+    marginBottom: 8,
+  },
+  featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    gap: 8,
+    marginBottom: 6,
   },
   featureText: {
-    fontFamily: 'Poppins-Regular',
     fontSize: 14,
-    color: '#333333',
-    marginLeft: 12,
-  },
-  inactiveFeature: {
-    opacity: 0.5,
-  },
-  inactiveFeatureText: {
-    fontFamily: 'Poppins-Regular',
-    fontSize: 14,
-    color: '#999999',
-    marginLeft: 12,
+    color: '#666666',
+    flex: 1,
   },
   subscribeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
+    backgroundColor: '#FF9B42',
     borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  activeSubscribeButton: {
+    backgroundColor: '#E8E8E8',
+  },
+  loadingButton: {
+    opacity: 0.7,
   },
   subscribeButtonText: {
-    fontFamily: 'Poppins-SemiBold',
-    fontSize: 16,
     color: '#FFFFFF',
-    marginRight: 8,
-  },
-  faqContainer: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  faqTitle: {
-    fontFamily: 'Poppins-Medium',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  activeSubscribeButtonText: {
+    color: '#666666',
+  },
+  infoCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  infoTitle: {
+    fontSize: 18,
+    fontWeight: '700',
     color: '#333333',
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  faqButton: {
+  infoList: {
+    gap: 12,
+  },
+  infoItem: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF8EE',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
+    alignItems: 'flex-start',
+    gap: 8,
   },
-  faqButtonText: {
-    fontFamily: 'Poppins-Medium',
+  infoText: {
     fontSize: 14,
-    color: '#FF9B42',
-    marginRight: 8,
+    color: '#666666',
+    flex: 1,
+    lineHeight: 20,
   },
 });

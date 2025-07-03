@@ -1,50 +1,50 @@
-import { IsString, IsEmail, IsOptional, IsNotEmpty } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsString, IsEmail, IsOptional, IsNotEmpty } from "class-validator";
+import { ApiProperty } from "@nestjs/swagger";
 
 export class CreateCorporateQuoteDto {
   @ApiProperty({
-    description: 'Company name',
-    example: 'Acme Corporation',
+    description: "Company name",
+    example: "Acme Corporation",
   })
   @IsNotEmpty()
   @IsString()
   companyName: string;
 
   @ApiProperty({
-    description: 'Contact person full name',
-    example: 'John Doe',
+    description: "Contact person full name",
+    example: "John Doe",
   })
   @IsNotEmpty()
   @IsString()
   contactPerson: string;
 
   @ApiProperty({
-    description: 'Contact email address',
-    example: 'john.doe@acme.com',
+    description: "Contact email address",
+    example: "john.doe@acme.com",
   })
   @IsNotEmpty()
   @IsEmail()
   email: string;
 
   @ApiProperty({
-    description: 'Contact phone number',
-    example: '+91 9876543210',
+    description: "Contact phone number",
+    example: "+91 9876543210",
   })
   @IsNotEmpty()
   @IsString()
   phone: string;
 
   @ApiProperty({
-    description: 'Number of employees',
-    example: '21-50',
+    description: "Number of employees",
+    example: "21-50",
   })
   @IsNotEmpty()
   @IsString()
   employeeCount: string;
 
   @ApiProperty({
-    description: 'Additional requirements',
-    example: 'We need vegetarian options for 30% of our employees',
+    description: "Additional requirements",
+    example: "We need vegetarian options for 30% of our employees",
     required: false,
   })
   @IsOptional()
@@ -82,4 +82,4 @@ export class CorporateQuoteResponseDto {
 
   @ApiProperty({ required: false })
   updatedAt?: Date;
-} 
+}

@@ -5,7 +5,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "EXPO_NO_TELEMETRY=1 expo start",
+    "dev": "EXPO_NO_TELEMETRY=1 expo start --clear",
+    "check:env": "tsx scripts/check-env.ts",
     "build:web": "expo export --platform web",
     "export:web": "expo export --platform web --output-dir web-build-temp && pnpm dlx expo-pwa",
     "build:gcloud": "pnpm run export:web && (if exist web-build rmdir /s /q web-build) && mkdir web-build && xcopy web-build-temp\\* web-build\\ /s /e /y && copy custom-fonts.css web-build\\ && node add-styles.js",
@@ -16,14 +17,17 @@
     "@expo-google-fonts/poppins": "^0.2.3",
     "@expo/vector-icons": "^14.0.0",
     "@lucide/lab": "^0.1.2",
+    "@react-native-async-storage/async-storage": "^1.19.3",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
+    "axios": "^1.6.0",
     "expo": "^53.0.7",
     "expo-blur": "^14.0.3",
     "expo-camera": "^16.0.18",
     "expo-constants": "^17.0.5",
     "expo-font": "^13.0.3",
     "expo-haptics": "^14.0.1",
+    "expo-image-picker": "^15.1.0",
     "expo-linear-gradient": "^14.0.2",
     "expo-linking": "^7.0.5",
     "expo-pwa": "^0.0.127",
@@ -45,11 +49,14 @@
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "^0.19.13",
     "react-native-webview": "13.12.5",
-    "serve": "^14.2.4"
+    "serve": "^14.2.4",
+    "zustand": "^4.4.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~18.3.12",
+    "dotenv": "^16.4.5",
+    "tsx": "^4.19.1",
     "typescript": "^5.3.3"
   }
 }

@@ -1,2 +1,2 @@
-export * from './contact.schema';
-export * from './subscriber.schema'; 
+export * from "./contact.schema";
+export * from "./subscriber.schema";

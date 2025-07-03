@@ -1,5 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Length, Max, Min } from "class-validator";
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Length,
+  Max,
+  Min,
+} from "class-validator";
 
 enum FeedbackType {
   GENERAL = "general",
@@ -37,11 +46,14 @@ export class CreateFeedbackDto {
 
   @ApiProperty({
     description: "Detailed feedback message",
-    example: "It would be great if we could subscribe to weekly meal plans at a discounted rate.",
+    example:
+      "It would be great if we could subscribe to weekly meal plans at a discounted rate.",
   })
   @IsNotEmpty({ message: "Message is required" })
   @IsString()
-  @Length(10, 2000, { message: "Message must be between 10 and 2000 characters" })
+  @Length(10, 2000, {
+    message: "Message must be between 10 and 2000 characters",
+  })
   message: string;
 
   @ApiProperty({
@@ -112,7 +124,8 @@ export class FeedbackResponseDto {
 
   @ApiProperty({
     description: "Detailed feedback message",
-    example: "It would be great if we could subscribe to weekly meal plans at a discounted rate.",
+    example:
+      "It would be great if we could subscribe to weekly meal plans at a discounted rate.",
   })
   message: string;
 
@@ -179,4 +192,4 @@ export class FeedbackResponseDto {
 }
 
 // Export enums for reuse
-export { FeedbackType, FeedbackCategory }; 
+export { FeedbackType, FeedbackCategory };

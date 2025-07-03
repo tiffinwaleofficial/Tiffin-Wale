@@ -8,9 +8,7 @@ import { UserModule } from "../user/user.module";
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: Meal.name, schema: MealSchema },
-    ]),
+    MongooseModule.forFeature([{ name: Meal.name, schema: MealSchema }]),
     MenuModule,
     UserModule,
   ],
@@ -18,4 +16,4 @@ import { UserModule } from "../user/user.module";
   providers: [MealService],
   exports: [MealService],
 })
-export class MealModule {} 
+export class MealModule {}

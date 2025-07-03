@@ -2,20 +2,26 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { PaymentMethod } from "./schemas/payment-method.schema";
-import { CreatePaymentMethodDto, UpdatePaymentMethodDto } from "./dtos/payment-method.dto";
+import {
+  CreatePaymentMethodDto,
+  UpdatePaymentMethodDto,
+} from "./dtos/payment-method.dto";
 
 @Injectable()
 export class PaymentService {
   constructor(
-    @InjectModel(PaymentMethod.name) private paymentMethodModel: Model<PaymentMethod>,
+    @InjectModel(PaymentMethod.name)
+    private paymentMethodModel: Model<PaymentMethod>,
   ) {}
 
-  async createPaymentMethod(createPaymentMethodDto: CreatePaymentMethodDto): Promise<PaymentMethod> {
+  async createPaymentMethod(
+    createPaymentMethodDto: CreatePaymentMethodDto,
+  ): Promise<PaymentMethod> {
     // If this is set as default, unset any existing default for this customer
     if (createPaymentMethodDto.isDefault) {
       await this.paymentMethodModel.updateMany(
         { customerId: createPaymentMethodDto.customerId },
-        { isDefault: false }
+        { isDefault: false },
       );
     }
 
@@ -23,7 +29,9 @@ export class PaymentService {
     return paymentMethod.save();
   }
 
-  async getCustomerPaymentMethods(customerId: string): Promise<PaymentMethod[]> {
+  async getCustomerPaymentMethods(
+    customerId: string,
+  ): Promise<PaymentMethod[]> {
     return this.paymentMethodModel.find({ customerId, isValid: true }).exec();
   }
 
@@ -35,24 +43,27 @@ export class PaymentService {
     return paymentMethod;
   }
 
-  async updatePaymentMethod(id: string, updatePaymentMethodDto: UpdatePaymentMethodDto): Promise<PaymentMethod> {
+  async updatePaymentMethod(
+    id: string,
+    updatePaymentMethodDto: UpdatePaymentMethodDto,
+  ): Promise<PaymentMethod> {
     // If setting as default, unset any existing default for this customer
     if (updatePaymentMethodDto.isDefault) {
       const paymentMethod = await this.getPaymentMethodById(id);
       await this.paymentMethodModel.updateMany(
         { customerId: paymentMethod.customerId, _id: { $ne: id } },
-        { isDefault: false }
+        { isDefault: false },
       );
     }
 
     const updatedPaymentMethod = await this.paymentMethodModel
       .findByIdAndUpdate(id, updatePaymentMethodDto, { new: true })
       .exec();
-    
+
     if (!updatedPaymentMethod) {
       throw new NotFoundException(`Payment method with ID "${id}" not found`);
     }
-    
+
     return updatedPaymentMethod;
   }
 
@@ -65,13 +76,13 @@ export class PaymentService {
 
   async setDefaultPaymentMethod(id: string): Promise<PaymentMethod> {
     const paymentMethod = await this.getPaymentMethodById(id);
-    
+
     // Unset any existing default payment methods for this customer
     await this.paymentMethodModel.updateMany(
       { customerId: paymentMethod.customerId, _id: { $ne: id } },
-      { isDefault: false }
+      { isDefault: false },
     );
-    
+
     // Set this payment method as default
     return this.updatePaymentMethod(id, { isDefault: true });
   }

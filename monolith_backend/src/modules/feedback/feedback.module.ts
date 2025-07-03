@@ -14,4 +14,4 @@ import { Feedback, FeedbackSchema } from "./schemas";
   providers: [FeedbackService],
   exports: [FeedbackService],
 })
-export class FeedbackModule {} 
+export class FeedbackModule {}

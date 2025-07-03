@@ -30,4 +30,4 @@ export class HealthCheckDto {
     example: "Server is healthy",
   })
   message: string;
-} 
+}

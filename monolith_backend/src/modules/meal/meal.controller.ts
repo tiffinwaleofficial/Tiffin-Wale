@@ -48,7 +48,10 @@ export class MealController {
   })
   @ApiResponse({ status: 400, description: "Bad Request" })
   @ApiResponse({ status: 401, description: "Unauthorized" })
-  @ApiResponse({ status: 403, description: "Forbidden - Insufficient permissions" })
+  @ApiResponse({
+    status: 403,
+    description: "Forbidden - Insufficient permissions",
+  })
   create(@Body() createMealDto: CreateMealDto): Promise<MealResponseDto> {
     return this.mealService.create(createMealDto);
   }
@@ -64,7 +67,10 @@ export class MealController {
     type: [MealResponseDto],
   })
   @ApiResponse({ status: 401, description: "Unauthorized" })
-  @ApiResponse({ status: 403, description: "Forbidden - Insufficient permissions" })
+  @ApiResponse({
+    status: 403,
+    description: "Forbidden - Insufficient permissions",
+  })
   findAll(): Promise<MealResponseDto[]> {
     return this.mealService.findAll();
   }
@@ -117,7 +123,10 @@ export class MealController {
     type: [MealResponseDto],
   })
   @ApiResponse({ status: 401, description: "Unauthorized" })
-  @ApiResponse({ status: 403, description: "Forbidden - Insufficient permissions" })
+  @ApiResponse({
+    status: 403,
+    description: "Forbidden - Insufficient permissions",
+  })
   findByCustomer(
     @Param("customerId") customerId: string,
   ): Promise<MealResponseDto[]> {
@@ -160,7 +169,10 @@ export class MealController {
     type: MealResponseDto,
   })
   @ApiResponse({ status: 401, description: "Unauthorized" })
-  @ApiResponse({ status: 403, description: "Forbidden - Insufficient permissions" })
+  @ApiResponse({
+    status: 403,
+    description: "Forbidden - Insufficient permissions",
+  })
   @ApiResponse({ status: 404, description: "Meal not found" })
   update(
     @Param("id") id: string,
@@ -197,7 +209,10 @@ export class MealController {
     type: MealResponseDto,
   })
   @ApiResponse({ status: 401, description: "Unauthorized" })
-  @ApiResponse({ status: 403, description: "Forbidden - Insufficient permissions" })
+  @ApiResponse({
+    status: 403,
+    description: "Forbidden - Insufficient permissions",
+  })
   @ApiResponse({ status: 404, description: "Meal not found" })
   updateStatus(
     @Param("id") id: string,
@@ -307,9 +322,12 @@ export class MealController {
     },
   })
   @ApiResponse({ status: 401, description: "Unauthorized" })
-  @ApiResponse({ status: 403, description: "Forbidden - Insufficient permissions" })
+  @ApiResponse({
+    status: 403,
+    description: "Forbidden - Insufficient permissions",
+  })
   @ApiResponse({ status: 404, description: "Meal not found" })
   remove(@Param("id") id: string) {
     return this.mealService.delete(id);
   }
-} 
+}

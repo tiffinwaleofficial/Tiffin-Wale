@@ -34,7 +34,7 @@ export class Referral {
   })
   code: string;
 
-  @Prop({ 
+  @Prop({
     default: ReferralStatus.PENDING,
     enum: Object.values(ReferralStatus),
   })
@@ -82,7 +82,7 @@ export class Referral {
     },
   })
   expiresAt: Date;
-  
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -90,4 +90,4 @@ export class Referral {
 export const ReferralSchema = SchemaFactory.createForClass(Referral);
 
 // Export enum for reuse
-export { ReferralStatus }; 
+export { ReferralStatus };

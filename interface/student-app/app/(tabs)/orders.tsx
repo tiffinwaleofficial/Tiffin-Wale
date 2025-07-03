@@ -1,131 +1,309 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
-import { useAuthStore } from '@/store/authStore';
-import { useMealStore } from '@/store/mealStore';
-import Animated, { FadeIn } from 'react-native-reanimated';
-import { ArrowUpDown } from 'lucide-react-native';
-import { MealHistoryCard } from '@/components/MealHistoryCard';
-import { AdditionalOrderCard } from '@/components/AdditionalOrderCard';
-import { Meal, OrderAdditional } from '@/types';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { Calendar, Star, ChevronRight, Plus, ShoppingBag } from 'lucide-react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useRouter } from 'expo-router';
 
-type TabType = 'main' | 'additional';
-type SortOrder = 'newest' | 'oldest';
+import { useMealStore } from '@/store/mealStore';
+import { useAuthStore } from '@/store/authStore';
+
+import { AdditionalOrderCard } from '@/components/AdditionalOrderCard';
 
 export default function OrdersScreen() {
-  const { user } = useAuthStore();
-  const { meals, additionalOrders, fetchMeals, isLoading } = useMealStore();
-  const [activeTab, setActiveTab] = useState<TabType>('main');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
+  const router = useRouter();
+  useAuthStore();
+  const { 
+    meals, 
+    additionalOrders, 
+    isLoading, 
+    error, 
+    fetchMeals 
+  } = useMealStore();
+  
+  const [activeTab, setActiveTab] = useState<'meals' | 'additional'>('meals');
   const [refreshing, setRefreshing] = useState(false);
 
+  // Fetch data on component mount
   useEffect(() => {
     fetchMeals();
-  }, []);
+  }, [fetchMeals]);
 
+  // Pull to refresh handler
   const onRefresh = async () => {
     setRefreshing(true);
+    try {
     await fetchMeals();
+    } catch (error) {
+      console.error('Error refreshing orders:', error);
+    } finally {
     setRefreshing(false);
+    }
   };
 
-  const toggleSortOrder = () => {
-    setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest');
+
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffTime = now.getTime() - date.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 0) {
+        return 'Today';
+      } else if (diffDays === 1) {
+        return 'Yesterday';
+      } else if (diffDays < 7) {
+        return `${diffDays} days ago`;
+      } else {
+        return date.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric',
+          year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+        });
+      }
+    } catch {
+      return 'Invalid date';
+    }
   };
 
-  const sortedMeals = [...meals].sort((a, b) => {
-    const dateA = new Date(a.date).getTime();
-    const dateB = new Date(b.date).getTime();
-    return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
-  });
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'delivered': return '#4CAF50';
+      case 'preparing': return '#FF9B42';
+      case 'ready': return '#2196F3';
+      case 'scheduled': return '#9E9E9E';
+      case 'cancelled': return '#F44336';
+      case 'skipped': return '#FF9800';
+      default: return '#9E9E9E';
+    }
+  };
 
-  const sortedAdditionalOrders = [...additionalOrders].sort((a, b) => {
-    const dateA = new Date(a.date).getTime();
-    const dateB = new Date(b.date).getTime();
-    return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
-  });
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'delivered': return 'Delivered';
+      case 'preparing': return 'Preparing';
+      case 'ready': return 'Ready';
+      case 'scheduled': return 'Scheduled';
+      case 'cancelled': return 'Cancelled';
+      case 'skipped': return 'Skipped';
+      default: return status;
+    }
+  };
 
-  const renderMealItem = ({ item, index }: { item: Meal; index: number }) => (
-    <MealHistoryCard meal={item} index={index} />
+  // Filter and sort meals by date (newest first)
+  const sortedMeals = [...meals].sort((a, b) => 
+    new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
-  const renderAdditionalOrderItem = ({ item, index }: { item: OrderAdditional; index: number }) => (
-    <AdditionalOrderCard order={item} index={index} />
+  // Filter and sort additional orders by date (newest first)
+  const sortedAdditionalOrders = [...additionalOrders].sort((a, b) => 
+    new Date(b.date).getTime() - new Date(a.date).getTime()
   );
+
+  const renderContent = () => {
+    if (isLoading && !refreshing) {
+      return (
+        <View style={styles.centerContainer}>
+          <Text style={styles.loadingText}>Loading orders...</Text>
+        </View>
+      );
+    }
+
+    if (error) {
+      return (
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity 
+            onPress={fetchMeals}
+            style={styles.retryButton}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    if (activeTab === 'meals') {
+      if (sortedMeals.length === 0) {
+        return (
+          <View style={styles.emptyContainer}>
+            <Calendar size={64} color="#CCCCCC" />
+            <Text style={styles.emptyTitle}>No meals yet</Text>
+            <Text style={styles.emptyDescription}>
+              Your meal history will appear here once you start your subscription
+            </Text>
+            <TouchableOpacity 
+              onPress={() => router.push('/plans')}
+              style={styles.exploreButton}
+            >
+              <Text style={styles.exploreButtonText}>Explore Plans</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      }
+
+      return (
+        <View style={styles.listContainer}>
+          {sortedMeals.map((meal, index) => (
+            <Animated.View 
+              key={meal.id} 
+              entering={FadeInDown.delay(index * 100).duration(400)}
+            >
+              <TouchableOpacity
+                style={styles.mealCard}
+                onPress={() => router.push(`/track?id=${meal.id}`)}
+              >
+                <View style={styles.mealHeader}>
+                  <View style={styles.mealHeaderLeft}>
+                    <Text style={styles.mealType}>
+                      {meal.type.charAt(0).toUpperCase() + meal.type.slice(1)}
+                    </Text>
+                    <Text style={styles.mealDate}>
+                      {formatDate(meal.date)}
+                    </Text>
+                  </View>
+                  <View style={[
+                    styles.statusBadge,
+                    { backgroundColor: getStatusColor(meal.status) }
+                  ]}>
+                    <Text style={styles.statusText}>
+                      {getStatusText(meal.status)}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.mealContent}>
+                  <Text style={styles.mealName}>
+                    {meal.menu?.[0]?.name || 'Meal'}
+                  </Text>
+                  <Text style={styles.restaurantName}>
+                    {meal.restaurantName}
+                  </Text>
+                  {meal.menu?.[0]?.description && (
+                    <Text style={styles.mealDescription}>
+                      {meal.menu[0].description}
+                    </Text>
+                  )}
+                </View>
+
+                <View style={styles.mealFooter}>
+                  {meal.status === 'delivered' && (
+                    <TouchableOpacity
+                      style={styles.rateButton}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        // Navigate to rating screen or show rating modal
+                        router.push(`/rate-meal?id=${meal.id}` as never);
+                      }}
+                    >
+                      <Star size={16} color="#FF9B42" />
+                      <Text style={styles.rateButtonText}>
+                        {meal.userRating ? 'Update Rating' : 'Rate Meal'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  <ChevronRight size={20} color="#CCCCCC" />
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
+          ))}
+        </View>
+      );
+    } else {
+      if (sortedAdditionalOrders.length === 0) {
+        return (
+          <View style={styles.emptyContainer}>
+            <ShoppingBag size={64} color="#CCCCCC" />
+            <Text style={styles.emptyTitle}>No additional orders</Text>
+            <Text style={styles.emptyDescription}>
+              Extra items you order will appear here
+            </Text>
+          </View>
+        );
+      }
+
+      return (
+        <View style={styles.listContainer}>
+          {sortedAdditionalOrders.map((order, index) => (
+            <Animated.View 
+              key={order.id} 
+              entering={FadeInDown.delay(index * 100).duration(400)}
+            >
+              <AdditionalOrderCard 
+                order={order}
+                index={index}
+              />
+            </Animated.View>
+          ))}
+        </View>
+      );
+    }
+  };
 
   return (
     <View style={styles.container}>
-      <Animated.View entering={FadeIn.delay(100).duration(300)} style={styles.header}>
-        <Text style={styles.headerTitle}>Your Orders</Text>
-        <TouchableOpacity style={styles.sortButton} onPress={toggleSortOrder}>
-          <ArrowUpDown size={20} color="#333333" />
-          <Text style={styles.sortButtonText}>
-            {sortOrder === 'newest' ? 'Newest First' : 'Oldest First'}
-          </Text>
-        </TouchableOpacity>
-      </Animated.View>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Order History</Text>
+      </View>
 
+      {/* Tab Navigation */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'main' && styles.activeTabButton]}
-          onPress={() => setActiveTab('main')}
+          style={[
+            styles.tab,
+            activeTab === 'meals' && styles.activeTab
+          ]}
+          onPress={() => setActiveTab('meals')}
         >
-          <Text
-            style={[styles.tabButtonText, activeTab === 'main' && styles.activeTabButtonText]}
-          >
-            Regular Meals
+          <Text style={[
+            styles.tabText,
+            activeTab === 'meals' && styles.activeTabText
+          ]}>
+            Meal History
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'additional' && styles.activeTabButton]}
+          style={[
+            styles.tab,
+            activeTab === 'additional' && styles.activeTab
+          ]}
           onPress={() => setActiveTab('additional')}
         >
-          <Text
-            style={[styles.tabButtonText, activeTab === 'additional' && styles.activeTabButtonText]}
-          >
-            Additional Items
+          <Text style={[
+            styles.tabText,
+            activeTab === 'additional' && styles.activeTabText
+          ]}>
+            Additional Orders
           </Text>
         </TouchableOpacity>
       </View>
 
-      {isLoading && !refreshing ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF9B42" />
-          <Text style={styles.loadingText}>Loading your orders...</Text>
-        </View>
-      ) : activeTab === 'main' ? (
-        <FlatList
-          data={sortedMeals}
-          renderItem={renderMealItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
+      {/* Content */}
+      <ScrollView 
+        style={styles.content}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF9B42']} />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyTitle}>No Meal Orders</Text>
-              <Text style={styles.emptyText}>Your regular meal orders will appear here</Text>
-            </View>
-          }
-        />
-      ) : (
-        <FlatList
-          data={sortedAdditionalOrders}
-          renderItem={renderAdditionalOrderItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF9B42']} />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyTitle}>No Additional Orders</Text>
-              <Text style={styles.emptyText}>Items you order separately will appear here</Text>
-            </View>
-          }
-        />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            colors={['#FF9B42']}
+            tintColor="#FF9B42"
+          />
+        }
+      >
+        {renderContent()}
+      </ScrollView>
+
+      {/* Add Order Button - Only show for additional orders tab */}
+      {activeTab === 'additional' && (
+        <TouchableOpacity 
+          style={styles.addButton}
+          onPress={() => router.push('/add-order' as never)}
+        >
+          <Plus size={24} color="#FFFFFF" />
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -137,87 +315,201 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFAF0',
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 60,
     paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingTop: 60,
+    paddingBottom: 20,
     backgroundColor: '#FFFAF0',
   },
   headerTitle: {
-    fontFamily: 'Poppins-Bold',
     fontSize: 24,
-    color: '#333333',
-  },
-  sortButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    gap: 6,
-  },
-  sortButtonText: {
-    fontFamily: 'Poppins-Medium',
-    fontSize: 12,
+    fontWeight: '700',
     color: '#333333',
   },
   tabContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 20,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    marginHorizontal: 20,
+    padding: 4,
   },
-  tabButton: {
+  tab: {
     flex: 1,
     paddingVertical: 12,
     alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: '#DDDDDD',
+    borderRadius: 8,
   },
-  activeTabButton: {
-    borderBottomColor: '#FF9B42',
+  activeTab: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  tabButtonText: {
-    fontFamily: 'Poppins-Medium',
+  tabText: {
     fontSize: 14,
-    color: '#999999',
+    fontWeight: '600',
+    color: '#666666',
   },
-  activeTabButtonText: {
-    color: '#FF9B42',
+  activeTabText: {
+    color: '#333333',
   },
-  listContent: {
-    padding: 20,
-    paddingBottom: 100,
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
   },
-  loadingContainer: {
+  centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    paddingVertical: 60,
   },
   loadingText: {
-    fontFamily: 'Poppins-Regular',
     fontSize: 16,
     color: '#666666',
-    marginTop: 12,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#F44336',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#FF9B42',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   emptyContainer: {
-    padding: 40,
-    alignItems: 'center',
+    flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
   },
   emptyTitle: {
-    fontFamily: 'Poppins-Medium',
-    fontSize: 18,
+    fontSize: 20,
+    fontWeight: '600',
     color: '#333333',
+    marginTop: 20,
     marginBottom: 8,
   },
-  emptyText: {
-    fontFamily: 'Poppins-Regular',
+  emptyDescription: {
     fontSize: 14,
     color: '#666666',
     textAlign: 'center',
+    marginBottom: 32,
+    paddingHorizontal: 20,
+  },
+  exploreButton: {
+    backgroundColor: '#FF9B42',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  exploreButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  listContainer: {
+    paddingBottom: 100,
+  },
+  mealCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  mealHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  mealHeaderLeft: {
+    flex: 1,
+  },
+  mealType: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333333',
+    marginBottom: 2,
+  },
+  mealDate: {
+    fontSize: 12,
+    color: '#666666',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+  },
+  mealContent: {
+    marginBottom: 12,
+  },
+  mealName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333333',
+    marginBottom: 4,
+  },
+  restaurantName: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 4,
+  },
+  mealDescription: {
+    fontSize: 12,
+    color: '#999999',
+    lineHeight: 16,
+  },
+  mealFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  rateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  rateButtonText: {
+    fontSize: 12,
+    color: '#FF9B42',
+    fontWeight: '600',
+  },
+  addButton: {
+    position: 'absolute',
+    bottom: 30,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FF9B42',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
 });

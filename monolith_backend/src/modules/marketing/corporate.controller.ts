@@ -1,5 +1,11 @@
 import { Controller, Post, Body, Get, UseGuards, Query } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth } from "@nestjs/swagger";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiBearerAuth,
+} from "@nestjs/swagger";
 import { MarketingService } from "./marketing.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
@@ -44,7 +50,14 @@ export class CorporateController {
     description: "Forbidden",
   })
   async getQuoteRequests(@Query() query: any) {
-    const { page = 1, limit = 10, status, search, sortBy = "createdAt", sortOrder = "desc" } = query;
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      search,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = query;
     return this.marketingService.getCorporateQuotes({
       page: parseInt(page),
       limit: parseInt(limit),
@@ -54,4 +67,4 @@ export class CorporateController {
       sortOrder,
     });
   }
-} 
+}

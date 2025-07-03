@@ -1,5 +1,11 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsArray, IsEmail, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import {
+  IsArray,
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from "class-validator";
 
 export class CreateSubscriberDto {
   @ApiProperty({
@@ -122,4 +128,4 @@ export class GetSubscribersResponseDto {
     example: 10,
   })
   limit: number;
-} 
+}

@@ -53,9 +53,11 @@ export interface Meal {
   type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   date: string;
   menu: MenuItem[];
-  status: 'scheduled' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
+  status: 'scheduled' | 'preparing' | 'ready' | 'delivered' | 'cancelled' | 'skipped';
   restaurantId: string;
   restaurantName: string;
+  userRating?: number;
+  userReview?: string;
 }
 
 export interface OrderAdditional {

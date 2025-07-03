@@ -11,6 +11,7 @@
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "start:static": "vite preview",
     "check": "tsc",
+    "check:env": "tsx scripts/check-env.ts",
     "db:push": "drizzle-kit push --force --config=./drizzle.config.ts",
     "db:seed": "tsx db/seed.ts",
     "build:gcloud": "pnpm run build && pnpm run fix:images && xcopy /E /I /Y dist\\public .\\gcloud\\public && copy /Y app.yaml .\\gcloud\\",
@@ -91,6 +92,7 @@
   "devDependencies": {
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@tailwindcss/typography": "^0.5.15",
+    "dotenv": "^16.4.5",
     "@types/connect-pg-simple": "^7.0.3",
     "@types/express": "4.17.21",
     "@types/express-session": "^1.18.0",

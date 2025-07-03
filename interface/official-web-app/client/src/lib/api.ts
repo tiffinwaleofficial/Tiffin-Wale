@@ -1,21 +1,14 @@
 // API utility functions for TiffinWale
+import { config } from '../../../config/environment';
 
-// Base URL for API requests
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://api.tiffin-wale.com/api'
-  : '/api';
-
-// For direct calls to the backend (if needed)
-const BACKEND_URL = {
-  production: 'https://api.tiffinwale.com',
-  development: 'http://localhost:3001'
-};
+// Get API base URL from our environment configuration
+const API_BASE_URL = config.apiBaseUrl;
 
 // Check if we're in a production environment
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = config.environment === 'production';
 
 // Log environment and configuration
-console.log(`Running in ${isProduction ? 'production' : 'development'} mode`);
+console.log(`Running in ${config.environment} mode`);
 console.log(`API requests will be sent to ${API_BASE_URL}`);
 
 // WebSocket connection
@@ -315,8 +308,8 @@ export const checkBackendHealth = async (): Promise<boolean> => {
 export const logApiConfig = () => {
   console.log('API Configuration:');
   console.log('- API_BASE_URL:', API_BASE_URL);
-  console.log('- NODE_ENV:', process.env.NODE_ENV);
-  console.log('- Environment:', isProduction ? 'Production' : 'Development');
+  console.log('- Environment:', config.environment);
+  console.log('- Source: .env file via Vite config');
   
   // Check backend connectivity
   checkBackendHealth().then(isReachable => {

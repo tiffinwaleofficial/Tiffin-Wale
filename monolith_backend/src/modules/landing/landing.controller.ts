@@ -1,12 +1,18 @@
 import { Controller, Post, Body, Get, UseGuards, Query } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth } from "@nestjs/swagger";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiBearerAuth,
+} from "@nestjs/swagger";
 import { LandingService } from "./landing.service";
-import { 
-  CreateContactDto, 
-  ContactResponseDto, 
-  CreateSubscriberDto, 
+import {
+  CreateContactDto,
+  ContactResponseDto,
+  CreateSubscriberDto,
   SubscriberResponseDto,
-  GetSubscribersResponseDto
+  GetSubscribersResponseDto,
 } from "./dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
@@ -34,7 +40,9 @@ export class LandingController {
     description: "Too many requests (rate limiting)",
   })
   @ApiBody({ type: CreateContactDto })
-  async submitContact(@Body() createContactDto: CreateContactDto): Promise<ContactResponseDto> {
+  async submitContact(
+    @Body() createContactDto: CreateContactDto,
+  ): Promise<ContactResponseDto> {
     return this.landingService.createContact(createContactDto);
   }
 
@@ -58,7 +66,9 @@ export class LandingController {
     description: "Too many requests (rate limiting)",
   })
   @ApiBody({ type: CreateSubscriberDto })
-  async subscribe(@Body() createSubscriberDto: CreateSubscriberDto): Promise<SubscriberResponseDto> {
+  async subscribe(
+    @Body() createSubscriberDto: CreateSubscriberDto,
+  ): Promise<SubscriberResponseDto> {
     return this.landingService.createSubscriber(createSubscriberDto);
   }
 
@@ -80,7 +90,14 @@ export class LandingController {
     description: "Forbidden",
   })
   async getContacts(@Query() query: any) {
-    const { page = 1, limit = 10, status, search, sortBy = "createdAt", sortOrder = "desc" } = query;
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      search,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = query;
     return this.landingService.getContacts({
       page: parseInt(page),
       limit: parseInt(limit),
@@ -99,7 +116,7 @@ export class LandingController {
   @ApiResponse({
     status: 200,
     description: "Subscribers list returned successfully",
-    type: GetSubscribersResponseDto
+    type: GetSubscribersResponseDto,
   })
   @ApiResponse({
     status: 401,
@@ -109,19 +126,22 @@ export class LandingController {
     status: 403,
     description: "Forbidden",
   })
-  async getSubscribers(@Query() query: any): Promise<GetSubscribersResponseDto> {
-    const { 
-      page = 1, 
-      limit = 10, 
-      isActive, 
-      search, 
-      sortBy = "createdAt", 
-      sortOrder = "desc" 
+  async getSubscribers(
+    @Query() query: any,
+  ): Promise<GetSubscribersResponseDto> {
+    const {
+      page = 1,
+      limit = 10,
+      isActive,
+      search,
+      sortBy = "createdAt",
+      sortOrder = "desc",
     } = query;
-    
+
     // Convert isActive to a boolean if it's a string
-    const isActiveBoolean = isActive === undefined ? undefined : isActive === 'true';
-    
+    const isActiveBoolean =
+      isActive === undefined ? undefined : isActive === "true";
+
     return this.landingService.getSubscribers({
       page: parseInt(page),
       limit: parseInt(limit),
@@ -131,4 +151,4 @@ export class LandingController {
       sortOrder,
     });
   }
-} 
+}

@@ -1,13 +1,31 @@
-import { Controller, Post, Get, Body, UseGuards, Query, ConflictException, Req, Param, Patch } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth, ApiParam } from "@nestjs/swagger";
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  UseGuards,
+  Query,
+  ConflictException,
+  Req,
+  Param,
+  Patch,
+} from "@nestjs/common";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiBearerAuth,
+  ApiParam,
+} from "@nestjs/swagger";
 import { MarketingService } from "./marketing.service";
-import { 
-  CreateReferralDto, 
-  ReferralResponseDto, 
-  CreateTestimonialDto, 
+import {
+  CreateReferralDto,
+  ReferralResponseDto,
+  CreateTestimonialDto,
   TestimonialResponseDto,
   GetTestimonialsResponseDto,
-  GetTestimonialsQueryDto
+  GetTestimonialsQueryDto,
 } from "./dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
@@ -71,19 +89,19 @@ export class MarketingController {
     description: "Forbidden",
   })
   async getReferrals(@Query() query: any) {
-    const { 
-      page = 1, 
-      limit = 10, 
-      status, 
+    const {
+      page = 1,
+      limit = 10,
+      status,
       utmSource,
       utmMedium,
       utmCampaign,
       startDate,
       endDate,
-      sortBy = "createdAt", 
-      sortOrder = "desc" 
+      sortBy = "createdAt",
+      sortOrder = "desc",
     } = query;
-    
+
     return this.marketingService.getReferrals({
       page: parseInt(page),
       limit: parseInt(limit),
@@ -120,7 +138,10 @@ export class MarketingController {
   ): Promise<TestimonialResponseDto> {
     // Get user ID if authenticated
     const userId = request.user?.id;
-    return this.marketingService.createTestimonial(createTestimonialDto, userId);
+    return this.marketingService.createTestimonial(
+      createTestimonialDto,
+      userId,
+    );
   }
 
   @Get("testimonials/public")
@@ -131,10 +152,10 @@ export class MarketingController {
   })
   async getPublicTestimonials(@Query() query: any) {
     const { limit = 6, featured = false } = query;
-    
+
     return this.marketingService.getPublicTestimonials({
       limit: parseInt(limit),
-      featured: featured === 'true'
+      featured: featured === "true",
     });
   }
 
@@ -157,23 +178,23 @@ export class MarketingController {
     description: "Forbidden",
   })
   async getTestimonials(
-    @Query() query: GetTestimonialsQueryDto
+    @Query() query: GetTestimonialsQueryDto,
   ): Promise<GetTestimonialsResponseDto> {
-    const { 
-      page = 1, 
-      limit = 10, 
-      isApproved, 
+    const {
+      page = 1,
+      limit = 10,
+      isApproved,
       isFeatured,
       search,
       startDate,
       endDate,
-      sortBy = "createdAt", 
-      sortOrder = "desc" 
+      sortBy = "createdAt",
+      sortOrder = "desc",
     } = query;
-    
+
     return this.marketingService.getTestimonials({
-      page: typeof page === 'string' ? parseInt(page) : page,
-      limit: typeof limit === 'string' ? parseInt(limit) : limit,
+      page: typeof page === "string" ? parseInt(page) : page,
+      limit: typeof limit === "string" ? parseInt(limit) : limit,
       isApproved,
       isFeatured,
       search,
@@ -189,7 +210,7 @@ export class MarketingController {
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Update testimonial status (admin)" })
-  @ApiParam({ name: 'id', description: 'Testimonial ID' })
+  @ApiParam({ name: "id", description: "Testimonial ID" })
   @ApiResponse({
     status: 200,
     description: "Testimonial updated successfully",
@@ -208,9 +229,9 @@ export class MarketingController {
     description: "Testimonial not found",
   })
   async updateTestimonialStatus(
-    @Param('id') id: string,
-    @Body() updates: { isApproved?: boolean; isFeatured?: boolean }
+    @Param("id") id: string,
+    @Body() updates: { isApproved?: boolean; isFeatured?: boolean },
   ): Promise<TestimonialResponseDto> {
     return this.marketingService.updateTestimonialStatus(id, updates);
   }
-} 
+}

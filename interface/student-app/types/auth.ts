@@ -26,6 +26,8 @@ export interface Address {
 }
 
 export interface CustomerProfile extends UserProfile {
+  name?: string; // For backward compatibility
+  address?: string; // For backward compatibility
   addresses: Address[];
   defaultAddress?: Address;
   preferences?: {
@@ -33,6 +35,9 @@ export interface CustomerProfile extends UserProfile {
     allergies?: string[];
     spiceLevel?: 'mild' | 'medium' | 'spicy';
   };
+  dob?: string;
+  profileImage?: string;
+  subscriptionActive?: boolean;
 }
 
 export interface LoginResponse {

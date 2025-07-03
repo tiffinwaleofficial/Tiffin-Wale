@@ -83,4 +83,4 @@ export class CreateMealDto {
   @IsString()
   @IsOptional()
   deliveryNotes?: string;
-} 
+}

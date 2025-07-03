@@ -4,18 +4,14 @@ import {
   IsEmail,
   IsOptional,
   IsBoolean,
-  IsPhoneNumber,
   IsArray,
-  IsObject,
   ValidateNested,
-  IsUrl,
   MinLength,
   MaxLength,
   IsNotEmpty,
   IsEnum,
 } from "class-validator";
 import { Type } from "class-transformer";
-import { UserRole } from "../../../common/interfaces/user.interface";
 import { PartnerStatus } from "../schemas/partner.schema";
 
 export class BusinessHoursDto {

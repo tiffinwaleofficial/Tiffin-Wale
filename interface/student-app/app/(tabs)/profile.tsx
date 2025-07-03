@@ -82,7 +82,7 @@ export default function ProfileScreen() {
                 <Text style={styles.activePlanLabel}>Current Plan</Text>
                 <TouchableOpacity 
                   style={styles.viewPlansButton}
-                  onPress={() => router.push('/active-subscription-plan' as any)}
+                  onPress={() => router.push('/active-subscription-plan' as never)}
                 >
                   <Text style={styles.viewPlansButtonText}>View Plans</Text>
                 </TouchableOpacity>
@@ -119,7 +119,7 @@ export default function ProfileScreen() {
               
               <TouchableOpacity 
                 style={styles.settingsItem}
-                onPress={() => router.push('/payment-methods' as any)}
+                onPress={() => router.push('/payment-methods' as never)}
               >
                 <View style={styles.settingsItemLeft}>
                   <View style={[styles.settingsIcon, { backgroundColor: '#E3F2FD' }]}>

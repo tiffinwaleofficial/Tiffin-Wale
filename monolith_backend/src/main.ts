@@ -26,18 +26,24 @@ async function bootstrap() {
   // Enable CORS
   app.enableCors({
     origin: [
-      'http://localhost:5173', // Development frontend
-      'http://localhost:3000', // Another possible local frontend
-      'https://tiffinwale.com', // Production domain
-      'https://tiffin-wale.com', // Production domain (hyphenated)
-      'https://www.tiffin-wale.com', // www subdomain
-      'https://official-web-dot-tiffin-wale.de.r.appspot.com', // App Engine subdomain
-      'https://*.tiffin-wale.de.r.appspot.com', // Any App Engine subdomain
-      '*', // Allow all origins as fallback
+      "http://localhost:5173", // Development frontend
+      "http://localhost:3000", // Another possible local frontend
+      "https://tiffinwale.com", // Production domain
+      "https://tiffin-wale.com", // Production domain (hyphenated)
+      "https://www.tiffin-wale.com", // www subdomain
+      "https://official-web-dot-tiffin-wale.de.r.appspot.com", // App Engine subdomain
+      "https://*.tiffin-wale.de.r.appspot.com", // Any App Engine subdomain
+      "*", // Allow all origins as fallback
     ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
-    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+    allowedHeaders: [
+      "Origin",
+      "X-Requested-With",
+      "Content-Type",
+      "Accept",
+      "Authorization",
+    ],
   });
   logger.log("CORS configured for frontend domains");
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRestaurantStore } from '@/store/restaurantStore';
@@ -7,16 +7,31 @@ import { Star, MapPin, Utensils, ArrowLeft } from 'lucide-react-native';
 const RestaurantDetail: React.FC = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { restaurants } = useRestaurantStore();
-  const restaurant = restaurants.find(r => r.id === id);
+  const { fetchRestaurantById, currentRestaurant, isLoading, error } = useRestaurantStore();
+  
+  useEffect(() => {
+    if (id && typeof id === 'string') {
+      fetchRestaurantById(id);
+    }
+  }, [id, fetchRestaurantById]);
 
-  if (!restaurant) {
+  if (isLoading) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Restaurant not found</Text>
+        <Text style={styles.errorText}>Loading restaurant...</Text>
       </View>
     );
   }
+
+  if (error || !currentRestaurant) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error || 'Restaurant not found'}</Text>
+      </View>
+    );
+  }
+
+  const restaurant = currentRestaurant;
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -28,7 +43,7 @@ const RestaurantDetail: React.FC = () => {
           <ArrowLeft size={24} color="#000" />
         </TouchableOpacity>
         <Image 
-          source={{ uri: restaurant.image }} 
+          source={{ uri: restaurant.image || 'https://via.placeholder.com/400x250' }} 
           style={styles.image}
         />
       </View>
@@ -39,22 +54,26 @@ const RestaurantDetail: React.FC = () => {
         <View style={styles.ratingContainer}>
           <View style={styles.ratingBadge}>
             <Star size={16} color="#FF9B42" fill="#FF9B42" />
-            <Text style={styles.ratingText}>{restaurant.rating.toFixed(1)}</Text>
+            <Text style={styles.ratingText}>{restaurant.rating?.toFixed(1) || 'N/A'}</Text>
           </View>
-          <Text style={styles.reviewCount}>({restaurant.reviewCount} reviews)</Text>
+          <Text style={styles.reviewCount}>({restaurant.reviewCount || 0} reviews)</Text>
         </View>
 
         <View style={styles.addressContainer}>
           <MapPin size={16} color="#666" />
-          <Text style={styles.address}>{restaurant.address}</Text>
+          <Text style={styles.address}>{restaurant.address || 'Address not available'}</Text>
         </View>
 
         <View style={styles.cuisineContainer}>
-          {restaurant.cuisineType.map((cuisine, index) => (
+          {restaurant.cuisineType?.map((cuisine, index) => (
             <View key={index} style={styles.cuisineBadge}>
               <Text style={styles.cuisineText}>{cuisine}</Text>
             </View>
-          ))}
+          )) || (
+            <View style={styles.cuisineBadge}>
+              <Text style={styles.cuisineText}>Restaurant</Text>
+            </View>
+          )}
         </View>
 
         {restaurant.featuredDish && (
@@ -64,6 +83,8 @@ const RestaurantDetail: React.FC = () => {
             <Text style={styles.featuredDish}>{restaurant.featuredDish}</Text>
           </View>
         )}
+
+
 
         {/* Add more sections like menu, reviews, etc. */}
       </View>
@@ -167,6 +188,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+
   errorContainer: {
     flex: 1,
     justifyContent: 'center',

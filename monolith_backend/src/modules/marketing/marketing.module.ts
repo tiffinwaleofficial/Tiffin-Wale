@@ -2,7 +2,14 @@ import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 import { MarketingController } from "./marketing.controller";
 import { MarketingService } from "./marketing.service";
-import { Referral, ReferralSchema, Testimonial, TestimonialSchema, CorporateQuote, CorporateQuoteSchema } from "./schemas";
+import {
+  Referral,
+  ReferralSchema,
+  Testimonial,
+  TestimonialSchema,
+  CorporateQuote,
+  CorporateQuoteSchema,
+} from "./schemas";
 import { CorporateController } from "./corporate.controller";
 
 @Module({
@@ -13,11 +20,8 @@ import { CorporateController } from "./corporate.controller";
       { name: CorporateQuote.name, schema: CorporateQuoteSchema },
     ]),
   ],
-  controllers: [
-    MarketingController,
-    CorporateController,
-  ],
+  controllers: [MarketingController, CorporateController],
   providers: [MarketingService],
   exports: [MarketingService],
 })
-export class MarketingModule {} 
+export class MarketingModule {}

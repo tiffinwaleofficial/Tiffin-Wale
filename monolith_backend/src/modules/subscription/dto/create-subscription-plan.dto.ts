@@ -1,18 +1,21 @@
-import { Type } from 'class-transformer';
-import { 
-  IsString, 
-  IsNumber, 
-  IsOptional, 
-  IsNotEmpty, 
-  IsEnum, 
-  Min, 
+import { Type } from "class-transformer";
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsNotEmpty,
+  IsEnum,
+  Min,
   Max,
   IsArray,
   IsBoolean,
   IsUrl,
-  ValidateIf
-} from 'class-validator';
-import { DurationType, MealFrequency } from '../schemas/subscription-plan.schema';
+  ValidateIf,
+} from "class-validator";
+import {
+  DurationType,
+  MealFrequency,
+} from "../schemas/subscription-plan.schema";
 
 export class CreateSubscriptionPlanDto {
   @IsString()
@@ -59,7 +62,7 @@ export class CreateSubscriptionPlanDto {
 
   @IsOptional()
   @IsUrl()
-  @ValidateIf((o) => o.imageUrl !== null && o.imageUrl !== '')
+  @ValidateIf((o) => o.imageUrl !== null && o.imageUrl !== "")
   imageUrl?: string;
 
   @IsOptional()
@@ -84,4 +87,4 @@ export class CreateSubscriptionPlanDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean = true;
-} 
+}

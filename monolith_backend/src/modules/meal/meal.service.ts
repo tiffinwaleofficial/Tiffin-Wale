@@ -90,7 +90,10 @@ export class MealService {
    * Finds all meals
    */
   async findAll(): Promise<MealResponseDto[]> {
-    const meals = await this.mealModel.find().sort({ scheduledDate: -1 }).exec();
+    const meals = await this.mealModel
+      .find()
+      .sort({ scheduledDate: -1 })
+      .exec();
     const responsePromises = meals.map((meal) =>
       this.transformMealResponse(meal),
     );
@@ -130,7 +133,7 @@ export class MealService {
     // Get today's date range (start of day to end of day)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
@@ -196,10 +199,7 @@ export class MealService {
   /**
    * Updates the status of a meal
    */
-  async updateStatus(
-    id: string,
-    status: MealStatus,
-  ): Promise<MealResponseDto> {
+  async updateStatus(id: string, status: MealStatus): Promise<MealResponseDto> {
     // If setting to delivered, also set deliveredAt timestamp
     const updateData: any = { status };
     if (status === MealStatus.DELIVERED) {
@@ -220,13 +220,10 @@ export class MealService {
   /**
    * Skips a meal (marks as SKIPPED)
    */
-  async skipMeal(
-    id: string,
-    reason?: string,
-  ): Promise<MealResponseDto> {
-    const updateData: any = { 
+  async skipMeal(id: string, reason?: string): Promise<MealResponseDto> {
+    const updateData: any = {
       status: MealStatus.SKIPPED,
-      cancellationReason: reason || 'Customer skipped meal',
+      cancellationReason: reason || "Customer skipped meal",
     };
 
     const updatedMeal = await this.mealModel
@@ -248,7 +245,7 @@ export class MealService {
     rating: number,
     review?: string,
   ): Promise<MealResponseDto> {
-    const updateData: any = { 
+    const updateData: any = {
       isRated: true,
       rating,
       review,
@@ -277,4 +274,4 @@ export class MealService {
 
     return { deleted: true };
   }
-} 
+}

@@ -23,8 +23,8 @@ export default function DashboardScreen() {
     setRefreshing(false);
   };
 
-  const navigateTo = (route: any) => {
-    router.push(route);
+  const navigateTo = (route: string) => {
+    router.push(route as never);
   };
 
   return (

@@ -44,13 +44,15 @@ export default function Signup() {
     }
     
     const userData = {
-      name,
       email,
-      phone,
-      address
+      password,
+      firstName: name.split(' ')[0] || name,
+      lastName: name.split(' ').slice(1).join(' ') || '',
+      phoneNumber: phone,
+      role: 'customer' as const
     };
     
-    await register(userData, password);
+    await register(userData);
     if (!error) {
       router.replace('/dashboard');
     }

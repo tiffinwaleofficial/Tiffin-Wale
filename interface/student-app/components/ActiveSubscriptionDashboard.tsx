@@ -4,9 +4,12 @@ import { useRouter } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Bell, ChevronRight, Clock, Coffee, Star, Calendar, ChevronDown, Utensils, Wallet, ThumbsUp } from 'lucide-react-native';
 
+import { CustomerProfile } from '@/types/auth';
+import { Meal } from '@/types';
+
 type ActiveSubscriptionDashboardProps = {
-  user: any;
-  todayMeals: any[];
+  user: CustomerProfile | null;
+  todayMeals: Meal[];
   isLoading: boolean;
 };
 

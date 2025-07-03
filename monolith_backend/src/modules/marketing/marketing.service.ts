@@ -1,8 +1,28 @@
-import { Injectable, ConflictException, NotFoundException, BadRequestException, Logger } from "@nestjs/common";
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
-import { Referral, ReferralDocument, ReferralStatus, CorporateQuote, CorporateQuoteDocument } from "./schemas";
-import { CreateReferralDto, ReferralResponseDto, CreateTestimonialDto, TestimonialResponseDto, CreateCorporateQuoteDto, GetTestimonialsQueryDto, GetTestimonialsResponseDto } from "./dto";
+import {
+  Referral,
+  ReferralDocument,
+  ReferralStatus,
+  CorporateQuote,
+  CorporateQuoteDocument,
+} from "./schemas";
+import {
+  CreateReferralDto,
+  ReferralResponseDto,
+  CreateTestimonialDto,
+  TestimonialResponseDto,
+  CreateCorporateQuoteDto,
+  GetTestimonialsQueryDto,
+  GetTestimonialsResponseDto,
+} from "./dto";
 import { Testimonial } from "./schemas";
 
 @Injectable()
@@ -12,13 +32,17 @@ export class MarketingService {
   constructor(
     @InjectModel(Referral.name) private referralModel: Model<ReferralDocument>,
     @InjectModel(Testimonial.name) private testimonialModel: Model<Testimonial>,
-    @InjectModel(CorporateQuote.name) private corporateQuoteRepository: Model<CorporateQuoteDocument>
+    @InjectModel(CorporateQuote.name)
+    private corporateQuoteRepository: Model<CorporateQuoteDocument>,
   ) {}
 
   /**
    * Create a new referral
    */
-  async createReferral(createReferralDto: CreateReferralDto, userId?: string): Promise<ReferralResponseDto> {
+  async createReferral(
+    createReferralDto: CreateReferralDto,
+    userId?: string,
+  ): Promise<ReferralResponseDto> {
     // Check if the referred email has already been referred
     const existingReferral = await this.referralModel.findOne({
       referredEmail: createReferralDto.referredEmail,
@@ -34,7 +58,7 @@ export class MarketingService {
       ...createReferralDto,
       referrer: userId,
     });
-    
+
     await referral.save();
 
     return {
@@ -73,54 +97,54 @@ export class MarketingService {
     sortBy?: string;
     sortOrder?: string;
   }) {
-    const { 
-      page, 
-      limit, 
-      status, 
+    const {
+      page,
+      limit,
+      status,
       utmSource,
       utmMedium,
       utmCampaign,
       startDate,
       endDate,
-      sortBy = "createdAt", 
-      sortOrder = "desc" 
+      sortBy = "createdAt",
+      sortOrder = "desc",
     } = options;
-    
+
     // Build filter
     const filter: any = {};
-    
+
     if (status) {
       filter.status = status;
     }
-    
+
     if (utmSource) {
       filter.utmSource = utmSource;
     }
-    
+
     if (utmMedium) {
       filter.utmMedium = utmMedium;
     }
-    
+
     if (utmCampaign) {
       filter.utmCampaign = utmCampaign;
     }
-    
+
     // Date range
     if (startDate || endDate) {
       filter.createdAt = {};
-      
+
       if (startDate) {
         filter.createdAt.$gte = new Date(startDate);
       }
-      
+
       if (endDate) {
         filter.createdAt.$lte = new Date(endDate);
       }
     }
-    
+
     // Count total
     const total = await this.referralModel.countDocuments(filter);
-    
+
     // Get data with pagination and sorting
     const referrals = await this.referralModel
       .find(filter)
@@ -130,18 +154,24 @@ export class MarketingService {
       .populate("referrer", "email firstName lastName")
       .populate("referredUser", "email firstName lastName")
       .exec();
-    
+
     // Calculate statistics
     const statistics = {
       totalReferrals: total,
-      convertedReferrals: await this.referralModel.countDocuments({ status: ReferralStatus.CONVERTED }),
-      pendingReferrals: await this.referralModel.countDocuments({ status: ReferralStatus.PENDING }),
-      expiredReferrals: await this.referralModel.countDocuments({ status: ReferralStatus.EXPIRED }),
+      convertedReferrals: await this.referralModel.countDocuments({
+        status: ReferralStatus.CONVERTED,
+      }),
+      pendingReferrals: await this.referralModel.countDocuments({
+        status: ReferralStatus.PENDING,
+      }),
+      expiredReferrals: await this.referralModel.countDocuments({
+        status: ReferralStatus.EXPIRED,
+      }),
       conversionRate: await this.calculateConversionRate(),
     };
-    
+
     return {
-      referrals: referrals.map(referral => ({
+      referrals: referrals.map((referral) => ({
         id: referral._id,
         referrerEmail: referral.referrerEmail,
         referrer: referral.referrer,
@@ -172,15 +202,15 @@ export class MarketingService {
    */
   private async calculateConversionRate(): Promise<number> {
     const totalReferrals = await this.referralModel.countDocuments();
-    
+
     if (totalReferrals === 0) {
       return 0;
     }
-    
-    const convertedReferrals = await this.referralModel.countDocuments({ 
-      status: ReferralStatus.CONVERTED 
+
+    const convertedReferrals = await this.referralModel.countDocuments({
+      status: ReferralStatus.CONVERTED,
     });
-    
+
     const conversionRate = (convertedReferrals / totalReferrals) * 100;
     return parseFloat(conversionRate.toFixed(1));
   }
@@ -190,13 +220,13 @@ export class MarketingService {
    */
   async createTestimonial(
     createTestimonialDto: CreateTestimonialDto,
-    userId?: string
+    userId?: string,
   ): Promise<TestimonialResponseDto> {
     try {
       const newTestimonial = new this.testimonialModel({
         ...createTestimonialDto,
         user: userId,
-        source: 'web',
+        source: "web",
         isApproved: false,
         isFeatured: false,
       });
@@ -218,7 +248,7 @@ export class MarketingService {
       };
     } catch (error) {
       throw new BadRequestException(
-        `Failed to create testimonial: ${error.message}`
+        `Failed to create testimonial: ${error.message}`,
       );
     }
   }
@@ -226,24 +256,21 @@ export class MarketingService {
   /**
    * Get public testimonials (approved ones only)
    */
-  async getPublicTestimonials(options: {
-    limit?: number;
-    featured?: boolean;
-  }) {
+  async getPublicTestimonials(options: { limit?: number; featured?: boolean }) {
     const { limit = 10, featured = false } = options;
-    
+
     const query = { isApproved: true };
     if (featured) {
-      query['isFeatured'] = true;
+      query["isFeatured"] = true;
     }
-    
+
     const testimonials = await this.testimonialModel
       .find(query)
       .sort({ createdAt: -1 })
       .limit(limit)
       .exec();
-    
-    return testimonials.map(testimonial => ({
+
+    return testimonials.map((testimonial) => ({
       id: testimonial._id.toString(),
       name: testimonial.name,
       email: testimonial.email,
@@ -259,7 +286,9 @@ export class MarketingService {
   /**
    * Get testimonials for admin (with filtering options)
    */
-  async getTestimonials(query: GetTestimonialsQueryDto): Promise<GetTestimonialsResponseDto> {
+  async getTestimonials(
+    query: GetTestimonialsQueryDto,
+  ): Promise<GetTestimonialsResponseDto> {
     const { page = 1, limit = 10, isApproved, isFeatured } = query;
     const skip = (page - 1) * limit;
 
@@ -274,11 +303,11 @@ export class MarketingService {
         .skip(skip)
         .limit(limit)
         .exec(),
-      this.testimonialModel.countDocuments(filter)
+      this.testimonialModel.countDocuments(filter),
     ]);
 
     return {
-      items: testimonials.map(testimonial => ({
+      items: testimonials.map((testimonial) => ({
         id: testimonial._id,
         name: testimonial.name,
         email: testimonial.email,
@@ -289,12 +318,12 @@ export class MarketingService {
         isApproved: testimonial.isApproved,
         isFeatured: testimonial.isFeatured,
         createdAt: testimonial.createdAt,
-        updatedAt: testimonial.updatedAt
+        updatedAt: testimonial.updatedAt,
       })),
       total,
       page,
       limit,
-      pages: Math.ceil(total / limit)
+      pages: Math.ceil(total / limit),
     };
   }
 
@@ -306,26 +335,26 @@ export class MarketingService {
     updates: {
       isApproved?: boolean;
       isFeatured?: boolean;
-    }
+    },
   ): Promise<TestimonialResponseDto> {
     const testimonial = await this.testimonialModel.findById(id);
-    
+
     if (!testimonial) {
-      throw new NotFoundException('Testimonial not found');
+      throw new NotFoundException("Testimonial not found");
     }
-    
+
     // Apply updates
     if (updates.isApproved !== undefined) {
       testimonial.isApproved = updates.isApproved;
     }
-    
+
     if (updates.isFeatured !== undefined) {
       testimonial.isFeatured = updates.isFeatured;
     }
-    
+
     // Save updates
     const updatedTestimonial = await testimonial.save();
-    
+
     return {
       id: updatedTestimonial._id.toString(),
       name: updatedTestimonial.name,
@@ -342,25 +371,34 @@ export class MarketingService {
   }
 
   // Create a corporate quote request
-  async createCorporateQuote(createQuoteDto: CreateCorporateQuoteDto): Promise<any> {
+  async createCorporateQuote(
+    createQuoteDto: CreateCorporateQuoteDto,
+  ): Promise<any> {
     try {
       // Store the corporate quote request in the database
       const corporateQuote = await this.corporateQuoteRepository.create({
         ...createQuoteDto,
-        status: 'new',
+        status: "new",
       });
-      
+
       // Log the successful creation instead of sending notification/email
-      this.logger.log(`Corporate quote request created: ${corporateQuote.id} from ${createQuoteDto.companyName}`);
+      this.logger.log(
+        `Corporate quote request created: ${corporateQuote.id} from ${createQuoteDto.companyName}`,
+      );
 
       return {
         success: true,
-        message: 'Corporate quote request submitted successfully',
+        message: "Corporate quote request submitted successfully",
         id: corporateQuote.id,
       };
     } catch (error) {
-      this.logger.error(`Failed to create corporate quote: ${error.message}`, error.stack);
-      throw new BadRequestException(`Failed to create corporate quote: ${error.message}`);
+      this.logger.error(
+        `Failed to create corporate quote: ${error.message}`,
+        error.stack,
+      );
+      throw new BadRequestException(
+        `Failed to create corporate quote: ${error.message}`,
+      );
     }
   }
 
@@ -368,29 +406,29 @@ export class MarketingService {
   async getCorporateQuotes(options: any): Promise<any> {
     try {
       const { page, limit, status, search, sortBy, sortOrder } = options;
-      
+
       // Build the query
       const query: any = {};
-      
+
       if (status) {
         query.status = status;
       }
-      
+
       if (search) {
         query.$or = [
-          { companyName: { $regex: search, $options: 'i' } },
-          { contactPerson: { $regex: search, $options: 'i' } },
-          { email: { $regex: search, $options: 'i' } },
+          { companyName: { $regex: search, $options: "i" } },
+          { contactPerson: { $regex: search, $options: "i" } },
+          { email: { $regex: search, $options: "i" } },
         ];
       }
-      
+
       // Calculate pagination
       const skip = (page - 1) * limit;
-      
+
       // Build sort options
       const sort: any = {};
-      sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
-      
+      sort[sortBy] = sortOrder === "asc" ? 1 : -1;
+
       // Execute the query
       const [quotes, totalCount] = await Promise.all([
         this.corporateQuoteRepository
@@ -401,7 +439,7 @@ export class MarketingService {
           .exec(),
         this.corporateQuoteRepository.countDocuments(query),
       ]);
-      
+
       return {
         quotes,
         pagination: {
@@ -412,7 +450,10 @@ export class MarketingService {
         },
       };
     } catch (error) {
-      this.logger.error(`Failed to fetch corporate quotes: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to fetch corporate quotes: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -420,7 +461,7 @@ export class MarketingService {
   async getTestimonialById(id: string): Promise<TestimonialResponseDto> {
     const testimonial = await this.testimonialModel.findById(id).exec();
     if (!testimonial) {
-      throw new NotFoundException('Testimonial not found');
+      throw new NotFoundException("Testimonial not found");
     }
 
     return {
@@ -434,7 +475,7 @@ export class MarketingService {
       isApproved: testimonial.isApproved,
       isFeatured: testimonial.isFeatured,
       createdAt: testimonial.createdAt,
-      updatedAt: testimonial.updatedAt
+      updatedAt: testimonial.updatedAt,
     };
   }
-} 
+}

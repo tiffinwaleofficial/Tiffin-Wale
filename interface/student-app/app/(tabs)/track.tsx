@@ -1,39 +1,37 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
+import { useNotificationStore } from '@/store/notificationStore';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import Animated, { FadeIn, FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withTiming, Easing } from 'react-native-reanimated';
-import { ArrowLeft, Check, ChevronRight, MapPin, Phone } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withTiming, Easing } from 'react-native-reanimated';
+import { ArrowLeft, Check, MapPin, Phone, Package, ShoppingBag, Search, ClipboardList } from 'lucide-react-native';
+import api from '@/utils/apiClient';
 
-// Mock data for demonstration
-const mockMeal = {
-  id: 'meal2',
-  type: 'lunch',
-  date: '2023-07-14T12:00:00Z',
-  status: 'preparing',
-  restaurantId: 'rest1',
-  restaurantName: 'Spice Garden',
-  menu: [
-    {
-      id: 'item1',
-      name: 'Paneer Butter Masala with Roti',
-      description: 'Creamy paneer curry with butter and spices, served with soft rotis',
-      image: 'https://images.pexels.com/photos/2474661/pexels-photo-2474661.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-      price: 12.99,
-      rating: 4.7,
-      reviewCount: 120,
-      category: 'lunch',
-      tags: ['vegetarian', 'spicy', 'north-indian'],
-      isVegetarian: true,
-      availableToday: true,
-      restaurantId: 'rest1'
-    }
-  ]
-};
+interface Meal {
+  id: string;
+  type: string;
+  date: string;
+  status: string;
+  restaurantId: string;
+  restaurantName: string;
+  menu: Array<{
+    id: string;
+    name: string;
+    description: string;
+    image: string;
+    price: number;
+    rating: number;
+    reviewCount: number;
+    category: string;
+    tags: string[];
+    isVegetarian: boolean;
+    availableToday: boolean;
+    restaurantId: string;
+  }>;
+}
 
 const DELIVERY_STEPS = [
-  { id: 'ordered', title: 'Order Confirmed', description: 'Your meal has been confirmed' },
+  { id: 'scheduled', title: 'Order Confirmed', description: 'Your meal has been confirmed' },
   { id: 'preparing', title: 'Preparing', description: 'The restaurant is preparing your meal' },
   { id: 'ready', title: 'Ready for Pickup', description: 'Your meal is ready for pickup' },
   { id: 'delivered', title: 'Delivered', description: 'Enjoy your meal!' },
@@ -42,8 +40,11 @@ const DELIVERY_STEPS = [
 export default function TrackScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { user } = useAuthStore();
-  const [meal, setMeal] = useState(mockMeal);
+  useAuthStore();
+  const { subscribeToOrderUpdates, unsubscribeFromOrderUpdates } = useNotificationStore();
+  const [meal, setMeal] = useState<Meal | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Animation values for the pulsating effect
   const activeBulletScale = useSharedValue(1);
@@ -64,14 +65,124 @@ export default function TrackScreen() {
     );
   }, []);
   
-  // Fetch meal data based on ID from params
+  // Fetch meal data and set up real-time tracking
   useEffect(() => {
-    if (params.id) {
-      // In a real app, you would fetch the meal data from an API
-      // For now, we'll just use the mock data
-      console.log(`Fetching meal with ID: ${params.id}`);
-    }
-  }, [params.id]);
+    const fetchMealData = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        if (params.id) {
+          // Fetch specific meal data from API
+          console.log('Fetching specific meal data for ID:', params.id);
+          const mealData = await api.meals.getById(params.id as string);
+          setMeal(mealData);
+          
+          // Subscribe to real-time order updates if this is an active order
+          if (mealData.status !== 'delivered' && mealData.status !== 'cancelled') {
+            subscribeToOrderUpdates(params.id as string);
+          }
+        } else {
+          // No specific meal ID - fetch the most recent active order/meal
+          console.log('No meal ID provided, fetching recent active orders');
+          
+          // Try to get today's meals first
+          try {
+            const todayMeals = await api.meals.getToday();
+            console.log('Today meals response:', todayMeals);
+            
+            if (todayMeals && todayMeals.length > 0) {
+              // Find the most recent active meal
+              const activeMeal = todayMeals.find((meal: Meal) => 
+                meal.status !== 'delivered' && meal.status !== 'cancelled'
+              ) || todayMeals[0]; // fallback to first meal if none active
+              
+              setMeal(activeMeal);
+              
+              if (activeMeal.status !== 'delivered' && activeMeal.status !== 'cancelled') {
+                subscribeToOrderUpdates(activeMeal.id);
+              }
+            } else {
+              // If no today's meals, try to get customer orders
+              console.log('No today meals found, trying customer orders');
+              const customerOrders = await api.customer.getOrders();
+              console.log('Customer orders response:', customerOrders);
+              
+              if (customerOrders && customerOrders.length > 0) {
+                // Convert order to meal format and get the most recent one
+                const recentOrder = customerOrders[0];
+                const mealFromOrder = {
+                  id: recentOrder.id,
+                  type: recentOrder.type || 'lunch',
+                  date: recentOrder.createdAt || new Date().toISOString(),
+                  status: recentOrder.status || 'scheduled',
+                  restaurantId: recentOrder.restaurantId || '',
+                  restaurantName: recentOrder.restaurantName || 'Restaurant',
+                  menu: recentOrder.items || []
+                };
+                
+                setMeal(mealFromOrder);
+                
+                if (mealFromOrder.status !== 'delivered' && mealFromOrder.status !== 'cancelled') {
+                  subscribeToOrderUpdates(mealFromOrder.id);
+                }
+              } else {
+                setError('No active orders found to track. Place an order first!');
+              }
+            }
+          } catch (todayMealsError) {
+            console.log('Error fetching today meals, trying customer orders:', todayMealsError);
+            
+            // Fallback to customer orders if today's meals fail
+            try {
+              const customerOrders = await api.customer.getOrders();
+              console.log('Customer orders response (fallback):', customerOrders);
+              
+              if (customerOrders && customerOrders.length > 0) {
+                const recentOrder = customerOrders[0];
+                const mealFromOrder = {
+                  id: recentOrder.id,
+                  type: recentOrder.type || 'lunch',
+                  date: recentOrder.createdAt || new Date().toISOString(),
+                  status: recentOrder.status || 'scheduled',
+                  restaurantId: recentOrder.restaurantId || '',
+                  restaurantName: recentOrder.restaurantName || 'Restaurant',
+                  menu: recentOrder.items || []
+                };
+                
+                setMeal(mealFromOrder);
+                
+                if (mealFromOrder.status !== 'delivered' && mealFromOrder.status !== 'cancelled') {
+                  subscribeToOrderUpdates(mealFromOrder.id);
+                }
+              } else {
+                setError('No orders found to track. Place an order first!');
+              }
+            } catch (ordersError) {
+              console.error('Error fetching customer orders:', ordersError);
+              setError('Unable to load tracking information. Please try again.');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching meal data:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load meal data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchMealData();
+    
+    // Cleanup: unsubscribe from updates when component unmounts
+    return () => {
+      if (params.id) {
+        unsubscribeFromOrderUpdates(params.id as string);
+      } else if (meal?.id) {
+        unsubscribeFromOrderUpdates(meal.id);
+      }
+    };
+  }, [params.id, subscribeToOrderUpdates, unsubscribeFromOrderUpdates]);
   
   // Animated styles for the active status bullet
   const animatedBulletStyle = useAnimatedStyle(() => {
@@ -95,7 +206,7 @@ export default function TrackScreen() {
     
     let stepIndex;
     switch (stepId) {
-      case 'ordered': stepIndex = 0; break;
+      case 'scheduled': stepIndex = 0; break;
       case 'preparing': stepIndex = 1; break;
       case 'ready': stepIndex = 2; break;
       case 'delivered': stepIndex = 3; break;
@@ -106,6 +217,83 @@ export default function TrackScreen() {
     if (stepIndex === currentStatusIndex) return 'active';
     return 'pending';
   };
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity 
+            onPress={() => router.replace("/(tabs)")} 
+            style={styles.backButton}
+          >
+            <ArrowLeft size={24} color="#333333" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Order Tracking</Text>
+          <View style={styles.placeholder} />
+        </View>
+        
+        <View style={styles.centeredContent}>
+          <Animated.View entering={FadeInDown.duration(600)} style={styles.emptyStateCard}>
+            <View style={styles.emptyIconContainer}>
+              <Package size={64} color="#FF9B42" />
+            </View>
+            <Text style={styles.emptyStateTitle}>Loading...</Text>
+            <Text style={styles.emptyStateMessage}>
+              Fetching your order tracking information
+            </Text>
+          </Animated.View>
+        </View>
+      </View>
+    );
+  }
+
+  if (error || !meal) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity 
+            onPress={() => router.replace("/(tabs)")} 
+            style={styles.backButton}
+          >
+            <ArrowLeft size={24} color="#333333" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Order Tracking</Text>
+          <View style={styles.placeholder} />
+        </View>
+        
+        <View style={styles.centeredContent}>
+          <Animated.View entering={FadeInDown.duration(600)} style={styles.emptyStateCard}>
+            <View style={styles.emptyIconContainer}>
+              <Search size={64} color="#FF9B42" />
+            </View>
+            <Text style={styles.emptyStateTitle}>Nothing to Track</Text>
+            <Text style={styles.emptyStateMessage}>
+              You don't have any active orders to track at the moment.{'\n'}
+              Check your order history or browse meals to get started!
+            </Text>
+            
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity 
+                onPress={() => router.push("/(tabs)/orders")} 
+                style={styles.primaryButton}
+              >
+                <ClipboardList size={20} color="#FFFFFF" style={styles.buttonIcon} />
+                <Text style={styles.primaryButtonText}>View Orders</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                onPress={() => router.replace("/(tabs)")} 
+                style={styles.secondaryButton}
+              >
+                <ShoppingBag size={20} color="#FF9B42" style={styles.buttonIcon} />
+                <Text style={styles.secondaryButtonText}>Browse Meals</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -124,145 +312,83 @@ export default function TrackScreen() {
       </View>
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.mealDetailsCard}>
-          <View style={styles.mealImageContainer}>
-            {meal.menu.length > 0 && (
-              <Image 
-                source={{ uri: meal.menu[0].image }} 
-                style={styles.mealImage} 
-              />
-            )}
-            <LinearGradient
-              colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)']}
-              style={styles.mealImageGradient}
-            />
-            <View style={styles.mealTypeTag}>
-              <Text style={styles.mealTypeText}>
-                {meal.type.charAt(0).toUpperCase() + meal.type.slice(1)}
-              </Text>
-            </View>
-          </View>
-          
+        {/* Meal Card */}
+        <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.mealCard}>
+          <Image 
+            source={{ uri: meal.menu[0]?.image || 'https://via.placeholder.com/300x200' }} 
+            style={styles.mealImage} 
+          />
           <View style={styles.mealDetails}>
-            {meal.menu.length > 0 && (
-              <Text style={styles.mealName}>{meal.menu[0].name}</Text>
-            )}
+            <Text style={styles.mealName}>{meal.menu[0]?.name || 'Meal'}</Text>
             <Text style={styles.restaurantName}>{meal.restaurantName}</Text>
-            
-            <View style={styles.deliveryMeta}>
-              <View style={styles.metaItem}>
-                <Text style={styles.metaLabel}>Delivery Time</Text>
-                <Text style={styles.metaValue}>30-45 min</Text>
-              </View>
-              <View style={styles.metaDivider} />
-              <View style={styles.metaItem}>
-                <Text style={styles.metaLabel}>Order ID</Text>
-                <Text style={styles.metaValue}>#{meal.id}</Text>
-              </View>
-            </View>
+            <Text style={styles.mealType}>{meal.type.charAt(0).toUpperCase() + meal.type.slice(1)}</Text>
           </View>
         </Animated.View>
-        
-        <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.deliveryStatus}>
-          <Text style={styles.deliveryStatusTitle}>Delivery Status</Text>
+
+        {/* Tracking Progress */}
+        <Animated.View entering={FadeInDown.delay(400).duration(400)} style={styles.trackingCard}>
+          <Text style={styles.trackingTitle}>Order Status</Text>
           
-          <View style={styles.timeline}>
+          <View style={styles.stepsContainer}>
             {DELIVERY_STEPS.map((step, index) => {
               const status = getStepStatus(step.id);
-              const isLastItem = index === DELIVERY_STEPS.length - 1;
+              const isActive = status === 'active';
+              const isCompleted = status === 'completed';
+              const isLast = index === DELIVERY_STEPS.length - 1;
               
               return (
-                <View key={step.id} style={styles.timelineItem}>
-                  <View style={styles.timelineLeft}>
-                    {status === 'active' ? (
-                      <Animated.View 
-                        style={[
-                          styles.timelineBullet,
-                          styles.timelineBulletActive,
-                          animatedBulletStyle
-                        ]}
-                      />
-                    ) : (
-                      <View 
-                        style={[
-                          styles.timelineBullet,
-                          status === 'completed' && styles.timelineBulletCompleted,
-                        ]}
-                      >
-                        {status === 'completed' && <Check size={16} color="#FFFFFF" />}
-                      </View>
-                    )}
-                    
-                    {!isLastItem && (
-                      status === 'active' ? (
-                        <Animated.View 
-                          style={[
-                            styles.timelineLine,
-                            styles.timelineLineActive,
-                            animatedLineStyle
-                          ]} 
-                        />
-                      ) : (
-                        <View 
-                          style={[
-                            styles.timelineLine,
-                            status === 'completed' && styles.timelineLineCompleted,
-                          ]} 
-                        />
-                      )
-                    )}
-                  </View>
-                  
-                  <View style={styles.timelineContent}>
-                    <Text 
+                <View key={step.id} style={styles.stepWrapper}>
+                  <View style={styles.stepContainer}>
+                    <Animated.View 
                       style={[
-                        styles.timelineTitle,
-                        status === 'completed' && styles.timelineTitleCompleted,
-                        status === 'active' && styles.timelineTitleActive,
+                        styles.stepBullet,
+                        isCompleted && styles.stepBulletCompleted,
+                        isActive && styles.stepBulletActive,
+                        isActive && animatedBulletStyle
                       ]}
                     >
-                      {step.title}
-                    </Text>
-                    <Text style={styles.timelineDescription}>{step.description}</Text>
+                      {isCompleted && <Check size={12} color="#FFFFFF" />}
+                    </Animated.View>
+                    
+                    <View style={styles.stepContent}>
+                      <Text style={[
+                        styles.stepTitle,
+                        (isActive || isCompleted) && styles.stepTitleActive
+                      ]}>
+                        {step.title}
+                      </Text>
+                      <Text style={styles.stepDescription}>{step.description}</Text>
+                    </View>
                   </View>
+                  
+                  {!isLast && (
+                    <Animated.View 
+                      style={[
+                        styles.stepLine,
+                        isCompleted && styles.stepLineCompleted,
+                        isActive && animatedLineStyle
+                      ]} 
+                    />
+                  )}
                 </View>
               );
             })}
           </View>
         </Animated.View>
-        
-        <Animated.View entering={FadeInDown.delay(400).duration(400)} style={styles.deliveryDetails}>
-          <Text style={styles.deliveryDetailsTitle}>Delivery Details</Text>
-          
-          <View style={styles.deliveryAddressCard}>
-            <View style={styles.deliveryAddressHeader}>
-              <MapPin size={20} color="#333333" />
-              <Text style={styles.deliveryAddressTitle}>Delivery Address</Text>
+
+        {/* Restaurant Info */}
+        <Animated.View entering={FadeInDown.delay(600).duration(400)} style={styles.restaurantCard}>
+          <Text style={styles.restaurantTitle}>Restaurant Details</Text>
+          <View style={styles.restaurantInfo}>
+            <View style={styles.restaurantRow}>
+              <MapPin size={16} color="#666666" />
+              <Text style={styles.restaurantAddress}>
+                {meal.restaurantName} - Contact restaurant for address
+              </Text>
             </View>
-            <Text style={styles.deliveryAddressText}>{user?.address || '123 Main Street, Indore, MP'}</Text>
-            <TouchableOpacity 
-              style={styles.changeAddressButton}
-              onPress={() => router.push("/delivery-addresses")}
-            >
-              <Text style={styles.changeAddressButtonText}>Change</Text>
-              <ChevronRight size={16} color="#FF9B42" />
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.deliveryPersonCard}>
-            <View style={styles.deliveryPersonHeader}>
-              <View style={styles.deliveryPersonNameContainer}>
-                <Text style={styles.deliveryPersonTitle}>Delivery Partner</Text>
-                <Text style={styles.deliveryPersonName}>Raj Kumar</Text>
-              </View>
-              <Image 
-                source={{ uri: 'https://images.pexels.com/photos/2379005/pexels-photo-2379005.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2' }} 
-                style={styles.deliveryPersonImage} 
-              />
-            </View>
-            <TouchableOpacity style={styles.callButton}>
-              <Phone size={20} color="#FFFFFF" />
-              <Text style={styles.callButtonText}>Call Driver</Text>
+            <TouchableOpacity style={styles.restaurantRow}>
+              <Phone size={16} color="#FF9B42" />
+              <Text style={styles.restaurantPhone}>Contact Support</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -276,23 +402,48 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFAF0',
   },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666666',
+    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#FF6B6B',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: 60,
-    paddingBottom: 16,
+    paddingBottom: 20,
     backgroundColor: '#FFFAF0',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
   },
   backButton: {
     padding: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  backButtonText: {
+    color: '#FF9B42',
+    fontSize: 16,
+    fontWeight: '600',
   },
   headerTitle: {
-    fontFamily: 'Poppins-SemiBold',
-    fontSize: 18,
+    fontSize: 20,
+    fontWeight: '700',
     color: '#333333',
   },
   placeholder: {
@@ -300,262 +451,234 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: 20,
   },
-  mealDetailsCard: {
+  mealCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 24,
-    shadowColor: '#000000',
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  mealImageContainer: {
-    height: 200,
-    position: 'relative',
+    shadowRadius: 8,
+    elevation: 3,
   },
   mealImage: {
     width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  mealImageGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-  },
-  mealTypeTag: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    backgroundColor: 'rgba(255, 155, 66, 0.8)',
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 50,
-  },
-  mealTypeText: {
-    fontFamily: 'Poppins-Medium',
-    fontSize: 12,
-    color: '#FFFFFF',
+    height: 150,
+    borderRadius: 12,
+    marginBottom: 12,
   },
   mealDetails: {
-    padding: 16,
+    alignItems: 'center',
   },
   mealName: {
-    fontFamily: 'Poppins-SemiBold',
     fontSize: 18,
+    fontWeight: '700',
     color: '#333333',
     marginBottom: 4,
   },
   restaurantName: {
-    fontFamily: 'Poppins-Regular',
     fontSize: 14,
     color: '#666666',
-    marginBottom: 12,
+    marginBottom: 4,
   },
-  deliveryMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#F9F9F9',
-    borderRadius: 8,
-  },
-  metaItem: {
-    flex: 1,
-  },
-  metaLabel: {
-    fontFamily: 'Poppins-Regular',
+  mealType: {
     fontSize: 12,
-    color: '#999999',
-    marginBottom: 2,
+    color: '#FF9B42',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  metaValue: {
-    fontFamily: 'Poppins-SemiBold',
-    fontSize: 14,
-    color: '#333333',
-  },
-  metaDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: '#E5E5E5',
-    marginHorizontal: 16,
-  },
-  deliveryStatus: {
+  trackingCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
-    shadowColor: '#000000',
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  deliveryStatusTitle: {
-    fontFamily: 'Poppins-SemiBold',
-    fontSize: 16,
+  trackingTitle: {
+    fontSize: 18,
+    fontWeight: '700',
     color: '#333333',
-    marginBottom: 16,
+    marginBottom: 20,
+    textAlign: 'center',
   },
-  timeline: {
-    paddingLeft: 8,
+  stepsContainer: {
+    paddingLeft: 20,
   },
-  timelineItem: {
+  stepWrapper: {
+    position: 'relative',
+  },
+  stepContainer: {
     flexDirection: 'row',
-    marginBottom: 24,
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  timelineLeft: {
+  stepBullet: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E8E8E8',
+    justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
   },
-  timelineBullet: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F5F5F5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  timelineBulletCompleted: {
-    backgroundColor: '#4CAF50',
-  },
-  timelineBulletActive: {
+  stepBulletActive: {
     backgroundColor: '#FF9B42',
   },
-  timelineLine: {
-    width: 2,
-    height: 40,
-    backgroundColor: '#F5F5F5',
-  },
-  timelineLineCompleted: {
+  stepBulletCompleted: {
     backgroundColor: '#4CAF50',
   },
-  timelineLineActive: {
-    backgroundColor: '#FF9B42',
-  },
-  timelineContent: {
+  stepContent: {
     flex: 1,
-    paddingBottom: 24,
   },
-  timelineTitle: {
-    fontFamily: 'Poppins-Medium',
+  stepTitle: {
     fontSize: 14,
+    fontWeight: '600',
     color: '#666666',
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  timelineTitleCompleted: {
-    color: '#4CAF50',
+  stepTitleActive: {
+    color: '#333333',
   },
-  timelineTitleActive: {
-    color: '#FF9B42',
-  },
-  timelineDescription: {
-    fontFamily: 'Poppins-Regular',
+  stepDescription: {
     fontSize: 12,
     color: '#999999',
   },
-  deliveryDetails: {
-    marginBottom: 24,
+  stepLine: {
+    position: 'absolute',
+    left: 11,
+    top: 24,
+    width: 2,
+    height: 20,
+    backgroundColor: '#E8E8E8',
   },
-  deliveryDetailsTitle: {
-    fontFamily: 'Poppins-SemiBold',
-    fontSize: 16,
-    color: '#333333',
-    marginBottom: 16,
+  stepLineCompleted: {
+    backgroundColor: '#4CAF50',
   },
-  deliveryAddressCard: {
+  restaurantCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000000',
+    padding: 20,
+    marginBottom: 40,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  deliveryAddressHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  restaurantTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333333',
     marginBottom: 12,
   },
-  deliveryAddressTitle: {
-    fontFamily: 'Poppins-Medium',
-    fontSize: 16,
-    color: '#333333',
-    marginLeft: 8,
+  restaurantInfo: {
+    gap: 12,
   },
-  deliveryAddressText: {
-    fontFamily: 'Poppins-Regular',
+  restaurantRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  restaurantAddress: {
     fontSize: 14,
     color: '#666666',
-    marginBottom: 12,
-    lineHeight: 20,
-  },
-  changeAddressButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-  },
-  changeAddressButtonText: {
-    fontFamily: 'Poppins-Medium',
-    fontSize: 14,
-    color: '#FF9B42',
-    marginRight: 4,
-  },
-  deliveryPersonCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  deliveryPersonHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  deliveryPersonNameContainer: {
     flex: 1,
   },
-  deliveryPersonTitle: {
-    fontFamily: 'Poppins-Regular',
+  restaurantPhone: {
     fontSize: 14,
-    color: '#666666',
-    marginBottom: 4,
+    color: '#FF9B42',
+    fontWeight: '500',
   },
-  deliveryPersonName: {
-    fontFamily: 'Poppins-SemiBold',
-    fontSize: 16,
+  centeredContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  emptyStateCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 32,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+    maxWidth: 320,
+    width: '100%',
+  },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#FFF8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  emptyStateTitle: {
+    fontSize: 22,
+    fontWeight: '700',
     color: '#333333',
+    marginBottom: 12,
+    textAlign: 'center',
   },
-  deliveryPersonImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  emptyStateMessage: {
+    fontSize: 16,
+    color: '#666666',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
   },
-  callButton: {
+  buttonContainer: {
+    width: '100%',
+    gap: 12,
+  },
+  primaryButton: {
+    backgroundColor: '#FF9B42',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    minWidth: 200,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#4CAF50',
-    padding: 12,
-    borderRadius: 8,
   },
-  callButtonText: {
-    fontFamily: 'Poppins-SemiBold',
-    fontSize: 14,
+  primaryButtonText: {
     color: '#FFFFFF',
-    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  secondaryButton: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    minWidth: 200,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryButtonText: {
+    color: '#666666',
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  buttonIcon: {
+    marginRight: 8,
   },
 }); 

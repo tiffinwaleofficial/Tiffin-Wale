@@ -2,7 +2,12 @@ import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 import { LandingController } from "./landing.controller";
 import { LandingService } from "./landing.service";
-import { Contact, ContactSchema, Subscriber, SubscriberSchema } from "./schemas";
+import {
+  Contact,
+  ContactSchema,
+  Subscriber,
+  SubscriberSchema,
+} from "./schemas";
 
 @Module({
   imports: [
@@ -15,4 +20,4 @@ import { Contact, ContactSchema, Subscriber, SubscriberSchema } from "./schemas"
   providers: [LandingService],
   exports: [LandingService],
 })
-export class LandingModule {} 
+export class LandingModule {}

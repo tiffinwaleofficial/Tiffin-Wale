@@ -172,4 +172,4 @@ export class ReferralResponseDto {
     example: "2023-06-03T10:15:30.000Z",
   })
   updatedAt: Date;
-} 
+}

@@ -1,5 +1,19 @@
-import { Controller, Post, Get, Body, UseGuards, Query, Req } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth } from "@nestjs/swagger";
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  UseGuards,
+  Query,
+  Req,
+} from "@nestjs/common";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiBearerAuth,
+} from "@nestjs/swagger";
 import { FeedbackService } from "./feedback.service";
 import { CreateFeedbackDto, FeedbackResponseDto } from "./dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
@@ -55,10 +69,10 @@ export class FeedbackController {
     description: "Forbidden",
   })
   async getFeedback(@Query() query: any) {
-    const { 
-      page = 1, 
-      limit = 10, 
-      type, 
+    const {
+      page = 1,
+      limit = 10,
+      type,
       category,
       priority,
       status,
@@ -66,10 +80,10 @@ export class FeedbackController {
       search,
       startDate,
       endDate,
-      sortBy = "createdAt", 
-      sortOrder = "desc" 
+      sortBy = "createdAt",
+      sortOrder = "desc",
     } = query;
-    
+
     return this.feedbackService.getFeedbackList({
       page: parseInt(page),
       limit: parseInt(limit),
@@ -77,7 +91,12 @@ export class FeedbackController {
       category,
       priority,
       status,
-      isResolved: isResolved === 'true' ? true : isResolved === 'false' ? false : undefined,
+      isResolved:
+        isResolved === "true"
+          ? true
+          : isResolved === "false"
+            ? false
+            : undefined,
       search,
       startDate,
       endDate,
@@ -85,4 +104,4 @@ export class FeedbackController {
       sortOrder,
     });
   }
-} 
+}

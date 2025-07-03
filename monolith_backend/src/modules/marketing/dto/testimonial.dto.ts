@@ -1,5 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsNotEmpty, IsNumber, IsOptional, IsString, IsUrl, MaxLength, Max, Min } from "class-validator";
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUrl,
+  MaxLength,
+  Max,
+  Min,
+} from "class-validator";
 
 export class CreateTestimonialDto {
   @ApiProperty({
@@ -44,7 +53,8 @@ export class CreateTestimonialDto {
 
   @ApiProperty({
     description: "Testimonial content",
-    example: "The service was excellent! The food was fresh and delicious. Will definitely order again.",
+    example:
+      "The service was excellent! The food was fresh and delicious. Will definitely order again.",
   })
   @IsNotEmpty({ message: "Testimonial content is required" })
   @IsString()
@@ -94,7 +104,8 @@ export class TestimonialResponseDto {
 
   @ApiProperty({
     description: "Testimonial content",
-    example: "The service was excellent! The food was fresh and delicious. Will definitely order again.",
+    example:
+      "The service was excellent! The food was fresh and delicious. Will definitely order again.",
   })
   testimonial: string;
 
@@ -130,49 +141,58 @@ export class TestimonialResponseDto {
 }
 
 export class GetTestimonialsQueryDto {
-  @ApiPropertyOptional({ description: 'Page number', default: 1 })
+  @ApiPropertyOptional({ description: "Page number", default: 1 })
   @IsOptional()
   @IsNumber()
   @Min(1)
   page?: number;
 
-  @ApiPropertyOptional({ description: 'Items per page', default: 10 })
+  @ApiPropertyOptional({ description: "Items per page", default: 10 })
   @IsOptional()
   @IsNumber()
   @Min(1)
   @Max(100)
   limit?: number;
 
-  @ApiPropertyOptional({ description: 'Filter by approval status' })
+  @ApiPropertyOptional({ description: "Filter by approval status" })
   @IsOptional()
   isApproved?: boolean;
 
-  @ApiPropertyOptional({ description: 'Filter by featured status' })
+  @ApiPropertyOptional({ description: "Filter by featured status" })
   @IsOptional()
   isFeatured?: boolean;
 
-  @ApiPropertyOptional({ description: 'Search term for filtering testimonials' })
+  @ApiPropertyOptional({
+    description: "Search term for filtering testimonials",
+  })
   @IsOptional()
   @IsString()
   @MaxLength(100)
   search?: string;
 
-  @ApiPropertyOptional({ description: 'Start date for filtering testimonials' })
+  @ApiPropertyOptional({ description: "Start date for filtering testimonials" })
   @IsOptional()
   @IsString()
   startDate?: string;
 
-  @ApiPropertyOptional({ description: 'End date for filtering testimonials' })
+  @ApiPropertyOptional({ description: "End date for filtering testimonials" })
   @IsOptional()
   @IsString()
   endDate?: string;
 
-  @ApiPropertyOptional({ description: 'Field to sort testimonials by', example: 'createdAt' })
+  @ApiPropertyOptional({
+    description: "Field to sort testimonials by",
+    example: "createdAt",
+  })
   @IsOptional()
   @IsString()
   sortBy?: string;
 
-  @ApiPropertyOptional({ description: 'Sort order (asc or desc)', default: 'desc', enum: ['asc', 'desc'] })
+  @ApiPropertyOptional({
+    description: "Sort order (asc or desc)",
+    default: "desc",
+    enum: ["asc", "desc"],
+  })
   @IsOptional()
   @IsString()
   sortOrder?: string;
@@ -182,15 +202,15 @@ export class GetTestimonialsResponseDto {
   @ApiProperty({ type: [TestimonialResponseDto] })
   items: TestimonialResponseDto[];
 
-  @ApiProperty({ description: 'Total number of testimonials' })
+  @ApiProperty({ description: "Total number of testimonials" })
   total: number;
 
-  @ApiProperty({ description: 'Current page number' })
+  @ApiProperty({ description: "Current page number" })
   page: number;
 
-  @ApiProperty({ description: 'Number of items per page' })
+  @ApiProperty({ description: "Number of items per page" })
   limit: number;
 
-  @ApiProperty({ description: 'Total number of pages' })
+  @ApiProperty({ description: "Total number of pages" })
   pages: number;
-} 
+}

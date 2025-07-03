@@ -128,4 +128,4 @@ export class Subscription extends Document {
   updatedAt: Date;
 }
 
-export const SubscriptionSchema = SchemaFactory.createForClass(Subscription); 
+export const SubscriptionSchema = SchemaFactory.createForClass(Subscription);

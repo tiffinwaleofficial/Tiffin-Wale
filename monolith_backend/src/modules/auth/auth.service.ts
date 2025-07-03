@@ -184,30 +184,49 @@ export class AuthService {
 
   private async generateToken(user: any) {
     const payload = { email: user.email, sub: user._id, role: user.role };
-    
+
     // Get active subscription details
-    const activeSubscription = await this.subscriptionService.findByCustomer(user._id)
-      .then(subscriptions => subscriptions.find(sub => sub.status === 'active'));
+    const activeSubscription = await this.subscriptionService
+      .findByCustomer(user._id)
+      .then((subscriptions) =>
+        subscriptions.find((sub) => sub.status === "active"),
+      );
 
     // Get customer profile
-    const customerProfile = await this.customerProfileService.findByUserId(user._id);
+    const customerProfile = await this.customerProfileService.findByUserId(
+      user._id,
+    );
 
     // Calculate subscription metrics
-    const subscriptionMetrics = activeSubscription ? {
-      daysLeft: Math.ceil((new Date(activeSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24)),
-      mealsLeft: activeSubscription.plan.mealsPerDay * Math.ceil((new Date(activeSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24)),
-      rating: customerProfile?.rating || 0,
-      savings: customerProfile?.totalSavings || 0
-    } : null;
+    const subscriptionMetrics = activeSubscription
+      ? {
+          daysLeft: Math.ceil(
+            (new Date(activeSubscription.endDate).getTime() -
+              new Date().getTime()) /
+              (1000 * 3600 * 24),
+          ),
+          mealsLeft:
+            activeSubscription.plan.mealsPerDay *
+            Math.ceil(
+              (new Date(activeSubscription.endDate).getTime() -
+                new Date().getTime()) /
+                (1000 * 3600 * 24),
+            ),
+          rating: customerProfile?.rating || 0,
+          savings: customerProfile?.totalSavings || 0,
+        }
+      : null;
 
     // Get current plan details
-    const currentPlan = activeSubscription ? {
-      name: activeSubscription.plan.name,
-      description: activeSubscription.plan.description,
-      mealsPerDay: activeSubscription.plan.mealsPerDay,
-      validUntil: activeSubscription.endDate,
-      imageUrl: activeSubscription.plan.imageUrl
-    } : null;
+    const currentPlan = activeSubscription
+      ? {
+          name: activeSubscription.plan.name,
+          description: activeSubscription.plan.description,
+          mealsPerDay: activeSubscription.plan.mealsPerDay,
+          validUntil: activeSubscription.endDate,
+          imageUrl: activeSubscription.plan.imageUrl,
+        }
+      : null;
 
     // Get today's meals
     const todaysMeals = await this.mealService.findTodayMeals(user._id);
@@ -228,25 +247,25 @@ export class AuthService {
           graduationYear: customerProfile?.graduationYear,
           dietaryPreferences: customerProfile?.dietaryPreferences || [],
           favoriteCuisines: customerProfile?.favoriteCuisines || [],
-          deliveryAddresses: customerProfile?.deliveryAddresses || []
+          deliveryAddresses: customerProfile?.deliveryAddresses || [],
         },
         subscription: {
           isActive: !!activeSubscription,
           metrics: subscriptionMetrics,
-          currentPlan: currentPlan
+          currentPlan: currentPlan,
         },
         meals: {
-          today: todaysMeals.map(meal => ({
+          today: todaysMeals.map((meal) => ({
             id: meal.id,
             type: meal.type,
             status: meal.status,
             menuItems: meal.menuItems,
             rating: meal.rating,
             businessPartnerName: meal.businessPartnerName,
-            scheduledDate: meal.scheduledDate
-          }))
-        }
-      }
+            scheduledDate: meal.scheduledDate,
+          })),
+        },
+      },
     };
   }
 }

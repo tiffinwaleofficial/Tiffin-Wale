@@ -1,10 +1,10 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Schema as MongooseSchema } from 'mongoose';
-import { User } from '../../user/schemas/user.schema';
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { Document, Schema as MongooseSchema } from "mongoose";
+import { User } from "../../user/schemas/user.schema";
 
 @Schema({ timestamps: true })
 export class CustomerProfile extends Document {
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: "User", required: true })
   user: User;
 
   @Prop({ type: String })
@@ -26,16 +26,18 @@ export class CustomerProfile extends Document {
   favoriteCuisines: string[];
 
   @Prop({
-    type: [{
-      name: String,
-      street: String,
-      city: String,
-      state: String,
-      postalCode: String,
-      country: String,
-      isDefault: Boolean
-    }],
-    default: []
+    type: [
+      {
+        name: String,
+        street: String,
+        city: String,
+        state: String,
+        postalCode: String,
+        country: String,
+        isDefault: Boolean,
+      },
+    ],
+    default: [],
   })
   deliveryAddresses: Array<{
     name: string;
@@ -54,4 +56,5 @@ export class CustomerProfile extends Document {
   totalSavings: number;
 }
 
-export const CustomerProfileSchema = SchemaFactory.createForClass(CustomerProfile); 
+export const CustomerProfileSchema =
+  SchemaFactory.createForClass(CustomerProfile);

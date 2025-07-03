@@ -7,9 +7,9 @@ import { AuthController } from "./auth.controller";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { LocalStrategy } from "./strategies/local.strategy";
 import { UserModule } from "../user/user.module";
-import { SubscriptionModule } from '../subscription/subscription.module';
-import { CustomerProfileModule } from '../customer-profile/customer-profile.module';
-import { MealModule } from '../meal/meal.module';
+import { SubscriptionModule } from "../subscription/subscription.module";
+import { CustomerProfileModule } from "../customer-profile/customer-profile.module";
+import { MealModule } from "../meal/meal.module";
 
 @Module({
   imports: [

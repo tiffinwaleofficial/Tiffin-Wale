@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { User, RegisterRequest } from '@/types/api';
-import { LoginResponse, CustomerProfile } from '@/types/auth';
+import { RegisterRequest } from '@/types/api';
+import { CustomerProfile } from '@/types/auth';
 import { authService } from '@/utils/authService';
 
 interface AuthState {

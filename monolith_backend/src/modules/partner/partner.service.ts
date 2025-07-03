@@ -3,6 +3,8 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
@@ -243,9 +245,6 @@ export class PartnerService {
       throw new NotFoundException(`Partner with ID ${id} not found`);
     }
 
-    // Type assertion to handle user as a populated document
-    const userDoc = partner.user as any;
-
     const updatedPartner = await this.partnerModel
       .findByIdAndUpdate(id, { status: statusUpdateDto.status }, { new: true })
       .populate("user", "email phoneNumber")
@@ -267,10 +266,8 @@ export class PartnerService {
       throw new NotFoundException(`Partner with ID ${id} not found`);
     }
 
-    // Type assertion to handle user as a populated document
-    const userDoc = partner.user as any;
-
     // Delete user account if it exists
+    const userDoc = partner.user as any;
     if (userDoc && userDoc._id) {
       try {
         await this.userService.remove(userDoc._id.toString());
@@ -311,6 +308,7 @@ export class PartnerService {
       total: 0,
       page,
       limit,
+      status: status || "all", // Include status filter in response
     };
   }
 
@@ -379,9 +377,6 @@ export class PartnerService {
       throw new NotFoundException(`Partner with ID ${id} not found`);
     }
 
-    // Type assertion to handle user as a populated document
-    const userDoc = partner.user as any;
-
     // For now, we're returning a simple statistics object
     // In a real implementation, you would compute more detailed statistics
     return {
@@ -394,17 +389,15 @@ export class PartnerService {
   }
 
   /**
-   * Map partner document to response DTO
+   * Map Partner document to response DTO
    */
   private mapToResponseDto(partner: any): PartnerResponseDto {
-    // Type assertion to handle user as a populated document
-    const userDoc = partner.user as any;
-
+    const userDoc = partner.user;
     return {
       id: partner._id.toString(),
       businessName: partner.businessName,
-      email: userDoc?.email || "",
-      phoneNumber: userDoc?.phoneNumber || "",
+      email: userDoc ? userDoc.email : "",
+      phoneNumber: userDoc ? userDoc.phoneNumber : "",
       description: partner.description,
       cuisineTypes: partner.cuisineTypes,
       address: partner.address,
@@ -413,12 +406,154 @@ export class PartnerService {
       bannerUrl: partner.bannerUrl,
       isAcceptingOrders: partner.isAcceptingOrders,
       isFeatured: partner.isFeatured,
-      isActive: true, // Always active for now since we removed isActive field
-      averageRating: partner.averageRating,
-      totalReviews: partner.totalReviews,
+      isActive: partner.isActive,
+      averageRating: partner.averageRating || 0,
+      totalReviews: partner.totalReviews || 0,
       status: partner.status,
       createdAt: partner.createdAt,
       updatedAt: partner.updatedAt,
     };
+  }
+
+  // ==================== NEW PARTNER "ME" SERVICE METHODS ====================
+
+  /**
+   * Update partner by user ID
+   */
+  async updateByUserId(
+    userId: string,
+    updatePartnerDto: UpdatePartnerDto,
+  ): Promise<PartnerResponseDto> {
+    // First find the partner by user ID
+    const partner = await this.partnerModel
+      .findOne({ user: userId })
+      .populate("user")
+      .exec();
+
+    if (!partner) {
+      throw new NotFoundException(`Partner with User ID ${userId} not found`);
+    }
+
+    // Use the existing update method with the partner ID
+    return this.update(partner._id.toString(), updatePartnerDto);
+  }
+
+  /**
+   * Get current partner's orders
+   */
+  async getCurrentPartnerOrders(
+    userId: string,
+    page = 1,
+    limit = 10,
+    status?: string,
+  ): Promise<any> {
+    // First find the partner by user ID
+    const partner = await this.partnerModel.findOne({ user: userId }).exec();
+
+    if (!partner) {
+      throw new NotFoundException(`Partner with User ID ${userId} not found`);
+    }
+
+    // Use the existing getPartnerOrders method
+    return this.getPartnerOrders(partner._id.toString(), page, limit, status);
+  }
+
+  /**
+   * Get current partner's today orders
+   */
+  async getCurrentPartnerTodayOrders(userId: string): Promise<any> {
+    // First find the partner by user ID
+    const partner = await this.partnerModel.findOne({ user: userId }).exec();
+
+    if (!partner) {
+      throw new NotFoundException(`Partner with User ID ${userId} not found`);
+    }
+
+    // Get today's date range
+    const today = new Date();
+    const startOfDay = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+
+    try {
+      // Note: This assumes there's an Order model available. The actual implementation
+      // would need to import and use the Order model, but since we're not touching
+      // other modules, we'll return a placeholder response for now.
+      return {
+        success: true,
+        message:
+          "Today's orders endpoint created - requires Order model integration",
+        partnerId: partner._id.toString(),
+        date: startOfDay.toISOString(),
+        orders: [],
+        totalOrders: 0,
+        totalRevenue: 0,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          error: "Failed to retrieve today's orders",
+          message: error.message || "An unexpected error occurred",
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Get current partner's menu
+   */
+  async getCurrentPartnerMenu(userId: string): Promise<any> {
+    // First find the partner by user ID
+    const partner = await this.partnerModel.findOne({ user: userId }).exec();
+
+    if (!partner) {
+      throw new NotFoundException(`Partner with User ID ${userId} not found`);
+    }
+
+    // Use the existing getPartnerMenu method
+    return this.getPartnerMenu(partner._id.toString());
+  }
+
+  /**
+   * Get current partner's statistics
+   */
+  async getCurrentPartnerStats(userId: string): Promise<any> {
+    // First find the partner by user ID
+    const partner = await this.partnerModel.findOne({ user: userId }).exec();
+
+    if (!partner) {
+      throw new NotFoundException(`Partner with User ID ${userId} not found`);
+    }
+
+    // Use the existing getPartnerStats method
+    return this.getPartnerStats(partner._id.toString());
+  }
+
+  /**
+   * Update current partner's accepting orders status
+   */
+  async updateCurrentPartnerStatus(
+    userId: string,
+    isAcceptingOrders: boolean,
+  ): Promise<PartnerResponseDto> {
+    // First find the partner by user ID
+    const partner = await this.partnerModel
+      .findOne({ user: userId })
+      .populate("user")
+      .exec();
+
+    if (!partner) {
+      throw new NotFoundException(`Partner with User ID ${userId} not found`);
+    }
+
+    // Update the accepting orders status
+    partner.isAcceptingOrders = isAcceptingOrders;
+    const updatedPartner = await partner.save();
+
+    return this.mapToResponseDto(updatedPartner);
   }
 }

@@ -1,5 +1,5 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { Document } from "mongoose";
 
 export type CorporateQuoteDocument = CorporateQuote & Document;
 
@@ -23,7 +23,7 @@ export class CorporateQuote {
   @Prop()
   requirements?: string;
 
-  @Prop({ default: 'new' })
+  @Prop({ default: "new" })
   status: string;
 
   @Prop()
@@ -42,4 +42,5 @@ export class CorporateQuote {
   updatedAt: Date;
 }
 
-export const CorporateQuoteSchema = SchemaFactory.createForClass(CorporateQuote); 
+export const CorporateQuoteSchema =
+  SchemaFactory.createForClass(CorporateQuote);

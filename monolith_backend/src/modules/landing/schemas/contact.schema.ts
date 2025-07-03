@@ -28,9 +28,9 @@ export class Contact {
 
   @Prop({ default: false })
   isResolved: boolean;
-  
+
   createdAt: Date;
   updatedAt: Date;
 }
 
-export const ContactSchema = SchemaFactory.createForClass(Contact); 
+export const ContactSchema = SchemaFactory.createForClass(Contact);

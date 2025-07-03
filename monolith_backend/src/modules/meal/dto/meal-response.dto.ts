@@ -137,4 +137,4 @@ export class MealResponseDto {
     example: "2023-07-22T12:30:00Z",
   })
   updatedAt: string;
-} 
+}

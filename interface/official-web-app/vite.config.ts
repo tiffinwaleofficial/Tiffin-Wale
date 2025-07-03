@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
@@ -30,14 +30,22 @@ try {
   console.warn("Could not copy favicon files: ", err);
 }
 
-// Default environment variables
-process.env.VITE_CLOUDINARY_CLOUD_NAME = process.env.VITE_CLOUDINARY_CLOUD_NAME || 'tiffinwale';
-// Optional API key and upload preset - these would be set in your actual environment
-process.env.VITE_CLOUDINARY_API_KEY = process.env.VITE_CLOUDINARY_API_KEY || '';
-process.env.VITE_CLOUDINARY_UPLOAD_PRESET = process.env.VITE_CLOUDINARY_UPLOAD_PRESET || '';
-process.env.VITE_API_URL = process.env.VITE_API_URL || 'http://localhost:3001/api';
-
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  // Load env file based on `mode` in the current working directory.
+  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
+  const env = loadEnv(mode, process.cwd(), '');
+  
+  console.log('🔍 Reading .env file...');
+  console.log('📁 Current API_BASE_URL from .env:', env.API_BASE_URL);
+  
+  // Set default environment variables
+  const apiBaseUrl = env.API_BASE_URL || 'http://localhost:3001';
+  
+  return {
+  // Define environment variables that will be available in the client
+  define: {
+    __API_BASE_URL__: JSON.stringify(apiBaseUrl),
+  },
   plugins: [
     react(),
     imagetools({
@@ -48,14 +56,15 @@ export default defineConfig({
       ])
     }),
     runtimeErrorOverlay(),
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
-      ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
-          ),
-        ]
-      : []),
+    // Note: Cartographer plugin disabled in this build to avoid async issues
+    // ...(process.env.NODE_ENV !== "production" &&
+    // process.env.REPL_ID !== undefined
+    //   ? [
+    //       await import("@replit/vite-plugin-cartographer").then((m) =>
+    //         m.cartographer(),
+    //       ),
+    //     ]
+    //   : []),
     // Custom plugin to copy favicon files to output directory during build
     {
       name: 'copy-favicon-files',
@@ -147,4 +156,5 @@ export default defineConfig({
   optimizeDeps: {
     include: ['react', 'react-dom', 'wouter', 'framer-motion'],
   },
+  };
 });

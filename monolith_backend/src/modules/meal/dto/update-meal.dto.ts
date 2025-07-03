@@ -1,12 +1,12 @@
 import { ApiPropertyOptional, PartialType } from "@nestjs/swagger";
-import { 
-  IsOptional, 
-  IsString, 
-  IsEnum, 
-  IsBoolean, 
-  IsNumber, 
-  Min, 
-  Max
+import {
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsBoolean,
+  IsNumber,
+  Min,
+  Max,
 } from "class-validator";
 import { CreateMealDto } from "./create-meal.dto";
 import { MealStatus } from "../schemas/meal.schema";
@@ -54,4 +54,4 @@ export class UpdateMealDto extends PartialType(CreateMealDto) {
   @IsString()
   @IsOptional()
   cancellationReason?: string;
-} 
+}

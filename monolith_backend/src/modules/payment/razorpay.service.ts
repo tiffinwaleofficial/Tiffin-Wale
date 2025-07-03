@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class RazorpayService {
   private razorpay: any;
-  
+
   constructor(private configService: ConfigService) {
     // In a real implementation, you would initialize the Razorpay SDK here
     // Example:
@@ -15,7 +15,7 @@ export class RazorpayService {
     // });
   }
 
-  async createOrder(amount: number, currency: string = 'INR', notes: any = {}) {
+  async createOrder(amount: number, currency: string = "INR", notes: any = {}) {
     // Create a Razorpay order
     // In a real implementation:
     // return this.razorpay.orders.create({
@@ -23,7 +23,7 @@ export class RazorpayService {
     //   currency,
     //   notes,
     // });
-    
+
     // Placeholder implementation
     const orderId = `order_${Math.random().toString(36).substring(2, 15)}`;
     return {
@@ -34,7 +34,11 @@ export class RazorpayService {
     };
   }
 
-  async verifyPaymentSignature(paymentId: string, orderId: string, signature: string) {
+  async verifyPaymentSignature(
+    paymentId: string,
+    orderId: string,
+    signature: string,
+  ) {
     // Verify the payment signature
     // In a real implementation:
     // const generatedSignature = crypto
@@ -42,7 +46,7 @@ export class RazorpayService {
     //   .update(orderId + '|' + paymentId)
     //   .digest('hex');
     // return generatedSignature === signature;
-    
+
     // Placeholder implementation
     return true;
   }
@@ -51,11 +55,11 @@ export class RazorpayService {
     // Capture a payment
     // In a real implementation:
     // return this.razorpay.payments.capture(paymentId, amount * 100);
-    
+
     // Placeholder implementation
     return {
       id: paymentId,
-      status: 'captured',
+      status: "captured",
       amount: amount * 100,
     };
   }
@@ -68,13 +72,13 @@ export class RazorpayService {
     //   refundOptions.amount = amount * 100;
     // }
     // return this.razorpay.payments.refund(paymentId, refundOptions);
-    
+
     // Placeholder implementation
     return {
       id: `refund_${Math.random().toString(36).substring(2, 15)}`,
       payment_id: paymentId,
-      status: 'processed',
+      status: "processed",
       amount: amount ? amount * 100 : undefined,
     };
   }
-} 
+}

@@ -1,5 +1,11 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsEmail, IsNotEmpty, IsOptional, IsString, Length } from "class-validator";
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Length,
+} from "class-validator";
 
 export class CreateContactDto {
   @ApiProperty({
@@ -44,7 +50,9 @@ export class CreateContactDto {
   })
   @IsNotEmpty({ message: "Message is required" })
   @IsString()
-  @Length(10, 1000, { message: "Message must be between 10 and 1000 characters" })
+  @Length(10, 1000, {
+    message: "Message must be between 10 and 1000 characters",
+  })
   message: string;
 
   @ApiProperty({
@@ -123,4 +131,4 @@ export class ContactResponseDto {
     example: "2023-06-03T10:15:30.000Z",
   })
   updatedAt: Date;
-} 
+}

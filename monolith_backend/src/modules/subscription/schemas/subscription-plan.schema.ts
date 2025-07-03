@@ -115,4 +115,5 @@ export class SubscriptionPlan extends Document {
   isActive: boolean;
 }
 
-export const SubscriptionPlanSchema = SchemaFactory.createForClass(SubscriptionPlan); 
+export const SubscriptionPlanSchema =
+  SchemaFactory.createForClass(SubscriptionPlan);

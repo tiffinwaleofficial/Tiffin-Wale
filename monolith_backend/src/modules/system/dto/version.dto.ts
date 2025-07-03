@@ -46,4 +46,4 @@ export class VersionDto {
     },
   })
   features: Record<string, boolean>;
-} 
+}
