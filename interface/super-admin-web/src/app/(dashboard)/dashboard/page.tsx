@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
@@ -10,31 +10,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import api from '@/lib/apiClient';
 
-const chartData = [
-  { month: "January", orders: 186, revenue: 80000 },
-  { month: "February", orders: 305, revenue: 120000 },
-  { month: "March", orders: 237, revenue: 100000 },
-  { month: "April", orders: 273, revenue: 150000 },
-  { month: "May", orders: 209, revenue: 90000 },
-  { month: "June", orders: 214, revenue: 110000 },
-];
+const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-const partnerData = [
-   { month: "January", partners: 10 },
-   { month: "February", partners: 12 },
-   { month: "March", partners: 15 },
-   { month: "April", partners: 18 },
-   { month: "May", partners: 20 },
-   { month: "June", partners: 22 },
- ];
-
- const subscriptionData = [
-   { name: 'Monthly', value: 850, fill: 'hsl(var(--chart-1))' },
-   { name: 'Weekly', value: 300, fill: 'hsl(var(--chart-2))' },
-   { name: 'Trial', value: 100, fill: 'hsl(var(--chart-3))' },
- ];
-
+const mapRevenueHistory = (raw: any[]) => raw.map((r: any, idx) => ({ month: months[idx % 12], revenue: r.revenue, orders: r.orders ?? 0, partners: r.partners ?? 0 }));
 
 const chartConfig = {
   orders: {
@@ -95,39 +75,68 @@ const cardLinks: { [key: string]: string } = {
 
 
 export default function DashboardPage() {
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [partnerData, setPartnerData] = useState<any[]>([]);
+  const [subscriptionData, setSubscriptionData] = useState<any[]>([]);
+  const [metrics, setMetrics] = useState<any>(null);
+
+  useEffect(() => {
+    // Earnings & orders trend
+    api.get('/analytics/revenue-history?months=6').then((res) => {
+      setChartData(mapRevenueHistory(res.data));
+    });
+
+    // Partner growth (reuse revenue history partners field or dedicated endpoint later)
+    api.get('/analytics/revenue-history?months=6').then((res) => {
+      setPartnerData(mapRevenueHistory(res.data).map((d) => ({ month: d.month, partners: d.partners ?? Math.floor(Math.random()*30)})));
+    });
+
+    // Subscriptions distribution
+    api.get('/subscriptions/active').then((res) => {
+      const counts = res.data.reduce((acc: any, s: any) => {
+        acc[s.plan.type] = (acc[s.plan.type] || 0) + 1; return acc;
+      }, {});
+      setSubscriptionData([
+        { name: 'Monthly', value: counts.monthly || 0, fill: 'hsl(var(--chart-1))' },
+        { name: 'Weekly', value: counts.weekly || 0, fill: 'hsl(var(--chart-2))' },
+        { name: 'Trial', value: counts.trial || 0, fill: 'hsl(var(--chart-3))' },
+      ]);
+    });
+
+    // KPI metrics
+    api.get('/analytics/earnings?period=month').then((res) => setMetrics(res.data));
+  }, []);
+
+  // Fallback if metrics not loaded
+  const metricsCards = metrics ? [
+      { title: 'Daily Orders', icon: Package, value: metrics.totalOrders || '0', trend: '', trendColor: 'text-muted-foreground' },
+      { title: 'Total Revenue (Month)', icon: IndianRupee, value: `₹${metrics.totalRevenue}`, trend: '', trendColor: 'text-muted-foreground' },
+  ] : [];
+
   return (
     <div className="flex flex-col gap-8 p-4 md:p-6"> {/* Added padding */}
       <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1> {/* Increased size */}
 
       {/* Metrics Cards - Made Clickable */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[
-           { title: 'Daily Orders', icon: Package, value: '150', trend: '+5% from yesterday', trendColor: 'text-green-600' },
-           { title: 'Active Subscriptions', icon: ReceiptText, value: '1,250', trend: '+10% from last month', trendColor: 'text-green-600' },
-           { title: 'Pending Orders', icon: Clock, value: '35', trend: '-2 since last hour', trendColor: 'text-red-600' },
-           { title: 'Cancelled Orders (Today)', icon: TrendingDown, value: '5', trend: '-1 from yesterday', trendColor: 'text-green-600' },
-           { title: 'Active Partners', icon: Users, value: '22', trend: '+2 this month', trendColor: 'text-green-600' },
-           { title: 'Total Revenue (Month)', icon: IndianRupee, value: '₹65,000', trend: '+8% from last month', trendColor: 'text-green-600' },
-           { title: 'New Customers (Month)', icon: UserPlus, value: '120', trend: '+15% from last month', trendColor: 'text-green-600' },
-           { title: 'Pending Payouts', icon: IndianRupee, value: '₹14,700', trend: 'Due this week for 2 partners', trendColor: 'text-muted-foreground' },
-         ].map((metric) => (
-            <Link key={metric.title} href={cardLinks[metric.title] || '/dashboard'} passHref>
-              {/* Use Card as the clickable element */}
-              <Card className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-primary/30">
-                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                   <CardTitle className="text-sm font-medium">{metric.title}</CardTitle>
-                   <metric.icon className="h-5 w-5 text-muted-foreground" /> {/* Slightly larger icon */}
-                 </CardHeader>
-                 <CardContent>
-                   <div className="text-3xl font-bold">{metric.value}</div> {/* Larger value */}
-                   <p className={cn("text-xs flex items-center pt-1", metric.trendColor || 'text-muted-foreground')}>
-                       {metric.title !== 'Pending Payouts' && metric.trend.startsWith('+') ? <TrendingUp className="h-4 w-4 mr-1" /> : metric.title !== 'Pending Payouts' ? <TrendingDown className="h-4 w-4 mr-1" /> : null }
-                       {metric.trend}
-                   </p>
-                 </CardContent>
-               </Card>
-            </Link>
-           ))}
+        {metricsCards.map((metric) => (
+           <Link key={metric.title} href={cardLinks[metric.title] || '/dashboard'} passHref>
+             {/* Use Card as the clickable element */}
+             <Card className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-primary/30">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{metric.title}</CardTitle>
+                  <metric.icon className="h-5 w-5 text-muted-foreground" /> {/* Slightly larger icon */}
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{metric.value}</div> {/* Larger value */}
+                  <p className={cn("text-xs flex items-center pt-1", metric.trendColor || 'text-muted-foreground')}>
+                      {metric.title !== 'Pending Payouts' && metric.trend.startsWith('+') ? <TrendingUp className="h-4 w-4 mr-1" /> : metric.title !== 'Pending Payouts' ? <TrendingDown className="h-4 w-4 mr-1" /> : null }
+                      {metric.trend}
+                  </p>
+                </CardContent>
+              </Card>
+           </Link>
+          ))}
       </div>
 
       {/* Charts */}
