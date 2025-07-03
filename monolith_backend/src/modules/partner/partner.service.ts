@@ -556,4 +556,9 @@ export class PartnerService {
 
     return this.mapToResponseDto(updatedPartner);
   }
+
+  async getCurrentPartnerReviews(userId: string, page = 1, limit = 10) {
+    // TODO: Resolve partner ID by user ID
+    return this.getPartnerReviews("dummy", page, limit);
+  }
 }

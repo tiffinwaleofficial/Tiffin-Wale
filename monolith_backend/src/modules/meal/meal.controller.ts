@@ -330,4 +330,26 @@ export class MealController {
   remove(@Param("id") id: string) {
     return this.mealService.delete(id);
   }
+
+  @Get("partner/me")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get meals for currently authenticated partner" })
+  @ApiResponse({ status: 200, description: "Meals returned" })
+  async getCurrentPartnerMeals(
+    @GetCurrentUser("_id") userId: string,
+    @Query("date") date?: string,
+  ) {
+    return this.mealService.findByPartner(userId, date);
+  }
+
+  @Get("partner/me/today")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get today's meals for currently authenticated partner" })
+  @ApiResponse({ status: 200, description: "Meals returned" })
+  async getCurrentPartnerTodayMeals(@GetCurrentUser("_id") userId: string) {
+    const today = new Date().toISOString().split("T")[0];
+    return this.mealService.findByPartner(userId, today);
+  }
 }
