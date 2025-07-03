@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -7,7 +7,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Eye, Truck, CheckCircle, CircleOff, History } from 'lucide-react';
-import { useFirestoreQuery } from '@/hooks/use-firestore-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { DatePicker } from '@/components/ui/date-picker'; // Keep the import
@@ -22,8 +21,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { useToast } from '@/hooks/use-toast';
-import { doc, updateDoc } from 'firebase/firestore';
-import { getFirebase } from '@/firebase';
+import api from '@/lib/apiClient';
 import type { DateRange } from "react-day-picker"
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
@@ -63,11 +61,17 @@ export default function ManageOrdersPage() {
   const [orderToUpdate, setOrderToUpdate] = useState<Order | null>(null);
   const [newStatus, setNewStatus] = useState<Order['status'] | ''>('');
   const { toast } = useToast();
-  const { firestore } = getFirebase();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
 
-   // Fetch live data
-   const { data: ordersData, loading, error } = useFirestoreQuery<Order>('/orders');
-   const orders = ordersData.length > 0 ? ordersData : DUMMY_ORDERS; // Fallback
+  // Fetch from backend
+  useEffect(() => {
+    api.get<Order[]>('/orders')
+      .then(res => setOrders(res.data))
+      .catch(setError)
+      .finally(() => setLoading(false));
+  }, []);
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
@@ -91,33 +95,25 @@ export default function ManageOrdersPage() {
   }, [orders, searchTerm, statusFilter, tiffinTypeFilter, dateRange]);
 
   const handleUpdateStatus = async () => {
-     if (!firestore || !orderToUpdate || !newStatus) return;
-     const orderRef = doc(firestore, 'orders', orderToUpdate.id);
-     const updates: Partial<Order> = { status: newStatus };
-     if (newStatus === 'dispatched' || newStatus === 'delivered') {
-       updates.dispatched = true;
-     } else if (newStatus === 'pending' || newStatus === 'cancelled') {
-        updates.dispatched = false;
-     }
-
-
-     try {
-       await updateDoc(orderRef, updates);
-       toast({
-         title: "Order Status Updated",
-         description: `Order ${orderToUpdate.orderId} status set to ${newStatus}.`,
-       });
-       setOrderToUpdate(null);
-       setNewStatus('');
-     } catch (err) {
-       console.error("Error updating order status:", err);
-       toast({
-         variant: "destructive",
-         title: "Update Failed",
-         description: "Could not update order status.",
-       });
-     }
-   };
+    if (!orderToUpdate || !newStatus) return;
+    try {
+      await api.patch(`/orders/${orderToUpdate.id}/status`, { status: newStatus });
+      setOrders(prev => prev.map(o => o.id === orderToUpdate.id ? { ...o, status: newStatus, dispatched: newStatus === 'dispatched' || newStatus === 'delivered' } : o));
+      toast({
+        title: "Order Status Updated",
+        description: `Order ${orderToUpdate.orderId} status set to ${newStatus}.`,
+      });
+      setOrderToUpdate(null);
+      setNewStatus('');
+    } catch (err) {
+      console.error("Error updating order status:", err);
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: "Could not update order status.",
+      });
+    }
+  };
 
 
   const getStatusBadgeVariant = (status: Order['status']): "default" | "secondary" | "destructive" | "outline" => {
