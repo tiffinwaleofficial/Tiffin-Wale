@@ -18,6 +18,9 @@ import { FeedbackModule } from "./modules/feedback/feedback.module";
 import { MarketingModule } from "./modules/marketing/marketing.module";
 import { MealModule } from "./modules/meal/meal.module";
 import { SubscriptionModule } from "./modules/subscription/subscription.module";
+import { AnalyticsModule } from "./modules/analytics/analytics.module";
+import { SupportModule } from "./modules/support/support.module";
+import { UploadModule } from "./modules/upload/upload.module";
 
 @Module({
   imports: [
@@ -46,6 +49,9 @@ import { SubscriptionModule } from "./modules/subscription/subscription.module";
     MarketingModule,
     MealModule,
     SubscriptionModule,
+    AnalyticsModule,
+    SupportModule,
+    UploadModule,
   ],
   controllers: [],
   providers: [],

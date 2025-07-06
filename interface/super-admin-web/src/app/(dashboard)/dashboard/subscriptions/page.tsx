@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
+import api from '@/lib/apiClient';
 
 interface Subscription {
   id: string; // Firestore document ID
@@ -35,61 +36,62 @@ interface Subscription {
   nextBillingDate?: string; // YYYY-MM-DD, optional
 }
 
-// Dummy Data
-const DUMMY_SUBSCRIPTIONS: Subscription[] = [
-    { id: 'sub1', subscriptionId: 'SUB-001', customerId: 'c1', customerName: 'Rohan Verma', partnerId: 'p1', partnerName: 'Anna Tiffins', planType: 'monthly', startDate: '2024-07-01', endDate: '2024-07-31', status: 'active', amount: 3000, nextBillingDate: '2024-08-01' },
-    { id: 'sub2', subscriptionId: 'SUB-002', customerId: 'c2', customerName: 'Priya Sharma', partnerId: 'p2', partnerName: 'Roti Ghar', planType: 'weekly', startDate: '2024-07-22', endDate: '2024-07-28', status: 'expired', amount: 700 },
-    { id: 'sub3', subscriptionId: 'SUB-003', customerId: 'c6', customerName: 'Deepika Nair', partnerId: 'p6', partnerName: 'Healthy Bites', planType: 'monthly', startDate: '2024-07-15', endDate: '2024-08-14', status: 'active', amount: 3500, nextBillingDate: '2024-08-15' },
-    { id: 'sub4', subscriptionId: 'SUB-004', customerId: 'c4', customerName: 'Anita Desai', partnerId: 'p7', partnerName: 'Taste of India', planType: 'trial', startDate: '2024-07-25', endDate: '2024-07-31', status: 'active', amount: 0 },
-    { id: 'sub5', subscriptionId: 'SUB-005', customerId: 'c1', customerName: 'Rohan Verma', partnerId: 'p1', partnerName: 'Anna Tiffins', planType: 'monthly', startDate: '2024-06-01', endDate: '2024-06-30', status: 'cancelled', amount: 3000 },
-    { id: 'sub6', subscriptionId: 'SUB-006', customerId: 'c3', customerName: 'Suresh Kumar', partnerId: 'p2', partnerName: 'Roti Ghar', planType: 'weekly', startDate: '2024-07-29', endDate: '2024-08-04', status: 'paused', amount: 750, nextBillingDate: '2024-08-05' },
-];
-
+// initial empty array; will be filled from API
+const DUMMY_SUBSCRIPTIONS: Subscription[] = [];
 
 export default function ManageSubscriptionsPage() {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [planFilter, setPlanFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewSubscription, setViewSubscription] = useState<Subscription | null>(null);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
 
-   // In a real app, replace DUMMY_SUBSCRIPTIONS with data fetched via a hook
-  const subscriptions = DUMMY_SUBSCRIPTIONS; // Use dummy data for now
+  useEffect(() => {
+    Promise.all([
+      api.get<Subscription[]>('/subscriptions'),
+    ])
+      .then(([subs]) => setSubscriptions(subs.data))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
 
-   const filteredSubscriptions = useMemo(() => {
-      return subscriptions.filter(sub => {
-        const matchesSearch =
-          sub.subscriptionId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          sub.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          sub.partnerName.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesPlan = planFilter === 'all' || sub.planType === planFilter;
-        const matchesStatus = statusFilter === 'all' || sub.status === statusFilter;
-        return matchesSearch && matchesPlan && matchesStatus;
-      });
-    }, [subscriptions, searchTerm, planFilter, statusFilter]);
+  const filteredSubscriptions = useMemo(() => {
+    return subscriptions.filter(sub => {
+      const matchesSearch =
+        sub.subscriptionId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sub.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sub.partnerName.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesPlan = planFilter === 'all' || sub.planType === planFilter;
+      const matchesStatus = statusFilter === 'all' || sub.status === statusFilter;
+      return matchesSearch && matchesPlan && matchesStatus;
+    });
+  }, [subscriptions, searchTerm, planFilter, statusFilter]);
 
-     const getStatusBadgeVariant = (status: Subscription['status']): "default" | "secondary" | "destructive" | "outline" => {
-        switch (status) {
-          case 'active':
-            return 'default'; // Greenish
-          case 'paused':
-            return 'outline'; // Yellowish/Neutral outline
-          case 'cancelled':
-            return 'destructive'; // Red
-          case 'expired':
-            return 'secondary'; // Grayish
-          default:
-            return 'secondary';
-        }
-      };
+  const getStatusBadgeVariant = (status: Subscription['status']): "default" | "secondary" | "destructive" | "outline" => {
+    switch (status) {
+      case 'active':
+        return 'default'; // Greenish
+      case 'paused':
+        return 'outline'; // Yellowish/Neutral outline
+      case 'cancelled':
+        return 'destructive'; // Red
+      case 'expired':
+        return 'secondary'; // Grayish
+      default:
+        return 'secondary';
+    }
+  };
 
-      const handleUpdateStatus = (subId: string, newStatus: Subscription['status']) => {
-          // Placeholder for Firestore update logic
-          console.log(`Updating subscription ${subId} to status ${newStatus}`);
-          // Show toast message on success/failure
-       };
-
+  const handleUpdateStatus = async (subId: string, newStatus: Subscription['status']) => {
+    try {
+      await api.patch(`/subscriptions/${subId}`, { status: newStatus });
+      setSubscriptions(prev => prev.map(s => s.id === subId ? { ...s, status: newStatus } : s));
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">

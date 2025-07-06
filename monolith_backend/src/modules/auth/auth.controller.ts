@@ -19,6 +19,7 @@ import { LoginDto } from "./dto/login.dto";
 import { ChangePasswordDto } from "./dto/change-password.dto";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { LocalAuthGuard } from "./guards/local-auth.guard";
+import { RefreshTokenDto } from "./dto/refresh-token.dto";
 
 @ApiTags("auth")
 @Controller("auth")
@@ -60,5 +61,13 @@ export class AuthController {
   @ApiResponse({ status: 401, description: "Unauthorized" })
   changePassword(@Request() req, @Body() changePasswordDto: ChangePasswordDto) {
     return this.authService.changePassword(req.user._id, changePasswordDto);
+  }
+
+  @Post("refresh-token")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Refresh JWT token" })
+  @ApiResponse({ status: 200, description: "Token refreshed successfully" })
+  refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refreshToken(dto.refreshToken);
   }
 }

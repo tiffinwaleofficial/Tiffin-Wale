@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -7,7 +7,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, UserX, Eye, MessageSquare } from 'lucide-react';
-import { useFirestoreQuery } from '@/hooks/use-firestore-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -20,8 +19,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { useToast } from '@/hooks/use-toast';
-import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { getFirebase } from '@/firebase';
+import api from '@/lib/apiClient';
 import { Label } from '@/components/ui/label'; // Import Label
 
 interface Customer {
@@ -52,11 +50,16 @@ export default function ManageCustomersPage() {
    const [viewCustomer, setViewCustomer] = useState<Customer | null>(null);
    const [customerToBan, setCustomerToBan] = useState<Customer | null>(null);
    const { toast } = useToast();
-   const { firestore } = getFirebase();
+   const [customers, setCustomers] = useState<Customer[]>([]);
+   const [loading, setLoading] = useState<boolean>(true);
+   const [error, setError] = useState<Error | null>(null);
 
-   // Replace DUMMY_CUSTOMERS with live data
-   const { data: customersData, loading, error } = useFirestoreQuery<Customer>('/customers');
-   const customers = customersData.length > 0 ? customersData : DUMMY_CUSTOMERS; // Fallback
+   useEffect(() => {
+     api.get<Customer[]>('/customers')
+       .then(r => setCustomers(r.data))
+       .catch(setError)
+       .finally(() => setLoading(false));
+   }, []);
 
   const filteredCustomers = useMemo(() => {
     return customers.filter((customer) => {
@@ -76,10 +79,9 @@ export default function ManageCustomersPage() {
    }, [customers]);
 
    const handleUpdateStatus = async (customerId: string, newStatus: Customer['status']) => {
-      if (!firestore) return;
-      const customerRef = doc(firestore, 'customers', customerId);
       try {
-        await updateDoc(customerRef, { status: newStatus });
+        await api.patch(`/users/${customerId}`, { status: newStatus });
+        setCustomers(prev => prev.map(c => c.id === customerId ? { ...c, status: newStatus } : c));
         toast({
           title: `Customer ${newStatus === 'banned' ? 'Banned' : 'Updated'}`,
           description: `Customer status successfully updated to ${newStatus}.`,

@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation'; // Import useRouter
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, UserCheck, UserX, Eye, MessageSquare } from 'lucide-react';
-import { useFirestoreQuery } from '@/hooks/use-firestore-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -21,8 +20,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { useToast } from '@/hooks/use-toast';
-import { doc, updateDoc } from 'firebase/firestore'; // Removed deleteDoc as it's not used
-import { getFirebase } from '@/firebase';
+import api from '@/lib/apiClient';
 import { Label } from '@/components/ui/label'; // Import Label
 
 
@@ -58,11 +56,16 @@ export default function ManagePartnersPage() {
   const [partnerToBan, setPartnerToBan] = useState<Partner | null>(null);
   const [partnerToApprove, setPartnerToApprove] = useState<Partner | null>(null);
   const { toast } = useToast();
-  const { firestore } = getFirebase();
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  // Replace DUMMY_PARTNERS with live data
-   const { data: partnersData, loading, error } = useFirestoreQuery<Partner>('/partners');
-   const partners = partnersData.length > 0 ? partnersData : DUMMY_PARTNERS; // Fallback to dummy if needed initially
+  useEffect(() => {
+    api.get<Partner[]>('/partners')
+      .then(r => setPartners(r.data))
+      .catch(setError)
+      .finally(() => setLoading(false));
+  }, []);
 
   const filteredPartners = useMemo(() => {
     return partners.filter((partner) => {
@@ -83,10 +86,10 @@ export default function ManagePartnersPage() {
   }, [partners]);
 
   const handleUpdateStatus = async (partnerId: string, newStatus: Partner['status']) => {
-    if (!firestore) return;
-    const partnerRef = doc(firestore, 'partners', partnerId);
+    if (!api) return;
     try {
-      await updateDoc(partnerRef, { status: newStatus });
+      await api.put(`/partners/${partnerId}/status`, { status: newStatus });
+      setPartners(prev => prev.map(p => p.id === partnerId ? { ...p, status: newStatus } : p));
       toast({
         title: `Partner ${newStatus === 'banned' ? 'Banned' : newStatus === 'active' ? 'Approved' : 'Updated'}`,
         description: `Partner status successfully updated to ${newStatus}.`,
@@ -96,7 +99,7 @@ export default function ManagePartnersPage() {
       if (newStatus === 'banned') setPartnerToBan(null);
       if (newStatus === 'active') setPartnerToApprove(null);
     } catch (err) {
-      console.error("Error updating partner status:", err);
+      console.error('Error updating partner status:', err);
       toast({
         variant: "destructive",
         title: "Update Failed",

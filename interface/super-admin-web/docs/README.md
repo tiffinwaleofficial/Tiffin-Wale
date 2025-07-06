@@ -110,3 +110,58 @@ _(To be filled with details on the Firebase APIs used for authentication, data s
 ## Deployment Guide
 
 _(To be filled with step-by-step instructions for deploying the application to Google App Engine.)_
+
+# Super-Admin Web – Documentation
+
+## What is this app?
+The **Super-Admin Web** is a Next.js 13 dashboard for internal staff of *TiffinWale*.
+It lets platform administrators monitor KPIs, manage partners, customers, orders,
+subscriptions, support tickets and revenue in real-time.
+
+The UI layer lives under `src/app/(dashboard)` and is 100 % server-components
+compatible; all data is fetched client-side through **Axios** via the shared
+`src/lib/apiClient.ts` which respects `NEXT_PUBLIC_API_BASE_URL`.
+
+---
+## Integrated API End-points (✅)
+| Module        | HTTP             | Path                                       | Page/component                                     |
+|---------------|------------------|--------------------------------------------|----------------------------------------------------|
+| Analytics     | GET              | `/analytics/earnings?period=month`         | Dashboard KPI cards                                |
+| Analytics     | GET              | `/analytics/revenue-history?months=6`      | Orders & Revenue / Partner growth charts           |
+| Orders        | GET              | `/orders?page=&status=`                    | Orders list page                                   |
+| Partners      | GET              | `/partners?page=&status=`                  | Partners list page                                 |
+| Customers     | GET              | `/customers?page=`                         | Customers page                                     |
+| Subscriptions | GET              | `/subscriptions/active`                    | Subscription pie chart & list                      |
+| Support       | GET              | `/support/tickets/me`                      | Support inbox                                      |
+| Support       | POST             | `/support/tickets`                         | New-ticket modal                                   |
+| Upload        | POST + DELETE    | `/upload/image` / `/upload/image/:id`      | File-picker (menu images, banners, etc.)           |
+| Notifications | GET + PATCH      | `/notifications/partner/me` (+ read APIs)  | In-app toast feed                                  |
+
+All of the above now return live data from the NestJS monolith – **no mock
+arrays remain** in any React component.
+
+---
+## Pending / Nice-to-have (🟡)
+| Module        | Endpoint                     | Reason                         |
+|---------------|------------------------------|--------------------------------|
+| Analytics     | `/analytics/dashboard`       | Single aggregate endpoint      |
+| Payouts       | `/payouts/partner/me`        | Awaiting finance schema        |
+| Settings      | `/system/config`             | Exposed but UI not wired yet   |
+
+---
+## Environment Variables
+See root `.env.example` for the complete list.  Super-admin uses **only one**:
+```
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3001      # dev
+# NEXT_PUBLIC_API_BASE_URL=https://api.tiffin-wale.com  # prod
+```
+Change it → restart `pnpm dev` → all requests point to the new backend.
+
+---
+### Quick start (local)
+```bash
+cd interface/super-admin-web
+cp ../../.env.example .env.local
+pnpm i
+pnpm dev          # runs on http://localhost:9002 by default
+```

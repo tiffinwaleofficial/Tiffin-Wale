@@ -22,6 +22,7 @@ import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { UserRole } from "../../common/interfaces/user.interface";
+import { GetCurrentUser } from "../../common/decorators/user.decorator";
 
 @ApiTags("users")
 @Controller("users")
@@ -80,5 +81,26 @@ export class UserController {
   @ApiResponse({ status: 404, description: "User not found" })
   remove(@Param("id") id: string) {
     return this.userService.remove(id);
+  }
+
+  @Get("profile")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get current user's profile" })
+  @ApiResponse({ status: 200, description: "Return current user" })
+  getProfile(@GetCurrentUser("_id") userId: string) {
+    return this.userService.findById(userId);
+  }
+
+  @Patch("profile")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Update current user's profile" })
+  @ApiResponse({ status: 200, description: "User has been updated" })
+  updateProfile(
+    @GetCurrentUser("_id") userId: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    return this.userService.update(userId, updateUserDto);
   }
 }

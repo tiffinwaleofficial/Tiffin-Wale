@@ -274,4 +274,12 @@ export class MealService {
 
     return { deleted: true };
   }
+
+  /**
+   * Get meals for a business partner (current partner)
+   */
+  async findByPartner(partnerUserId: string, date?: string) {
+    // TODO: Implement proper query once partner -> meals relation exists
+    return [];
+  }
 }

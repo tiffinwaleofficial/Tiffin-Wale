@@ -182,6 +182,29 @@ export class AuthService {
     }
   }
 
+  async refreshToken(oldRefreshToken: string) {
+    try {
+      // Verify the old refresh token
+      const payload: any = this.jwtService.verify(oldRefreshToken);
+
+      // Retrieve the user
+      const user = await this.userService.findById(payload.sub);
+      if (!user) {
+        throw new UnauthorizedException("Invalid refresh token");
+      }
+
+      // Prepare plain user object (without password)
+      const { password, ...plainUser } = (user as any).toObject
+        ? (user as any).toObject()
+        : (user as any);
+
+      // Issue new tokens
+      return this.generateToken(plainUser);
+    } catch (error) {
+      throw new UnauthorizedException("Invalid refresh token");
+    }
+  }
+
   private async generateToken(user: any) {
     const payload = { email: user.email, sub: user._id, role: user.role };
 
@@ -232,7 +255,8 @@ export class AuthService {
     const todaysMeals = await this.mealService.findTodayMeals(user._id);
 
     return {
-      access_token: this.jwtService.sign(payload),
+      token: this.jwtService.sign(payload),
+      refreshToken: this.jwtService.sign(payload, { expiresIn: "30d" }),
       user: {
         id: user._id,
         email: user.email,

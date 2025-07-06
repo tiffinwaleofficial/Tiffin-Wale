@@ -601,4 +601,16 @@ export class PartnerController {
       statusUpdate.isAcceptingOrders,
     );
   }
+
+  @Get("me/reviews")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get reviews for current partner" })
+  async getMyReviews(
+    @GetCurrentUser("_id") userId: string,
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
+  ) {
+    return this.partnerService.getCurrentPartnerReviews(userId, page, limit);
+  }
 }
