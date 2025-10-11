@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Animated, Easing } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 import { ArrowLeft, Check, MapPin, Phone, Package, ShoppingBag, Search, ClipboardList } from 'lucide-react-native';
 import api from '@/utils/apiClient';
 
@@ -46,23 +45,55 @@ export default function TrackScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Animation values for the pulsating effect
-  const activeBulletScale = useSharedValue(1);
-  const activeLineOpacity = useSharedValue(0.6);
+  // Animation values for the pulsating effect (using standard Animated API)
+  const activeBulletScale = useRef(new Animated.Value(1)).current;
+  const activeLineOpacity = useRef(new Animated.Value(0.6)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   
   // Set up the animations when component mounts
   useEffect(() => {
-    activeBulletScale.value = withRepeat(
-      withTiming(1.2, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
-      -1, // infinite repetitions
-      true // reverse
-    );
+    // Fade in animation
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+
+    // Pulsating scale animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(activeBulletScale, {
+          toValue: 1.2,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(activeBulletScale, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
     
-    activeLineOpacity.value = withRepeat(
-      withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
-      -1, // infinite repetitions
-      true // reverse
-    );
+    // Pulsating opacity animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(activeLineOpacity, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(activeLineOpacity, {
+          toValue: 0.6,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
   }, []);
   
   // Fetch meal data and set up real-time tracking
@@ -113,17 +144,30 @@ export default function TrackScreen() {
                 const recentOrder = customerOrders[0];
                 const mealFromOrder = {
                   id: recentOrder.id,
-                  type: recentOrder.type || 'lunch',
+                  type: 'lunch', // Default type since Order doesn't have this
                   date: recentOrder.createdAt || new Date().toISOString(),
-                  status: recentOrder.status || 'scheduled',
-                  restaurantId: recentOrder.restaurantId || '',
-                  restaurantName: recentOrder.restaurantName || 'Restaurant',
-                  menu: recentOrder.items || []
+                  status: recentOrder.status === 'canceled' ? 'cancelled' : recentOrder.status,
+                  restaurantId: '', // Order doesn't have restaurant info
+                  restaurantName: 'Restaurant',
+                  menu: (recentOrder.items || []).map(item => ({
+                    id: typeof item.menuItem === 'string' ? item.menuItem : item.menuItem?.id || '',
+                    name: typeof item.menuItem === 'object' ? item.menuItem.name : 'Item',
+                    description: typeof item.menuItem === 'object' ? item.menuItem.description : '',
+                    image: typeof item.menuItem === 'object' ? (item.menuItem.image || '') : '',
+                    price: item.price,
+                    rating: typeof item.menuItem === 'object' && item.menuItem.ratings ? item.menuItem.ratings.average : 0,
+                    reviewCount: typeof item.menuItem === 'object' && item.menuItem.ratings ? item.menuItem.ratings.count : 0,
+                    category: typeof item.menuItem === 'object' ? item.menuItem.category : '',
+                    tags: typeof item.menuItem === 'object' && item.menuItem.dietaryInfo ? item.menuItem.dietaryInfo : [],
+                    isVegetarian: typeof item.menuItem === 'object' && item.menuItem.dietaryInfo ? item.menuItem.dietaryInfo.includes('vegetarian') : false,
+                    availableToday: typeof item.menuItem === 'object' ? item.menuItem.isAvailable : true,
+                    restaurantId: typeof item.menuItem === 'object' ? item.menuItem.partnerId : '',
+                  }))
                 };
                 
                 setMeal(mealFromOrder);
                 
-                if (mealFromOrder.status !== 'delivered' && mealFromOrder.status !== 'cancelled') {
+                if (mealFromOrder.status !== 'delivered' && mealFromOrder.status !== 'canceled') {
                   subscribeToOrderUpdates(mealFromOrder.id);
                 }
               } else {
@@ -142,17 +186,30 @@ export default function TrackScreen() {
                 const recentOrder = customerOrders[0];
                 const mealFromOrder = {
                   id: recentOrder.id,
-                  type: recentOrder.type || 'lunch',
+                  type: 'lunch', // Default type since Order doesn't have this
                   date: recentOrder.createdAt || new Date().toISOString(),
-                  status: recentOrder.status || 'scheduled',
-                  restaurantId: recentOrder.restaurantId || '',
-                  restaurantName: recentOrder.restaurantName || 'Restaurant',
-                  menu: recentOrder.items || []
+                  status: recentOrder.status === 'canceled' ? 'cancelled' : recentOrder.status,
+                  restaurantId: '', // Order doesn't have restaurant info
+                  restaurantName: 'Restaurant',
+                  menu: (recentOrder.items || []).map(item => ({
+                    id: typeof item.menuItem === 'string' ? item.menuItem : item.menuItem?.id || '',
+                    name: typeof item.menuItem === 'object' ? item.menuItem.name : 'Item',
+                    description: typeof item.menuItem === 'object' ? item.menuItem.description : '',
+                    image: typeof item.menuItem === 'object' ? (item.menuItem.image || '') : '',
+                    price: item.price,
+                    rating: typeof item.menuItem === 'object' && item.menuItem.ratings ? item.menuItem.ratings.average : 0,
+                    reviewCount: typeof item.menuItem === 'object' && item.menuItem.ratings ? item.menuItem.ratings.count : 0,
+                    category: typeof item.menuItem === 'object' ? item.menuItem.category : '',
+                    tags: typeof item.menuItem === 'object' && item.menuItem.dietaryInfo ? item.menuItem.dietaryInfo : [],
+                    isVegetarian: typeof item.menuItem === 'object' && item.menuItem.dietaryInfo ? item.menuItem.dietaryInfo.includes('vegetarian') : false,
+                    availableToday: typeof item.menuItem === 'object' ? item.menuItem.isAvailable : true,
+                    restaurantId: typeof item.menuItem === 'object' ? item.menuItem.partnerId : '',
+                  }))
                 };
                 
                 setMeal(mealFromOrder);
                 
-                if (mealFromOrder.status !== 'delivered' && mealFromOrder.status !== 'cancelled') {
+                if (mealFromOrder.status !== 'delivered' && mealFromOrder.status !== 'canceled') {
                   subscribeToOrderUpdates(mealFromOrder.id);
                 }
               } else {
@@ -185,18 +242,14 @@ export default function TrackScreen() {
   }, [params.id, subscribeToOrderUpdates, unsubscribeFromOrderUpdates]);
   
   // Animated styles for the active status bullet
-  const animatedBulletStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: activeBulletScale.value }],
-    };
-  });
+  const animatedBulletStyle = {
+    transform: [{ scale: activeBulletScale }],
+  };
   
   // Animated styles for the active status line
-  const animatedLineStyle = useAnimatedStyle(() => {
-    return {
-      opacity: activeLineOpacity.value,
-    };
-  });
+  const animatedLineStyle = {
+    opacity: activeLineOpacity,
+  };
   
   const getStepStatus = (stepId: string) => {
     if (!meal) return 'pending';
@@ -233,7 +286,7 @@ export default function TrackScreen() {
         </View>
         
         <View style={styles.centeredContent}>
-          <Animated.View entering={FadeInDown.duration(600)} style={styles.emptyStateCard}>
+          <Animated.View style={[styles.emptyStateCard, { opacity: fadeAnim }]}>
             <View style={styles.emptyIconContainer}>
               <Package size={64} color="#FF9B42" />
             </View>
@@ -262,7 +315,7 @@ export default function TrackScreen() {
         </View>
         
         <View style={styles.centeredContent}>
-          <Animated.View entering={FadeInDown.duration(600)} style={styles.emptyStateCard}>
+          <Animated.View style={[styles.emptyStateCard, { opacity: fadeAnim }]}>
             <View style={styles.emptyIconContainer}>
               <Search size={64} color="#FF9B42" />
             </View>
@@ -313,7 +366,7 @@ export default function TrackScreen() {
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Meal Card */}
-        <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.mealCard}>
+        <Animated.View style={[styles.mealCard, { opacity: fadeAnim, transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }]}>
           <Image 
             source={{ uri: meal.menu[0]?.image || 'https://via.placeholder.com/300x200' }} 
             style={styles.mealImage} 
@@ -326,7 +379,7 @@ export default function TrackScreen() {
         </Animated.View>
 
         {/* Tracking Progress */}
-        <Animated.View entering={FadeInDown.delay(400).duration(400)} style={styles.trackingCard}>
+        <Animated.View style={[styles.trackingCard, { opacity: fadeAnim, transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }]}>
           <Text style={styles.trackingTitle}>Order Status</Text>
           
           <View style={styles.stepsContainer}>
@@ -377,7 +430,7 @@ export default function TrackScreen() {
         </Animated.View>
 
         {/* Restaurant Info */}
-        <Animated.View entering={FadeInDown.delay(600).duration(400)} style={styles.restaurantCard}>
+        <Animated.View style={[styles.restaurantCard, { opacity: fadeAnim, transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }]}>
           <Text style={styles.restaurantTitle}>Restaurant Details</Text>
           <View style={styles.restaurantInfo}>
             <View style={styles.restaurantRow}>

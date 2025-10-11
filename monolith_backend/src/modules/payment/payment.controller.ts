@@ -7,7 +7,6 @@ import {
   Param,
   Delete,
   UseGuards,
-  Query,
 } from "@nestjs/common";
 import { PaymentService } from "./payment.service";
 import {

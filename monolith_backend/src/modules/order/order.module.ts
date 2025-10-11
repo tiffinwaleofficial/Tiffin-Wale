@@ -10,6 +10,6 @@ import { Order, OrderSchema } from "./schemas/order.schema";
   ],
   controllers: [OrderController],
   providers: [OrderService],
-  exports: [OrderService],
+  exports: [OrderService, MongooseModule],
 })
 export class OrderModule {}

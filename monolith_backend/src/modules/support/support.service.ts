@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
+import { TicketDto } from "./dto/ticket.dto";
 
-interface Ticket {
+interface TicketData {
   id: string;
   userId: string;
   subject: string;
@@ -11,10 +12,15 @@ interface Ticket {
 
 @Injectable()
 export class SupportService {
-  private tickets: Ticket[] = [];
+  private tickets: TicketData[] = [];
 
-  createTicket(userId: string, subject: string, message: string, category: string) {
-    const ticket: Ticket = {
+  createTicket(
+    userId: string,
+    subject: string,
+    message: string,
+    category: string,
+  ): TicketDto {
+    const ticket: TicketData = {
       id: Date.now().toString(),
       userId,
       subject,
@@ -26,7 +32,7 @@ export class SupportService {
     return ticket;
   }
 
-  getTicketsForUser(userId: string) {
+  getTicketsForUser(userId: string): TicketDto[] {
     return this.tickets.filter((t) => t.userId === userId);
   }
 }

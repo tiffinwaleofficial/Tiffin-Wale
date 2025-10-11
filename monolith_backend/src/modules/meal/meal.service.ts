@@ -2,284 +2,189 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  InternalServerErrorException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { Model, Types } from "mongoose";
+import { Model } from "mongoose";
 import { Meal, MealStatus } from "./schemas/meal.schema";
 import { CreateMealDto } from "./dto/create-meal.dto";
-import { UpdateMealDto } from "./dto/update-meal.dto";
-import { MenuService } from "../menu/menu.service";
-import { MealResponseDto } from "./dto/meal-response.dto";
-import { UserService } from "../user/user.service";
 
 @Injectable()
 export class MealService {
-  constructor(
-    @InjectModel(Meal.name) private readonly mealModel: Model<Meal>,
-    private readonly menuService: MenuService,
-    private readonly userService: UserService,
-  ) {}
+  constructor(@InjectModel(Meal.name) private mealModel: Model<Meal>) {}
 
-  /**
-   * Transforms meal data to response format
-   */
-  private async transformMealResponse(meal: Meal): Promise<MealResponseDto> {
-    const populatedMeal = await meal.populate({
-      path: "menuItems",
-      select: "name description price imageUrl",
-    });
-
-    const menuItems = populatedMeal.menuItems.map((item: any) => ({
-      id: item._id.toString(),
-      name: item.name,
-      description: item.description,
-      price: item.price,
-      imageUrl: item.imageUrl,
-    }));
-
-    return {
-      id: meal._id.toString(),
-      type: meal.type,
-      scheduledDate: meal.scheduledDate.toISOString(),
-      menuItems,
-      status: meal.status,
-      customerId: meal.customer.toString(),
-      businessPartnerId: meal.businessPartner?.toString(),
-      businessPartnerName: meal.businessPartnerName,
-      isRated: meal.isRated,
-      rating: meal.rating,
-      review: meal.review,
-      cancellationReason: meal.cancellationReason,
-      deliveryNotes: meal.deliveryNotes,
-      deliveredAt: meal.deliveredAt?.toISOString(),
-      createdAt: meal.createdAt.toISOString(),
-      updatedAt: meal.updatedAt.toISOString(),
-    };
+  async create(createMealDto: CreateMealDto): Promise<Meal> {
+    const createdMeal = new this.mealModel(createMealDto);
+    return createdMeal.save();
   }
 
-  /**
-   * Creates a new meal
-   */
-  async create(createMealDto: CreateMealDto): Promise<MealResponseDto> {
-    try {
-      // Verify that all menu items exist
-      const menuItemPromises = createMealDto.menuItems.map((id) =>
-        this.menuService.findMenuItemById(id),
-      );
-      await Promise.all(menuItemPromises);
-
-      // Create new meal
-      const newMeal = new this.mealModel(createMealDto);
-      const savedMeal = await newMeal.save();
-
-      return this.transformMealResponse(savedMeal);
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw new BadRequestException(
-          `One or more menu items not found: ${error.message}`,
-        );
-      }
-      throw new InternalServerErrorException(
-        `Failed to create meal: ${error.message}`,
-      );
-    }
-  }
-
-  /**
-   * Finds all meals
-   */
-  async findAll(): Promise<MealResponseDto[]> {
-    const meals = await this.mealModel
-      .find()
-      .sort({ scheduledDate: -1 })
-      .exec();
-    const responsePromises = meals.map((meal) =>
-      this.transformMealResponse(meal),
-    );
-    return Promise.all(responsePromises);
-  }
-
-  /**
-   * Finds a specific meal by ID
-   */
-  async findById(id: string): Promise<MealResponseDto> {
+  async findById(id: string): Promise<Meal> {
     const meal = await this.mealModel.findById(id).exec();
     if (!meal) {
       throw new NotFoundException(`Meal with ID ${id} not found`);
     }
-    return this.transformMealResponse(meal);
+    return meal;
   }
 
-  /**
-   * Find meals for a specific customer
-   */
-  async findByCustomer(customerId: string): Promise<MealResponseDto[]> {
-    const meals = await this.mealModel
-      .find({ customer: customerId })
-      .sort({ scheduledDate: -1 })
-      .exec();
-
-    const responsePromises = meals.map((meal) =>
-      this.transformMealResponse(meal),
-    );
-    return Promise.all(responsePromises);
-  }
-
-  /**
-   * Find meals for today for a specific customer
-   */
-  async findTodayMeals(customerId: string): Promise<MealResponseDto[]> {
-    // Get today's date range (start of day to end of day)
+  async getTodayMeals(userId: string): Promise<Meal[]> {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const startOfDay = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    const endOfDay = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+      23,
+      59,
+      59,
+    );
 
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    // Find meals scheduled for today
-    const meals = await this.mealModel
+    return this.mealModel
       .find({
-        customer: customerId,
-        scheduledDate: {
-          $gte: today,
-          $lt: tomorrow,
+        userId: userId,
+        date: {
+          $gte: startOfDay,
+          $lte: endOfDay,
         },
       })
-      .sort({ scheduledDate: 1 })
+      .populate("restaurantId", "name address")
       .exec();
-
-    const responsePromises = meals.map((meal) =>
-      this.transformMealResponse(meal),
-    );
-    return Promise.all(responsePromises);
   }
 
-  /**
-   * Find meal history for a specific customer (excluding today)
-   */
-  async findMealHistory(customerId: string): Promise<MealResponseDto[]> {
-    // Get today's date (start of day)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  // Backward-compatible alias used elsewhere
+  async findTodayMeals(userId: string): Promise<Meal[]> {
+    return this.getTodayMeals(userId);
+  }
 
-    // Find meals scheduled before today
-    const meals = await this.mealModel
+  async getMealHistory(userId: string): Promise<Meal[]> {
+    return this.mealModel
       .find({
-        customer: customerId,
-        scheduledDate: { $lt: today },
+        userId: userId,
       })
-      .sort({ scheduledDate: -1 })
+      .populate("restaurantId", "name address")
+      .sort({ date: -1 })
+      .limit(50)
       .exec();
-
-    const responsePromises = meals.map((meal) =>
-      this.transformMealResponse(meal),
-    );
-    return Promise.all(responsePromises);
   }
 
-  /**
-   * Updates a meal
-   */
-  async update(
-    id: string,
-    updateMealDto: UpdateMealDto,
-  ): Promise<MealResponseDto> {
-    const updatedMeal = await this.mealModel
-      .findByIdAndUpdate(id, updateMealDto, { new: true })
-      .exec();
+  async updateStatus(id: string, status: MealStatus): Promise<Meal> {
+    const meal = await this.findById(id);
 
-    if (!updatedMeal) {
-      throw new NotFoundException(`Meal with ID ${id} not found`);
+    // Validate status transition
+    if (!this.isValidStatusTransition(meal.status, status)) {
+      throw new BadRequestException(
+        `Invalid status transition from ${meal.status} to ${status}`,
+      );
     }
 
-    return this.transformMealResponse(updatedMeal);
+    return this.mealModel
+      .findByIdAndUpdate(id, { status, updatedAt: new Date() }, { new: true })
+      .exec();
   }
 
-  /**
-   * Updates the status of a meal
-   */
-  async updateStatus(id: string, status: MealStatus): Promise<MealResponseDto> {
-    // If setting to delivered, also set deliveredAt timestamp
-    const updateData: any = { status };
-    if (status === MealStatus.DELIVERED) {
-      updateData.deliveredAt = new Date();
+  async skipMeal(id: string, reason?: string): Promise<Meal> {
+    const meal = await this.findById(id);
+
+    if (meal.status !== MealStatus.SCHEDULED) {
+      throw new BadRequestException("Only scheduled meals can be skipped");
     }
 
-    const updatedMeal = await this.mealModel
-      .findByIdAndUpdate(id, updateData, { new: true })
+    return this.mealModel
+      .findByIdAndUpdate(
+        id,
+        {
+          status: MealStatus.SKIPPED,
+          skipReason: reason,
+          updatedAt: new Date(),
+        },
+        { new: true },
+      )
       .exec();
-
-    if (!updatedMeal) {
-      throw new NotFoundException(`Meal with ID ${id} not found`);
-    }
-
-    return this.transformMealResponse(updatedMeal);
   }
 
-  /**
-   * Skips a meal (marks as SKIPPED)
-   */
-  async skipMeal(id: string, reason?: string): Promise<MealResponseDto> {
-    const updateData: any = {
-      status: MealStatus.SKIPPED,
-      cancellationReason: reason || "Customer skipped meal",
+  async rateMeal(id: string, rating: number, review?: string): Promise<Meal> {
+    const meal = await this.findById(id);
+
+    if (meal.status !== MealStatus.DELIVERED) {
+      throw new BadRequestException("Only delivered meals can be rated");
+    }
+
+    if (meal.userRating) {
+      throw new BadRequestException("Meal has already been rated");
+    }
+
+    return this.mealModel
+      .findByIdAndUpdate(
+        id,
+        {
+          userRating: rating,
+          userReview: review,
+          updatedAt: new Date(),
+        },
+        { new: true },
+      )
+      .exec();
+  }
+
+  private isValidStatusTransition(
+    currentStatus: MealStatus,
+    newStatus: MealStatus,
+  ): boolean {
+    const validTransitions = {
+      [MealStatus.SCHEDULED]: [
+        MealStatus.PREPARING,
+        MealStatus.CANCELLED,
+        MealStatus.SKIPPED,
+      ],
+      [MealStatus.PREPARING]: [MealStatus.READY, MealStatus.CANCELLED],
+      [MealStatus.READY]: [MealStatus.DELIVERED, MealStatus.CANCELLED],
+      [MealStatus.DELIVERED]: [], // Final state
+      [MealStatus.CANCELLED]: [], // Final state
+      [MealStatus.SKIPPED]: [], // Final state
     };
 
-    const updatedMeal = await this.mealModel
-      .findByIdAndUpdate(id, updateData, { new: true })
+    return validTransitions[currentStatus]?.includes(newStatus) || false;
+  }
+
+  async findByCustomer(customerId: string): Promise<Meal[]> {
+    return this.mealModel
+      .find({ userId: customerId })
+      .populate("restaurantId", "name address")
+      .sort({ date: -1 })
       .exec();
-
-    if (!updatedMeal) {
-      throw new NotFoundException(`Meal with ID ${id} not found`);
-    }
-
-    return this.transformMealResponse(updatedMeal);
   }
 
-  /**
-   * Rates a meal
-   */
-  async rateMeal(
-    id: string,
-    rating: number,
-    review?: string,
-  ): Promise<MealResponseDto> {
-    const updateData: any = {
-      isRated: true,
-      rating,
-      review,
-    };
+  async findByPartner(partnerId: string, date?: string): Promise<Meal[]> {
+    const query: any = { restaurantId: partnerId };
 
-    const updatedMeal = await this.mealModel
-      .findByIdAndUpdate(id, updateData, { new: true })
+    if (date) {
+      const targetDate = new Date(date);
+      const startOfDay = new Date(
+        targetDate.getFullYear(),
+        targetDate.getMonth(),
+        targetDate.getDate(),
+      );
+      const endOfDay = new Date(
+        targetDate.getFullYear(),
+        targetDate.getMonth(),
+        targetDate.getDate(),
+        23,
+        59,
+        59,
+      );
+
+      query.date = {
+        $gte: startOfDay,
+        $lte: endOfDay,
+      };
+    }
+
+    return this.mealModel
+      .find(query)
+      .populate("userId", "firstName lastName email")
+      .sort({ date: -1 })
       .exec();
-
-    if (!updatedMeal) {
-      throw new NotFoundException(`Meal with ID ${id} not found`);
-    }
-
-    return this.transformMealResponse(updatedMeal);
-  }
-
-  /**
-   * Deletes a meal
-   */
-  async delete(id: string): Promise<{ deleted: boolean }> {
-    const result = await this.mealModel.findByIdAndDelete(id).exec();
-
-    if (!result) {
-      throw new NotFoundException(`Meal with ID ${id} not found`);
-    }
-
-    return { deleted: true };
-  }
-
-  /**
-   * Get meals for a business partner (current partner)
-   */
-  async findByPartner(partnerUserId: string, date?: string) {
-    // TODO: Implement proper query once partner -> meals relation exists
-    return [];
   }
 }

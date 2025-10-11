@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, ScrollView, StyleSheet, Text, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, ScrollView, StyleSheet, Text, TouchableOpacity, RefreshControl, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Bell, Calendar, MapPin, Clock } from 'lucide-react-native';
+import { Bell, Calendar, MapPin, Clock, Star } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useAuthStore } from '@/store/authStore';
@@ -10,6 +10,8 @@ import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { ActiveSubscriptionDashboard } from '@/components/ActiveSubscriptionDashboard';
 import { NoSubscriptionDashboard } from '@/components/NoSubscriptionDashboard';
+import { useRestaurantStore } from '@/store/restaurantStore';
+import { Restaurant } from '@/types';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -29,6 +31,11 @@ export default function HomeScreen() {
     unreadCount, 
     fetchNotifications 
   } = useNotificationStore();
+  const {
+    restaurants,
+    isLoading: restaurantsLoading,
+    fetchRestaurants,
+  } = useRestaurantStore();
   
   const [refreshing, setRefreshing] = useState(false);
 
@@ -39,13 +46,14 @@ export default function HomeScreen() {
         await Promise.all([
           fetchTodayMeals(),
           fetchUserSubscriptions(),
-          fetchNotifications(user.id)
+          fetchNotifications(user.id),
+          fetchRestaurants(),
         ]);
       }
     };
 
     loadInitialData();
-  }, [user?.id, fetchTodayMeals, fetchUserSubscriptions, fetchNotifications]);
+  }, [user?.id, fetchTodayMeals, fetchUserSubscriptions, fetchNotifications, fetchRestaurants]);
 
   // Pull to refresh handler
   const onRefresh = async () => {
@@ -55,7 +63,8 @@ export default function HomeScreen() {
         await Promise.all([
           fetchTodayMeals(),
           fetchUserSubscriptions(),
-          fetchNotifications(user.id)
+          fetchNotifications(user.id),
+          fetchRestaurants(),
         ]);
       }
     } catch (error) {
@@ -173,6 +182,29 @@ export default function HomeScreen() {
             />
           ) : (
             <NoSubscriptionDashboard />
+          )}
+        </Animated.View>
+
+        {/* Explore Restaurants */}
+        <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.section}>
+          <Text style={styles.sectionTitle}>Explore Restaurants</Text>
+          {restaurantsLoading ? (
+            <ActivityIndicator style={{ marginTop: 20 }} size="large" color="#FF9B42" />
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.restaurantList}>
+              {restaurants.map(restaurant => (
+                <TouchableOpacity key={restaurant.id} style={styles.restaurantCard} onPress={() => router.push(`/restaurant/${restaurant.id}`)}>
+                  <Image source={{ uri: restaurant.image }} style={styles.restaurantImage} />
+                  <View style={styles.restaurantInfo}>
+                    <Text style={styles.restaurantName} numberOfLines={1}>{restaurant.name}</Text>
+                    <View style={styles.restaurantRating}>
+                      <Star size={14} color="#FFD700" fill="#FFD700" />
+                      <Text style={styles.restaurantRatingText}>{restaurant.rating}</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           )}
         </Animated.View>
 
@@ -561,5 +593,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666666',
     textAlign: 'center',
+  },
+  restaurantList: {
+    marginTop: 10,
+    paddingHorizontal: -10,
+  },
+  restaurantCard: {
+    width: 150,
+    marginHorizontal: 10,
+    backgroundColor: '#F8F8F8',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  restaurantImage: {
+    width: '100%',
+    height: 100,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+  },
+  restaurantInfo: {
+    padding: 10,
+  },
+  restaurantName: {
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  restaurantRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  restaurantRatingText: {
+    marginLeft: 5,
+    fontSize: 12,
+    color: '#666',
   },
 });

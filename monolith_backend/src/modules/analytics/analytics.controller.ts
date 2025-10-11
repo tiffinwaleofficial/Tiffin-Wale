@@ -12,7 +12,11 @@ export class AnalyticsController {
   @ApiQuery({ name: "period", required: false })
   @ApiQuery({ name: "startDate", required: false })
   @ApiQuery({ name: "endDate", required: false })
-  earnings(@Query("period") period = "today", @Query("startDate") start?: string, @Query("endDate") end?: string) {
+  earnings(
+    @Query("period") period = "today",
+    @Query("startDate") start?: string,
+    @Query("endDate") end?: string,
+  ) {
     return this.analyticsService.earnings(period, start, end);
   }
 

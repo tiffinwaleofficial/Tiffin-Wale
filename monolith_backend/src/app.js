@@ -2,8 +2,8 @@
  * This file provides a wrapper for testing that exports the NestJS app instance
  */
 
-const { NestFactory } = require('@nestjs/core');
-const { AppModule } = require('./app.module');
+const { NestFactory } = require("@nestjs/core");
+const { AppModule } = require("./app.module");
 
 let app;
 
@@ -18,4 +18,4 @@ async function getApp() {
 
 module.exports = {
   app: getApp(),
-}; 
+};

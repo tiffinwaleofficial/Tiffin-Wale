@@ -35,11 +35,16 @@ export default function Signup() {
   };
 
   const handleSignup = async () => {
+    console.log('🚀 Signup button clicked!');
+    console.log('📝 Form data:', { name, email, phone, password, confirmPassword });
+    
     if (!name || !email || !phone || !password || !confirmPassword) {
+      console.log('❌ Missing required fields');
       return;
     }
     
     if (!validateSignupForm()) {
+      console.log('❌ Form validation failed');
       return;
     }
     
@@ -52,9 +57,16 @@ export default function Signup() {
       role: 'customer' as const
     };
     
-    await register(userData);
-    if (!error) {
-      router.replace('/dashboard');
+    console.log('📤 Sending registration request:', userData);
+    
+    try {
+      await register(userData);
+      console.log('✅ Registration successful');
+      if (!error) {
+        router.replace('/dashboard');
+      }
+    } catch (err) {
+      console.error('❌ Registration failed:', err);
     }
   };
 

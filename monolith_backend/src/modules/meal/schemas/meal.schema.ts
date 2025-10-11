@@ -1,8 +1,9 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Schema as MongooseSchema } from "mongoose";
-import { User } from "../../user/schemas/user.schema";
-import { MenuItem } from "../../menu/schemas/menu-item.schema";
 
+export type MealDocument = Meal & Document;
+
+// Export enums for reuse
 export enum MealType {
   BREAKFAST = "breakfast",
   LUNCH = "lunch",
@@ -20,94 +21,93 @@ export enum MealStatus {
 }
 
 @Schema({ timestamps: true })
-export class Meal extends Document {
+export class Meal {
+  @Prop({ required: true })
+  id: string;
+
   @Prop({
     required: true,
-    type: String,
-    enum: Object.values(MealType),
+    enum: MealType,
+    default: MealType.BREAKFAST,
   })
   type: MealType;
 
-  @Prop({
-    required: true,
-    type: Date,
-  })
-  scheduledDate: Date;
+  @Prop({ required: true, type: Date })
+  date: Date;
 
-  @Prop({
-    type: [{ type: MongooseSchema.Types.ObjectId, ref: "MenuItem" }],
-    default: [],
-  })
-  menuItems: MenuItem[];
+  @Prop({ type: [MongooseSchema.Types.ObjectId], ref: "MenuItem" })
+  menu: MongooseSchema.Types.ObjectId[];
 
   @Prop({
     required: true,
-    type: String,
-    enum: Object.values(MealStatus),
+    enum: MealStatus,
     default: MealStatus.SCHEDULED,
   })
   status: MealStatus;
 
   @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: "Restaurant",
     required: true,
-    type: MongooseSchema.Types.ObjectId,
-    ref: "User",
   })
-  customer: User;
+  restaurantId: MongooseSchema.Types.ObjectId;
 
-  @Prop({
-    type: MongooseSchema.Types.ObjectId,
-    ref: "User",
-  })
-  businessPartner: User;
+  @Prop({ type: String })
+  restaurantName: string;
 
-  @Prop({
-    type: String,
-  })
-  businessPartnerName: string;
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: "User", required: true })
+  userId: MongooseSchema.Types.ObjectId;
 
-  @Prop({
-    type: Boolean,
-    default: false,
-  })
-  isRated: boolean;
+  @Prop({ type: Number, min: 1, max: 5 })
+  userRating?: number;
 
-  @Prop({
-    type: Number,
-    min: 1,
-    max: 5,
-  })
-  rating: number;
+  @Prop({ type: String })
+  userReview?: string;
 
-  @Prop({
-    type: String,
-  })
-  review: string;
+  @Prop({ type: String })
+  skipReason?: string;
 
-  @Prop({
-    type: String,
-  })
-  cancellationReason: string;
+  @Prop({ type: Date })
+  deliveredAt?: Date;
 
-  @Prop({
-    type: String,
-  })
-  deliveryNotes: string;
-
-  @Prop({
-    type: Date,
-  })
-  deliveredAt: Date;
-
-  @Prop({
-    type: Date,
-  })
+  @Prop({ type: Date })
   createdAt: Date;
 
-  @Prop({
-    type: Date,
-  })
+  @Prop({ type: Date })
   updatedAt: Date;
+
+  // Virtual properties for compatibility with auth service
+  menuItems?: MongooseSchema.Types.ObjectId[];
+  businessPartnerName?: string;
+  scheduledDate?: Date;
+  rating?: number;
 }
 
 export const MealSchema = SchemaFactory.createForClass(Meal);
+
+// Add virtual properties for compatibility
+MealSchema.virtual("menuItems").get(function () {
+  return this.menu;
+});
+
+MealSchema.virtual("businessPartnerName").get(function () {
+  return this.restaurantName;
+});
+
+MealSchema.virtual("scheduledDate").get(function () {
+  return this.date;
+});
+
+MealSchema.virtual("rating").get(function () {
+  return this.userRating;
+});
+
+// Ensure virtuals are included when converting to JSON
+MealSchema.set("toJSON", { virtuals: true });
+MealSchema.set("toObject", { virtuals: true });
+
+// Add indexes for better query performance
+MealSchema.index({ userId: 1, date: 1 });
+MealSchema.index({ restaurantId: 1, date: 1 });
+MealSchema.index({ status: 1 });
+MealSchema.index({ userId: 1, status: 1 });

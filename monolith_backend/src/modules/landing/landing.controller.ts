@@ -48,7 +48,11 @@ export class LandingController {
 
   @Post("landing/contact")
   @ApiOperation({ summary: "Submit contact form (alias)" })
-  @ApiResponse({ status: 201, description: "Contact form submitted successfully", type: ContactResponseDto })
+  @ApiResponse({
+    status: 201,
+    description: "Contact form submitted successfully",
+    type: ContactResponseDto,
+  })
   async submitContactAlias(
     @Body() createContactDto: CreateContactDto,
   ): Promise<ContactResponseDto> {

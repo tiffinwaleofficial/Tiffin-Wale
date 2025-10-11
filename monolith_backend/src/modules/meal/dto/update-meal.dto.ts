@@ -1,4 +1,5 @@
-import { ApiPropertyOptional, PartialType } from "@nestjs/swagger";
+import { ApiPropertyOptional } from "@nestjs/swagger";
+import { PartialType } from "@nestjs/mapped-types";
 import {
   IsOptional,
   IsString,

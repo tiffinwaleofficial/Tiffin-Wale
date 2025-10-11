@@ -1,98 +1,161 @@
-import { Controller, Get, Post, Body, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Put,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
+import { AdminService } from "./admin.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../../common/guards/roles.guard";
+import { Roles } from "../../common/decorators/roles.decorator";
+import { UserRole } from "../../common/interfaces/user.interface";
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
-  ApiBearerAuth,
+  ApiQuery,
+  ApiParam,
 } from "@nestjs/swagger";
-import { AdminService } from "./admin.service";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { RolesGuard } from "../auth/guards/roles.guard";
-import { Roles } from "../../common/decorators/roles.decorator";
-import { UserRole } from "../../common/interfaces/user.interface";
-import {
-  SystemStatsDto,
-  UserStatsDto,
-  OrderStatsDto,
-  PartnerStatsDto,
-  RevenueStatsDto,
-  SystemSettingsDto,
-} from "./dto";
 
-@ApiTags("admin")
+@ApiTags("Admin")
 @Controller("admin")
 @UseGuards(JwtAuthGuard, RolesGuard)
-@ApiBearerAuth()
+@Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
-  @Get("stats")
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  @ApiOperation({ summary: "Get system statistics" })
-  @ApiResponse({
-    status: 200,
-    description: "System statistics",
-    type: SystemStatsDto,
-  })
-  async getSystemStats(): Promise<SystemStatsDto> {
-    return this.adminService.getSystemStats();
+  // Dashboard endpoints
+  @Get("dashboard/stats")
+  async getDashboardStats(): Promise<any> {
+    return this.adminService.getDashboardStats();
   }
 
-  @Get("users/stats")
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  @ApiOperation({ summary: "Get user statistics" })
-  @ApiResponse({
-    status: 200,
-    description: "User statistics",
-    type: UserStatsDto,
-  })
-  async getUserStats(): Promise<UserStatsDto> {
-    return this.adminService.getUserStats();
+  @Get("dashboard/activities")
+  async getRecentActivities(@Query("limit") limit = 10): Promise<any[]> {
+    return this.adminService.getRecentActivities(Number(limit));
   }
 
-  @Get("orders/stats")
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  @ApiOperation({ summary: "Get order statistics" })
-  @ApiResponse({
-    status: 200,
-    description: "Order statistics",
-    type: OrderStatsDto,
-  })
-  async getOrderStats(): Promise<OrderStatsDto> {
-    return this.adminService.getOrderStats();
+  // Order management
+  @Get("orders")
+  @ApiOperation({ summary: "Get all orders with filters (admin only)" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiQuery({ name: "status", required: false, type: String })
+  @ApiQuery({ name: "search", required: false, type: String })
+  @ApiResponse({ status: 200, description: "Orders returned" })
+  async getAllOrders(
+    @Query("page") page = 1,
+    @Query("limit") limit = 20,
+    @Query("status") status?: string,
+    @Query("search") search?: string,
+  ) {
+    return this.adminService.getAllOrders(Number(page), Number(limit), {
+      status,
+      search,
+    });
   }
 
-  @Get("partners/stats")
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  @ApiOperation({ summary: "Get partner statistics" })
-  @ApiResponse({
-    status: 200,
-    description: "Partner statistics",
-    type: PartnerStatsDto,
-  })
-  async getPartnerStats(): Promise<PartnerStatsDto> {
-    return this.adminService.getPartnerStats();
+  // Partner management
+  @Get("partners")
+  @ApiOperation({ summary: "Get all partners with filters (admin only)" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiQuery({ name: "status", required: false, type: String })
+  @ApiQuery({ name: "search", required: false, type: String })
+  @ApiResponse({ status: 200, description: "Partners returned" })
+  async getAllPartners(
+    @Query("page") page = 1,
+    @Query("limit") limit = 20,
+    @Query("status") status?: string,
+    @Query("search") search?: string,
+  ) {
+    return this.adminService.getAllPartners(Number(page), Number(limit), {
+      status,
+      search,
+    });
+  }
+
+  // Customer management
+  @Get("customers")
+  @ApiOperation({ summary: "Get all customers with filters (admin only)" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiQuery({ name: "status", required: false, type: String })
+  @ApiQuery({ name: "search", required: false, type: String })
+  @ApiResponse({ status: 200, description: "Customers returned" })
+  async getAllCustomers(
+    @Query("page") page = 1,
+    @Query("limit") limit = 20,
+    @Query("status") status?: string,
+    @Query("search") search?: string,
+  ) {
+    return this.adminService.getAllCustomers(Number(page), Number(limit), {
+      search,
+      status,
+    });
+  }
+
+  @Get("subscriptions")
+  @ApiOperation({ summary: "Get all subscriptions with filters (admin only)" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiQuery({ name: "status", required: false, type: String })
+  @ApiResponse({ status: 200, description: "Subscriptions returned" })
+  async getAllSubscriptions(
+    @Query("page") page = 1,
+    @Query("limit") limit = 20,
+    @Query("status") status?: string,
+  ) {
+    return this.adminService.getAllSubscriptions(Number(page), Number(limit), {
+      status,
+    });
   }
 
   @Get("revenue")
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  @ApiOperation({ summary: "Get revenue reports" })
-  @ApiResponse({
-    status: 200,
-    description: "Revenue statistics",
-    type: RevenueStatsDto,
-  })
-  async getRevenueStats(): Promise<RevenueStatsDto> {
+  @ApiOperation({ summary: "Get revenue data with filters (admin only)" })
+  @ApiResponse({ status: 200, description: "Revenue data returned" })
+  async getRevenueData() {
     return this.adminService.getRevenueStats();
   }
 
-  @Post("settings")
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  @ApiOperation({ summary: "Update system settings" })
-  @ApiResponse({ status: 200, description: "System settings updated" })
-  async updateSystemSettings(
-    @Body() settings: SystemSettingsDto,
-  ): Promise<SystemSettingsDto> {
-    return this.adminService.updateSystemSettings(settings);
+  @Get("support/tickets")
+  @ApiOperation({ summary: "Get all support tickets (admin only)" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiQuery({ name: "status", required: false, type: String })
+  @ApiQuery({ name: "priority", required: false, type: String })
+  @ApiResponse({ status: 200, description: "Support tickets returned" })
+  async getAllSupportTickets(
+    @Query("page") page = 1,
+    @Query("limit") limit = 20,
+    @Query("status") status?: string,
+    @Query("priority") priority?: string,
+  ) {
+    return this.adminService.getAllSupportTickets(Number(page), Number(limit), {
+      status,
+      priority,
+    });
+  }
+
+  @Put("support/tickets/:id")
+  @ApiOperation({ summary: "Update support ticket status" })
+  @ApiParam({ name: "id", description: "Ticket ID" })
+  @ApiResponse({ status: 200, description: "Support ticket updated" })
+  async updateSupportTicket(
+    @Param("id") id: string,
+    @Body() body: { status?: string; response?: string; priority?: string },
+  ) {
+    return this.adminService.updateSupportTicket(id, body, "admin");
+  }
+
+  // Analytics endpoints
+  @Get("analytics/revenue-history")
+  @ApiOperation({ summary: "Get revenue history for analytics" })
+  @ApiResponse({ status: 200, description: "Revenue history returned" })
+  async getRevenueHistory() {
+    return this.adminService.getRevenueStats();
   }
 }

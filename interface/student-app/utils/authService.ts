@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from './apiClient';
-import { LoginRequest, RegisterRequest } from '../types/api';
-import { LoginResponse } from '../types/auth';
+import { LoginRequest, RegisterRequest, LoginResponse, CustomerProfile } from '../types/api';
 
 const AUTH_TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
@@ -15,12 +14,22 @@ export const authService = {
     try {
       const response = await api.auth.login(credentials.email, credentials.password);
       
-      // Store tokens and user data
-      await AsyncStorage.setItem(AUTH_TOKEN_KEY, response.token);
-      await AsyncStorage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
-      await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(response.user));
+      // Backend returns 'token' but we expect 'accessToken'
+      const normalizedResponse = {
+        ...response,
+        accessToken: (response as any).token || response.accessToken,
+        refreshToken: response.refreshToken,
+        user: response.user
+      };
       
-      return response;
+      // Store tokens and user data
+      await AsyncStorage.setItem(AUTH_TOKEN_KEY, normalizedResponse.accessToken);
+      await AsyncStorage.setItem(REFRESH_TOKEN_KEY, normalizedResponse.refreshToken);
+      await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(normalizedResponse.user));
+      
+      console.log('✅ Token stored:', normalizedResponse.accessToken.substring(0, 20) + '...');
+      
+      return normalizedResponse;
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -32,30 +41,49 @@ export const authService = {
    */
   register: async (userData: RegisterRequest): Promise<LoginResponse> => {
     try {
-      // Convert RegisterRequest to CustomerProfile format
-      const customerData = {
+      console.log('🔧 AuthService: Starting registration process');
+      console.log('📥 Input userData:', userData);
+      
+      // Send only the fields expected by the backend register endpoint
+      const registrationData = {
+        email: userData.email,
+        password: userData.password,
         firstName: userData.firstName,
         lastName: userData.lastName,
-        email: userData.email,
-        phone: userData.phoneNumber,
-        addresses: [],
-        preferences: {
-          dietaryRestrictions: [],
-          allergies: [],
-          spiceLevel: 'medium' as const
-        }
+        phoneNumber: userData.phoneNumber,
+        role: userData.role
       };
       
-      const response = await api.auth.register(customerData);
+      console.log('📤 Sending to API:', registrationData);
+      console.log('🌐 API Base URL:', process.env.API_BASE_URL || 'http://127.0.0.1:3001');
+      
+      const response = await api.auth.register(registrationData);
+      
+      console.log('✅ API Response received:', response);
+      
+      // Backend returns 'token' but we expect 'accessToken'
+      const normalizedResponse = {
+        ...response,
+        accessToken: (response as any).token || response.accessToken,
+        refreshToken: response.refreshToken,
+        user: response.user
+      };
       
       // Store tokens and user data
-      await AsyncStorage.setItem(AUTH_TOKEN_KEY, response.token);
-      await AsyncStorage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
-      await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(response.user));
+      await AsyncStorage.setItem(AUTH_TOKEN_KEY, normalizedResponse.accessToken);
+      await AsyncStorage.setItem(REFRESH_TOKEN_KEY, normalizedResponse.refreshToken);
+      await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(normalizedResponse.user));
       
-      return response;
+      console.log('💾 Tokens stored successfully');
+      console.log('✅ Token stored:', normalizedResponse.accessToken.substring(0, 20) + '...');
+      
+      return normalizedResponse;
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('❌ Registration error:', error);
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
       throw error;
     }
   },
@@ -79,10 +107,98 @@ export const authService = {
   isAuthenticated: async (): Promise<boolean> => {
     try {
       const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
-      return !!token;
+      if (!token) return false;
+      
+      // Basic token validation - check if it's not empty and has proper format
+      if (token.length < 10) return false;
+      
+      return true;
     } catch (error) {
       console.error('Auth check error:', error);
       return false;
+    }
+  },
+
+  /**
+   * Validate token with backend
+   */
+  validateToken: async (): Promise<boolean> => {
+    try {
+      const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+      if (!token) return false;
+      
+      // Try to make a request to validate token
+      const response = await fetch(`${process.env.API_BASE_URL || 'http://127.0.0.1:3001'}/api/customers/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.status === 401) {
+        // Token is invalid, clear it
+        await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_DATA_KEY]);
+        return false;
+      }
+      
+      return response.ok;
+    } catch (error) {
+      console.error('Token validation error:', error);
+      // On any error, assume token is invalid and clear it
+      await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_DATA_KEY]);
+      return false;
+    }
+  },
+
+  /**
+   * Refresh access token using refresh token
+   */
+  refreshAccessToken: async (): Promise<string | null> => {
+    try {
+      const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+      if (!refreshToken) return null;
+
+      const response = await fetch(`${process.env.API_BASE_URL || 'http://127.0.0.1:3001'}/api/auth/refresh-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        await AsyncStorage.setItem(AUTH_TOKEN_KEY, data.token);
+        if (data.refreshToken) {
+          await AsyncStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+        }
+        return data.token;
+      } else {
+        // Refresh failed, clear all tokens
+        await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_DATA_KEY]);
+        return null;
+      }
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_DATA_KEY]);
+      return null;
+    }
+  },
+
+  /**
+   * Check if token is expired (basic check)
+   */
+  isTokenExpired: async (): Promise<boolean> => {
+    try {
+      const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+      if (!token) return true;
+      
+      // Basic JWT expiration check (this is a simplified check)
+      // In production, you should decode the JWT and check the exp claim
+      return false;
+    } catch (error) {
+      console.error('Token expiration check error:', error);
+      return true;
     }
   },
   

@@ -3,13 +3,21 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, TextInput, ActivityInd
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Eye, EyeOff } from 'lucide-react-native';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/hooks/useAuth';
 import { validatePassword, getPasswordStrength } from '@/utils/validation';
 import { RegisterRequest } from '@/types/api';
 
 export default function Login() {
   const router = useRouter();
-  const { login, register, isLoading, error, clearError } = useAuthStore();
+  const authHook = useAuth();
+  const { login, register, isLoading, error, clearError, isAuthenticated } = authHook;
+  
+  // Debug: Log the auth hook functions
+  console.log('🔍 Auth hook functions:', { 
+    login: typeof login, 
+    register: typeof register,
+    authHookKeys: Object.keys(authHook)
+  });
   
   // State for active tab
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
@@ -30,6 +38,13 @@ export default function Login() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [signupPasswordStrength, setSignupPasswordStrength] = useState({ score: 0, message: '' });
   const [passwordMatchError, setPasswordMatchError] = useState('');
+
+  // Redirect if already authenticated
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/(tabs)');
+    }
+  }, [isAuthenticated, router]);
 
   const handleSignupPasswordChange = (text: string) => {
     setSignupPassword(text);
@@ -61,24 +76,32 @@ export default function Login() {
     }
     
     await login(loginEmail, loginPassword);
-    if (!error) {
-      router.replace('/(tabs)');
-    }
   };
 
   const handleSignup = async () => {
-    clearError();
+    console.log('🚀 Signup button clicked in login.tsx!');
+    console.log('📝 Form data:', { signupEmail, signupPassword, confirmPassword, firstName, lastName, phoneNumber });
     
+    clearError();
+    setPasswordMatchError('');
+    
+    // Check for missing required fields
     if (!signupEmail || !signupPassword || !confirmPassword || !firstName || !lastName || !phoneNumber) {
+      console.log('❌ Missing required fields in signup');
       return;
     }
 
+    // Check password validation with detailed feedback
     if (!validatePassword(signupPassword)) {
+      console.log('❌ Password validation failed - Password requirements not met');
+      setPasswordMatchError('Password must be at least 8 characters and contain 3 of: uppercase, lowercase, numbers, special characters');
       return;
     }
 
+    // Check password match
     if (signupPassword !== confirmPassword) {
       setPasswordMatchError('Passwords do not match');
+      console.log('❌ Passwords do not match');
       return;
     }
 
@@ -91,9 +114,13 @@ export default function Login() {
       role: 'customer'
     };
 
-    await register(userData);
-    if (!error) {
-      router.replace('/(tabs)');
+    console.log('📤 Sending registration request from login.tsx:', userData);
+    
+    try {
+      await register(userData);
+      console.log('✅ Registration successful from login.tsx');
+    } catch (err) {
+      console.error('❌ Registration failed from login.tsx:', err);
     }
   };
 
@@ -188,7 +215,7 @@ export default function Login() {
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.forgotPassword}>
+              <TouchableOpacity style={styles.forgotPassword} onPress={() => router.push('/forgot-password')}>
                 <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
               </TouchableOpacity>
 
@@ -275,6 +302,9 @@ export default function Login() {
                     )}
                   </TouchableOpacity>
                 </View>
+                <Text style={styles.passwordRequirements}>
+                  Password must be at least 8 characters and contain 3 of: uppercase, lowercase, numbers, special characters
+                </Text>
                 {signupPassword && (
                   <View style={styles.strengthContainer}>
                     <View style={[styles.strengthBar, { backgroundColor: getStrengthColor(signupPasswordStrength.score), width: `${(signupPasswordStrength.score / 4) * 100}%` }]} />
@@ -472,6 +502,13 @@ const styles = StyleSheet.create({
   strengthText: {
     fontSize: 12,
     fontFamily: 'Poppins-Regular',
+  },
+  passwordRequirements: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: '#666666',
+    marginTop: 4,
+    lineHeight: 16,
   },
   forgotPassword: {
     alignSelf: 'flex-end',

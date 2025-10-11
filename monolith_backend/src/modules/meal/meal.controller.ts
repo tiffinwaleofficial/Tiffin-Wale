@@ -2,14 +2,10 @@ import {
   Controller,
   Get,
   Post,
-  Body,
   Patch,
   Param,
-  Delete,
+  Body,
   UseGuards,
-  Query,
-  HttpCode,
-  HttpStatus,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -17,339 +13,98 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
-  ApiQuery,
-  ApiBody,
 } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { RolesGuard } from "../../common/guards/roles.guard";
-import { Roles } from "../../common/decorators/roles.decorator";
-import { UserRole } from "../../common/interfaces/user.interface";
-import { GetCurrentUser } from "../../common/decorators/user.decorator";
 import { MealService } from "./meal.service";
 import { CreateMealDto } from "./dto/create-meal.dto";
-import { UpdateMealDto } from "./dto/update-meal.dto";
-import { MealResponseDto } from "./dto/meal-response.dto";
-import { MealStatus } from "./schemas/meal.schema";
+import { UpdateMealStatusDto } from "./dto/update-meal-status.dto";
+import { SkipMealDto } from "./dto/skip-meal.dto";
+import { RateMealDto } from "./dto/rate-meal.dto";
+import { GetCurrentUser } from "../../common/decorators/user.decorator";
 
 @ApiTags("meals")
 @Controller("meals")
 export class MealController {
   constructor(private readonly mealService: MealService) {}
 
-  @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.BUSINESS)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: "Create a new meal" })
-  @ApiResponse({
-    status: 201,
-    description: "Meal created successfully",
-    type: MealResponseDto,
-  })
-  @ApiResponse({ status: 400, description: "Bad Request" })
-  @ApiResponse({ status: 401, description: "Unauthorized" })
-  @ApiResponse({
-    status: 403,
-    description: "Forbidden - Insufficient permissions",
-  })
-  create(@Body() createMealDto: CreateMealDto): Promise<MealResponseDto> {
-    return this.mealService.create(createMealDto);
-  }
-
-  @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: "Get all meals" })
-  @ApiResponse({
-    status: 200,
-    description: "Meals retrieved successfully",
-    type: [MealResponseDto],
-  })
-  @ApiResponse({ status: 401, description: "Unauthorized" })
-  @ApiResponse({
-    status: 403,
-    description: "Forbidden - Insufficient permissions",
-  })
-  findAll(): Promise<MealResponseDto[]> {
-    return this.mealService.findAll();
-  }
-
   @Get("today")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Get today's meals for the current user" })
-  @ApiResponse({
-    status: 200,
-    description: "Today's meals retrieved successfully",
-    type: [MealResponseDto],
-  })
+  @ApiOperation({ summary: "Get today's meals for the authenticated user" })
+  @ApiResponse({ status: 200, description: "Return today's meals" })
   @ApiResponse({ status: 401, description: "Unauthorized" })
-  async findTodayMeals(
-    @GetCurrentUser("_id") userId: string,
-  ): Promise<MealResponseDto[]> {
-    return this.mealService.findTodayMeals(userId);
+  async getTodayMeals(@GetCurrentUser("_id") userId: string) {
+    return this.mealService.getTodayMeals(userId);
   }
 
-  @Get("history")
+  @Get("me/history")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Get meal history for the current user" })
-  @ApiResponse({
-    status: 200,
-    description: "Meal history retrieved successfully",
-    type: [MealResponseDto],
-  })
+  @ApiOperation({ summary: "Get meal history for the authenticated user" })
+  @ApiResponse({ status: 200, description: "Return meal history" })
   @ApiResponse({ status: 401, description: "Unauthorized" })
-  async findMealHistory(
-    @GetCurrentUser("_id") userId: string,
-  ): Promise<MealResponseDto[]> {
-    return this.mealService.findMealHistory(userId);
-  }
-
-  @Get("customer/:customerId")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.BUSINESS)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: "Get meals for a specific customer" })
-  @ApiParam({
-    name: "customerId",
-    description: "Customer ID",
-    example: "60d21b4667d0d8992e610c87",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Customer meals retrieved successfully",
-    type: [MealResponseDto],
-  })
-  @ApiResponse({ status: 401, description: "Unauthorized" })
-  @ApiResponse({
-    status: 403,
-    description: "Forbidden - Insufficient permissions",
-  })
-  findByCustomer(
-    @Param("customerId") customerId: string,
-  ): Promise<MealResponseDto[]> {
-    return this.mealService.findByCustomer(customerId);
+  async getMealHistory(@GetCurrentUser("_id") userId: string) {
+    return this.mealService.getMealHistory(userId);
   }
 
   @Get(":id")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Get a meal by ID" })
-  @ApiParam({
-    name: "id",
-    description: "Meal ID",
-    example: "60d21b4667d0d8992e610d01",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Meal retrieved successfully",
-    type: MealResponseDto,
-  })
-  @ApiResponse({ status: 401, description: "Unauthorized" })
+  @ApiOperation({ summary: "Get a specific meal by ID" })
+  @ApiResponse({ status: 200, description: "Return the meal" })
   @ApiResponse({ status: 404, description: "Meal not found" })
-  findOne(@Param("id") id: string): Promise<MealResponseDto> {
+  @ApiParam({ name: "id", description: "Meal ID" })
+  async getMealById(@Param("id") id: string) {
     return this.mealService.findById(id);
   }
 
-  @Patch(":id")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.BUSINESS)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: "Update a meal" })
-  @ApiParam({
-    name: "id",
-    description: "Meal ID",
-    example: "60d21b4667d0d8992e610d01",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Meal updated successfully",
-    type: MealResponseDto,
-  })
-  @ApiResponse({ status: 401, description: "Unauthorized" })
-  @ApiResponse({
-    status: 403,
-    description: "Forbidden - Insufficient permissions",
-  })
-  @ApiResponse({ status: 404, description: "Meal not found" })
-  update(
-    @Param("id") id: string,
-    @Body() updateMealDto: UpdateMealDto,
-  ): Promise<MealResponseDto> {
-    return this.mealService.update(id, updateMealDto);
-  }
-
   @Patch(":id/status")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.BUSINESS)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Update meal status" })
-  @ApiParam({
-    name: "id",
-    description: "Meal ID",
-    example: "60d21b4667d0d8992e610d01",
-  })
-  @ApiBody({
-    schema: {
-      type: "object",
-      properties: {
-        status: {
-          type: "string",
-          enum: Object.values(MealStatus),
-          example: MealStatus.PREPARING,
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Meal status updated successfully",
-    type: MealResponseDto,
-  })
-  @ApiResponse({ status: 401, description: "Unauthorized" })
-  @ApiResponse({
-    status: 403,
-    description: "Forbidden - Insufficient permissions",
-  })
+  @ApiResponse({ status: 200, description: "Meal status updated successfully" })
   @ApiResponse({ status: 404, description: "Meal not found" })
-  updateStatus(
+  @ApiParam({ name: "id", description: "Meal ID" })
+  async updateMealStatus(
     @Param("id") id: string,
-    @Body("status") status: MealStatus,
-  ): Promise<MealResponseDto> {
-    return this.mealService.updateStatus(id, status);
+    @Body() updateMealStatusDto: UpdateMealStatusDto,
+  ) {
+    return this.mealService.updateStatus(id, updateMealStatusDto.status);
   }
 
   @Patch(":id/skip")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Skip a meal" })
-  @ApiParam({
-    name: "id",
-    description: "Meal ID",
-    example: "60d21b4667d0d8992e610d01",
-  })
-  @ApiBody({
-    schema: {
-      type: "object",
-      properties: {
-        reason: {
-          type: "string",
-          example: "I will be out of town",
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Meal skipped successfully",
-    type: MealResponseDto,
-  })
-  @ApiResponse({ status: 401, description: "Unauthorized" })
+  @ApiResponse({ status: 200, description: "Meal skipped successfully" })
   @ApiResponse({ status: 404, description: "Meal not found" })
-  skipMeal(
-    @Param("id") id: string,
-    @Body("reason") reason?: string,
-  ): Promise<MealResponseDto> {
-    return this.mealService.skipMeal(id, reason);
+  @ApiParam({ name: "id", description: "Meal ID" })
+  async skipMeal(@Param("id") id: string, @Body() skipMealDto: SkipMealDto) {
+    return this.mealService.skipMeal(id, skipMealDto.reason);
   }
 
   @Post(":id/rate")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Rate a meal" })
-  @ApiParam({
-    name: "id",
-    description: "Meal ID",
-    example: "60d21b4667d0d8992e610d01",
-  })
-  @ApiBody({
-    schema: {
-      type: "object",
-      required: ["rating"],
-      properties: {
-        rating: {
-          type: "number",
-          minimum: 1,
-          maximum: 5,
-          example: 4,
-        },
-        review: {
-          type: "string",
-          example: "The food was delicious and arrived on time.",
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Meal rated successfully",
-    type: MealResponseDto,
-  })
-  @ApiResponse({ status: 401, description: "Unauthorized" })
+  @ApiResponse({ status: 201, description: "Meal rated successfully" })
   @ApiResponse({ status: 404, description: "Meal not found" })
-  rateMeal(
-    @Param("id") id: string,
-    @Body("rating") rating: number,
-    @Body("review") review?: string,
-  ): Promise<MealResponseDto> {
-    return this.mealService.rateMeal(id, rating, review);
+  @ApiParam({ name: "id", description: "Meal ID" })
+  async rateMeal(@Param("id") id: string, @Body() rateMealDto: RateMealDto) {
+    return this.mealService.rateMeal(
+      id,
+      rateMealDto.rating,
+      rateMealDto.review,
+    );
   }
 
-  @Delete(":id")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  @ApiBearerAuth()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Delete a meal" })
-  @ApiParam({
-    name: "id",
-    description: "Meal ID",
-    example: "60d21b4667d0d8992e610d01",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Meal deleted successfully",
-    schema: {
-      type: "object",
-      properties: {
-        deleted: {
-          type: "boolean",
-          example: true,
-        },
-      },
-    },
-  })
-  @ApiResponse({ status: 401, description: "Unauthorized" })
-  @ApiResponse({
-    status: 403,
-    description: "Forbidden - Insufficient permissions",
-  })
-  @ApiResponse({ status: 404, description: "Meal not found" })
-  remove(@Param("id") id: string) {
-    return this.mealService.delete(id);
-  }
-
-  @Get("partner/me")
+  @Post()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Get meals for currently authenticated partner" })
-  @ApiResponse({ status: 200, description: "Meals returned" })
-  async getCurrentPartnerMeals(
-    @GetCurrentUser("_id") userId: string,
-    @Query("date") date?: string,
-  ) {
-    return this.mealService.findByPartner(userId, date);
-  }
-
-  @Get("partner/me/today")
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: "Get today's meals for currently authenticated partner" })
-  @ApiResponse({ status: 200, description: "Meals returned" })
-  async getCurrentPartnerTodayMeals(@GetCurrentUser("_id") userId: string) {
-    const today = new Date().toISOString().split("T")[0];
-    return this.mealService.findByPartner(userId, today);
+  @ApiOperation({ summary: "Create a new meal" })
+  @ApiResponse({ status: 201, description: "Meal created successfully" })
+  @ApiResponse({ status: 400, description: "Bad request" })
+  async createMeal(@Body() createMealDto: CreateMealDto) {
+    return this.mealService.create(createMealDto);
   }
 }

@@ -21,11 +21,11 @@ export class NotificationGateway
   @WebSocketServer() server: Server;
   private logger: Logger = new Logger("NotificationGateway");
 
-  afterInit(server: Server) {
+  afterInit() {
     this.logger.log("Notification Gateway Initialized");
   }
 
-  handleConnection(client: Socket, ...args: any[]) {
+  handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
   }
 

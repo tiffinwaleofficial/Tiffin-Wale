@@ -1,5 +1,11 @@
 import { Controller, Get, Param, Sse, Patch, UseGuards } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from "@nestjs/swagger";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiBearerAuth,
+} from "@nestjs/swagger";
 import { Observable, interval, map } from "rxjs";
 import { NotificationService } from "./notification.service";
 import { GetCurrentUser } from "../../common/decorators/user.decorator";
@@ -37,6 +43,15 @@ export class NotificationController {
     );
   }
 
+  @Get("user/:userId")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get notifications for a specific user" })
+  @ApiParam({ name: "userId", description: "User ID" })
+  getUserNotifications(@Param("userId") userId: string) {
+    return this.notificationService.getForUser(userId);
+  }
+
   @Get("partner/me")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -49,17 +64,16 @@ export class NotificationController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Mark a notification as read" })
-  markRead(
-    @GetCurrentUser("_id") userId: string,
-    @Param("id") id: string,
-  ) {
+  markRead(@GetCurrentUser("_id") userId: string, @Param("id") id: string) {
     return this.notificationService.markAsRead(userId, id);
   }
 
   @Patch("partner/me/read-all")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Mark all notifications as read for current partner" })
+  @ApiOperation({
+    summary: "Mark all notifications as read for current partner",
+  })
   markAllRead(@GetCurrentUser("_id") userId: string) {
     return this.notificationService.markAllAsRead(userId);
   }

@@ -31,6 +31,7 @@ import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { UserRole } from "../../common/interfaces/user.interface";
+import { GetCurrentUser } from "../../common/decorators/user.decorator";
 
 @ApiTags("marketing")
 @Controller()
@@ -114,6 +115,23 @@ export class MarketingController {
       sortBy,
       sortOrder,
     });
+  }
+
+  @Get("referrals/user/:userId")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get referrals for a specific user" })
+  @ApiParam({ name: "userId", description: "User ID" })
+  @ApiResponse({
+    status: 200,
+    description: "User referrals returned successfully",
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Unauthorized",
+  })
+  async getUserReferrals(@Param("userId") userId: string) {
+    return this.marketingService.getUserReferrals(userId);
   }
 
   @Post("testimonials")
@@ -233,5 +251,38 @@ export class MarketingController {
     @Body() updates: { isApproved?: boolean; isFeatured?: boolean },
   ): Promise<TestimonialResponseDto> {
     return this.marketingService.updateTestimonialStatus(id, updates);
+  }
+
+  @Get("promotions/active")
+  @ApiOperation({ summary: "Get active promotions" })
+  @ApiResponse({
+    status: 200,
+    description: "Active promotions returned successfully",
+  })
+  async getActivePromotions() {
+    return this.marketingService.getActivePromotions();
+  }
+
+  @Post("apply-promotion")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Apply promotion code" })
+  @ApiResponse({
+    status: 200,
+    description: "Promotion applied successfully",
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Invalid promotion code",
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Unauthorized",
+  })
+  async applyPromotion(
+    @Body() body: { code: string },
+    @GetCurrentUser("_id") userId: string,
+  ) {
+    return this.marketingService.applyPromotion(body.code, userId);
   }
 }

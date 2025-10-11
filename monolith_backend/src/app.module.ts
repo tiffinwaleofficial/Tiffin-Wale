@@ -18,9 +18,12 @@ import { FeedbackModule } from "./modules/feedback/feedback.module";
 import { MarketingModule } from "./modules/marketing/marketing.module";
 import { MealModule } from "./modules/meal/meal.module";
 import { SubscriptionModule } from "./modules/subscription/subscription.module";
+import { SubscriptionPlanModule } from "./modules/subscription-plan/subscription-plan.module";
 import { AnalyticsModule } from "./modules/analytics/analytics.module";
 import { SupportModule } from "./modules/support/support.module";
 import { UploadModule } from "./modules/upload/upload.module";
+import { SeederModule } from "./modules/seeder/seeder.module";
+import { ChatModule } from "./modules/chat/chat.module";
 
 @Module({
   imports: [
@@ -49,9 +52,12 @@ import { UploadModule } from "./modules/upload/upload.module";
     MarketingModule,
     MealModule,
     SubscriptionModule,
+    SubscriptionPlanModule,
     AnalyticsModule,
     SupportModule,
     UploadModule,
+    SeederModule,
+    ChatModule,
   ],
   controllers: [],
   providers: [],

@@ -1,4 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { OrderStatus } from "../../common/interfaces/order.interface";
@@ -35,12 +39,54 @@ import {
   TopSellingItemDto,
   SystemSettingsDto,
 } from "./dto";
+import { Partner } from "../partner/schemas/partner.schema";
+import { CustomerProfile } from "../customer/schemas/customer-profile.schema";
+import { Subscription } from "../subscription/schemas/subscription.schema";
+import { Payment } from "../payment/schemas/payment.schema";
+import { Feedback } from "../feedback/schemas/feedback.schema";
+import { Meal } from "../meal/schemas/meal.schema";
+
+interface DashboardStats {
+  totalUsers: number;
+  totalPartners: number;
+  totalOrders: number;
+  totalRevenue: number;
+  activeSubscriptions: number;
+  pendingOrders: number;
+  newUsersToday: number;
+  newPartnersToday: number;
+  ordersToday: number;
+  revenueToday: number;
+  revenueThisMonth: number;
+  growthMetrics: {
+    userGrowth: number;
+    partnerGrowth: number;
+    revenueGrowth: number;
+  };
+}
+
+interface ActivityLog {
+  id: string;
+  type: "order" | "partner" | "customer" | "support" | "payout" | "system";
+  refId: string;
+  description: string;
+  time: string;
+  metadata?: any;
+}
 
 @Injectable()
 export class AdminService {
   constructor(
-    @InjectModel(User.name) private readonly userModel: Model<User>,
-    @InjectModel(Order.name) private readonly orderModel: Model<Order>,
+    @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(Partner.name) private partnerModel: Model<Partner>,
+    @InjectModel(Order.name) private orderModel: Model<Order>,
+    @InjectModel(CustomerProfile.name)
+    private customerModel: Model<CustomerProfile>,
+    @InjectModel(Subscription.name)
+    private subscriptionModel: Model<Subscription>,
+    @InjectModel(Payment.name) private paymentModel: Model<Payment>,
+    @InjectModel(Feedback.name) private feedbackModel: Model<Feedback>,
+    @InjectModel(Meal.name) private mealModel: Model<Meal>,
     @InjectModel(MenuItem.name) private readonly menuItemModel: Model<MenuItem>,
     @InjectModel(Category.name) private readonly categoryModel: Model<Category>,
   ) {}
@@ -530,7 +576,10 @@ export class AdminService {
     });
 
     // For the simulation, we'll just use a fixed rate
-    const onTimeRate = 0.92; // In a real implementation, this would be calculated
+    const onTimeRate =
+      totalDelivered > 0
+        ? (totalDelivered - lateDeliveries) / totalDelivered
+        : 0.92;
 
     // Calculate cancellation rate
     const totalOrders = await this.orderModel.countDocuments();
@@ -1122,5 +1171,542 @@ export class AdminService {
       id: "6507e9ce0cb7ea2d3c9d10c1", // Mock ID
       updatedAt: new Date(),
     } as any; // Cast as any for the additional fields not in the DTO
+  }
+
+  async getDashboardStats(): Promise<DashboardStats> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
+
+    // Parallel queries for better performance
+    const [
+      totalUsers,
+      totalPartners,
+      totalOrders,
+      activeSubscriptions,
+      pendingOrders,
+      newUsersToday,
+      newPartnersToday,
+      ordersToday,
+      revenueData,
+      revenueTodayData,
+      revenueThisMonthData,
+      lastMonthRevenueData,
+      lastMonthUsers,
+      lastMonthPartners,
+    ] = await Promise.all([
+      this.userModel.countDocuments({ role: "CUSTOMER" }),
+      this.partnerModel.countDocuments(),
+      this.orderModel.countDocuments(),
+      this.subscriptionModel.countDocuments({ status: "ACTIVE" }),
+      this.orderModel.countDocuments({
+        status: { $in: ["PENDING", "CONFIRMED"] },
+      }),
+      this.userModel.countDocuments({
+        role: "CUSTOMER",
+        createdAt: { $gte: today },
+      }),
+      this.partnerModel.countDocuments({ createdAt: { $gte: today } }),
+      this.orderModel.countDocuments({ createdAt: { $gte: today } }),
+      this.orderModel.aggregate([
+        { $match: { status: "DELIVERED" } },
+        { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+      ]),
+      this.orderModel.aggregate([
+        { $match: { status: "DELIVERED", createdAt: { $gte: today } } },
+        { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+      ]),
+      this.orderModel.aggregate([
+        { $match: { status: "DELIVERED", createdAt: { $gte: startOfMonth } } },
+        { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+      ]),
+      this.orderModel.aggregate([
+        {
+          $match: {
+            status: "DELIVERED",
+            createdAt: { $gte: lastMonth, $lte: endOfLastMonth },
+          },
+        },
+        { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+      ]),
+      this.userModel.countDocuments({
+        role: "CUSTOMER",
+        createdAt: { $gte: lastMonth, $lte: endOfLastMonth },
+      }),
+      this.partnerModel.countDocuments({
+        createdAt: { $gte: lastMonth, $lte: endOfLastMonth },
+      }),
+    ]);
+
+    const totalRevenue = revenueData[0]?.total || 0;
+    const revenueToday = revenueTodayData[0]?.total || 0;
+    const revenueThisMonth = revenueThisMonthData[0]?.total || 0;
+    const lastMonthRevenue = lastMonthRevenueData[0]?.total || 0;
+
+    // Calculate growth metrics
+    const userGrowth =
+      lastMonthUsers > 0
+        ? ((newUsersToday * 30 - lastMonthUsers) / lastMonthUsers) * 100
+        : 0;
+    const partnerGrowth =
+      lastMonthPartners > 0
+        ? ((newPartnersToday * 30 - lastMonthPartners) / lastMonthPartners) *
+          100
+        : 0;
+    const revenueGrowth =
+      lastMonthRevenue > 0
+        ? ((revenueThisMonth - lastMonthRevenue) / lastMonthRevenue) * 100
+        : 0;
+
+    return {
+      totalUsers,
+      totalPartners,
+      totalOrders,
+      totalRevenue,
+      activeSubscriptions,
+      pendingOrders,
+      newUsersToday,
+      newPartnersToday,
+      ordersToday,
+      revenueToday,
+      revenueThisMonth,
+      growthMetrics: {
+        userGrowth: Math.round(userGrowth * 100) / 100,
+        partnerGrowth: Math.round(partnerGrowth * 100) / 100,
+        revenueGrowth: Math.round(revenueGrowth * 100) / 100,
+      },
+    };
+  }
+
+  async getRecentActivities(limit = 10): Promise<ActivityLog[]> {
+    const activities: ActivityLog[] = [];
+
+    // Get recent orders
+    const recentOrders = await this.orderModel
+      .find({})
+      .sort({ createdAt: -1 })
+      .limit(Math.floor(limit / 2))
+      .populate("customerId", "firstName lastName")
+      .populate("partnerId", "name")
+      .lean();
+
+    // Get recent partners
+    const recentPartners = await this.partnerModel
+      .find({})
+      .sort({ createdAt: -1 })
+      .limit(Math.floor(limit / 4))
+      .lean();
+
+    // Get recent customers
+    const recentCustomers = await this.userModel
+      .find({ role: "CUSTOMER" })
+      .sort({ createdAt: -1 })
+      .limit(Math.floor(limit / 4))
+      .lean();
+
+    // Format order activities
+    recentOrders.forEach((order) => {
+      activities.push({
+        id: order._id.toString(),
+        type: "order",
+        refId: order._id.toString().slice(-6),
+        description: `Order ${order._id.toString().slice(-6)} ${order.status.toLowerCase()}`,
+        time: this.formatTimeAgo(order.createdAt),
+        metadata: {
+          amount: order.totalAmount,
+          customer: order.customer,
+          partner: order.businessPartner,
+          status: order.status,
+        },
+      });
+    });
+
+    // Format partner activities
+    recentPartners.forEach((partner) => {
+      activities.push({
+        id: partner._id.toString(),
+        type: "partner",
+        refId: partner._id.toString(),
+        description: `New partner '${partner.businessName}' ${partner.status === "approved" ? "onboarded" : "registered"}`,
+        time: this.formatTimeAgo(new Date()),
+        metadata: { name: partner.businessName, status: partner.status },
+      });
+    });
+
+    // Format customer activities
+    recentCustomers.forEach((customer) => {
+      activities.push({
+        id: customer._id.toString(),
+        type: "customer",
+        refId: customer._id.toString(),
+        description: `New customer '${customer.firstName} ${customer.lastName}' registered`,
+        time: this.formatTimeAgo(customer.createdAt),
+        metadata: {
+          name: `${customer.firstName} ${customer.lastName}`,
+          email: customer.email,
+        },
+      });
+    });
+
+    // Sort by time and return limited results
+    return activities
+      .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+      .slice(0, limit);
+  }
+
+  // Generate activity logs from recent orders
+  private async generateOrderActivities(orders: any[]): Promise<ActivityLog[]> {
+    return orders.map((order) => ({
+      id: order._id.toString(),
+      type: "order",
+      refId: order._id.toString().slice(-6), // Use last 6 chars of ID instead of orderNumber
+      description: `Order ${order._id.toString().slice(-6)} ${order.status.toLowerCase()}`,
+      time: this.formatTimeAgo(order.createdAt),
+      metadata: {
+        customer: order.customer,
+        partner: order.businessPartner,
+        amount: order.totalAmount,
+      },
+    }));
+  }
+
+  // Generate activity logs from recent partners
+  private async generatePartnerActivities(
+    partners: any[],
+  ): Promise<ActivityLog[]> {
+    return partners.map((partner) => ({
+      id: partner._id.toString(),
+      type: "partner",
+      refId: partner._id.toString(),
+      description: `New partner '${partner.businessName}' ${partner.status === "approved" ? "onboarded" : "registered"}`,
+      time: this.formatTimeAgo(partner.createdAt),
+      metadata: { name: partner.businessName, status: partner.status },
+    }));
+  }
+
+  async getAllOrders(
+    page: number = 1,
+    limit: number = 20,
+    filters: {
+      status?: string;
+      search?: string;
+    } = {},
+  ) {
+    const skip = (page - 1) * limit;
+    const query: any = {};
+
+    if (filters.status) {
+      query.status = filters.status;
+    }
+
+    if (filters.search) {
+      query.$or = [
+        { _id: { $regex: filters.search, $options: "i" } },
+        { deliveryAddress: { $regex: filters.search, $options: "i" } },
+      ];
+    }
+
+    const [orders, total] = await Promise.all([
+      this.orderModel
+        .find(query)
+        .populate("customer")
+        .populate("businessPartner")
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .exec(),
+      this.orderModel.countDocuments(query),
+    ]);
+
+    const formattedOrders = orders.map((order) => {
+      const customer = order.customer as any;
+      const partner = order.businessPartner as any;
+
+      return {
+        id: order._id.toString(),
+        orderId: order._id.toString().slice(-6),
+        customerId: customer?._id?.toString(),
+        customerName: customer
+          ? `${customer.firstName} ${customer.lastName}`
+          : "Unknown",
+        partnerId: partner?._id?.toString(),
+        partnerName: partner?.businessName || "Unknown",
+        tiffinType: "Lunch", // Default value since field doesn't exist
+        status: order.status,
+        totalAmount: order.totalAmount,
+        paymentStatus: order.isPaid ? "Paid" : "Pending",
+        orderDate: order.createdAt.toISOString(),
+        deliveryDate: order.scheduledDeliveryTime?.toISOString() || null,
+        deliveryAddress: order.deliveryAddress,
+        deliveryPartner: null, // Field doesn't exist in schema
+      };
+    });
+
+    return {
+      orders: formattedOrders,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async updateOrderStatus(
+    id: string,
+    status: string,
+    adminId: string,
+    reason?: string,
+  ) {
+    const order = await this.orderModel.findById(id);
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
+    order.status = status as any;
+    if (reason) {
+      // Add reason to delivery instructions since notes field doesn't exist
+      order.deliveryInstructions = reason;
+    }
+    await order.save();
+
+    return {
+      message: "Order status updated successfully",
+      order: {
+        id: order._id.toString(),
+        status: order.status,
+        updatedAt: order.updatedAt,
+      },
+    };
+  }
+
+  async getAllPartners(
+    page: number = 1,
+    limit: number = 20,
+    filters: {
+      status?: string;
+      search?: string;
+    } = {},
+  ) {
+    const skip = (page - 1) * limit;
+    const query: any = {};
+
+    if (filters.status) {
+      query.status = filters.status;
+    }
+
+    if (filters.search) {
+      query.$or = [
+        { businessName: { $regex: filters.search, $options: "i" } },
+        { description: { $regex: filters.search, $options: "i" } },
+      ];
+    }
+
+    const [partners, total] = await Promise.all([
+      this.partnerModel
+        .find(query)
+        .populate("user")
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .exec(),
+      this.partnerModel.countDocuments(query),
+    ]);
+
+    const formattedPartners = partners.map((partner) => {
+      const user = partner.user as any;
+      return {
+        id: partner._id.toString(),
+        name: partner.businessName,
+        contactPerson: user?.firstName + " " + user?.lastName || "Unknown",
+        mobile: user?.phoneNumber || "Not provided",
+        email: user?.email || "Not provided",
+        registeredDate: new Date().toISOString().split("T")[0], // Use current date as fallback
+        status: partner.status,
+        city: partner.address?.city || "Unknown",
+        commissionRate: 10, // Default value since field doesn't exist
+      };
+    });
+
+    return {
+      partners: formattedPartners,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async updatePartnerStatus(partnerId: string, status: string) {
+    const partner = await this.partnerModel.findById(partnerId);
+    if (!partner) {
+      throw new NotFoundException("Partner not found");
+    }
+
+    const validStatuses = ["ACTIVE", "INACTIVE", "PENDING_APPROVAL", "BANNED"];
+    if (!validStatuses.includes(status.toUpperCase())) {
+      throw new BadRequestException("Invalid status");
+    }
+
+    partner.status = status.toUpperCase() as any;
+    await partner.save();
+
+    return partner;
+  }
+
+  async getAllCustomers(page: number, limit: number, filters: any) {
+    const skip = (page - 1) * limit;
+    const query: any = { role: "CUSTOMER" };
+
+    if (filters.search) {
+      query.$or = [
+        { firstName: { $regex: filters.search, $options: "i" } },
+        { lastName: { $regex: filters.search, $options: "i" } },
+        { email: { $regex: filters.search, $options: "i" } },
+        { phoneNumber: { $regex: filters.search, $options: "i" } },
+      ];
+    }
+
+    const [customers, total] = await Promise.all([
+      this.userModel
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      this.userModel.countDocuments(query),
+    ]);
+
+    return {
+      customers,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getAllSubscriptions(page: number, limit: number, filters: any) {
+    const skip = (page - 1) * limit;
+    const query: any = {};
+
+    if (filters.status) {
+      query.status = filters.status.toUpperCase();
+    }
+
+    if (filters.planType) {
+      query["plan.type"] = filters.planType;
+    }
+
+    const [subscriptions, total] = await Promise.all([
+      this.subscriptionModel
+        .find(query)
+        .populate("customerId", "firstName lastName email")
+        .populate("planId", "name type price")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      this.subscriptionModel.countDocuments(query),
+    ]);
+
+    return {
+      subscriptions,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getRevenueAnalytics(
+    period: string,
+    startDate?: string,
+    endDate?: string,
+  ) {
+    const query: any = { status: "DELIVERED" };
+
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+    } else {
+      const now = new Date();
+      switch (period) {
+        case "today":
+          query.createdAt = { $gte: new Date(now.setHours(0, 0, 0, 0)) };
+          break;
+        case "week":
+          query.createdAt = {
+            $gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+          };
+          break;
+        case "month":
+          query.createdAt = {
+            $gte: new Date(now.getFullYear(), now.getMonth(), 1),
+          };
+          break;
+      }
+    }
+
+    const revenueData = await this.orderModel.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: "$totalAmount" },
+          totalOrders: { $sum: 1 },
+          avgOrderValue: { $avg: "$totalAmount" },
+        },
+      },
+    ]);
+
+    return (
+      revenueData[0] || { totalRevenue: 0, totalOrders: 0, avgOrderValue: 0 }
+    );
+  }
+
+  async getAllSupportTickets(page: number, limit: number, filters?: { status?: string; priority?: string }) {
+    // TODO: Implement when support ticket schema is ready
+    return {
+      tickets: [],
+      total: 0,
+      page,
+      limit,
+      totalPages: 0,
+    };
+  }
+
+  async updateSupportTicket(id: string, body: { status?: string; response?: string; priority?: string }, updatedBy: string) {
+    // TODO: Implement when support ticket schema is ready
+    return { message: "Support ticket updated", id, updatedBy };
+  }
+
+  private formatTimeAgo(date: Date): string {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins} mins ago`;
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString();
   }
 }

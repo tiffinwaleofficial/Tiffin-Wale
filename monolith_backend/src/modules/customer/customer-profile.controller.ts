@@ -234,8 +234,14 @@ export class CustomerProfileController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get current customer's profile" })
-  @ApiResponse({ status: 200, description: "Profile details returned successfully", type: CustomerProfileResponseDto })
-  getCurrentProfile(@GetCurrentUser("_id") userId: string): Promise<CustomerProfileResponseDto> {
+  @ApiResponse({
+    status: 200,
+    description: "Profile details returned successfully",
+    type: CustomerProfileResponseDto,
+  })
+  getCurrentProfile(
+    @GetCurrentUser("_id") userId: string,
+  ): Promise<CustomerProfileResponseDto> {
     return this.customerProfileService.findByUserId(userId);
   }
 
@@ -243,7 +249,11 @@ export class CustomerProfileController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Update current customer's profile" })
-  @ApiResponse({ status: 200, description: "Profile updated successfully", type: CustomerProfileResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: "Profile updated successfully",
+    type: CustomerProfileResponseDto,
+  })
   updateCurrentProfile(
     @GetCurrentUser("_id") userId: string,
     @Body() updateProfileDto: UpdateCustomerProfileDto,

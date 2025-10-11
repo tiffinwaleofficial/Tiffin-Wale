@@ -34,11 +34,7 @@ export class RazorpayService {
     };
   }
 
-  async verifyPaymentSignature(
-    paymentId: string,
-    orderId: string,
-    signature: string,
-  ) {
+  async verifyPaymentSignature() {
     // Verify the payment signature
     // In a real implementation:
     // const generatedSignature = crypto

@@ -22,6 +22,6 @@ import {
   ],
   controllers: [SubscriptionController, SubscriptionPlanController],
   providers: [SubscriptionService, SubscriptionPlanService],
-  exports: [SubscriptionService, SubscriptionPlanService],
+  exports: [SubscriptionService, SubscriptionPlanService, MongooseModule],
 })
 export class SubscriptionModule {}

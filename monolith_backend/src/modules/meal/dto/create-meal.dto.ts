@@ -1,86 +1,61 @@
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
-  IsNotEmpty,
-  IsString,
   IsEnum,
-  IsDate,
+  IsNotEmpty,
   IsArray,
   IsOptional,
+  IsDateString,
   IsMongoId,
-  ArrayMinSize,
-  ValidateNested,
 } from "class-validator";
-import { Type } from "class-transformer";
-import { MealType, MealStatus } from "../schemas/meal.schema";
+import { ApiProperty } from "@nestjs/swagger";
 
 export class CreateMealDto {
   @ApiProperty({
     description: "Type of meal",
-    enum: MealType,
-    example: MealType.LUNCH,
+    enum: ["breakfast", "lunch", "dinner", "snack"],
+    example: "lunch",
   })
-  @IsEnum(MealType)
   @IsNotEmpty()
-  type: MealType;
+  @IsEnum(["breakfast", "lunch", "dinner", "snack"])
+  type: "breakfast" | "lunch" | "dinner" | "snack";
 
   @ApiProperty({
-    description: "Date when the meal is scheduled",
-    example: "2023-07-22T12:00:00Z",
+    description: "Date for the meal",
+    example: "2024-01-15T12:00:00Z",
   })
-  @IsDate()
-  @Type(() => Date)
   @IsNotEmpty()
-  scheduledDate: Date;
+  @IsDateString()
+  date: string;
 
   @ApiProperty({
-    description: "Menu items included in the meal",
-    example: ["60d21b4667d0d8992e610c85", "60d21b4667d0d8992e610c86"],
-    isArray: true,
+    description: "Array of menu item IDs",
+    type: [String],
+    example: ["60d21b4667d0d8992e610c87"],
   })
+  @IsNotEmpty()
   @IsArray()
   @IsMongoId({ each: true })
-  @ArrayMinSize(1)
-  menuItems: string[];
-
-  @ApiPropertyOptional({
-    description: "Status of the meal",
-    enum: MealStatus,
-    example: MealStatus.SCHEDULED,
-    default: MealStatus.SCHEDULED,
-  })
-  @IsEnum(MealStatus)
-  @IsOptional()
-  status?: MealStatus;
+  menu: string[];
 
   @ApiProperty({
-    description: "Customer who will receive the meal",
+    description: "Restaurant ID",
     example: "60d21b4667d0d8992e610c87",
   })
-  @IsMongoId()
   @IsNotEmpty()
-  customer: string;
-
-  @ApiPropertyOptional({
-    description: "Business partner providing the meal",
-    example: "60d21b4667d0d8992e610c88",
-  })
   @IsMongoId()
-  @IsOptional()
-  businessPartner?: string;
+  restaurantId: string;
 
-  @ApiPropertyOptional({
-    description: "Business partner name",
-    example: "Spice Garden Restaurant",
+  @ApiProperty({
+    description: "Restaurant name",
+    example: "Tasty Bites",
   })
-  @IsString()
   @IsOptional()
-  businessPartnerName?: string;
+  restaurantName?: string;
 
-  @ApiPropertyOptional({
-    description: "Delivery notes",
-    example: "Please leave at reception",
+  @ApiProperty({
+    description: "User ID",
+    example: "60d21b4667d0d8992e610c87",
   })
-  @IsString()
-  @IsOptional()
-  deliveryNotes?: string;
+  @IsNotEmpty()
+  @IsMongoId()
+  userId: string;
 }

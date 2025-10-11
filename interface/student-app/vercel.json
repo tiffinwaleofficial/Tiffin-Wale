@@ -1,12 +1,35 @@
 {
+  "framework": null,
   "builds": [
     {
       "src": "package.json",
       "use": "@vercel/static-build",
-      "config": { "distDir": "web-build" }
+      "config": { 
+        "distDir": "web-build",
+        "buildCommand": "npm run vercel-build"
+      }
     }
   ],
   "routes": [
-    { "src": "/(.*)", "dest": "/index.html" }
+    {
+      "src": "/_expo/static/(.*)",
+      "dest": "/_expo/static/$1"
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/favicon.ico"
+    },
+    {
+      "src": "/metadata.json",
+      "dest": "/metadata.json"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
   ]
 } 

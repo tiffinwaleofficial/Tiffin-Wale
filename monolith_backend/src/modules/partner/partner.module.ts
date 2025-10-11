@@ -3,16 +3,24 @@ import { MongooseModule } from "@nestjs/mongoose";
 import { PartnerController } from "./partner.controller";
 import { PartnerService } from "./partner.service";
 import { Partner, PartnerSchema } from "./schemas/partner.schema";
-import { UserModule } from "../user/user.module";
-import { OrderModule } from "../order/order.module";
 import { MenuModule } from "../menu/menu.module";
+import { FeedbackModule } from "../feedback/feedback.module";
+import { OrderModule } from "../order/order.module";
+import { MenuItem, MenuItemSchema } from "../menu/schemas/menu-item.schema";
+import { Feedback, FeedbackSchema } from "../feedback/schemas/feedback.schema";
+import { Order, OrderSchema } from "../order/schemas/order.schema";
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Partner.name, schema: PartnerSchema }]),
-    UserModule,
-    OrderModule,
+    MongooseModule.forFeature([
+      { name: Partner.name, schema: PartnerSchema },
+      { name: MenuItem.name, schema: MenuItemSchema },
+      { name: Feedback.name, schema: FeedbackSchema },
+      { name: Order.name, schema: OrderSchema },
+    ]),
     MenuModule,
+    FeedbackModule,
+    OrderModule,
   ],
   controllers: [PartnerController],
   providers: [PartnerService],

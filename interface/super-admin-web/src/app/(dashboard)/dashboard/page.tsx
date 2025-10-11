@@ -37,16 +37,6 @@ const chartConfig = {
     trial: { label: "Trial", color: "hsl(var(--chart-3))" },
 } satisfies ChartConfig;
 
-const latestActivities = [
-    { id: 1, type: 'order', refId: 'ORD12345', description: "Tiffin dispatched for Order #ORD12345", time: "10 mins ago", icon: Package, iconBg: 'bg-blue-100 dark:bg-blue-900/30', iconColor: 'text-blue-600 dark:text-blue-400' },
-    { id: 2, type: 'partner', refId: 'p8', description: "New partner 'Mumbai Tiffins' onboarded", time: "1 hour ago", icon: Briefcase, iconBg: 'bg-green-100 dark:bg-green-900/30', iconColor: 'text-green-600 dark:text-green-400' },
-    { id: 3, type: 'support', refId: 'TKT-006', description: "Support ticket #TKT-006 resolved", time: "2 hours ago", icon: Headset, iconBg: 'bg-yellow-100 dark:bg-yellow-900/30', iconColor: 'text-yellow-600 dark:text-yellow-400' },
-    { id: 4, type: 'order', refId: 'ORD12344', description: "Tiffin delivered for Order #ORD12344", time: "3 hours ago", icon: Package, iconBg: 'bg-blue-100 dark:bg-blue-900/30', iconColor: 'text-blue-600 dark:text-blue-400' },
-    { id: 5, type: 'customer', refId: 'c4', description: "New customer 'Anita Desai' subscribed", time: "5 hours ago", icon: UserPlus, iconBg: 'bg-purple-100 dark:bg-purple-900/30', iconColor: 'text-purple-600 dark:text-purple-400' },
-    { id: 6, type: 'payout', refId: 'PAYOUT001', description: "Payout of ₹5,500 initiated for 'Anna Tiffins'", time: "6 hours ago", icon: IndianRupee, iconBg: 'bg-pink-100 dark:bg-pink-900/30', iconColor: 'text-pink-600 dark:text-pink-400' },
-];
-
-
 const getLinkForActivity = (type: string, refId: string): string | undefined => {
     switch (type) {
       case 'order': return `/dashboard/orders?search=${refId}`;
@@ -73,64 +63,163 @@ const cardLinks: { [key: string]: string } = {
     'Subscription Distribution': '/dashboard/subscriptions', // Link pie chart to subscriptions page
 };
 
-
 export default function DashboardPage() {
   const [chartData, setChartData] = useState<any[]>([]);
   const [partnerData, setPartnerData] = useState<any[]>([]);
   const [subscriptionData, setSubscriptionData] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<any>(null);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Earnings & orders trend
-    api.get('/analytics/revenue-history?months=6').then((res) => {
-      setChartData(mapRevenueHistory(res.data));
-    });
-
-    // Partner growth (reuse revenue history partners field or dedicated endpoint later)
-    api.get('/analytics/revenue-history?months=6').then((res) => {
-      setPartnerData(mapRevenueHistory(res.data).map((d) => ({ month: d.month, partners: d.partners ?? Math.floor(Math.random()*30)})));
-    });
-
-    // Subscriptions distribution
-    api.get('/subscriptions/active').then((res) => {
-      const counts = res.data.reduce((acc: any, s: any) => {
-        acc[s.plan.type] = (acc[s.plan.type] || 0) + 1; return acc;
-      }, {});
-      setSubscriptionData([
-        { name: 'Monthly', value: counts.monthly || 0, fill: 'hsl(var(--chart-1))' },
-        { name: 'Weekly', value: counts.weekly || 0, fill: 'hsl(var(--chart-2))' },
-        { name: 'Trial', value: counts.trial || 0, fill: 'hsl(var(--chart-3))' },
-      ]);
-    });
-
-    // KPI metrics
-    api.get('/analytics/earnings?period=month').then((res) => setMetrics(res.data));
+    loadDashboardData();
   }, []);
 
-  // Fallback if metrics not loaded
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Load all dashboard data in parallel
+      const [statsData, activitiesData, revenueHistoryData, subscriptionsData] = await Promise.all([
+        api.dashboard.getStats(),
+        api.dashboard.getActivities(6),
+        api.analytics.getRevenueHistory(6),
+        api.subscriptions.getActive(),
+      ]);
+
+      // Set dashboard stats
+      setMetrics(statsData);
+
+      // Set activities
+      setActivities(activitiesData);
+
+      // Set chart data from revenue history
+      const formattedChartData = mapRevenueHistory(revenueHistoryData);
+      setChartData(formattedChartData);
+
+      // Set partner growth data (extract from revenue history or use real partner growth)
+      setPartnerData(formattedChartData.map((d) => ({ 
+        month: d.month, 
+        partners: d.partners || 0 
+      })));
+
+      // Process subscription distribution
+      const subscriptionCounts = subscriptionsData.reduce((acc: any, s: any) => {
+        const planType = s.plan?.type || s.planId?.type || 'monthly';
+        acc[planType] = (acc[planType] || 0) + 1;
+        return acc;
+      }, {});
+
+      setSubscriptionData([
+        { name: 'Monthly', value: subscriptionCounts.monthly || 0, fill: 'hsl(var(--chart-1))' },
+        { name: 'Weekly', value: subscriptionCounts.weekly || 0, fill: 'hsl(var(--chart-2))' },
+        { name: 'Trial', value: subscriptionCounts.trial || 0, fill: 'hsl(var(--chart-3))' },
+      ]);
+
+    } catch (err: any) {
+      console.error('Failed to load dashboard data:', err);
+      setError(err.message || 'Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Create metrics cards from real data
   const metricsCards = metrics ? [
-      { title: 'Daily Orders', icon: Package, value: metrics.totalOrders || '0', trend: '', trendColor: 'text-muted-foreground' },
-      { title: 'Total Revenue (Month)', icon: IndianRupee, value: `₹${metrics.totalRevenue}`, trend: '', trendColor: 'text-muted-foreground' },
+    { 
+      title: 'Daily Orders', 
+      icon: Package, 
+      value: metrics.ordersToday?.toString() || '0', 
+      trend: metrics.growthMetrics?.orderGrowth ? `+${metrics.growthMetrics.orderGrowth}%` : '', 
+      trendColor: 'text-green-600' 
+    },
+    { 
+      title: 'Total Revenue (Month)', 
+      icon: IndianRupee, 
+      value: `₹${(metrics.revenueThisMonth || 0).toLocaleString()}`, 
+      trend: metrics.growthMetrics?.revenueGrowth ? `${metrics.growthMetrics.revenueGrowth > 0 ? '+' : ''}${metrics.growthMetrics.revenueGrowth}%` : '', 
+      trendColor: metrics.growthMetrics?.revenueGrowth > 0 ? 'text-green-600' : 'text-red-600' 
+    },
+    { 
+      title: 'Active Partners', 
+      icon: Briefcase, 
+      value: metrics.totalPartners?.toString() || '0', 
+      trend: metrics.growthMetrics?.partnerGrowth ? `+${metrics.growthMetrics.partnerGrowth}%` : '', 
+      trendColor: 'text-green-600' 
+    },
+    { 
+      title: 'Pending Orders', 
+      icon: Clock, 
+      value: metrics.pendingOrders?.toString() || '0', 
+      trend: '', 
+      trendColor: 'text-muted-foreground' 
+    },
   ] : [];
 
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-8 p-4 md:p-6">
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="h-4 w-24 bg-gray-300 rounded"></div>
+                <div className="h-5 w-5 bg-gray-300 rounded"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-8 w-16 bg-gray-300 rounded mb-2"></div>
+                <div className="h-3 w-20 bg-gray-300 rounded"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="text-center py-8">Loading dashboard data...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col gap-8 p-4 md:p-6">
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <Card className="border-red-200">
+          <CardContent className="pt-6">
+            <div className="text-center text-red-600">
+              <p className="text-lg font-semibold">Failed to load dashboard</p>
+              <p className="text-sm mt-2">{error}</p>
+              <button 
+                onClick={loadDashboardData}
+                className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Retry
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-8 p-4 md:p-6"> {/* Added padding */}
-      <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1> {/* Increased size */}
+    <div className="flex flex-col gap-8 p-4 md:p-6">
+      <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
 
       {/* Metrics Cards - Made Clickable */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {metricsCards.map((metric) => (
            <Link key={metric.title} href={cardLinks[metric.title] || '/dashboard'} passHref>
-             {/* Use Card as the clickable element */}
              <Card className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-primary/30">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{metric.title}</CardTitle>
-                  <metric.icon className="h-5 w-5 text-muted-foreground" /> {/* Slightly larger icon */}
+                  <metric.icon className="h-5 w-5 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{metric.value}</div> {/* Larger value */}
+                  <div className="text-3xl font-bold">{metric.value}</div>
                   <p className={cn("text-xs flex items-center pt-1", metric.trendColor || 'text-muted-foreground')}>
-                      {metric.title !== 'Pending Payouts' && metric.trend.startsWith('+') ? <TrendingUp className="h-4 w-4 mr-1" /> : metric.title !== 'Pending Payouts' ? <TrendingDown className="h-4 w-4 mr-1" /> : null }
+                      {metric.trend && metric.trend.startsWith('+') ? <TrendingUp className="h-4 w-4 mr-1" /> : metric.trend && metric.trend.startsWith('-') ? <TrendingDown className="h-4 w-4 mr-1" /> : null }
                       {metric.trend}
                   </p>
                 </CardContent>
@@ -148,9 +237,8 @@ export default function DashboardPage() {
                  <CardTitle>Orders &amp; Revenue Trend</CardTitle>
                  <CardDescription>Last 6 months overview. Click for details.</CardDescription>
                </CardHeader>
-               <CardContent className="pl-2 pr-4 pb-4"> {/* Adjusted padding */}
+               <CardContent className="pl-2 pr-4 pb-4">
                  <ChartContainer config={chartConfig} className="h-[300px] w-full"> 
-                   {/* Direct element reference, not a fragment */}
                    <BarChart accessibilityLayer data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
                      <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
                      <XAxis
@@ -182,9 +270,8 @@ export default function DashboardPage() {
                  <CardTitle>Partner Growth</CardTitle>
                   <CardDescription>Active tiffin partners over time. Click for details.</CardDescription>
                </CardHeader>
-               <CardContent className="pl-2 pr-4 pb-4"> {/* Adjusted padding */}
+               <CardContent className="pl-2 pr-4 pb-4">
                  <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                   {/* Direct element reference, not a fragment */}
                    <LineChart accessibilityLayer data={partnerData} margin={{ top: 5, right: 10, left: -15, bottom: 5 }}>
                      <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)"/>
                      <XAxis
@@ -212,7 +299,6 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent className="flex items-center justify-center pb-4">
                  <ChartContainer config={chartConfig} className="mx-auto aspect-square h-[250px]">
-                   {/* Direct element reference, not a fragment */}
                    <PieChart>
                      <ChartTooltip content={<ChartTooltipContent nameKey="name" hideLabel hideIndicator />} />
                      <Pie 
@@ -234,42 +320,73 @@ export default function DashboardPage() {
                </Card>
             </Link>
 
-           {/* Latest Activities - Enhanced */}
+           {/* Latest Activities - Enhanced with Real Data */}
            <Card className="lg:col-span-2">
              <CardHeader>
                <CardTitle>Latest Activities</CardTitle>
                <CardDescription>Recent system events and updates</CardDescription>
              </CardHeader>
              <CardContent>
-               <div className="space-y-4"> {/* Use div with space-y */}
-                    {latestActivities.map((activity) => {
-                      const link = getLinkForActivity(activity.type, activity.refId);
-                      const ActivityContent = () => (
-                         <div className="flex items-start gap-3"> {/* Changed items-center to items-start */}
-                             <div className={cn("flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0 mt-1", activity.iconBg)}> {/* Added background */}
-                                <activity.icon className={cn("h-4 w-4", activity.iconColor)} />
-                             </div>
-                            <div className="flex flex-col flex-grow">
-                              <span className="text-sm font-medium">{activity.description}</span>
-                              <span className="text-xs text-muted-foreground">{activity.time}</span>
-                            </div>
-                          </div>
-                       );
+               <div className="space-y-4">
+                    {activities.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No recent activities
+                      </div>
+                    ) : (
+                      activities.map((activity) => {
+                        const link = getLinkForActivity(activity.type, activity.refId);
+                        const getActivityIcon = (type: string) => {
+                          switch (type) {
+                            case 'order': return Package;
+                            case 'partner': return Briefcase;
+                            case 'customer': return UserPlus;
+                            case 'support': return Headset;
+                            case 'payout': return IndianRupee;
+                            default: return Package;
+                          }
+                        };
+                        
+                        const getActivityColors = (type: string) => {
+                          switch (type) {
+                            case 'order': return { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-600 dark:text-blue-400' };
+                            case 'partner': return { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-600 dark:text-green-400' };
+                            case 'customer': return { bg: 'bg-purple-100 dark:bg-purple-900/30', text: 'text-purple-600 dark:text-purple-400' };
+                            case 'support': return { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-600 dark:text-yellow-400' };
+                            case 'payout': return { bg: 'bg-pink-100 dark:bg-pink-900/30', text: 'text-pink-600 dark:text-pink-400' };
+                            default: return { bg: 'bg-gray-100 dark:bg-gray-900/30', text: 'text-gray-600 dark:text-gray-400' };
+                          }
+                        };
 
-                      return (
-                        <div key={activity.id} className="border-b border-border/50 pb-3 last:border-b-0 last:pb-0"> {/* Added border */}
-                             {link ? (
-                               <Link href={link} className="hover:bg-muted/50 block p-2 -m-2 rounded-md transition-colors"> {/* Make link block */}
-                                  <ActivityContent />
-                               </Link>
-                             ) : (
-                               <div className="p-2"> {/* Add padding for non-link items */}
-                                   <ActivityContent />
-                                </div>
-                             )}
-                           </div>
-                       );
-                    })}
+                        const ActivityIcon = getActivityIcon(activity.type);
+                        const colors = getActivityColors(activity.type);
+
+                        const ActivityContent = () => (
+                           <div className="flex items-start gap-3">
+                               <div className={cn("flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0 mt-1", colors.bg)}>
+                                  <ActivityIcon className={cn("h-4 w-4", colors.text)} />
+                               </div>
+                              <div className="flex flex-col flex-grow">
+                                <span className="text-sm font-medium">{activity.description}</span>
+                                <span className="text-xs text-muted-foreground">{activity.time}</span>
+                              </div>
+                            </div>
+                         );
+
+                        return (
+                          <div key={activity.id} className="border-b border-border/50 pb-3 last:border-b-0 last:pb-0">
+                               {link ? (
+                                 <Link href={link} className="hover:bg-muted/50 block p-2 -m-2 rounded-md transition-colors">
+                                    <ActivityContent />
+                                 </Link>
+                               ) : (
+                                 <div className="p-2">
+                                     <ActivityContent />
+                                  </div>
+                               )}
+                             </div>
+                         );
+                      })
+                    )}
                   </div>
              </CardContent>
            </Card>

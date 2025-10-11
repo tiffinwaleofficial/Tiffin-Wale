@@ -4,16 +4,18 @@ import { ValidationPipe, Logger, BadRequestException } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { ConfigService } from "@nestjs/config";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
+import { NestExpressApplication } from "@nestjs/platform-express";
+import { join } from "path";
 
 async function bootstrap() {
   const logger = new Logger("Bootstrap");
   logger.log("Starting TiffinMate Monolith Backend...");
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
 
   // Add a root route for health checks - BEFORE setting global prefix
-  app.getHttpAdapter().get("/", (req, res) => {
+  app.getHttpAdapter().get("/", (req, res: any) => {
     res.json({ status: "ok", message: "TiffinWale API is running!" });
   });
 
@@ -25,16 +27,7 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors({
-    origin: [
-      "http://localhost:5173", // Development frontend
-      "http://localhost:3000", // Another possible local frontend
-      "https://tiffinwale.com", // Production domain
-      "https://tiffin-wale.com", // Production domain (hyphenated)
-      "https://www.tiffin-wale.com", // www subdomain
-      "https://official-web-dot-tiffin-wale.de.r.appspot.com", // App Engine subdomain
-      "https://*.tiffin-wale.de.r.appspot.com", // Any App Engine subdomain
-      "*", // Allow all origins as fallback
-    ],
+    origin: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
     allowedHeaders: [
@@ -46,6 +39,10 @@ async function bootstrap() {
     ],
   });
   logger.log("CORS configured for frontend domains");
+
+  // Serve static files
+  app.useStaticAssets(join(__dirname, "..", "public"));
+  logger.log("Static file serving configured");
 
   // Register global exception filter
   app.useGlobalFilters(new AllExceptionsFilter());

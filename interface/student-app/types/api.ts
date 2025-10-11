@@ -42,7 +42,19 @@ export interface User {
 // Customer profile types
 export interface CustomerProfile {
   id: string;
-  user: string | User;
+  firstName: string;
+  lastName: string;
+  name?: string; // for compatibility
+  email: string;
+  phone: string;
+  addresses: DeliveryAddress[];
+  address?: string; // for compatibility
+  preferences: UserPreferences;
+  subscriptionActive?: boolean;
+  subscriptionEndDate?: string;
+  subscriptionPlan?: SubscriptionPlan;
+  profileImage?: string;
+  dob?: string;
   city?: string;
   college?: string;
   branch?: string;
@@ -55,6 +67,12 @@ export interface CustomerProfile {
   updatedAt: string;
 }
 
+export interface UserPreferences {
+  dietaryRestrictions?: string[];
+  allergies?: string[];
+  spiceLevel?: 'mild' | 'medium' | 'spicy';
+}
+
 export interface DeliveryAddress {
   id?: string;
   name: string;
@@ -64,6 +82,12 @@ export interface DeliveryAddress {
   postalCode: string;
   country: string;
   isDefault: boolean;
+}
+
+export interface OrderCreateData {
+  items: Array<{ itemId: string; quantity: number }>;
+  type?: string;
+  deliveryAddress?: DeliveryAddress;
 }
 
 // Menu types
@@ -157,3 +181,127 @@ export type SubscriptionStatus =
   | 'canceled' 
   | 'expired' 
   | 'pending'; 
+
+// Additional types needed for apiClient
+export interface LoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: CustomerProfile;
+  roles?: UserRole[];
+  expiresIn?: number;
+  tokenType?: string;
+}
+
+export interface UserRole {
+  id: string;
+  name: string;
+  permissions: string[];
+}
+
+export interface OrderTracking {
+  orderId: string;
+  status: OrderStatus;
+  currentLocation?: string;
+  estimatedDeliveryTime?: string;
+  updates: Array<{
+    status: OrderStatus;
+    timestamp: string;
+    message: string;
+  }>;
+}
+
+export interface Menu {
+  categories: MenuCategory[];
+  featuredItems: MenuItem[];
+}
+
+export interface MenuCategory {
+  id: string;
+  name: string;
+  description?: string;
+  image?: string;
+  items: MenuItem[];
+}
+
+export interface MealCustomization {
+  preferences: string[];
+  allergies: string[];
+  specialInstructions?: string;
+}
+
+export interface PaymentMethod {
+  id: string;
+  type: 'card' | 'upi' | 'netbanking' | 'wallet';
+  last4?: string;
+  brand?: string;
+  isDefault: boolean;
+}
+
+export interface PaymentMethodData {
+  type: 'card' | 'upi' | 'netbanking' | 'wallet';
+  cardNumber?: string;
+  expiryMonth?: string;
+  expiryYear?: string;
+  cvv?: string;
+  upiId?: string;
+  bankName?: string;
+}
+
+export interface PaymentData {
+  amount: number;
+  currency: string;
+  methodId: string;
+  orderId: string;
+}
+
+export interface PaymentResult {
+  id: string;
+  status: 'success' | 'failed' | 'pending';
+  transactionId?: string;
+  message: string;
+}
+
+export interface FeedbackData {
+  type: 'general' | 'bug' | 'feature' | 'complaint' | 'suggestion';
+  subject: string;
+  message: string;
+  rating?: number;
+  category?: string;
+}
+
+export interface Feedback {
+  id: string;
+  type: string;
+  subject: string;
+  message: string;
+  rating?: number;
+  category?: string;
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SupportTicketData {
+  subject: string;
+  message: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  category: 'technical' | 'billing' | 'delivery' | 'general';
+}
+
+export interface SupportTicket {
+  id: string;
+  subject: string;
+  message: string;
+  priority: string;
+  category: string;
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SubscriptionCreateData {
+  planId: string;
+  startDate: string;
+  autoRenew: boolean;
+  paymentMethodId: string;
+} 

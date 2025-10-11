@@ -1,3 +1,5 @@
+import { SubscriptionPlan } from ".";
+
 export interface UserRole {
   id: string;
   name: string;
@@ -25,19 +27,40 @@ export interface Address {
   isDefault: boolean;
 }
 
-export interface CustomerProfile extends UserProfile {
-  name?: string; // For backward compatibility
-  address?: string; // For backward compatibility
-  addresses: Address[];
-  defaultAddress?: Address;
-  preferences?: {
-    dietaryRestrictions?: string[];
-    allergies?: string[];
-    spiceLevel?: 'mild' | 'medium' | 'spicy';
-  };
-  dob?: string;
-  profileImage?: string;
+export interface UserPreferences {
+  dietaryRestrictions?: string[];
+  allergies?: string[];
+  spiceLevel?: 'mild' | 'medium' | 'spicy';
+}
+
+export interface DeliveryAddress {
+  id?: string;
+  name: string;
+  street: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  isDefault: boolean;
+}
+
+export interface CustomerProfile {
+  id: string;
+  firstName: string;
+  lastName: string;
+  name?: string; // for compatibility
+  email: string;
+  phone: string;
+  addresses: DeliveryAddress[];
+  address?: string; // for compatibility
+  preferences: UserPreferences;
   subscriptionActive?: boolean;
+  subscriptionEndDate?: string;
+  subscriptionPlan?: SubscriptionPlan;
+  profileImage?: string;
+  dob?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface LoginResponse {

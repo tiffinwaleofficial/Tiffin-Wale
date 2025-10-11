@@ -1,4 +1,4 @@
-import { ApiProperty, OmitType, PartialType } from "@nestjs/swagger";
+import { ApiProperty } from "@nestjs/swagger";
 import {
   IsString,
   IsNumber,
@@ -11,7 +11,6 @@ import {
   IsMongoId,
 } from "class-validator";
 import { Type } from "class-transformer";
-import { CreateMenuItemDto } from "./create-menu-item.dto";
 
 // Define a class for updating nutritional info
 class UpdateNutritionalInfoDto {

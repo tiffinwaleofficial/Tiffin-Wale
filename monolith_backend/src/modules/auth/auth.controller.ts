@@ -18,7 +18,7 @@ import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
 import { ChangePasswordDto } from "./dto/change-password.dto";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
-import { LocalAuthGuard } from "./guards/local-auth.guard";
+
 import { RefreshTokenDto } from "./dto/refresh-token.dto";
 
 @ApiTags("auth")
@@ -69,5 +69,32 @@ export class AuthController {
   @ApiResponse({ status: 200, description: "Token refreshed successfully" })
   refresh(@Body() dto: RefreshTokenDto) {
     return this.authService.refreshToken(dto.refreshToken);
+  }
+
+  @Post("logout")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "User logout" })
+  @ApiResponse({ status: 200, description: "User logged out successfully" })
+  @ApiResponse({ status: 401, description: "Unauthorized" })
+  logout(@Request() req) {
+    return this.authService.logout(req.user._id);
+  }
+
+  @Post("forgot-password")
+  @ApiOperation({ summary: "Request password reset" })
+  @ApiResponse({ status: 200, description: "Password reset email sent" })
+  @ApiResponse({ status: 400, description: "Bad request" })
+  @ApiResponse({ status: 404, description: "User not found" })
+  forgotPassword(@Body() body: { email: string }) {
+    return this.authService.forgotPassword(body.email);
+  }
+
+  @Post("reset-password")
+  @ApiOperation({ summary: "Reset password with token" })
+  @ApiResponse({ status: 200, description: "Password reset successfully" })
+  @ApiResponse({ status: 400, description: "Bad request or invalid token" })
+  resetPassword(@Body() body: { token: string; newPassword: string }) {
+    return this.authService.resetPassword(body.token, body.newPassword);
   }
 }

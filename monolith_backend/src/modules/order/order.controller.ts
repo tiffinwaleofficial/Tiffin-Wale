@@ -91,7 +91,7 @@ export class OrderController {
     return this.orderService.findByPartner(partnerId);
   }
 
-  @Get("customer")
+  @Get("me")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get orders for current authenticated customer" })

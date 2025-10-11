@@ -4,27 +4,18 @@ import api from '@/utils/apiClient';
 
 interface MealState {
   meals: Meal[];
-  additionalOrders: OrderAdditional[];
-  reviews: Review[];
   todayMeals: Meal[];
-  upcomingMeals: Meal[];
   isLoading: boolean;
   error: string | null;
-  
   fetchMeals: () => Promise<void>;
   fetchTodayMeals: () => Promise<void>;
   rateMeal: (mealId: string, rating: number, comment: string) => Promise<void>;
-  orderAdditionalItem: (itemId: string, quantity: number) => Promise<void>;
-  cancelAdditionalOrder: (orderId: string) => Promise<void>;
   skipMeal: (mealId: string, reason?: string) => Promise<void>;
 }
 
 export const useMealStore = create<MealState>((set, get) => ({
   meals: [],
-  additionalOrders: [],
-  reviews: [],
   todayMeals: [],
-  upcomingMeals: [],
   isLoading: false,
   error: null,
   
@@ -100,80 +91,15 @@ export const useMealStore = create<MealState>((set, get) => ({
   skipMeal: async (mealId: string, reason?: string) => {
     set({ isLoading: true, error: null });
     try {
-      // Skip meal via real API
       await api.meals.skipMeal(mealId, reason);
-      
-      // Update local state to reflect the skip
-      const { meals, todayMeals } = get();
-      
-      const updateMealStatus = (meal: Meal) => {
-        if (meal.id === mealId) {
-          return {
-            ...meal,
-            status: 'skipped' as const
-          };
-        }
-        return meal;
-      };
-      
-      set({ 
-        meals: meals.map(updateMealStatus),
-        todayMeals: todayMeals.map(updateMealStatus),
-        isLoading: false 
-      });
+      // You might want to update the local state here as well
+      set({ isLoading: false });
     } catch (error) {
       console.error('Error skipping meal:', error);
-      set({ 
-        error: error instanceof Error ? error.message : 'Failed to skip meal', 
-        isLoading: false 
+      set({
+        error: 'Failed to skip meal',
+        isLoading: false,
       });
     }
   },
-  
-  orderAdditionalItem: async (itemId: string, quantity: number) => {
-    set({ isLoading: true, error: null });
-    try {
-      // Create additional order via orders API
-      const orderData = {
-        items: [{ itemId, quantity }],
-        type: 'additional'
-      };
-      
-      const newOrder = await api.orders.create(orderData);
-      
-      set(state => ({ 
-        additionalOrders: [...state.additionalOrders, newOrder],
-        isLoading: false 
-      }));
-    } catch (error) {
-      console.error('Error placing additional order:', error);
-      set({ 
-        error: error instanceof Error ? error.message : 'Failed to place order', 
-        isLoading: false 
-      });
-    }
-  },
-  
-  cancelAdditionalOrder: async (orderId: string) => {
-    set({ isLoading: true, error: null });
-    try {
-      // Update order status to cancelled via API
-      await api.orders.updateStatus(orderId, 'cancelled');
-      
-      set(state => ({ 
-        additionalOrders: state.additionalOrders.map(order => 
-          order.id === orderId 
-            ? { ...order, status: 'cancelled' } 
-            : order
-        ),
-        isLoading: false 
-      }));
-    } catch (error) {
-      console.error('Error cancelling order:', error);
-      set({ 
-        error: error instanceof Error ? error.message : 'Failed to cancel order', 
-        isLoading: false 
-      });
-    }
-  }
 }));

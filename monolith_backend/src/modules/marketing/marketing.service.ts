@@ -478,4 +478,98 @@ export class MarketingService {
       updatedAt: testimonial.updatedAt,
     };
   }
+
+  /**
+   * Get active promotions
+   */
+  async getActivePromotions() {
+    try {
+      // For now, return mock data since we don't have a promotion schema
+      // In a real implementation, you would query a promotions collection
+      return [
+        {
+          id: "promo-001",
+          code: "WELCOME20",
+          description: "20% off for new customers",
+          discount: 20,
+          validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+        },
+        {
+          id: "promo-002",
+          code: "STUDENT15",
+          description: "15% off for students",
+          discount: 15,
+          validUntil: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days from now
+        },
+      ];
+    } catch (error) {
+      this.logger.error(`Failed to fetch active promotions: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Apply promotion code
+   */
+  async applyPromotion(code: string, userId: string) {
+    try {
+      // For now, validate against mock data
+      // In a real implementation, you would query a promotions collection
+      const promotions = await this.getActivePromotions();
+      const promotion = promotions.find((p) => p.code === code);
+
+      if (!promotion) {
+        throw new BadRequestException("Invalid promotion code");
+      }
+
+      if (new Date() > promotion.validUntil) {
+        throw new BadRequestException("Promotion code has expired");
+      }
+
+      // In a real implementation, you would:
+      // 1. Check if user has already used this promotion
+      // 2. Apply the discount to their subscription/order
+      // 3. Mark the promotion as used
+
+      // Log the promotion usage for analytics
+      this.logger.log(`User ${userId} applied promotion code: ${code}`);
+
+      return {
+        success: true,
+        message: `Promotion code ${code} applied successfully! You get ${promotion.discount}% off.`,
+        promotion: {
+          code: promotion.code,
+          discount: promotion.discount,
+          description: promotion.description,
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Failed to apply promotion: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Get referrals for a specific user
+   */
+  async getUserReferrals(userId: string) {
+    try {
+      const referrals = await this.referralModel
+        .find({ referrer: userId })
+        .sort({ createdAt: -1 })
+        .exec();
+
+      return referrals.map((referral) => ({
+        id: referral._id,
+        referredEmail: referral.referredEmail,
+        status: referral.status,
+        createdAt: referral.createdAt,
+        conversionDate: referral.conversionDate,
+        rewards: referral.rewards,
+      }));
+    } catch (error) {
+      this.logger.error(`Failed to fetch user referrals: ${error.message}`);
+      throw error;
+    }
+  }
 }

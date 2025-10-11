@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 
 import { useMealStore } from '@/store/mealStore';
 import { useAuthStore } from '@/store/authStore';
+import { useOrderStore } from '@/store/orderStore';
 
 import { AdditionalOrderCard } from '@/components/AdditionalOrderCard';
 
@@ -14,11 +15,16 @@ export default function OrdersScreen() {
   useAuthStore();
   const { 
     meals, 
-    additionalOrders, 
-    isLoading, 
-    error, 
+    isLoading: mealsLoading, 
+    error: mealsError, 
     fetchMeals 
   } = useMealStore();
+  const {
+    orders,
+    isLoading: ordersLoading,
+    error: ordersError,
+    fetchOrders,
+  } = useOrderStore();
   
   const [activeTab, setActiveTab] = useState<'meals' | 'additional'>('meals');
   const [refreshing, setRefreshing] = useState(false);
@@ -26,13 +32,18 @@ export default function OrdersScreen() {
   // Fetch data on component mount
   useEffect(() => {
     fetchMeals();
-  }, [fetchMeals]);
+    fetchOrders();
+  }, [fetchMeals, fetchOrders]);
 
   // Pull to refresh handler
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-    await fetchMeals();
+      if (activeTab === 'meals') {
+        await fetchMeals();
+      } else {
+        await fetchOrders();
+      }
     } catch (error) {
       console.error('Error refreshing orders:', error);
     } finally {
@@ -97,12 +108,12 @@ export default function OrdersScreen() {
   );
 
   // Filter and sort additional orders by date (newest first)
-  const sortedAdditionalOrders = [...additionalOrders].sort((a, b) => 
+  const sortedAdditionalOrders = [...orders].sort((a, b) => 
     new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
   const renderContent = () => {
-    if (isLoading && !refreshing) {
+    if ((mealsLoading || ordersLoading) && !refreshing) {
       return (
         <View style={styles.centerContainer}>
           <Text style={styles.loadingText}>Loading orders...</Text>
@@ -110,12 +121,12 @@ export default function OrdersScreen() {
       );
     }
 
-    if (error) {
+    if (mealsError || ordersError) {
       return (
         <View style={styles.centerContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.errorText}>{mealsError || ordersError}</Text>
           <TouchableOpacity 
-            onPress={fetchMeals}
+            onPress={activeTab === 'meals' ? fetchMeals : fetchOrders}
             style={styles.retryButton}
           >
             <Text style={styles.retryButtonText}>Retry</Text>

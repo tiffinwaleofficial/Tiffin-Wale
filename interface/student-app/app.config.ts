@@ -8,9 +8,6 @@ declare const process: {
   };
 };
 
-console.log('🔍 Reading .env file...');
-console.log('📁 Current API_BASE_URL from .env:', process.env.API_BASE_URL);
-
 export default {
   expo: {
     name: "TiffinWale",
@@ -37,7 +34,9 @@ export default {
       backgroundColor: "#FFFAF0"
     },
     plugins: [
-      "expo-router"
+      "expo-router",
+      "expo-font",
+      "expo-web-browser"
     ],
     experiments: {
       typedRoutes: true

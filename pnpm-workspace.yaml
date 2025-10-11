@@ -1,6 +1,0 @@
-packages:
-  - 'monolith_backend'
-  - 'interface/official-web-app'
-  - 'interface/student-app'
-  - 'interface/partner-app'
-  - 'interface/super-admin-web' 

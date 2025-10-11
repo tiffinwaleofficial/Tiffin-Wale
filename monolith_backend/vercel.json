@@ -1,0 +1,45 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.ts",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "src/**",
+          "package.json",
+          "tsconfig.json"
+        ],
+        "excludeFiles": [
+          "node_modules/@types/**",
+          "node_modules/typescript/**",
+          "node_modules/jest/**",
+          "node_modules/eslint/**",
+          "node_modules/prettier/**",
+          "tests/**",
+          "docs/**",
+          "scripts/**",
+          "dist/**"
+        ],
+        "maxLambdaSize": "50mb"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/index.ts"
+    },
+    {
+      "src": "/api-docs/(.*)",
+      "dest": "/api/index.ts"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.ts"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

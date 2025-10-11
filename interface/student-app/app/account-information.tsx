@@ -7,9 +7,8 @@ import { useAuthStore } from '@/store/authStore';
 
 export default function AccountInformation() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, updateUserProfile, isLoading } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -20,15 +19,15 @@ export default function AccountInformation() {
   });
 
   const handleSaveChanges = async () => {
-    setIsLoading(true);
+    const [firstName, ...lastName] = formData.name.split(' ');
+    await updateUserProfile({
+      firstName,
+      lastName: lastName.join(' '),
+      email: formData.email,
+      phone: formData.phone,
+      dob: formData.dob,
+    });
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Here you would typically update the user data in your backend
-    // const updatedUser = await updateUserProfile(formData);
-    
-    setIsLoading(false);
     setIsEditing(false);
   };
 
@@ -185,7 +184,7 @@ export default function AccountInformation() {
         <View style={styles.additionalInfoCard}>
           <Text style={styles.sectionTitle}>Account Security</Text>
           
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/change-password')}>
             <Text style={styles.actionButtonText}>Change Password</Text>
             <ArrowLeft size={20} color="#666666" style={{ transform: [{ rotate: '180deg' }] }} />
           </TouchableOpacity>

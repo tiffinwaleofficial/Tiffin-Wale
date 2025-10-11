@@ -10,9 +10,6 @@ import {
   IsNotEmpty,
   Min,
   Max,
-  IsEnum,
-  ArrayMinSize,
-  ArrayMaxSize,
 } from "class-validator";
 
 export class AddressDto {

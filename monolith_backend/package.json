@@ -21,7 +21,9 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:menu": "node scripts/test-menu-api.js",
     "test:api": "jest --config ./tests/jest.config.js",
-    "gcp-build": "pnpm run build"
+    "gcp-build": "pnpm run build",
+    "vercel-build": "echo 'Skipping build for Vercel - using TypeScript source files directly'",
+    "copy-files": "cp -r src api/ || xcopy src api\\ /s /e /i"
   },
   "dependencies": {
     "@nestjs/cli": "^10.0.0",
@@ -39,8 +41,8 @@
     "bcrypt": "^5.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
-    "mongoose": "^7.0.0",
     "mongodb": "^5.9.2",
+    "mongoose": "^7.0.0",
     "passport": "^0.6.0",
     "passport-jwt": "^4.0.0",
     "passport-local": "^1.0.0",
@@ -55,11 +57,13 @@
     "winston-daily-rotate-file": "^4.7.1"
   },
   "devDependencies": {
+    "@faker-js/faker": "^9.9.0",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
     "@types/bcrypt": "^5.0.0",
     "@types/express": "^4.17.17",
     "@types/jest": "^29.5.2",
+    "@types/multer": "^2.0.0",
     "@types/node": "^20.3.1",
     "@types/passport-jwt": "^3.0.8",
     "@types/passport-local": "^1.0.0",
@@ -67,6 +71,7 @@
     "@types/supertest": "^2.0.12",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
+    "@vercel/node": "^3.0.0",
     "axios": "^1.8.4",
     "chalk": "^5.4.1",
     "eslint": "^8.42.0",

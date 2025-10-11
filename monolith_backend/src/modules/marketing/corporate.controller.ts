@@ -3,7 +3,6 @@ import {
   ApiTags,
   ApiOperation,
   ApiResponse,
-  ApiBody,
   ApiBearerAuth,
 } from "@nestjs/swagger";
 import { MarketingService } from "./marketing.service";

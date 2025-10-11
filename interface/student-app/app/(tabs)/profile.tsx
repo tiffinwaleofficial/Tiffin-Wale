@@ -1,22 +1,18 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Switch, TextInput, Alert } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Switch, Alert } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
-import { ArrowRight, Bell, ChevronRight, CreditCard, CircleHelp as HelpCircle, LogOut, MapPin, User } from 'lucide-react-native';
+import { Bell, ChevronRight, CreditCard, CircleHelp as HelpCircle, LogOut, MapPin, Tag } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { formatExpiry } from '@/utils/dateUtils';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { user, logout, fetchUserProfile } = useAuthStore();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [editMode, setEditMode] = useState(false);
-  const [userInfo, setUserInfo] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
-    phone: user?.phone || '',
-    address: user?.address || '',
-  });
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, [fetchUserProfile]);
 
   const handleLogout = () => {
     Alert.alert(
@@ -39,21 +35,6 @@ export default function ProfileScreen() {
     );
   };
 
-  const toggleEditMode = () => {
-    if (editMode) {
-      // Save profile changes
-      Alert.alert('Profile Updated', 'Your profile has been updated successfully.');
-    }
-    setEditMode(!editMode);
-  };
-
-  const handleInputChange = (field: keyof typeof userInfo, value: string) => {
-    setUserInfo({
-      ...userInfo,
-      [field]: value,
-    });
-  };
-
   return (
     <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
       <View style={styles.container}>
@@ -65,7 +46,7 @@ export default function ProfileScreen() {
           <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.profileCard}>
             <View style={styles.profileHeader}>
               <Image 
-                source={{ uri: 'https://images.pexels.com/photos/2379005/pexels-photo-2379005.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2' }} 
+                source={{ uri: user?.profileImage || 'https://images.pexels.com/photos/2379005/pexels-photo-2379005.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2' }} 
                 style={styles.profileImage} 
               />
               <View style={styles.profileInfo}>
@@ -89,9 +70,9 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.activePlanContainer}>
                 <View style={styles.activePlanDetails}>
-                  <Text style={styles.activePlanName}>Premium Plan</Text>
+                  <Text style={styles.activePlanName}>{user?.subscriptionActive ? 'Active Plan' : 'No Active Plan'}</Text>
                   <Text style={styles.activePlanExpiry}>
-                    Valid until 26 May, 2025
+                    {user?.subscriptionActive ? 'You are subscribed' : 'Subscribe to a plan to get started'}
                   </Text>
                 </View>
               </View>
@@ -126,6 +107,21 @@ export default function ProfileScreen() {
                     <CreditCard size={20} color="#1E88E5" />
                   </View>
                   <Text style={styles.settingsItemText}>Payment Methods</Text>
+                </View>
+                <ChevronRight size={20} color="#999999" />
+              </TouchableOpacity>
+              
+              <View style={styles.settingsDivider} />
+
+              <TouchableOpacity 
+                style={styles.settingsItem}
+                onPress={() => router.push('/promotions' as never)}
+              >
+                <View style={styles.settingsItemLeft}>
+                  <View style={[styles.settingsIcon, { backgroundColor: '#E0F2F1' }]}>
+                    <Tag size={20} color="#00796B" />
+                  </View>
+                  <Text style={styles.settingsItemText}>Promotions</Text>
                 </View>
                 <ChevronRight size={20} color="#999999" />
               </TouchableOpacity>

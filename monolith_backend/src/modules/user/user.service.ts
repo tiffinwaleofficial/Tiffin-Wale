@@ -74,7 +74,7 @@ export class UserService {
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     try {
       // First check if user exists
-      const user = await this.findById(id);
+      await this.findById(id);
 
       // If email is being updated, check if it's already in use by another user
       if (updateUserDto.email) {

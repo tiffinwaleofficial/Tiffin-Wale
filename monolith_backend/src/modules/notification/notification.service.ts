@@ -18,7 +18,11 @@ export class NotificationService {
 
   addNotification(userId: string, notif: any) {
     if (!this.notifications[userId]) this.notifications[userId] = [];
-    this.notifications[userId].push({ ...notif, id: Date.now().toString(), read: false });
+    this.notifications[userId].push({
+      ...notif,
+      id: Date.now().toString(),
+      read: false,
+    });
   }
 
   markAsRead(userId: string, id: string) {

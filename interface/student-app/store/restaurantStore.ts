@@ -1,17 +1,19 @@
 import { create } from 'zustand';
-import { Restaurant } from '@/types';
+import { Restaurant, MenuItem } from '@/types';
 import api from '@/utils/apiClient';
 
 interface RestaurantState {
   restaurants: Restaurant[];
   featuredRestaurants: Restaurant[];
   currentRestaurant: Restaurant | null;
+  currentRestaurantMenu: MenuItem[] | null;
   isLoading: boolean;
   error: string | null;
   
   fetchRestaurants: () => Promise<void>;
   fetchFeaturedRestaurants: () => Promise<void>;
   fetchRestaurantById: (id: string) => Promise<void>;
+  fetchMenuForRestaurant: (partnerId: string) => Promise<void>;
   searchRestaurants: (query: string) => Promise<void>;
   filterRestaurants: (cuisineType?: string, rating?: number) => Promise<void>;
 }
@@ -20,6 +22,7 @@ export const useRestaurantStore = create<RestaurantState>((set) => ({
   restaurants: [],
   featuredRestaurants: [],
   currentRestaurant: null,
+  currentRestaurantMenu: null,
   isLoading: false,
   error: null,
   
@@ -81,6 +84,23 @@ export const useRestaurantStore = create<RestaurantState>((set) => ({
       set({ 
         error: error instanceof Error ? error.message : 'Failed to fetch restaurant', 
         isLoading: false 
+      });
+    }
+  },
+  
+  fetchMenuForRestaurant: async (partnerId: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const menu = await api.menu.getByPartner(partnerId);
+      set({
+        currentRestaurantMenu: menu,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error('Error fetching menu for restaurant:', error);
+      set({
+        error: error instanceof Error ? error.message : 'Failed to fetch menu',
+        isLoading: false,
       });
     }
   },

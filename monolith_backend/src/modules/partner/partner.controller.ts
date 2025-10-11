@@ -2,36 +2,28 @@ import {
   Controller,
   Get,
   Post,
-  Put,
-  Delete,
   Body,
+  Patch,
   Param,
-  Query,
+  Delete,
   UseGuards,
-  HttpStatus,
-  HttpException,
+  Query,
 } from "@nestjs/common";
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
+  ApiBearerAuth,
   ApiParam,
   ApiQuery,
-  ApiBearerAuth,
 } from "@nestjs/swagger";
-import { PartnerService } from "./partner.service";
-import {
-  CreatePartnerDto,
-  UpdatePartnerDto,
-  PartnerResponseDto,
-  PartnerListResponseDto,
-  PartnerStatusUpdateDto,
-} from "./dto/partner.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { UserRole } from "../../common/interfaces/user.interface";
-import { GetCurrentUser } from "../../common/decorators/user.decorator";
+import { PartnerService } from "./partner.service";
+import { CreatePartnerDto } from "./dto/create-partner.dto";
+import { UpdatePartnerDto } from "./dto/update-partner.dto";
 
 @ApiTags("partners")
 @Controller("partners")
@@ -39,578 +31,98 @@ export class PartnerController {
   constructor(private readonly partnerService: PartnerService) {}
 
   @Post()
-  @ApiOperation({
-    summary: "Register a new partner",
-    description: "Anyone can register as a partner without authentication.",
-  })
-  @ApiResponse({
-    status: 201,
-    description: "Partner successfully created",
-    type: PartnerResponseDto,
-  })
-  @ApiResponse({ status: 400, description: "Bad request - validation failed" })
-  @ApiResponse({ status: 409, description: "Email already in use" })
-  @ApiResponse({ status: 500, description: "Internal server error" })
-  async create(
-    @Body() createPartnerDto: CreatePartnerDto,
-  ): Promise<PartnerResponseDto> {
-    try {
-      return await this.partnerService.create(createPartnerDto);
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-      throw new HttpException(
-        {
-          status: HttpStatus.INTERNAL_SERVER_ERROR,
-          error: "Failed to create partner",
-          message: error.message || "An unexpected error occurred",
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Create a new partner" })
+  @ApiResponse({ status: 201, description: "Partner created successfully" })
+  @ApiResponse({ status: 400, description: "Bad request" })
+  async create(@Body() createPartnerDto: CreatePartnerDto) {
+    return this.partnerService.create(createPartnerDto);
   }
 
   @Get()
-  @ApiOperation({
-    summary: "Get all partners",
-    description: "Restricted to ADMIN and SUPER_ADMIN roles only.",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "List of partners returned",
-    type: PartnerListResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - missing or invalid token",
-  })
-  @ApiResponse({
-    status: 403,
-    description: "Forbidden - insufficient permissions",
+  @ApiOperation({ summary: "Get all partners/restaurants" })
+  @ApiResponse({ status: 200, description: "Return all partners" })
+  @ApiQuery({
+    name: "cuisineType",
+    required: false,
+    description: "Filter by cuisine type",
   })
   @ApiQuery({
-    name: "page",
+    name: "rating",
     required: false,
-    description: "Page number",
-    type: Number,
+    description: "Filter by minimum rating",
   })
-  @ApiQuery({
-    name: "limit",
-    required: false,
-    description: "Number of items per page",
-    type: Number,
-  })
-  @ApiQuery({
-    name: "status",
-    required: false,
-    description: "Filter by status",
-    type: String,
-  })
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  @ApiBearerAuth()
+  @ApiQuery({ name: "city", required: false, description: "Filter by city" })
   async findAll(
-    @Query("page") page?: number,
-    @Query("limit") limit?: number,
-    @Query("status") status?: string,
-  ): Promise<PartnerListResponseDto> {
-    return this.partnerService.findAll(page, limit, status);
+    @Query("cuisineType") cuisineType?: string,
+    @Query("rating") rating?: number,
+    @Query("city") city?: string,
+  ) {
+    return this.partnerService.findAll({ cuisineType, rating, city });
   }
 
   @Get(":id")
-  @ApiOperation({
-    summary: "Get partner by ID",
-    description: "Any authenticated user can view a partner's details.",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Partner details returned",
-    type: PartnerResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - missing or invalid token",
-  })
+  @ApiOperation({ summary: "Get a specific partner by ID" })
+  @ApiResponse({ status: 200, description: "Return the partner" })
   @ApiResponse({ status: 404, description: "Partner not found" })
   @ApiParam({ name: "id", description: "Partner ID" })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  async findOne(@Param("id") id: string): Promise<PartnerResponseDto> {
-    return this.partnerService.findById(id);
-  }
-
-  @Get("user/:userId")
-  @ApiOperation({
-    summary: "Get partner by user ID",
-    description: "Any authenticated user can retrieve a partner by user ID.",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Partner details returned",
-    type: PartnerResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - missing or invalid token",
-  })
-  @ApiResponse({ status: 404, description: "Partner not found" })
-  @ApiParam({ name: "userId", description: "User ID" })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  async findByUserId(
-    @Param("userId") userId: string,
-  ): Promise<PartnerResponseDto> {
-    return this.partnerService.findByUserId(userId);
-  }
-
-  @Put(":id")
-  @ApiOperation({
-    summary: "Update partner",
-    description:
-      "Restricted to ADMIN, SUPER_ADMIN, and the partner themselves (BUSINESS role).",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Partner successfully updated",
-    type: PartnerResponseDto,
-  })
-  @ApiResponse({ status: 400, description: "Bad request" })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - missing or invalid token",
-  })
-  @ApiResponse({
-    status: 403,
-    description: "Forbidden - insufficient permissions",
-  })
-  @ApiResponse({ status: 404, description: "Partner not found" })
-  @ApiParam({ name: "id", description: "Partner ID" })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.BUSINESS)
-  async update(
-    @Param("id") id: string,
-    @Body() updatePartnerDto: UpdatePartnerDto,
-  ): Promise<PartnerResponseDto> {
-    return this.partnerService.update(id, updatePartnerDto);
-  }
-
-  @Put(":id/status")
-  @ApiOperation({
-    summary: "Update partner status",
-    description:
-      "Restricted to ADMIN and SUPER_ADMIN roles only. Used to approve, reject, or suspend partners.",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Partner status successfully updated",
-    type: PartnerResponseDto,
-  })
-  @ApiResponse({ status: 400, description: "Bad request" })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - missing or invalid token",
-  })
-  @ApiResponse({
-    status: 403,
-    description: "Forbidden - insufficient permissions",
-  })
-  @ApiResponse({ status: 404, description: "Partner not found" })
-  @ApiParam({ name: "id", description: "Partner ID" })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  async updateStatus(
-    @Param("id") id: string,
-    @Body() statusUpdateDto: PartnerStatusUpdateDto,
-  ): Promise<PartnerResponseDto> {
-    return this.partnerService.updateStatus(id, statusUpdateDto);
-  }
-
-  @Delete(":id")
-  @ApiOperation({
-    summary: "Delete partner",
-    description:
-      "Restricted to ADMIN and SUPER_ADMIN roles only. Permanently removes a partner account.",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Partner successfully deleted",
-    type: Object,
-  })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - missing or invalid token",
-  })
-  @ApiResponse({
-    status: 403,
-    description: "Forbidden - insufficient permissions",
-  })
-  @ApiResponse({ status: 404, description: "Partner not found" })
-  @ApiParam({ name: "id", description: "Partner ID" })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  async remove(@Param("id") id: string): Promise<{ message: string }> {
-    await this.partnerService.remove(id);
-    return { message: "Partner successfully deleted" };
-  }
-
-  @Get(":id/orders")
-  @ApiOperation({
-    summary: "Get partner orders",
-    description:
-      "Restricted to ADMIN, SUPER_ADMIN, and the partner themselves (BUSINESS role).",
-  })
-  @ApiResponse({ status: 200, description: "Partner orders returned" })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - missing or invalid token",
-  })
-  @ApiResponse({
-    status: 403,
-    description: "Forbidden - insufficient permissions",
-  })
-  @ApiResponse({ status: 404, description: "Partner not found" })
-  @ApiParam({ name: "id", description: "Partner ID" })
-  @ApiQuery({
-    name: "page",
-    required: false,
-    description: "Page number",
-    type: Number,
-  })
-  @ApiQuery({
-    name: "limit",
-    required: false,
-    description: "Number of items per page",
-    type: Number,
-  })
-  @ApiQuery({
-    name: "status",
-    required: false,
-    description: "Filter by status",
-    type: String,
-  })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.BUSINESS)
-  async getPartnerOrders(
-    @Param("id") id: string,
-    @Query("page") page?: number,
-    @Query("limit") limit?: number,
-    @Query("status") status?: string,
-  ): Promise<any> {
-    return this.partnerService.getPartnerOrders(id, page, limit, status);
+  async findOne(@Param("id") id: string) {
+    return this.partnerService.findOne(id);
   }
 
   @Get(":id/menu")
-  @ApiOperation({
-    summary: "Get partner menu",
-    description: "Any authenticated user can view a partner's menu.",
-  })
-  @ApiResponse({ status: 200, description: "Partner menu returned" })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - missing or invalid token",
-  })
+  @ApiOperation({ summary: "Get menu for a specific partner" })
+  @ApiResponse({ status: 200, description: "Return partner menu" })
   @ApiResponse({ status: 404, description: "Partner not found" })
   @ApiParam({ name: "id", description: "Partner ID" })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  async getPartnerMenu(@Param("id") id: string): Promise<any> {
-    return this.partnerService.getPartnerMenu(id);
+  async getMenu(@Param("id") id: string) {
+    return this.partnerService.getMenu(id);
   }
 
   @Get(":id/reviews")
-  @ApiOperation({
-    summary: "Get partner reviews",
-    description: "Any authenticated user can view a partner's reviews.",
-  })
-  @ApiResponse({ status: 200, description: "Partner reviews returned" })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - missing or invalid token",
-  })
+  @ApiOperation({ summary: "Get reviews for a specific partner" })
+  @ApiResponse({ status: 200, description: "Return partner reviews" })
   @ApiResponse({ status: 404, description: "Partner not found" })
   @ApiParam({ name: "id", description: "Partner ID" })
-  @ApiQuery({
-    name: "page",
-    required: false,
-    description: "Page number",
-    type: Number,
-  })
-  @ApiQuery({
-    name: "limit",
-    required: false,
-    description: "Number of items per page",
-    type: Number,
-  })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  async getPartnerReviews(
-    @Param("id") id: string,
-    @Query("page") page?: number,
-    @Query("limit") limit?: number,
-  ): Promise<any> {
-    return this.partnerService.getPartnerReviews(id, page, limit);
+  async getReviews(@Param("id") id: string) {
+    return this.partnerService.getReviews(id);
   }
 
   @Get(":id/stats")
-  @ApiOperation({
-    summary: "Get partner statistics",
-    description: "Get detailed statistics for a specific partner.",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Partner statistics returned",
-  })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - missing or invalid token",
-  })
+  @ApiOperation({ summary: "Get statistics for a specific partner" })
+  @ApiResponse({ status: 200, description: "Return partner statistics" })
   @ApiResponse({ status: 404, description: "Partner not found" })
   @ApiParam({ name: "id", description: "Partner ID" })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  async getPartnerStats(@Param("id") id: string): Promise<any> {
-    return this.partnerService.getPartnerStats(id);
+  async getStats(@Param("id") id: string) {
+    return this.partnerService.getStats(id);
   }
 
-  // ==================== NEW PARTNER "ME" ENDPOINTS ====================
-
-  @Get("user/me")
-  @ApiOperation({
-    summary: "Get current partner profile",
-    description:
-      "Get the partner profile for the currently authenticated user.",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Current partner profile returned",
-    type: PartnerResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - missing or invalid token",
-  })
-  @ApiResponse({
-    status: 404,
-    description: "Partner profile not found for current user",
-  })
+  @Patch(":id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.BUSINESS)
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  async getCurrentPartner(
-    @GetCurrentUser("_id") userId: string,
-  ): Promise<PartnerResponseDto> {
-    return this.partnerService.findByUserId(userId);
-  }
-
-  @Put("me")
-  @ApiOperation({
-    summary: "Update current partner profile",
-    description:
-      "Update the partner profile for the currently authenticated user.",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Current partner profile successfully updated",
-    type: PartnerResponseDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: "Bad request - validation failed",
-  })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - missing or invalid token",
-  })
-  @ApiResponse({
-    status: 404,
-    description: "Partner profile not found for current user",
-  })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  async updateCurrentPartner(
-    @GetCurrentUser("_id") userId: string,
+  @ApiOperation({ summary: "Update a partner" })
+  @ApiResponse({ status: 200, description: "Partner updated successfully" })
+  @ApiResponse({ status: 404, description: "Partner not found" })
+  @ApiParam({ name: "id", description: "Partner ID" })
+  async update(
+    @Param("id") id: string,
     @Body() updatePartnerDto: UpdatePartnerDto,
-  ): Promise<PartnerResponseDto> {
-    return this.partnerService.updateByUserId(userId, updatePartnerDto);
-  }
-
-  @Get("orders/me")
-  @ApiOperation({
-    summary: "Get current partner's orders",
-    description:
-      "Get all orders for the currently authenticated partner with pagination and filtering.",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Current partner's orders returned",
-  })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - missing or invalid token",
-  })
-  @ApiResponse({
-    status: 404,
-    description: "Partner profile not found for current user",
-  })
-  @ApiQuery({
-    name: "page",
-    required: false,
-    description: "Page number",
-    type: Number,
-  })
-  @ApiQuery({
-    name: "limit",
-    required: false,
-    description: "Number of items per page",
-    type: Number,
-  })
-  @ApiQuery({
-    name: "status",
-    required: false,
-    description: "Filter by order status",
-    type: String,
-  })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  async getCurrentPartnerOrders(
-    @GetCurrentUser("_id") userId: string,
-    @Query("page") page?: number,
-    @Query("limit") limit?: number,
-    @Query("status") status?: string,
-  ): Promise<any> {
-    return this.partnerService.getCurrentPartnerOrders(
-      userId,
-      page,
-      limit,
-      status,
-    );
-  }
-
-  @Get("orders/me/today")
-  @ApiOperation({
-    summary: "Get current partner's today orders",
-    description: "Get today's orders for the currently authenticated partner.",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Current partner's today orders returned",
-  })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - missing or invalid token",
-  })
-  @ApiResponse({
-    status: 404,
-    description: "Partner profile not found for current user",
-  })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  async getCurrentPartnerTodayOrders(
-    @GetCurrentUser("_id") userId: string,
-  ): Promise<any> {
-    return this.partnerService.getCurrentPartnerTodayOrders(userId);
-  }
-
-  @Get("menu/me")
-  @ApiOperation({
-    summary: "Get current partner's menu",
-    description: "Get the menu for the currently authenticated partner.",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Current partner's menu returned",
-  })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - missing or invalid token",
-  })
-  @ApiResponse({
-    status: 404,
-    description: "Partner profile not found for current user",
-  })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  async getCurrentPartnerMenu(
-    @GetCurrentUser("_id") userId: string,
-  ): Promise<any> {
-    return this.partnerService.getCurrentPartnerMenu(userId);
-  }
-
-  @Get("stats/me")
-  @ApiOperation({
-    summary: "Get current partner's statistics",
-    description:
-      "Get detailed statistics for the currently authenticated partner.",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Current partner's statistics returned",
-  })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - missing or invalid token",
-  })
-  @ApiResponse({
-    status: 404,
-    description: "Partner profile not found for current user",
-  })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  async getCurrentPartnerStats(
-    @GetCurrentUser("_id") userId: string,
-  ): Promise<any> {
-    return this.partnerService.getCurrentPartnerStats(userId);
-  }
-
-  @Put("status/me")
-  @ApiOperation({
-    summary: "Update current partner's accepting orders status",
-    description:
-      "Update whether the currently authenticated partner is accepting orders.",
-  })
-  @ApiResponse({
-    status: 200,
-    description:
-      "Current partner's accepting orders status updated successfully",
-    type: PartnerResponseDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: "Bad request - validation failed",
-  })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - missing or invalid token",
-  })
-  @ApiResponse({
-    status: 404,
-    description: "Partner profile not found for current user",
-  })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  async updateCurrentPartnerStatus(
-    @GetCurrentUser("_id") userId: string,
-    @Body() statusUpdate: { isAcceptingOrders: boolean },
-  ): Promise<PartnerResponseDto> {
-    return this.partnerService.updateCurrentPartnerStatus(
-      userId,
-      statusUpdate.isAcceptingOrders,
-    );
-  }
-
-  @Get("me/reviews")
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: "Get reviews for current partner" })
-  async getMyReviews(
-    @GetCurrentUser("_id") userId: string,
-    @Query("page") page?: number,
-    @Query("limit") limit?: number,
   ) {
-    return this.partnerService.getCurrentPartnerReviews(userId, page, limit);
+    return this.partnerService.update(id, updatePartnerDto);
+  }
+
+  @Delete(":id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Delete a partner" })
+  @ApiResponse({ status: 200, description: "Partner deleted successfully" })
+  @ApiResponse({ status: 404, description: "Partner not found" })
+  @ApiParam({ name: "id", description: "Partner ID" })
+  async remove(@Param("id") id: string) {
+    return this.partnerService.remove(id);
   }
 }

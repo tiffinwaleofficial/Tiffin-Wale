@@ -1,15 +1,10 @@
-import { Stack } from 'expo-router';
-import { Slot, Redirect } from 'expo-router';
-import { useEffect } from 'react';
-import { useAuthStore } from '@/store/authStore';
+import { Slot } from 'expo-router';
+import { PublicRoute } from '@/components/RouteGuard';
 
 export default function AuthLayout() {
-  const { isAuthenticated } = useAuthStore();
-  
-  // If user is already authenticated, redirect to dashboard
-  if (isAuthenticated) {
-    return <Redirect href="/(tabs)" />;
-  }
-
-  return <Slot />;
+  return (
+    <PublicRoute>
+      <Slot />
+    </PublicRoute>
+  );
 }
