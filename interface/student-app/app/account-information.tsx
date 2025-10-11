@@ -1,28 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Camera, User, Mail, Phone, Calendar, Edit2 } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useAuthStore } from '@/store/authStore';
+import { useSubscriptionStore } from '@/store/subscriptionStore';
 
 export default function AccountInformation() {
   const router = useRouter();
   const { user, updateUserProfile, isLoading } = useAuthStore();
+  const { currentSubscription } = useSubscriptionStore();
   const [isEditing, setIsEditing] = useState(false);
   
-  // Form state
+  // Form state - initialize with real user data
   const [formData, setFormData] = useState({
-    name: user?.name || 'John Doe',
-    email: user?.email || 'john.doe@example.com',
-    phone: user?.phone || '+1 123-456-7890',
-    dob: user?.dob || '01/01/1990'
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    dob: ''
   });
 
+  // Update form data when user data changes
+  useEffect(() => {
+    if (user) {
+      console.log('🔍 AccountInformation: Updating form data with user:', user);
+      setFormData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        dob: user.dob || ''
+      });
+    }
+  }, [user]);
+
   const handleSaveChanges = async () => {
-    const [firstName, ...lastName] = formData.name.split(' ');
+    console.log('🔍 AccountInformation: Saving changes with data:', formData);
     await updateUserProfile({
-      firstName,
-      lastName: lastName.join(' '),
+      firstName: formData.firstName,
+      lastName: formData.lastName,
       email: formData.email,
       phone: formData.phone,
       dob: formData.dob,
@@ -30,6 +47,66 @@ export default function AccountInformation() {
     
     setIsEditing(false);
   };
+
+  // Helper function to get display name
+  const getDisplayName = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    if (user?.name) {
+      return user.name;
+    }
+    return 'User';
+  };
+
+  // Helper function to check if user has active subscription
+  const hasActiveSubscription = () => {
+    return currentSubscription && 
+           (currentSubscription.status === 'active' || currentSubscription.status === 'pending');
+  };
+
+  // Show loading state while user data is being fetched
+  if (isLoading && !user) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <ArrowLeft size={24} color="#333333" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Account Information</Text>
+          <View style={styles.editButton} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FF9B42" />
+          <Text style={styles.loadingText}>Loading your information...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // Show error state if no user data
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <ArrowLeft size={24} color="#333333" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Account Information</Text>
+          <View style={styles.editButton} />
+        </View>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Unable to load account information</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.retryButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -60,10 +137,12 @@ export default function AccountInformation() {
             )}
           </View>
           
-          <Text style={styles.userName}>{formData.name}</Text>
-          {user?.subscriptionActive && (
+          <Text style={styles.userName}>{getDisplayName()}</Text>
+          {hasActiveSubscription() && (
             <View style={styles.subscriptionBadge}>
-              <Text style={styles.subscriptionText}>Premium Member</Text>
+              <Text style={styles.subscriptionText}>
+                {currentSubscription?.status === 'pending' ? 'Premium Member (Pending)' : 'Premium Member'}
+              </Text>
             </View>
           )}
         </View>
@@ -80,11 +159,19 @@ export default function AccountInformation() {
             {isEditing ? (
               <TextInput
                 style={styles.infoInput}
-                value={formData.name}
-                onChangeText={(text) => setFormData({...formData, name: text})}
+                value={`${formData.firstName} ${formData.lastName}`.trim()}
+                onChangeText={(text) => {
+                  const [firstName, ...lastNameParts] = text.split(' ');
+                  setFormData({
+                    ...formData,
+                    firstName: firstName || '',
+                    lastName: lastNameParts.join(' ') || ''
+                  });
+                }}
+                placeholder="Enter full name"
               />
             ) : (
-              <Text style={styles.infoValue}>{formData.name}</Text>
+              <Text style={styles.infoValue}>{getDisplayName()}</Text>
             )}
           </View>
 
@@ -104,7 +191,7 @@ export default function AccountInformation() {
                 autoCapitalize="none"
               />
             ) : (
-              <Text style={styles.infoValue}>{formData.email}</Text>
+              <Text style={styles.infoValue}>{user?.email || 'Not provided'}</Text>
             )}
           </View>
 
@@ -121,9 +208,10 @@ export default function AccountInformation() {
                 value={formData.phone}
                 onChangeText={(text) => setFormData({...formData, phone: text})}
                 keyboardType="phone-pad"
+                placeholder="Enter phone number"
               />
             ) : (
-              <Text style={styles.infoValue}>{formData.phone}</Text>
+              <Text style={styles.infoValue}>{user?.phone || 'Not provided'}</Text>
             )}
           </View>
 
@@ -139,9 +227,10 @@ export default function AccountInformation() {
                 style={styles.infoInput}
                 value={formData.dob}
                 onChangeText={(text) => setFormData({...formData, dob: text})}
+                placeholder="MM/DD/YYYY"
               />
             ) : (
-              <Text style={styles.infoValue}>{formData.dob}</Text>
+              <Text style={styles.infoValue}>{user?.dob || 'Not provided'}</Text>
             )}
           </View>
         </Animated.View>
@@ -155,13 +244,16 @@ export default function AccountInformation() {
               style={styles.cancelButton}
               onPress={() => {
                 setIsEditing(false);
-                // Reset form data to user data
-                setFormData({
-                  name: user?.name || 'John Doe',
-                  email: user?.email || 'john.doe@example.com',
-                  phone: user?.phone || '+1 123-456-7890',
-                  dob: user?.dob || '01/01/1990'
-                });
+                // Reset form data to current user data
+                if (user) {
+                  setFormData({
+                    firstName: user.firstName || '',
+                    lastName: user.lastName || '',
+                    email: user.email || '',
+                    phone: user.phone || '',
+                    dob: user.dob || ''
+                  });
+                }
               }}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -394,5 +486,41 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Medium',
     fontSize: 14,
     color: '#D32F2F',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    fontFamily: 'Poppins-Medium',
+    fontSize: 16,
+    color: '#666666',
+    marginTop: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontFamily: 'Poppins-Medium',
+    fontSize: 16,
+    color: '#D32F2F',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#FF9B42',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    fontFamily: 'Poppins-SemiBold',
+    fontSize: 14,
+    color: '#FFFFFF',
   },
 }); 

@@ -3,12 +3,21 @@ import { ApiProperty } from "@nestjs/swagger";
 
 export class CreateDeliveryAddressDto {
   @ApiProperty({
-    description: "Full address",
+    description: "Address line 1",
     example: "123 Main Street, Apt 4B",
   })
   @IsNotEmpty()
   @IsString()
-  address: string;
+  addressLine1: string;
+
+  @ApiProperty({
+    description: "Address line 2",
+    example: "Near Central Park",
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  addressLine2?: string;
 
   @ApiProperty({
     description: "City",
@@ -27,20 +36,28 @@ export class CreateDeliveryAddressDto {
   state: string;
 
   @ApiProperty({
-    description: "ZIP code",
+    description: "Postal code",
     example: "10001",
   })
   @IsNotEmpty()
   @IsString()
-  zipCode: string;
+  postalCode: string;
 
   @ApiProperty({
-    description: "Country",
-    example: "USA",
+    description: "Address label",
+    example: "Home",
   })
   @IsNotEmpty()
   @IsString()
-  country: string;
+  label: string;
+
+  // @ApiProperty({
+  //   description: "Country",
+  //   example: "USA",
+  // })
+  // @IsNotEmpty()
+  // @IsString()
+  // country: string;
 
   @ApiProperty({
     description: "Landmark or additional instructions",
@@ -58,7 +75,7 @@ export class CreateDeliveryAddressDto {
   })
   @IsOptional()
   @IsString()
-  phoneNumber?: string;
+  contactNumber?: string;
 
   @ApiProperty({
     description: "Whether this is the default address",
@@ -67,4 +84,13 @@ export class CreateDeliveryAddressDto {
   })
   @IsOptional()
   isDefault?: boolean;
+
+  @ApiProperty({
+    description: "Additional delivery instructions",
+    example: "Ring doorbell twice",
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  instructions?: string;
 }

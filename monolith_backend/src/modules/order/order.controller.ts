@@ -53,14 +53,13 @@ export class OrderController {
     return this.orderService.findAll();
   }
 
-  @Get(":id")
+  @Get("me")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Get order by ID" })
-  @ApiResponse({ status: 200, description: "Return the order" })
-  @ApiResponse({ status: 404, description: "Order not found" })
-  findOne(@Param("id") id: string) {
-    return this.orderService.findById(id);
+  @ApiOperation({ summary: "Get orders for current authenticated customer" })
+  @ApiResponse({ status: 200, description: "Return customer orders" })
+  getMyOrders(@GetCurrentUser("_id") userId: string) {
+    return this.orderService.findByCustomer(userId);
   }
 
   @Get("status/:status")
@@ -91,13 +90,14 @@ export class OrderController {
     return this.orderService.findByPartner(partnerId);
   }
 
-  @Get("me")
+  @Get(":id")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Get orders for current authenticated customer" })
-  @ApiResponse({ status: 200, description: "Return customer orders" })
-  getMyOrders(@GetCurrentUser("_id") userId: string) {
-    return this.orderService.findByCustomer(userId);
+  @ApiOperation({ summary: "Get order by ID" })
+  @ApiResponse({ status: 200, description: "Return the order" })
+  @ApiResponse({ status: 404, description: "Order not found" })
+  findOne(@Param("id") id: string) {
+    return this.orderService.findById(id);
   }
 
   @Patch(":id")

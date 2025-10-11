@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import create from 'zustand';
 import { Meal, OrderAdditional, Review } from '@/types';
 import api from '@/utils/apiClient';
 
@@ -13,7 +13,7 @@ interface MealState {
   skipMeal: (mealId: string, reason?: string) => Promise<void>;
 }
 
-export const useMealStore = create<MealState>((set, get) => ({
+export const useMealStore = create<MealState>((set: any, get: any) => ({
   meals: [],
   todayMeals: [],
   isLoading: false,

@@ -40,10 +40,10 @@ export class AddressDto {
   @IsNotEmpty()
   postalCode: string;
 
-  @ApiProperty({ description: "Country" })
-  @IsString()
-  @IsNotEmpty()
-  country: string;
+  // @ApiProperty({ description: "Country" })
+  // @IsString()
+  // @IsNotEmpty()
+  // country: string;
 
   @ApiPropertyOptional({
     description: "Whether this is the default delivery address",

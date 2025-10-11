@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Bell, ChevronRight, Clock, Coffee, Star, Calendar, ChevronDown, Utensils, Wallet, ThumbsUp } from 'lucide-react-native';
 
-import { CustomerProfile } from '@/types/auth';
+import { CustomerProfile } from '@/types/api';
 import { Meal } from '@/types';
 
 type ActiveSubscriptionDashboardProps = {
@@ -40,7 +40,7 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, isLoading }: Act
         {/* Header with Greeting */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Good {getTimeOfDay()}, John</Text>
+            <Text style={styles.greeting}>Good {getTimeOfDay()}, {user?.firstName || user?.name || 'there'}</Text>
             <Text style={styles.date}>{formatDate()}</Text>
           </View>
           <TouchableOpacity style={styles.bellContainer}>
@@ -118,113 +118,57 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, isLoading }: Act
             </TouchableOpacity>
           </View>
 
-          {/* Breakfast Card */}
-          <Animated.View 
-            style={styles.mealCard}
-            entering={FadeInDown.duration(400).delay(500)}
-          >
-            <View style={styles.mealCardHeader}>
-              <Text style={styles.mealTypeLabel}>Breakfast</Text>
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading today's meals...</Text>
             </View>
-            <View style={styles.mealCardContent}>
-              <View style={styles.mealImageContainer}>
-                <Image 
-                  source={{ uri: 'https://images.pexels.com/photos/14705131/pexels-photo-14705131.jpeg' }} 
-                  style={styles.mealImage} 
-                />
-              </View>
-              <View style={styles.mealDetails}>
-                <Text style={styles.mealName}>Poha with Jalebi</Text>
-                <Text style={styles.vendorName}>Indori Delights</Text>
-                <View style={styles.ratingAndStatus}>
-                  <View style={styles.ratingContainer}>
-                    <Star size={14} color="#FFB800" fill="#FFB800" />
-                    <Text style={styles.ratingText}>4.5</Text>
-                  </View>
-                  <View style={styles.deliveredBadge}>
-                    <Text style={styles.deliveredText}>Delivered</Text>
-                  </View>
+          ) : todayMeals && todayMeals.length > 0 ? (
+            todayMeals.map((meal, index) => (
+              <Animated.View 
+                key={meal.id}
+                style={styles.mealCard}
+                entering={FadeInDown.duration(400).delay(500 + index * 100)}
+              >
+                <View style={styles.mealCardHeader}>
+                  <Text style={styles.mealTypeLabel}>{meal.type || 'Meal'}</Text>
                 </View>
-                <View style={styles.buttonContainer}>
-                  <TouchableOpacity style={styles.rateButton}>
-                    <ThumbsUp size={14} color="#FF9B42" />
-                    <Text style={styles.rateButtonText}>Rate</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Animated.View>
-
-          {/* Lunch Card */}
-          <Animated.View 
-            style={styles.mealCard}
-            entering={FadeInDown.duration(400).delay(600)}
-          >
-            <View style={styles.mealCardHeader}>
-              <Text style={styles.mealTypeLabel}>Lunch</Text>
-            </View>
-            <View style={styles.mealCardContent}>
-              <View style={styles.mealImageContainer}>
-                <Image 
-                  source={{ uri: 'https://images.pexels.com/photos/2474661/pexels-photo-2474661.jpeg' }} 
-                  style={styles.mealImage} 
-                />
-              </View>
-              <View style={styles.mealDetails}>
-                <Text style={styles.mealName}>Paneer Butter Masala with Roti</Text>
-                <Text style={styles.vendorName}>Spice Garden</Text>
-                <View style={styles.ratingAndStatus}>
-                  <View style={styles.ratingContainer}>
-                    <Star size={14} color="#FFB800" fill="#FFB800" />
-                    <Text style={styles.ratingText}>4.7</Text>
+                <View style={styles.mealCardContent}>
+                  <View style={styles.mealImageContainer}>
+                    <Image 
+                      source={{ uri: meal.menu?.[0]?.image || 'https://images.pexels.com/photos/14705131/pexels-photo-14705131.jpeg' }} 
+                      style={styles.mealImage}
+                      resizeMode="cover"
+                    />
                   </View>
-                  <View style={styles.preparingBadge}>
-                    <Text style={styles.preparingText}>Preparing</Text>
+                  <View style={styles.mealDetails}>
+                    <Text style={styles.mealName}>{meal.menu?.[0]?.name || 'Meal'}</Text>
+                    <Text style={styles.vendorName}>{meal.restaurantName || 'Restaurant'}</Text>
+                    <View style={styles.ratingAndStatus}>
+                      <View style={styles.ratingContainer}>
+                        <Star size={14} color="#FFB800" fill="#FFB800" />
+                        <Text style={styles.ratingText}>{meal.userRating || meal.menu?.[0]?.rating || '4.5'}</Text>
+                      </View>
+                      <View style={styles.deliveredBadge}>
+                        <Text style={styles.deliveredText}>{meal.status || 'Scheduled'}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.buttonContainer}>
+                      <TouchableOpacity style={styles.rateButton}>
+                        <ThumbsUp size={14} color="#FF9B42" />
+                        <Text style={styles.rateButtonText}>Rate</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
-                <View style={styles.buttonContainer}>
-                  <TouchableOpacity style={styles.trackButton}>
-                    <Clock size={14} color="#FFFFFF" />
-                    <Text style={styles.trackButtonText}>Track</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
+              </Animated.View>
+            ))
+          ) : (
+            <View style={styles.noMealsContainer}>
+              <Utensils size={48} color="#CCCCCC" />
+              <Text style={styles.noMealsTitle}>No meals scheduled for today</Text>
+              <Text style={styles.noMealsText}>Your meals will appear here once they're scheduled</Text>
             </View>
-          </Animated.View>
-
-          {/* Dinner Card */}
-          <Animated.View 
-            style={styles.mealCard}
-            entering={FadeInDown.duration(400).delay(700)}
-          >
-            <View style={styles.mealCardHeader}>
-              <Text style={styles.mealTypeLabel}>Dinner</Text>
-            </View>
-            <View style={styles.mealCardContent}>
-              <View style={styles.mealImageContainer}>
-                <Image 
-                  source={{ uri: 'https://images.pexels.com/photos/674574/pexels-photo-674574.jpeg' }} 
-                  style={styles.mealImage} 
-                />
-              </View>
-              <View style={styles.mealDetails}>
-                <Text style={styles.mealName}>Dal Tadka with Rice</Text>
-                <Text style={styles.vendorName}>Homely Meals</Text>
-                <View style={styles.ratingAndStatus}>
-                  <View style={styles.ratingContainer}>
-                    <Star size={14} color="#FFB800" fill="#FFB800" />
-                    <Text style={styles.ratingText}>4.3</Text>
-                  </View>
-                  <View style={styles.scheduledBadge}>
-                    <Text style={styles.scheduledText}>Scheduled</Text>
-                  </View>
-                </View>
-                <View style={styles.buttonContainer}>
-                  {/* No button for scheduled meal */}
-                </View>
-              </View>
-            </View>
-          </Animated.View>
+          )}
         </View>
 
         {/* Coming Up Next */}
@@ -242,7 +186,8 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, isLoading }: Act
               <View style={styles.mealImageContainer}>
                 <Image 
                   source={{ uri: 'https://images.pexels.com/photos/2474661/pexels-photo-2474661.jpeg' }} 
-                  style={styles.mealImage} 
+                  style={styles.mealImage}
+                  resizeMode="cover"
                 />
               </View>
               <View style={styles.mealDetails}>
@@ -461,7 +406,6 @@ const styles = StyleSheet.create({
   mealImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
   },
   mealDetails: {
     flex: 1,
@@ -575,5 +519,34 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#333333',
     marginBottom: 16,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 16,
+    color: '#666666',
+  },
+  noMealsContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  noMealsTitle: {
+    fontFamily: 'Poppins-SemiBold',
+    fontSize: 18,
+    color: '#333333',
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  noMealsText: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 14,
+    color: '#666666',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 }); 

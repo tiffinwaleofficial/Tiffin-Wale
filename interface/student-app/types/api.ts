@@ -75,13 +75,16 @@ export interface UserPreferences {
 
 export interface DeliveryAddress {
   id?: string;
-  name: string;
-  street: string;
+  address: string; // Main address field
   city: string;
   state: string;
-  postalCode: string;
-  country: string;
+  zipCode: string; // Changed from pincode to match backend
+  landmark?: string; // Optional landmark field
+  phoneNumber?: string; // Optional phone number for delivery
   isDefault: boolean;
+  // Frontend-only fields for categorization (not sent to backend)
+  type?: 'Home' | 'Office' | 'Other'; // Address type for categorization
+  displayName?: string; // Display name for UI
 }
 
 export interface OrderCreateData {
@@ -169,8 +172,17 @@ export interface SubscriptionPlan {
   name: string;
   description: string;
   price: number;
-  duration: number; // in days
+  discountedPrice?: number;
+  durationValue?: number;
+  durationType?: 'day' | 'month';
+  duration?: number; // in days (fallback)
+  mealFrequency?: string;
+  mealsPerDay?: number;
+  deliveryFee?: number;
   features: string[];
+  maxPauseCount?: number;
+  maxSkipCount?: number;
+  maxCustomizationsPerDay?: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

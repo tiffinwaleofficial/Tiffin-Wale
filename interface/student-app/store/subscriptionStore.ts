@@ -1,31 +1,7 @@
 import { create } from 'zustand';
 import api from '@/utils/apiClient';
-
-export interface SubscriptionPlan {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  duration: number; // in days
-  features: string[];
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface Subscription {
-  id: string;
-  customerId: string;
-  planId: string;
-  plan?: SubscriptionPlan;
-  status: 'active' | 'paused' | 'cancelled' | 'expired';
-  startDate: string;
-  endDate: string;
-  pausedAt?: string;
-  pauseReason?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { Subscription, SubscriptionPlan } from '@/types/api';
+import { getErrorMessage } from '@/utils/errorHandler';
 
 interface SubscriptionState {
   plans: SubscriptionPlan[];
@@ -47,7 +23,7 @@ interface SubscriptionState {
   cancelSubscription: (subscriptionId: string) => Promise<void>;
 }
 
-export const useSubscriptionStore = create<SubscriptionState>((set) => ({
+export const useSubscriptionStore = create<SubscriptionState>((set: any) => ({
   plans: [],
   activePlans: [],
   userSubscriptions: [],
@@ -62,8 +38,9 @@ export const useSubscriptionStore = create<SubscriptionState>((set) => ({
       set({ plans, isLoading: false });
     } catch (error) {
       console.error('Error fetching subscription plans:', error);
+      const errorMessage = getErrorMessage(error);
       set({ 
-        error: error instanceof Error ? error.message : 'Failed to fetch subscription plans', 
+        error: errorMessage, 
         isLoading: false 
       });
     }
@@ -86,8 +63,19 @@ export const useSubscriptionStore = create<SubscriptionState>((set) => ({
   fetchUserSubscriptions: async () => {
     set({ isLoading: true, error: null });
     try {
-      const subscriptions = await api.subscriptions.getAll();
-      const activeSubscription = subscriptions.find((sub: Subscription) => sub.status === 'active') || null;
+      // Import authStore to get current user ID
+      const { useAuthStore } = await import('./authStore');
+      const userId = useAuthStore.getState().user?.id;
+      
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+      
+      const subscriptions = await api.subscriptions.getByCustomer(userId);
+      // Consider both 'active' and 'pending' subscriptions as valid
+      const activeSubscription = subscriptions.find((sub: Subscription) => 
+        sub.status === 'active' || sub.status === 'pending'
+      ) || null;
       
       set({ 
         userSubscriptions: subscriptions,
@@ -96,8 +84,9 @@ export const useSubscriptionStore = create<SubscriptionState>((set) => ({
       });
     } catch (error) {
       console.error('Error fetching user subscriptions:', error);
+      const errorMessage = getErrorMessage(error);
       set({ 
-        error: error instanceof Error ? error.message : 'Failed to fetch subscriptions', 
+        error: errorMessage, 
         isLoading: false 
       });
     }
@@ -106,25 +95,98 @@ export const useSubscriptionStore = create<SubscriptionState>((set) => ({
   createSubscription: async (planId: string, paymentMethodId?: string) => {
     set({ isLoading: true, error: null });
     try {
+      // Import authStore to get current user ID
+      const { useAuthStore } = await import('./authStore');
+      const userId = useAuthStore.getState().user?.id;
+      
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+      
+      // Get the plan details to calculate end date and amount
+      const plan = await api.subscriptionPlans.getById(planId);
+      
+      console.log('📋 Plan data received:', plan);
+      
+      if (!plan) {
+        throw new Error('Subscription plan not found');
+      }
+      
+      // Calculate start and end dates based on plan duration
+      const startDate = new Date();
+      const endDate = new Date();
+      
+      // Handle plan duration - use durationValue and durationType from the actual plan data
+      let durationInDays = 30; // Default to 30 days
+      
+      if (plan.durationValue && plan.durationType) {
+        if (plan.durationType === 'month') {
+          durationInDays = plan.durationValue * 30;
+        } else if (plan.durationType === 'day') {
+          durationInDays = plan.durationValue;
+        }
+      } else if (plan.duration) {
+        // Fallback to plan.duration if available
+        durationInDays = plan.duration;
+      }
+      
+      // Ensure we have a valid duration
+      if (!durationInDays || isNaN(durationInDays) || durationInDays <= 0) {
+        durationInDays = 30; // Default to 30 days
+      }
+      
+      endDate.setDate(endDate.getDate() + durationInDays);
+      
+      // Validate dates before proceeding
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        throw new Error('Invalid date calculation');
+      }
+      
+      console.log('📅 Date calculation:', {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        planDuration: durationInDays,
+        planDurationValue: plan.durationValue,
+        planDurationType: plan.durationType,
+        planDurationFallback: plan.duration,
+        planData: {
+          id: plan.id,
+          name: plan.name,
+          price: plan.price,
+          discountedPrice: plan.discountedPrice
+        }
+      });
+      
+      // Prepare subscription data with all required fields
       const subscriptionData = {
-        planId,
-        paymentMethodId,
-        startDate: new Date().toISOString(),
+        customer: userId,
+        plan: planId,
+        startDate: startDate,
+        endDate: endDate,
+        totalAmount: plan.discountedPrice || plan.price,
+        autoRenew: false,
+        paymentId: paymentMethodId,
+        isPaid: false, // Will be set to true after payment confirmation
       };
+      
+      console.log('📤 Creating subscription with data:', subscriptionData);
       
       const newSubscription = await api.subscriptions.create(subscriptionData);
       
-      set(state => ({
+      console.log('✅ Subscription created successfully:', newSubscription);
+      
+      set((state: any) => ({
         userSubscriptions: [...state.userSubscriptions, newSubscription],
         currentSubscription: newSubscription,
         isLoading: false
       }));
     } catch (error) {
-      console.error('Error creating subscription:', error);
+      console.error('❌ Error creating subscription:', error);
       set({ 
         error: error instanceof Error ? error.message : 'Failed to create subscription', 
         isLoading: false 
       });
+      throw error; // Re-throw so the UI can handle it
     }
   },
   
@@ -133,8 +195,8 @@ export const useSubscriptionStore = create<SubscriptionState>((set) => ({
     try {
       const updatedSubscription = await api.subscriptions.pause(subscriptionId);
       
-      set(state => ({
-        userSubscriptions: state.userSubscriptions.map(sub => 
+      set((state: any) => ({
+        userSubscriptions: state.userSubscriptions.map((sub: any) => 
           sub.id === subscriptionId ? updatedSubscription : sub
         ),
         currentSubscription: state.currentSubscription?.id === subscriptionId 
@@ -156,8 +218,8 @@ export const useSubscriptionStore = create<SubscriptionState>((set) => ({
     try {
       const updatedSubscription = await api.subscriptions.resume(subscriptionId);
       
-      set(state => ({
-        userSubscriptions: state.userSubscriptions.map(sub => 
+      set((state: any) => ({
+        userSubscriptions: state.userSubscriptions.map((sub: any) => 
           sub.id === subscriptionId ? updatedSubscription : sub
         ),
         currentSubscription: updatedSubscription,
@@ -177,8 +239,8 @@ export const useSubscriptionStore = create<SubscriptionState>((set) => ({
     try {
       const updatedSubscription = await api.subscriptions.cancel(subscriptionId);
       
-      set(state => ({
-        userSubscriptions: state.userSubscriptions.map(sub => 
+      set((state: any) => ({
+        userSubscriptions: state.userSubscriptions.map((sub: any) => 
           sub.id === subscriptionId ? updatedSubscription : sub
         ),
         currentSubscription: state.currentSubscription?.id === subscriptionId 

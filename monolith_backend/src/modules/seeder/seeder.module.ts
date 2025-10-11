@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 import { SeederController } from "./seeder.controller";
-import { SeederService } from "./seeder.service";
+import { SeederManager } from "./seeder-manager.service";
 
 // User and Partner schemas
 import { User, UserSchema } from "../user/schemas/user.schema";
@@ -59,6 +59,20 @@ import {
   SubscriberSchema,
 } from "../landing/schemas/subscriber.schema";
 
+// Chat schemas
+import {
+  Conversation,
+  ConversationSchema,
+} from "../chat/schemas/conversation.schema";
+import {
+  ChatMessage,
+  ChatMessageSchema,
+} from "../chat/schemas/chat-message.schema";
+import {
+  TypingIndicator,
+  TypingIndicatorSchema,
+} from "../chat/schemas/typing-indicator.schema";
+
 @Module({
   imports: [
     MongooseModule.forFeature([
@@ -96,9 +110,15 @@ import {
       // Landing page entities
       { name: Contact.name, schema: ContactSchema },
       { name: Subscriber.name, schema: SubscriberSchema },
+
+      // Chat entities
+      { name: Conversation.name, schema: ConversationSchema },
+      { name: ChatMessage.name, schema: ChatMessageSchema },
+      { name: TypingIndicator.name, schema: TypingIndicatorSchema },
     ]),
   ],
   controllers: [SeederController],
-  providers: [SeederService],
+  providers: [SeederManager],
+  exports: [SeederManager], // Export for use in other modules
 })
 export class SeederModule {}

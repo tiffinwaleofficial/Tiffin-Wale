@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
-import { Check, Crown, Zap, Shield, RefreshCw } from 'lucide-react-native';
+import { Check, Crown, Zap, Shield, RefreshCw, Eye } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 
-import { useSubscriptionStore, SubscriptionPlan } from '@/store/subscriptionStore';
+import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { useAuthStore } from '@/store/authStore';
+import { SubscriptionPlan } from '@/types/api';
+import PlanDetailModal from '@/components/PlanDetailModal';
 
 export default function PlansScreen() {
   const router = useRouter();
@@ -21,6 +23,8 @@ export default function PlansScreen() {
   
   const [refreshing, setRefreshing] = useState(false);
   const [subscribingToPlan, setSubscribingToPlan] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   // Fetch plans on component mount
   useEffect(() => {
@@ -41,21 +45,22 @@ export default function PlansScreen() {
 
   const handleSubscribe = async (planId: string) => {
     if (!user) {
-      router.push('/login');
+      router.push('/(auth)/login');
       return;
     }
 
-    setSubscribingToPlan(planId);
-    try {
-      await createSubscription(planId);
-      // Navigate to success page or show success message
-      router.push('/(tabs)');
-    } catch (error) {
-      console.error('Error subscribing to plan:', error);
-      // Show error message to user
-    } finally {
-      setSubscribingToPlan(null);
-    }
+    // Navigate to checkout page with the selected plan
+    router.push(`/checkout?planId=${planId}` as any);
+  };
+
+  const handleViewPlanDetails = (plan: SubscriptionPlan) => {
+    setSelectedPlan(plan);
+    setModalVisible(true);
+  };
+
+  const handleModalSubscribe = (planId: string) => {
+    setModalVisible(false);
+    handleSubscribe(planId);
   };
 
   const formatPrice = (price: number) => {
@@ -74,7 +79,15 @@ export default function PlansScreen() {
   };
 
   const isPlanActive = (planId: string) => {
-    return currentSubscription?.planId === planId && currentSubscription.status === 'active';
+    if (!currentSubscription) return false;
+    
+    // Check if the current subscription's plan matches this plan
+    const subscriptionPlanId = typeof currentSubscription.plan === 'string' 
+      ? currentSubscription.plan 
+      : currentSubscription.plan?.id;
+      
+    return subscriptionPlanId === planId && 
+           (currentSubscription.status === 'active' || currentSubscription.status === 'pending');
   };
 
   const renderPlanCard = (plan: SubscriptionPlan, index: number) => {
@@ -121,30 +134,74 @@ export default function PlansScreen() {
           </View>
         )}
 
-        <TouchableOpacity
-          style={[
-            styles.subscribeButton,
-            isActive && styles.activeSubscribeButton,
-            isSubscribing && styles.loadingButton
-          ]}
-          onPress={() => !isActive && !isSubscribing && handleSubscribe(plan.id)}
-          disabled={isActive || isSubscribing}
-        >
-          {isSubscribing ? (
-            <RefreshCw size={16} color="#FFFFFF" />
-          ) : null}
-          <Text style={[
-            styles.subscribeButtonText,
-            isActive && styles.activeSubscribeButtonText
-          ]}>
-            {isSubscribing 
-              ? 'Subscribing...' 
-              : isActive 
-                ? 'Active Plan' 
-                : 'Subscribe Now'
-            }
-          </Text>
-        </TouchableOpacity>
+        {isActive && currentSubscription && (
+          <View style={styles.subscriptionDetails}>
+            <Text style={styles.subscriptionDetailsTitle}>Subscription Details</Text>
+            <View style={styles.subscriptionDetailRow}>
+              <Text style={styles.subscriptionDetailLabel}>Status:</Text>
+              <Text style={[styles.subscriptionDetailValue, { 
+                color: currentSubscription.status === 'active' ? '#4CAF50' : '#FF9B42' 
+              }]}>
+                {currentSubscription.status.toUpperCase()}
+              </Text>
+            </View>
+            <View style={styles.subscriptionDetailRow}>
+              <Text style={styles.subscriptionDetailLabel}>Valid Until:</Text>
+              <Text style={styles.subscriptionDetailValue}>
+                {new Date(currentSubscription.endDate).toLocaleDateString('en-IN', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric'
+                })}
+              </Text>
+            </View>
+            <View style={styles.subscriptionDetailRow}>
+              <Text style={styles.subscriptionDetailLabel}>Started On:</Text>
+              <Text style={styles.subscriptionDetailValue}>
+                {new Date(currentSubscription.startDate).toLocaleDateString('en-IN', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric'
+                })}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={styles.viewDetailsButton}
+            onPress={() => handleViewPlanDetails(plan)}
+          >
+            <Eye size={16} color="#FF9B42" />
+            <Text style={styles.viewDetailsButtonText}>View Details</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.subscribeButton,
+              isActive && styles.activeSubscribeButton,
+              isSubscribing && styles.loadingButton
+            ]}
+            onPress={() => !isActive && !isSubscribing && handleSubscribe(plan.id)}
+            disabled={isActive || isSubscribing}
+          >
+            {isSubscribing ? (
+              <RefreshCw size={16} color="#FFFFFF" />
+            ) : null}
+            <Text style={[
+              styles.subscribeButtonText,
+              isActive && styles.activeSubscribeButtonText
+            ]}>
+              {isSubscribing 
+                ? 'Subscribing...' 
+                : isActive 
+                  ? 'Active Plan' 
+                  : 'Subscribe Now'
+              }
+            </Text>
+          </TouchableOpacity>
+        </View>
       </Animated.View>
     );
   };
@@ -243,6 +300,15 @@ export default function PlansScreen() {
           </View>
         </Animated.View>
       </ScrollView>
+
+      {/* Plan Detail Modal */}
+      <PlanDetailModal
+        visible={modalVisible}
+        plan={selectedPlan}
+        onClose={() => setModalVisible(false)}
+        onSubscribe={handleModalSubscribe}
+        isActive={selectedPlan ? isPlanActive(selectedPlan.id) : false}
+      />
     </View>
   );
 }
@@ -326,10 +392,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
     elevation: 3,
   },
   activePlanCard: {
@@ -405,10 +468,62 @@ const styles = StyleSheet.create({
     color: '#666666',
     flex: 1,
   },
+  subscriptionDetails: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E8F4FD',
+  },
+  subscriptionDetailsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333333',
+    marginBottom: 12,
+  },
+  subscriptionDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  subscriptionDetailLabel: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  subscriptionDetailValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333333',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  viewDetailsButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#FF9B42',
+    borderRadius: 12,
+    paddingVertical: 12,
+    gap: 6,
+  },
+  viewDetailsButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FF9B42',
+  },
   subscribeButton: {
+    flex: 2,
     backgroundColor: '#FF9B42',
     borderRadius: 12,
-    paddingVertical: 16,
+    paddingVertical: 12,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
@@ -433,10 +548,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 40,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
     elevation: 3,
   },
   infoTitle: {

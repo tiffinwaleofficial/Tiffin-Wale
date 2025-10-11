@@ -21,8 +21,8 @@ export class Address {
   @Prop({ required: true })
   postalCode: string;
 
-  @Prop({ required: true })
-  country: string;
+  // @Prop({ required: true })
+  // country: string;
 
   @Prop({ default: false })
   isDefault: boolean;

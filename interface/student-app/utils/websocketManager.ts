@@ -331,15 +331,18 @@ class WebSocketManager extends SimpleEventEmitter {
 // Create singleton instance
 let wsManager: WebSocketManager | null = null;
 
+import { getApiBaseUrl } from './apiConfig';
+
 export const getWebSocketManager = (baseUrl?: string): WebSocketManager => {
   if (!wsManager) {
-    const apiBaseUrl = baseUrl || process.env.API_BASE_URL || 'http://127.0.0.1:3001';
+    const apiBaseUrl = baseUrl || getApiBaseUrl();
     wsManager = new WebSocketManager(apiBaseUrl);
   }
   return wsManager;
 };
 
 export default WebSocketManager;
+
 
 
 

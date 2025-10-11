@@ -23,8 +23,8 @@ export class DeliveryAddress {
   @Prop({ required: true })
   postalCode: string;
 
-  @Prop({ required: true })
-  country: string;
+  // @Prop({ required: true })
+  // country: string;
 
   @Prop()
   landmark?: string;

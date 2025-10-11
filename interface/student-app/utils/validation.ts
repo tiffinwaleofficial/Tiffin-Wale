@@ -4,7 +4,7 @@ const PASSWORD_REGEX = {
   uppercase: /[A-Z]/,
   lowercase: /[a-z]/,
   number: /[0-9]/,
-  special: /[!@#$%^&*(),.?":{}|<>]/,
+  special: /[@$!%*?&]/,
 };
 
 export interface PasswordStrength {
@@ -17,14 +17,13 @@ export const validatePassword = (password: string): boolean => {
     return false;
   }
 
-  // Check for at least 3 of the 4 criteria
-  let criteriaCount = 0;
-  if (PASSWORD_REGEX.uppercase.test(password)) criteriaCount++;
-  if (PASSWORD_REGEX.lowercase.test(password)) criteriaCount++;
-  if (PASSWORD_REGEX.number.test(password)) criteriaCount++;
-  if (PASSWORD_REGEX.special.test(password)) criteriaCount++;
+  // Check for ALL 4 criteria to match backend validation
+  const hasUppercase = PASSWORD_REGEX.uppercase.test(password);
+  const hasLowercase = PASSWORD_REGEX.lowercase.test(password);
+  const hasNumber = PASSWORD_REGEX.number.test(password);
+  const hasSpecial = PASSWORD_REGEX.special.test(password);
 
-  return criteriaCount >= 3;
+  return hasUppercase && hasLowercase && hasNumber && hasSpecial;
 };
 
 export const getPasswordStrength = (password: string): PasswordStrength => {

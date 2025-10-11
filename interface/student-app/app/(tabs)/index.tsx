@@ -127,34 +127,36 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.greeting}>
-            {user?.name ? `Hi, ${user.name.split(' ')[0]}!` : 'Hi there!'}
-          </Text>
-          <View style={styles.locationContainer}>
-            <MapPin size={14} color="#666666" />
-            <Text style={styles.location}>
-              {user?.address || 'Set your location'}
+      {/* Header - Only show when no active subscription */}
+      {!currentSubscription && (
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.greeting}>
+              {user?.name ? `Hi, ${user.name.split(' ')[0]}!` : 'Hi there!'}
             </Text>
-          </View>
-        </View>
-        
-        <TouchableOpacity 
-          style={styles.notificationButton}
-          onPress={() => router.push('/notifications' as never)}
-        >
-          <Bell size={24} color="#333333" />
-          {unreadCount > 0 && (
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationBadgeText}>
-                {unreadCount > 99 ? '99+' : unreadCount}
+            <View style={styles.locationContainer}>
+              <MapPin size={14} color="#666666" />
+              <Text style={styles.location}>
+                {user?.address || 'Set your location'}
               </Text>
             </View>
-          )}
-        </TouchableOpacity>
-      </View>
+          </View>
+          
+          <TouchableOpacity 
+            style={styles.notificationButton}
+            onPress={() => router.push('/notifications' as never)}
+          >
+            <Bell size={24} color="#333333" />
+            {unreadCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
 
       <ScrollView 
         style={styles.content}
@@ -208,8 +210,9 @@ export default function HomeScreen() {
           )}
         </Animated.View>
 
-        {/* Today's Meals */}
-        <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.section}>
+        {/* Today's Meals - Only show when no active subscription */}
+        {!currentSubscription && (
+          <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Today's Meals</Text>
             <Text style={styles.sectionSubtitle}>
@@ -295,6 +298,7 @@ export default function HomeScreen() {
             </View>
           )}
         </Animated.View>
+        )}
 
         {/* Quick Actions */}
         <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.section}>
@@ -338,9 +342,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingHorizontal: 16,
+    paddingTop: 50,
+    paddingBottom: 16,
     backgroundColor: '#FFFAF0',
   },
   headerLeft: {
@@ -390,10 +394,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   sectionHeader: {
     marginBottom: 16,

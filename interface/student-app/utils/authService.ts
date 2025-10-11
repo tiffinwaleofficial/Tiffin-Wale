@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from './apiClient';
 import { LoginRequest, RegisterRequest, LoginResponse, CustomerProfile } from '../types/api';
 
+// Use consistent token keys across the app
 const AUTH_TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const USER_DATA_KEY = 'user_data';
@@ -55,7 +56,7 @@ export const authService = {
       };
       
       console.log('📤 Sending to API:', registrationData);
-      console.log('🌐 API Base URL:', process.env.API_BASE_URL || 'http://127.0.0.1:3001');
+      console.log('🌐 API Base URL:', process.env.API_BASE_URL || 'http://10.0.2.2:3001');
       
       const response = await api.auth.register(registrationData);
       
@@ -107,14 +108,45 @@ export const authService = {
   isAuthenticated: async (): Promise<boolean> => {
     try {
       const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
-      if (!token) return false;
+      if (!token) {
+        console.log('🔍 No auth token found');
+        return false;
+      }
       
-      // Basic token validation - check if it's not empty and has proper format
-      if (token.length < 10) return false;
+      // Enhanced token validation
+      if (token.length < 10) {
+        console.log('🔍 Token too short, clearing');
+        await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
+        return false;
+      }
       
+      // Check if token is a valid JWT format
+      if (!token.includes('.')) {
+        console.log('🔍 Invalid token format, clearing');
+        await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
+        return false;
+      }
+      
+      // Try to decode JWT to check expiry (basic check)
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const currentTime = Math.floor(Date.now() / 1000);
+        
+        if (payload.exp && payload.exp < currentTime) {
+          console.log('🔍 Token expired, clearing');
+          await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_DATA_KEY]);
+          return false;
+        }
+      } catch (decodeError) {
+        console.log('🔍 Token decode error, clearing');
+        await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
+        return false;
+      }
+      
+      console.log('✅ Token is valid');
       return true;
     } catch (error) {
-      console.error('Auth check error:', error);
+      console.error('❌ Auth check error:', error);
       return false;
     }
   },
@@ -125,26 +157,56 @@ export const authService = {
   validateToken: async (): Promise<boolean> => {
     try {
       const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
-      if (!token) return false;
+      if (!token) {
+        console.log('🔍 No token to validate');
+        return false;
+      }
       
-      // Try to make a request to validate token
-      const response = await fetch(`${process.env.API_BASE_URL || 'http://127.0.0.1:3001'}/api/customers/profile`, {
+      // First check local token validity
+      const isLocallyValid = await authService.isAuthenticated();
+      if (!isLocallyValid) {
+        console.log('🔍 Token failed local validation');
+        return false;
+      }
+      
+      // Try to make a request to validate token with backend
+      const { API_BASE_URL } = await import('./apiConfig');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch(`${API_BASE_URL}/api/customers/profile`, {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        }
+        },
+        signal: controller.signal
       });
       
+      clearTimeout(timeoutId);
+      
       if (response.status === 401) {
-        // Token is invalid, clear it
+        console.log('🔍 Token invalid on backend, clearing');
         await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_DATA_KEY]);
         return false;
       }
       
-      return response.ok;
+      if (response.ok) {
+        console.log('✅ Token validated successfully with backend');
+        return true;
+      }
+      
+      console.log('🔍 Backend validation failed with status:', response.status);
+      return false;
     } catch (error) {
-      console.error('Token validation error:', error);
-      // On any error, assume token is invalid and clear it
+      console.error('❌ Token validation error:', error);
+      // On network errors, don't clear tokens immediately - might be temporary
+      if (error instanceof Error && error.message.includes('network')) {
+        console.log('🔍 Network error during validation, keeping tokens');
+        return true; // Assume token is still valid on network errors
+      }
+      
+      // On other errors, clear tokens
       await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_DATA_KEY]);
       return false;
     }
@@ -156,9 +218,13 @@ export const authService = {
   refreshAccessToken: async (): Promise<string | null> => {
     try {
       const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
-      if (!refreshToken) return null;
+      if (!refreshToken) {
+        console.log('🔍 No refresh token available');
+        return null;
+      }
 
-      const response = await fetch(`${process.env.API_BASE_URL || 'http://127.0.0.1:3001'}/api/auth/refresh-token`, {
+      const { API_BASE_URL } = await import('./apiConfig');
+      const response = await fetch(`${API_BASE_URL}/api/auth/refresh-token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -168,19 +234,23 @@ export const authService = {
 
       if (response.ok) {
         const data = await response.json();
-        await AsyncStorage.setItem(AUTH_TOKEN_KEY, data.token);
-        if (data.refreshToken) {
-          await AsyncStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+        const { token: newToken, refreshToken: newRefreshToken } = data;
+
+        if (newToken) {
+          // Store new tokens
+          await AsyncStorage.setItem(AUTH_TOKEN_KEY, newToken);
+          if (newRefreshToken) {
+            await AsyncStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
+          }
+          console.log('✅ Token refreshed successfully');
+          return newToken;
         }
-        return data.token;
-      } else {
-        // Refresh failed, clear all tokens
-        await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_DATA_KEY]);
-        return null;
       }
+
+      console.log('❌ Token refresh failed');
+      return null;
     } catch (error) {
-      console.error('Token refresh error:', error);
-      await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_DATA_KEY]);
+      console.error('❌ Token refresh error:', error);
       return null;
     }
   },
@@ -238,6 +308,19 @@ export const authService = {
       await api.auth.changePassword(oldPassword, newPassword);
     } catch (error) {
       console.error('Change password error:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Update stored user data
+   */
+  updateStoredUser: async (userData: CustomerProfile): Promise<void> => {
+    try {
+      await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
+      console.log('✅ User data updated in storage');
+    } catch (error) {
+      console.error('Update stored user error:', error);
       throw error;
     }
   }

@@ -9,6 +9,7 @@ import { useFeedbackStore } from '@/store/feedbackStore';
 export default function HelpSupportScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedCategory, setExpandedCategory] = useState<number | null>(null);
   const { submitFeedback, isLoading, error, submitSuccess, clearError, clearSuccess } = useFeedbackStore();
 
   const supportEmail = 'support@tiffinwale.com';
@@ -42,23 +43,63 @@ export default function HelpSupportScreen() {
       title: 'Delivery Issues',
       description: 'Late deliveries, wrong location, etc.',
       action: () => handleContactSupport('delivery', 'Delivery Issues'),
+      faqs: [
+        { question: 'My order is late, what should I do?', answer: 'Contact our support team immediately. We will track your order and provide updates.' },
+        { question: 'Wrong address delivery', answer: 'Please verify your delivery address in the app. Contact support if the address is correct but delivery went to wrong location.' },
+        { question: 'Delivery person not responding', answer: 'Call our support number for immediate assistance with delivery issues.' }
+      ]
     },
     {
       title: 'Food Quality',
       description: 'Issues with food quality or packaging',
       action: () => handleContactSupport('food_quality', 'Food Quality Issues'),
+      faqs: [
+        { question: 'Food arrived cold', answer: 'We apologize for the inconvenience. Please contact support for a refund or replacement.' },
+        { question: 'Wrong items delivered', answer: 'Please contact support immediately. We will arrange for correct items to be delivered.' },
+        { question: 'Food packaging damaged', answer: 'Contact our support team for immediate resolution and compensation.' }
+      ]
     },
     {
       title: 'Account & Payments',
       description: 'Subscription, payments, or account issues',
       action: () => handleContactSupport('account', 'Account & Payment Issues'),
+      faqs: [
+        { question: 'How to cancel subscription?', answer: 'Go to your profile > subscription settings > cancel subscription. Cancellation takes effect at the end of current billing period.' },
+        { question: 'Payment failed', answer: 'Check your payment method and try again. Contact support if the issue persists.' },
+        { question: 'Forgot password', answer: 'Use the forgot password option on login screen or contact support for assistance.' }
+      ]
     },
     {
       title: 'Other Issues',
       description: 'Any other concerns or feedback',
       action: () => handleContactSupport('other', 'General Support Request'),
+      faqs: [
+        { question: 'How to change delivery time?', answer: 'You can modify delivery time in your order details before confirmation.' },
+        { question: 'Special dietary requirements', answer: 'Contact support to discuss your dietary needs and we will accommodate them.' },
+        { question: 'App not working properly', answer: 'Try restarting the app or clearing cache. Contact support if the issue persists.' }
+      ]
     },
   ];
+
+  const filteredCategories = helpCategories.filter(category => 
+    category.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    category.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    category.faqs.some(faq => 
+      faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      faq.answer.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  );
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (query.length > 0) {
+      setExpandedCategory(null); // Close expanded categories when searching
+    }
+  };
+
+  const toggleCategory = (index: number) => {
+    setExpandedCategory(expandedCategory === index ? null : index);
+  };
 
   const handleChatSupport = async () => {
     try {
@@ -86,10 +127,11 @@ export default function HelpSupportScreen() {
   return (
     <View style={styles.container}>
       <Animated.View entering={FadeIn.delay(100).duration(300)} style={styles.header}>
-        <Text style={styles.headerTitle}>Help & Support</Text>
-        <TouchableOpacity style={styles.notificationButton}>
-          <View style={styles.bellIconPlaceholder} />
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <ArrowLeft size={24} color="#333333" />
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>Help & Support</Text>
+        <View style={styles.placeholder} />
       </Animated.View>
 
       <ScrollView 
@@ -104,7 +146,7 @@ export default function HelpSupportScreen() {
               placeholder="Search for help topics..."
               placeholderTextColor="#999999"
               value={searchQuery}
-              onChangeText={setSearchQuery}
+              onChangeText={handleSearch}
             />
           </View>
         </Animated.View>
@@ -149,21 +191,47 @@ export default function HelpSupportScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(400).duration(400)}>
-          <Text style={styles.sectionTitle}>Help Categories</Text>
+          <Text style={styles.sectionTitle}>
+            {searchQuery ? `Search Results (${filteredCategories.length})` : 'Help Categories'}
+          </Text>
           <View style={styles.helpCategoriesContainer}>
-            {helpCategories.map((category, index) => (
-              <TouchableOpacity 
-                key={index}
-                style={[styles.categoryCard, isLoading && styles.disabledCard]}
-                onPress={category.action}
-                disabled={isLoading}
-              >
-                <View style={styles.categoryContent}>
-                  <Text style={styles.categoryTitle}>{category.title}</Text>
-                  <Text style={styles.categoryDescription}>{category.description}</Text>
-                </View>
-                <ChevronRight size={20} color="#999999" />
-              </TouchableOpacity>
+            {filteredCategories.map((category, index) => (
+              <View key={index} style={styles.categoryContainer}>
+                <TouchableOpacity 
+                  style={[styles.categoryCard, isLoading && styles.disabledCard]}
+                  onPress={() => toggleCategory(index)}
+                  disabled={isLoading}
+                >
+                  <View style={styles.categoryContent}>
+                    <Text style={styles.categoryTitle}>{category.title}</Text>
+                    <Text style={styles.categoryDescription}>{category.description}</Text>
+                  </View>
+                  <ChevronRight 
+                    size={20} 
+                    color="#999999" 
+                    style={{
+                      transform: [{ rotate: expandedCategory === index ? '90deg' : '0deg' }]
+                    }}
+                  />
+                </TouchableOpacity>
+                
+                {expandedCategory === index && (
+                  <Animated.View entering={FadeInDown.duration(300)} style={styles.faqContainer}>
+                    {category.faqs.map((faq, faqIndex) => (
+                      <View key={faqIndex} style={styles.faqItem}>
+                        <Text style={styles.faqQuestion}>{faq.question}</Text>
+                        <Text style={styles.faqAnswer}>{faq.answer}</Text>
+                      </View>
+                    ))}
+                    <TouchableOpacity 
+                      style={styles.contactSupportButton}
+                      onPress={category.action}
+                    >
+                      <Text style={styles.contactSupportText}>Contact Support for {category.title}</Text>
+                    </TouchableOpacity>
+                  </Animated.View>
+                )}
+              </View>
             ))}
           </View>
         </Animated.View>
@@ -202,6 +270,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 16,
     backgroundColor: '#FFFBF2',
+  },
+  backButton: {
+    padding: 8,
+  },
+  placeholder: {
+    width: 40,
   },
   headerTitle: {
     fontFamily: 'Poppins-Bold',
@@ -358,5 +432,45 @@ const styles = StyleSheet.create({
   },
   disabledCard: {
     backgroundColor: '#EEEEEE',
+  },
+  categoryContainer: {
+    marginBottom: 12,
+  },
+  faqContainer: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+  },
+  faqItem: {
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  faqQuestion: {
+    fontFamily: 'Poppins-SemiBold',
+    fontSize: 16,
+    color: '#333333',
+    marginBottom: 8,
+  },
+  faqAnswer: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 14,
+    color: '#666666',
+    lineHeight: 20,
+  },
+  contactSupportButton: {
+    backgroundColor: '#FF9B42',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  contactSupportText: {
+    fontFamily: 'Poppins-SemiBold',
+    fontSize: 14,
+    color: '#FFFFFF',
   },
 }); 

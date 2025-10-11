@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, TextInput, ActivityIndicator, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,6 +11,14 @@ export default function Login() {
   const router = useRouter();
   const authHook = useAuth();
   const { login, register, isLoading, error, clearError, isAuthenticated } = authHook;
+  
+  // Refs for form field navigation
+  const loginPasswordRef = useRef<TextInput>(null);
+  const signupLastNameRef = useRef<TextInput>(null);
+  const signupEmailRef = useRef<TextInput>(null);
+  const signupPhoneRef = useRef<TextInput>(null);
+  const signupPasswordRef = useRef<TextInput>(null);
+  const signupConfirmPasswordRef = useRef<TextInput>(null);
   
   // Debug: Log the auth hook functions
   console.log('🔍 Auth hook functions:', { 
@@ -94,7 +102,7 @@ export default function Login() {
     // Check password validation with detailed feedback
     if (!validatePassword(signupPassword)) {
       console.log('❌ Password validation failed - Password requirements not met');
-      setPasswordMatchError('Password must be at least 8 characters and contain 3 of: uppercase, lowercase, numbers, special characters');
+      setPasswordMatchError('Password must be at least 8 characters and contain uppercase, lowercase, number, and special character (@$!%*?&)');
       return;
     }
 
@@ -191,6 +199,11 @@ export default function Login() {
                   autoCapitalize="none"
                   value={loginEmail}
                   onChangeText={setLoginEmail}
+                  onSubmitEditing={() => {
+                    // Focus on password field when Enter is pressed
+                    loginPasswordRef.current?.focus();
+                  }}
+                  returnKeyType="next"
                 />
               </View>
 
@@ -198,12 +211,15 @@ export default function Login() {
                 <Text style={styles.label}>Password</Text>
                 <View style={styles.passwordContainer}>
                   <TextInput
+                    ref={loginPasswordRef}
                     style={styles.passwordInput}
                     placeholder="Enter your password"
                     placeholderTextColor="#AAAAAA"
                     secureTextEntry={!showLoginPassword}
                     value={loginPassword}
                     onChangeText={setLoginPassword}
+                    onSubmitEditing={handleLogin}
+                    returnKeyType="done"
                   />
                   <TouchableOpacity onPress={() => setShowLoginPassword(!showLoginPassword)} style={styles.eyeIcon}>
                     {showLoginPassword ? (
@@ -244,23 +260,33 @@ export default function Login() {
                   placeholderTextColor="#AAAAAA"
                   value={firstName}
                   onChangeText={setFirstName}
+                  onSubmitEditing={() => {
+                    signupLastNameRef.current?.focus();
+                  }}
+                  returnKeyType="next"
                 />
               </View>
 
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Last Name</Text>
                 <TextInput
+                  ref={signupLastNameRef}
                   style={styles.input}
                   placeholder="Enter your last name"
                   placeholderTextColor="#AAAAAA"
                   value={lastName}
                   onChangeText={setLastName}
+                  onSubmitEditing={() => {
+                    signupEmailRef.current?.focus();
+                  }}
+                  returnKeyType="next"
                 />
               </View>
 
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Email</Text>
                 <TextInput
+                  ref={signupEmailRef}
                   style={styles.input}
                   placeholder="Enter your email"
                   placeholderTextColor="#AAAAAA"
@@ -268,18 +294,27 @@ export default function Login() {
                   autoCapitalize="none"
                   value={signupEmail}
                   onChangeText={setSignupEmail}
+                  onSubmitEditing={() => {
+                    signupPhoneRef.current?.focus();
+                  }}
+                  returnKeyType="next"
                 />
               </View>
 
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Phone Number</Text>
                 <TextInput
+                  ref={signupPhoneRef}
                   style={styles.input}
                   placeholder="Enter your phone number"
                   placeholderTextColor="#AAAAAA"
                   keyboardType="phone-pad"
                   value={phoneNumber}
                   onChangeText={setPhoneNumber}
+                  onSubmitEditing={() => {
+                    signupPasswordRef.current?.focus();
+                  }}
+                  returnKeyType="next"
                 />
               </View>
 
@@ -287,12 +322,17 @@ export default function Login() {
                 <Text style={styles.label}>Password</Text>
                 <View style={styles.passwordContainer}>
                   <TextInput
+                    ref={signupPasswordRef}
                     style={styles.passwordInput}
                     placeholder="Enter your password"
                     placeholderTextColor="#AAAAAA"
                     secureTextEntry={!showSignupPassword}
                     value={signupPassword}
                     onChangeText={handleSignupPasswordChange}
+                    onSubmitEditing={() => {
+                      signupConfirmPasswordRef.current?.focus();
+                    }}
+                    returnKeyType="next"
                   />
                   <TouchableOpacity onPress={() => setShowSignupPassword(!showSignupPassword)} style={styles.eyeIcon}>
                     {showSignupPassword ? (
@@ -303,7 +343,7 @@ export default function Login() {
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.passwordRequirements}>
-                  Password must be at least 8 characters and contain 3 of: uppercase, lowercase, numbers, special characters
+                  Password must be at least 8 characters and contain uppercase, lowercase, number, and special character (@$!%*?&)
                 </Text>
                 {signupPassword && (
                   <View style={styles.strengthContainer}>
@@ -319,12 +359,15 @@ export default function Login() {
                 <Text style={styles.label}>Confirm Password</Text>
                 <View style={styles.passwordContainer}>
                   <TextInput
+                    ref={signupConfirmPasswordRef}
                     style={styles.passwordInput}
                     placeholder="Confirm your password"
                     placeholderTextColor="#AAAAAA"
                     secureTextEntry={!showConfirmPassword}
                     value={confirmPassword}
                     onChangeText={handleConfirmPasswordChange}
+                    onSubmitEditing={handleSignup}
+                    returnKeyType="done"
                   />
                   <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
                     {showConfirmPassword ? (

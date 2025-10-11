@@ -35,6 +35,15 @@ export default function OrdersScreen() {
     fetchOrders();
   }, [fetchMeals, fetchOrders]);
 
+  // Fetch data when tab changes
+  useEffect(() => {
+    if (activeTab === 'meals') {
+      fetchMeals();
+    } else if (activeTab === 'additional') {
+      fetchOrders();
+    }
+  }, [activeTab, fetchMeals, fetchOrders]);
+
   // Pull to refresh handler
   const onRefresh = async () => {
     setRefreshing(true);

@@ -102,9 +102,3 @@ ChatMessageSchema.index({ replyTo: 1 });
 ChatMessageSchema.index({ isDeleted: 1 });
 ChatMessageSchema.index({ createdAt: -1 });
 
-
-
-
-
-
-

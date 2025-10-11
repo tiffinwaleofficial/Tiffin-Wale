@@ -1,6 +1,5 @@
-import { create } from 'zustand';
-import { OrderAdditional as Order } from '@/types';
-import { OrderCreateData } from '@/types/api';
+import create from 'zustand';
+import { Order, OrderCreateData } from '@/types/api';
 import api from '@/utils/apiClient';
 
 interface OrderState {
@@ -12,7 +11,7 @@ interface OrderState {
   addReview: (orderId: string, rating: number, comment: string) => Promise<void>;
 }
 
-export const useOrderStore = create<OrderState>((set) => ({
+export const useOrderStore = create<OrderState>((set: any) => ({
   orders: [],
   isLoading: false,
   error: null,
@@ -38,7 +37,7 @@ export const useOrderStore = create<OrderState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const newOrder = await api.orders.create(orderData);
-      set((state) => ({
+      set((state: any) => ({
         orders: [newOrder, ...state.orders],
         isLoading: false,
       }));

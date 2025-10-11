@@ -1680,7 +1680,11 @@ export class AdminService {
     );
   }
 
-  async getAllSupportTickets(page: number, limit: number, filters?: { status?: string; priority?: string }) {
+  async getAllSupportTickets(
+    page: number,
+    limit: number,
+    filters?: { status?: string; priority?: string },
+  ) {
     // TODO: Implement when support ticket schema is ready
     return {
       tickets: [],
@@ -1691,7 +1695,11 @@ export class AdminService {
     };
   }
 
-  async updateSupportTicket(id: string, body: { status?: string; response?: string; priority?: string }, updatedBy: string) {
+  async updateSupportTicket(
+    id: string,
+    body: { status?: string; response?: string; priority?: string },
+    updatedBy: string,
+  ) {
     // TODO: Implement when support ticket schema is ready
     return { message: "Support ticket updated", id, updatedBy };
   }
