@@ -4,6 +4,10 @@ import 'dotenv/config';
 declare const process: {
   env: {
     API_BASE_URL?: string;
+    CLOUDINARY_CLOUD_NAME?: string;
+    CLOUDINARY_API_KEY?: string;
+    CLOUDINARY_API_SECRET?: string;
+    CLOUDINARY_UPLOAD_PRESET?: string;
     [key: string]: string | undefined;
   };
 };
@@ -42,11 +46,23 @@ export default {
       typedRoutes: true
     },
     android: {
-      package: "com.tiffinwale_official.tiffinwalemobile"
+      package: "com.tiffinwale_official.tiffinwalemobile",
+      usesCleartextTraffic: true,
+      networkSecurityConfig: "./android/app/src/main/res/xml/network_security_config.xml",
+      permissions: [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE"
+      ]
     },
     extra: {
-      // Pass the .env variable to the app
+      // Pass the .env variables to the app
       apiBaseUrl: process.env.API_BASE_URL,
+      cloudinary: {
+        cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+        apiKey: process.env.CLOUDINARY_API_KEY,
+        apiSecret: process.env.CLOUDINARY_API_SECRET,
+        uploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET,
+      },
     }
   }
 }; 

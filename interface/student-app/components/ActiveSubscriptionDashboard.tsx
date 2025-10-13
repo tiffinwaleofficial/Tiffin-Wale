@@ -6,15 +6,25 @@ import { Bell, ChevronRight, Clock, Coffee, Star, Calendar, ChevronDown, Utensil
 
 import { CustomerProfile } from '@/types/api';
 import { Meal } from '@/types';
+import { useSubscriptionStore } from '@/store/subscriptionStore';
 
 type ActiveSubscriptionDashboardProps = {
   user: CustomerProfile | null;
   todayMeals: Meal[];
+  upcomingMeals?: Meal[];
   isLoading: boolean;
 };
 
-export const ActiveSubscriptionDashboard = ({ user, todayMeals, isLoading }: ActiveSubscriptionDashboardProps) => {
+export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = [], isLoading }: ActiveSubscriptionDashboardProps) => {
   const router = useRouter();
+  const { currentSubscription } = useSubscriptionStore();
+  
+  // Use subscription from user profile if available, otherwise from subscription store
+  const activeSubscription = (user as any)?.currentSubscription || currentSubscription;
+  
+  console.log('🔔 ActiveSubscriptionDashboard: User subscription:', (user as any)?.currentSubscription);
+  console.log('🔔 ActiveSubscriptionDashboard: Store subscription:', currentSubscription);
+  console.log('🔔 ActiveSubscriptionDashboard: Active subscription:', activeSubscription);
   
   // Get time of day for greeting
   const getTimeOfDay = () => {
@@ -54,14 +64,22 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, isLoading }: Act
             <View style={styles.statsIconContainer}>
               <Calendar size={24} color="#3B82F6" />
             </View>
-            <Text style={styles.statsNumber}>42</Text>
+            <Text style={styles.statsNumber}>
+              {activeSubscription ? 
+                Math.max(0, Math.ceil((new Date(activeSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) 
+                : '0'}
+            </Text>
             <Text style={styles.statsLabel}>Days Left</Text>
           </View>
           <View style={styles.statsCard}>
             <View style={[styles.statsIconContainer, { backgroundColor: '#FFF5E8' }]}>
               <Utensils size={24} color="#FF9B42" />
             </View>
-            <Text style={styles.statsNumber}>24</Text>
+            <Text style={styles.statsNumber}>
+              {activeSubscription ? 
+                (activeSubscription.plan?.mealsPerDay || 1) * Math.max(0, Math.ceil((new Date(activeSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
+                : '0'}
+            </Text>
             <Text style={styles.statsLabel}>Meals Left</Text>
           </View>
         </View>
@@ -94,18 +112,34 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, isLoading }: Act
             </TouchableOpacity>
           </View>
           
-          <Text style={styles.planName}>Premium Plan</Text>
-          <Text style={styles.planDescription}>Three meals a day</Text>
+          <Text style={styles.planName}>
+            {activeSubscription?.plan?.name || 'No Active Plan'}
+          </Text>
+          <Text style={styles.planDescription}>
+            {activeSubscription?.plan?.description || 'No active subscription'}
+          </Text>
           
-          <View style={styles.planDetailRow}>
-            <Utensils size={18} color="#4CB944" />
-            <Text style={styles.planDetailText}>3 meals per day</Text>
-          </View>
-          
-          <View style={styles.planDetailRow}>
-            <Clock size={18} color="#666666" />
-            <Text style={styles.planDetailText}>Valid until 26 May, 2025</Text>
-          </View>
+          {activeSubscription && (
+            <>
+              <View style={styles.planDetailRow}>
+                <Utensils size={18} color="#4CB944" />
+                <Text style={styles.planDetailText}>
+                  {activeSubscription.plan?.mealsPerDay || 1} meal{(activeSubscription.plan?.mealsPerDay || 1) > 1 ? 's' : ''} per day
+                </Text>
+              </View>
+              
+              <View style={styles.planDetailRow}>
+                <Clock size={18} color="#666666" />
+                <Text style={styles.planDetailText}>
+                  Valid until {new Date(activeSubscription.endDate).toLocaleDateString('en-US', { 
+                    day: 'numeric', 
+                    month: 'short', 
+                    year: 'numeric' 
+                  })}
+                </Text>
+              </View>
+            </>
+          )}
         </View>
 
         {/* Today's Meals */}
@@ -175,32 +209,42 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, isLoading }: Act
         <View style={styles.comingUpContainer}>
           <Text style={styles.comingUpTitle}>Coming Up Next</Text>
           
-          <View style={styles.mealCard}>
-            <View style={styles.mealCardHeader}>
-              <View style={styles.headerWithIcon}>
-                <Utensils size={16} color="#FF9B42" />
-                <Text style={styles.mealTypeLabel}>Lunch</Text>
-              </View>
-            </View>
-            <View style={styles.mealCardContent}>
-              <View style={styles.mealImageContainer}>
-                <Image 
-                  source={{ uri: 'https://images.pexels.com/photos/2474661/pexels-photo-2474661.jpeg' }} 
-                  style={styles.mealImage}
-                  resizeMode="cover"
-                />
-              </View>
-              <View style={styles.mealDetails}>
-                <Text style={styles.mealName}>Paneer Butter Masala with Roti</Text>
-                <Text style={styles.vendorName}>From Spice Garden</Text>
-                <View style={styles.ratingAndStatus}>
-                  <View style={styles.preparingBadge}>
-                    <Text style={styles.preparingText}>Preparing</Text>
+          {upcomingMeals && upcomingMeals.length > 0 ? (
+            upcomingMeals.slice(0, 3).map((meal, index) => (
+              <View key={meal.id || index} style={styles.mealCard}>
+                <View style={styles.mealCardHeader}>
+                  <View style={styles.headerWithIcon}>
+                    <Utensils size={16} color="#FF9B42" />
+                    <Text style={styles.mealTypeLabel}>{meal.type || 'Meal'}</Text>
+                  </View>
+                </View>
+                <View style={styles.mealCardContent}>
+                  <View style={styles.mealImageContainer}>
+                    <Image 
+                      source={{ uri: meal.image || 'https://images.pexels.com/photos/2474661/pexels-photo-2474661.jpeg' }} 
+                      style={styles.mealImage}
+                      resizeMode="cover"
+                    />
+                  </View>
+                  <View style={styles.mealDetails}>
+                    <Text style={styles.mealName}>{meal.name || 'Delicious Meal'}</Text>
+                    <Text style={styles.vendorName}>From {meal.restaurantName || 'Kitchen'}</Text>
+                    <View style={styles.ratingAndStatus}>
+                      <View style={styles.preparingBadge}>
+                        <Text style={styles.preparingText}>{meal.status || 'Preparing'}</Text>
+                      </View>
+                    </View>
                   </View>
                 </View>
               </View>
+            ))
+          ) : (
+            <View style={styles.noUpcomingMealsContainer}>
+              <Utensils size={48} color="#CCCCCC" />
+              <Text style={styles.noUpcomingMealsTitle}>No upcoming meals scheduled</Text>
+              <Text style={styles.noUpcomingMealsText}>Your upcoming meals will appear here once they're scheduled</Text>
             </View>
-          </View>
+          )}
         </View>
       </View>
     </ScrollView>
@@ -548,5 +592,25 @@ const styles = StyleSheet.create({
     color: '#666666',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  noUpcomingMealsContainer: {
+    alignItems: 'center',
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+  },
+  noUpcomingMealsTitle: {
+    fontFamily: 'Poppins-SemiBold',
+    fontSize: 16,
+    color: '#333333',
+    marginTop: 12,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  noUpcomingMealsText: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 13,
+    color: '#666666',
+    textAlign: 'center',
+    lineHeight: 18,
   },
 }); 

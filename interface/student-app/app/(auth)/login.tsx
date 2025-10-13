@@ -6,11 +6,13 @@ import { Eye, EyeOff } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { validatePassword, getPasswordStrength } from '@/utils/validation';
 import { RegisterRequest } from '@/types/api';
+import { useNotification } from '@/hooks/useNotification';
 
 export default function Login() {
   const router = useRouter();
   const authHook = useAuth();
   const { login, register, isLoading, error, clearError, isAuthenticated } = authHook;
+  const { success, showError, warning } = useNotification();
   
   // Refs for form field navigation
   const loginPasswordRef = useRef<TextInput>(null);
@@ -19,13 +21,6 @@ export default function Login() {
   const signupPhoneRef = useRef<TextInput>(null);
   const signupPasswordRef = useRef<TextInput>(null);
   const signupConfirmPasswordRef = useRef<TextInput>(null);
-  
-  // Debug: Log the auth hook functions
-  console.log('🔍 Auth hook functions:', { 
-    login: typeof login, 
-    register: typeof register,
-    authHookKeys: Object.keys(authHook)
-  });
   
   // State for active tab
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
@@ -83,7 +78,16 @@ export default function Login() {
       return;
     }
     
-    await login(loginEmail, loginPassword);
+    console.log('🔐 Attempting login with:', { email: loginEmail, passwordLength: loginPassword.length });
+    
+    try {
+      await login(loginEmail, loginPassword);
+      console.log('✅ Login attempt completed');
+      // Don't clear form fields on success - let the redirect handle it
+    } catch (error) {
+      console.error('❌ Login failed, keeping form fields:', error);
+      // Form fields are preserved automatically by useState
+    }
   };
 
   const handleSignup = async () => {
@@ -127,8 +131,10 @@ export default function Login() {
     try {
       await register(userData);
       console.log('✅ Registration successful from login.tsx');
+      // Don't clear form fields on success - let the redirect handle it
     } catch (err) {
-      console.error('❌ Registration failed from login.tsx:', err);
+      console.error('❌ Registration failed from login.tsx, keeping form fields:', err);
+      // Form fields are preserved automatically by useState
     }
   };
 

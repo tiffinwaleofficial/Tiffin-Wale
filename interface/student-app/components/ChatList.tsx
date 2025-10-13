@@ -6,11 +6,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useChatStore } from '../store/chatStore';
 import { Conversation } from '../services/chatService';
+import { useNotification } from '../hooks/useNotification';
 
 interface ChatListProps {
   onSelectConversation: (conversation: Conversation) => void;
@@ -29,6 +29,7 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation, onCrea
     clearError,
   } = useChatStore();
 
+  const { showError } = useNotification();
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -37,9 +38,10 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation, onCrea
 
   useEffect(() => {
     if (error) {
-      Alert.alert('Chat Error', error, [{ text: 'OK', onPress: clearError }]);
+      showError(error);
+      clearError();
     }
-  }, [error, clearError]);
+  }, [error, clearError, showError]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -53,7 +55,7 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation, onCrea
       onSelectConversation(conversation);
     } catch (error) {
       console.error('Error creating support chat:', error);
-      Alert.alert('Error', 'Failed to create support chat');
+      showError('Failed to create support chat');
     }
   };
 
@@ -63,7 +65,7 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation, onCrea
       onSelectConversation(conversation);
     } catch (error) {
       console.error('Error creating restaurant chat:', error);
-      Alert.alert('Error', 'Failed to create restaurant chat');
+      showError('Failed to create restaurant chat');
     }
   };
 
@@ -389,6 +391,10 @@ const styles = StyleSheet.create({
 });
 
 export default ChatList;
+
+
+
+
 
 
 

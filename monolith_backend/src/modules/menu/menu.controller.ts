@@ -107,6 +107,21 @@ export class MenuController {
     return this.menuService.createMenuItem(createMenuItemDto);
   }
 
+  @Get("item/:itemId")
+  @ApiOperation({ summary: "Get menu item details with reviews" })
+  @ApiResponse({ status: 200, description: "Return menu item details" })
+  @ApiResponse({ status: 404, description: "Menu item not found" })
+  getMenuItemDetails(@Param("itemId") itemId: string) {
+    return this.menuService.getMenuItemDetails(itemId);
+  }
+
+  @Get("restaurant/:restaurantId/menus")
+  @ApiOperation({ summary: "Get all menus for a restaurant" })
+  @ApiResponse({ status: 200, description: "Return restaurant menus" })
+  getRestaurantMenus(@Param("restaurantId") restaurantId: string) {
+    return this.menuService.getRestaurantMenus(restaurantId);
+  }
+
   @Get(":id")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

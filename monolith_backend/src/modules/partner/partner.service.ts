@@ -29,7 +29,7 @@ export class PartnerService {
   }
 
   async findAll(filters: PartnerFilters = {}): Promise<Partner[]> {
-    const query: any = { isActive: true };
+    const query: any = { status: "approved" };
 
     if (filters.cuisineType) {
       query.cuisineType = { $in: [filters.cuisineType] };

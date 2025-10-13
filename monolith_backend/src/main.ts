@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { ConfigService } from "@nestjs/config";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 import { NestExpressApplication } from "@nestjs/platform-express";
+import { IoAdapter } from "@nestjs/platform-socket.io";
 import { join } from "path";
 
 async function bootstrap() {
@@ -13,6 +14,10 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
+
+  // Configure WebSocket adapter
+  app.useWebSocketAdapter(new IoAdapter(app));
+  logger.log("WebSocket adapter configured");
 
   // Add a root route for health checks - BEFORE setting global prefix
   app.getHttpAdapter().get("/", (req, res: any) => {

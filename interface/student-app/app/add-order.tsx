@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Image,
   TextInput,
-  Alert,
   Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -15,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Plus, Minus, ShoppingCart } from 'lucide-react-native';
 import api from '@/utils/apiClient';
 import { useAuthStore } from '@/store/authStore';
+import { useNotification } from '@/hooks/useNotification';
 
 interface MenuItem {
   id: string;
@@ -35,6 +35,7 @@ interface CartItem extends MenuItem {
 export default function AddOrderScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { showError, success, warning } = useNotification();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,7 +111,7 @@ export default function AddOrderScreen() {
       setMenuItems(sampleItems);
     } catch (error) {
       console.error('Error fetching menu items:', error);
-      Alert.alert('Error', 'Failed to load menu items');
+      showError('Failed to load menu items');
     } finally {
       setLoading(false);
     }
@@ -159,12 +160,12 @@ export default function AddOrderScreen() {
 
   const handlePlaceOrder = async () => {
     if (cartItems.length === 0) {
-      Alert.alert('Empty Cart', 'Please add items to your cart before placing an order.');
+      warning('Please add items to your cart before placing an order.');
       return;
     }
 
     if (!user?.id) {
-      Alert.alert('Error', 'Please login to place an order.');
+      showError('Please login to place an order.');
       return;
     }
 
@@ -192,20 +193,14 @@ export default function AddOrderScreen() {
       const order = await api.orders.create(orderData);
       console.log('✅ Order placed successfully:', order);
       
-      Alert.alert(
-        'Order Placed!',
-        'Your additional order has been placed successfully.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setCartItems([]);
-              setSpecialInstructions('');
-              router.back();
-            }
-          }
-        ]
-      );
+      success('Order placed successfully! 🎉');
+      
+      // Clear cart and navigate back after success
+      setCartItems([]);
+      setSpecialInstructions('');
+      setTimeout(() => {
+        router.canGoBack() ? router.back() : router.push('/(tabs)/index');
+      }, 1500);
     } catch (error) {
       console.error('❌ Error placing order:', error);
       
@@ -217,7 +212,7 @@ export default function AddOrderScreen() {
         errorMessage = error.message;
       }
       
-      Alert.alert('Error', errorMessage);
+      showError(errorMessage);
     }
   };
 
@@ -225,7 +220,7 @@ export default function AddOrderScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.push('/(tabs)/index')} style={styles.backButton}>
           <ArrowLeft size={24} color="#333333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Order</Text>

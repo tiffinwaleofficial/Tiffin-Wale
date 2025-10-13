@@ -47,6 +47,16 @@ export class MealController {
     return this.mealService.getMealHistory(userId);
   }
 
+  @Get("upcoming")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get upcoming meals for the authenticated user" })
+  @ApiResponse({ status: 200, description: "Return upcoming meals" })
+  @ApiResponse({ status: 401, description: "Unauthorized" })
+  async getUpcomingMeals(@GetCurrentUser("_id") userId: string) {
+    return this.mealService.getUpcomingMeals(userId);
+  }
+
   @Get(":id")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

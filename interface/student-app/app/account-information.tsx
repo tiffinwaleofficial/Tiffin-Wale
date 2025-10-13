@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, ActivityIndicator, Alert, Modal, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Camera, User, Mail, Phone, Calendar, Edit2 } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useAuthStore } from '@/store/authStore';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import * as ImagePicker from 'expo-image-picker';
+import { profileImageService } from '@/services/profileImageService';
+import { useNotification } from '@/hooks/useNotification';
 
 export default function AccountInformation() {
   const router = useRouter();
   const { user, updateUserProfile, isLoading } = useAuthStore();
   const { currentSubscription } = useSubscriptionStore();
+  const { success, showError } = useNotification();
   const [isEditing, setIsEditing] = useState(false);
   
   // Form state - initialize with real user data
@@ -20,6 +25,14 @@ export default function AccountInformation() {
     phone: '',
     dob: ''
   });
+
+  // Image upload states
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [showImagePicker, setShowImagePicker] = useState(false);
+  
+  // Date picker states
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   // Update form data when user data changes
   useEffect(() => {
@@ -37,15 +50,115 @@ export default function AccountInformation() {
 
   const handleSaveChanges = async () => {
     console.log('🔍 AccountInformation: Saving changes with data:', formData);
-    await updateUserProfile({
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      phone: formData.phone,
-      dob: formData.dob,
+    try {
+      // Prepare data according to backend DTO
+      const updateData: any = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phoneNumber: formData.phone, // Backend expects 'phoneNumber', not 'phone'
+      };
+
+      // Only include dob if it's provided and format it correctly
+      if (formData.dob) {
+        // Ensure dob is in ISO date format (YYYY-MM-DD)
+        const dobDate = new Date(formData.dob);
+        updateData.dob = dobDate.toISOString().split('T')[0];
+      }
+
+      // Note: Email updates should be handled separately as backend doesn't accept email in profile update
+      
+      await updateUserProfile(updateData);
+      
+      success('Your profile has been updated successfully!');
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Profile update error:', error);
+      showError('Failed to update profile. Please try again.');
+    }
+  };
+
+  // Image upload functions
+  const handleImageUpload = async () => {
+    if (Platform.OS === 'web') {
+      // Web: Show file picker
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = async (e: any) => {
+        const file = e.target.files[0];
+        if (file) {
+          await uploadImage(file);
+        }
+      };
+      input.click();
+    } else {
+      // Mobile: Show image picker modal
+      setShowImagePicker(true);
+    }
+  };
+
+  const pickImageFromLibrary = async () => {
+    setShowImagePicker(false);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
     });
-    
-    setIsEditing(false);
+
+    if (!result.canceled && result.assets[0]) {
+      await uploadImage(result.assets[0]);
+    }
+  };
+
+  const takePhoto = async () => {
+    setShowImagePicker(false);
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      await uploadImage(result.assets[0]);
+    }
+  };
+
+  const uploadImage = async (imageAsset: any) => {
+    setIsUploadingImage(true);
+    try {
+      const uploadResult = await profileImageService.uploadProfileImage(imageAsset);
+      const uploadedImageUrl = typeof uploadResult === 'string' ? uploadResult : uploadResult.url;
+      
+      // Update user profile with new image URL
+      await updateUserProfile({
+        profileImage: uploadedImageUrl,
+      });
+      
+      success('Profile image updated successfully!');
+    } catch (error) {
+      console.error('Image upload error:', error);
+      showError('Failed to upload image. Please try again.');
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  // Date picker functions
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setSelectedDate(selectedDate);
+      const formattedDate = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+      setFormData({...formData, dob: formattedDate});
+    }
+  };
+
+  const showDatePickerModal = () => {
+    if (formData.dob) {
+      setSelectedDate(new Date(formData.dob));
+    }
+    setShowDatePicker(true);
   };
 
   // Helper function to get display name
@@ -70,7 +183,7 @@ export default function AccountInformation() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.push('/(tabs)/profile')} style={styles.backButton}>
             <ArrowLeft size={24} color="#333333" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Account Information</Text>
@@ -89,7 +202,7 @@ export default function AccountInformation() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.push('/(tabs)/profile')} style={styles.backButton}>
             <ArrowLeft size={24} color="#333333" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Account Information</Text>
@@ -99,7 +212,7 @@ export default function AccountInformation() {
           <Text style={styles.errorText}>Unable to load account information</Text>
           <TouchableOpacity 
             style={styles.retryButton}
-            onPress={() => router.back()}
+            onPress={() => router.canGoBack() ? router.back() : router.push('/(tabs)/profile')}
           >
             <Text style={styles.retryButtonText}>Go Back</Text>
           </TouchableOpacity>
@@ -111,7 +224,7 @@ export default function AccountInformation() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.push('/(tabs)/profile')} style={styles.backButton}>
           <ArrowLeft size={24} color="#333333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Account Information</Text>
@@ -131,8 +244,16 @@ export default function AccountInformation() {
               style={styles.avatar}
             />
             {isEditing && (
-              <TouchableOpacity style={styles.cameraButton}>
-                <Camera size={20} color="#FFFFFF" />
+              <TouchableOpacity 
+                style={styles.cameraButton}
+                onPress={handleImageUpload}
+                disabled={isUploadingImage}
+              >
+                {isUploadingImage ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Camera size={20} color="#FFFFFF" />
+                )}
               </TouchableOpacity>
             )}
           </View>
@@ -223,14 +344,18 @@ export default function AccountInformation() {
               <Text style={styles.infoLabel}>Date of Birth</Text>
             </View>
             {isEditing ? (
-              <TextInput
-                style={styles.infoInput}
-                value={formData.dob}
-                onChangeText={(text) => setFormData({...formData, dob: text})}
-                placeholder="MM/DD/YYYY"
-              />
+              <TouchableOpacity 
+                style={styles.datePickerButton}
+                onPress={showDatePickerModal}
+              >
+                <Text style={styles.datePickerText}>
+                  {formData.dob ? new Date(formData.dob).toLocaleDateString() : 'Select Date'}
+                </Text>
+              </TouchableOpacity>
             ) : (
-              <Text style={styles.infoValue}>{user?.dob || 'Not provided'}</Text>
+              <Text style={styles.infoValue}>
+                {user?.dob ? new Date(user.dob).toLocaleDateString() : 'Not provided'}
+              </Text>
             )}
           </View>
         </Animated.View>
@@ -291,6 +416,48 @@ export default function AccountInformation() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Image Picker Modal */}
+      <Modal
+        visible={showImagePicker}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowImagePicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Image</Text>
+            
+            <TouchableOpacity style={styles.modalButton} onPress={takePhoto}>
+              <Camera size={24} color="#FF9B42" />
+              <Text style={styles.modalButtonText}>Take Photo</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.modalButton} onPress={pickImageFromLibrary}>
+              <User size={24} color="#FF9B42" />
+              <Text style={styles.modalButtonText}>Choose from Library</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.cancelModalButton]} 
+              onPress={() => setShowImagePicker(false)}
+            >
+              <Text style={styles.cancelModalButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Date Picker */}
+      {showDatePicker && (
+        <DateTimePicker
+          value={selectedDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={handleDateChange}
+          maximumDate={new Date()}
+        />
+      )}
     </View>
   );
 }
@@ -522,5 +689,66 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-SemiBold',
     fontSize: 14,
     color: '#FFFFFF',
+  },
+  // Date picker styles
+  datePickerButton: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+    justifyContent: 'center',
+  },
+  datePickerText: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 14,
+    color: '#333333',
+    textAlign: 'right',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  modalTitle: {
+    fontFamily: 'Poppins-SemiBold',
+    fontSize: 18,
+    color: '#333333',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  modalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    marginBottom: 12,
+    backgroundColor: '#F8F8F8',
+    borderRadius: 12,
+  },
+  modalButtonText: {
+    fontFamily: 'Poppins-Medium',
+    fontSize: 16,
+    color: '#333333',
+    marginLeft: 16,
+  },
+  cancelModalButton: {
+    backgroundColor: '#FF6B6B',
+    marginTop: 8,
+  },
+  cancelModalButtonText: {
+    fontFamily: 'Poppins-SemiBold',
+    fontSize: 16,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    flex: 1,
   },
 }); 

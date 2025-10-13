@@ -22,6 +22,9 @@ export class User extends Document {
   @Prop()
   phoneNumber: string;
 
+  @Prop()
+  profileImage: string;
+
   @Prop({ default: true })
   isActive: boolean;
 

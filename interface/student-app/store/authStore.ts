@@ -3,13 +3,17 @@ import { RegisterRequest, CustomerProfile } from '@/types/api';
 import { authService } from '@/utils/authService';
 import api from '@/utils/apiClient';
 import { getErrorMessage, isNetworkError, isAuthError } from '@/utils/errorHandler';
+import { tokenManager } from '@/utils/tokenManager';
+import { nativeWebSocketService } from '@/services/nativeWebSocketService';
 
 interface AuthState {
   user: CustomerProfile | null;
+  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
   isInitialized: boolean;
+  isLoggingOut: boolean; // Add flag to prevent double logout
   login: (email: string, password: string) => Promise<void>;
   register: (userData: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
@@ -19,12 +23,14 @@ interface AuthState {
   initializeAuth: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set: any) => ({
+export const useAuthStore = create<AuthState>((set: any, get: any) => ({
   user: null,
+  token: null,
   isAuthenticated: false,
   isLoading: false,
   error: null,
   isInitialized: false,
+  isLoggingOut: false,
 
   initializeAuth: async () => {
     console.log('🔍 AuthStore: Starting authentication initialization');
@@ -93,17 +99,34 @@ export const useAuthStore = create<AuthState>((set: any) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await authService.login({ email, password });
+      
+      // Store tokens securely using TokenManager
+      await tokenManager.storeTokens(response.accessToken, response.refreshToken);
+      await tokenManager.storeUserData(response.user);
+      
       set({ 
         user: response.user,
+        token: response.accessToken,
         isAuthenticated: true,
         isLoading: false 
       });
+      
+      console.log('✅ AuthStore: Login successful, tokens stored securely');
+      
+      // Connect WebSocket after successful login
+      try {
+        await nativeWebSocketService.connect();
+        console.log('✅ AuthStore: Native WebSocket connected after login');
+      } catch (wsError) {
+        console.warn('⚠️ AuthStore: Failed to connect native WebSocket after login:', wsError);
+      }
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       set({ 
         error: errorMessage, 
         isLoading: false 
       });
+      throw error;
     }
   },
 
@@ -130,15 +153,61 @@ export const useAuthStore = create<AuthState>((set: any) => ({
   },
 
   logout: async () => {
-    set({ isLoading: true, error: null });
+    const currentState = get();
+    
+    // Prevent double logout calls
+    if (currentState.isLoggingOut) {
+      console.log('🚪 AuthStore: Logout already in progress, skipping');
+      return;
+    }
+    
+    console.log('🚪 AuthStore: Starting logout process');
+    set({ isLoggingOut: true, isLoading: true, error: null });
+    
     try {
       await authService.logout();
-      set({ user: null, isAuthenticated: false, isLoading: false });
-    } catch (error) {
-      const errorMessage = getErrorMessage(error);
+      console.log('✅ AuthStore: Logout API call completed');
+      
+      // Disconnect WebSocket
+      try {
+        nativeWebSocketService.disconnect();
+        console.log('✅ AuthStore: Native WebSocket disconnected on logout');
+      } catch (wsError) {
+        console.warn('⚠️ AuthStore: Failed to disconnect WebSocket on logout:', wsError);
+      }
+      
+      // Clear all tokens using TokenManager
+      await tokenManager.clearTokens();
+      
       set({ 
+        user: null,
+        token: null,
+        isAuthenticated: false, 
+        isLoading: false,
+        isLoggingOut: false 
+      });
+    } catch (error) {
+      console.error('❌ AuthStore: Logout error:', error);
+      const errorMessage = getErrorMessage(error);
+      
+      // Even if logout API fails, clear local state and tokens
+      // Also disconnect WebSocket
+      try {
+        nativeWebSocketService.disconnect();
+        console.log('✅ AuthStore: Native WebSocket disconnected on logout error');
+      } catch (wsError) {
+        console.warn('⚠️ AuthStore: Failed to disconnect WebSocket on logout error:', wsError);
+      }
+      
+      await tokenManager.clearTokens();
+      
+      set({ 
+        user: null,
+        token: null,
+        isAuthenticated: false,
         error: errorMessage, 
-        isLoading: false 
+        isLoading: false,
+        isLoggingOut: false 
       });
     }
   },
@@ -156,6 +225,14 @@ export const useAuthStore = create<AuthState>((set: any) => ({
         
         // Update local storage with fresh data
         await authService.updateStoredUser(profileData);
+        
+        // Update subscription store if subscription data is available
+        if ((profileData as any).currentSubscription) {
+          console.log('🔔 AuthStore: Updating subscription store with profile data');
+          const { useSubscriptionStore } = await import('./subscriptionStore');
+          const subscriptionStore = useSubscriptionStore.getState();
+          subscriptionStore.currentSubscription = (profileData as any).currentSubscription;
+        }
         
         set({ user: profileData, isLoading: false });
         return;
@@ -191,7 +268,7 @@ export const useAuthStore = create<AuthState>((set: any) => ({
   updateUserProfile: async (data: Partial<CustomerProfile>) => {
     set({ isLoading: true, error: null });
     try {
-      const updatedUser = await api.customer.updateProfile(data);
+      const updatedUser = await api.user.updateProfile(data);
       set({ user: updatedUser, isLoading: false });
     } catch (error) {
       set({ 

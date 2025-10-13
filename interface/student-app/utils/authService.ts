@@ -93,11 +93,29 @@ export const authService = {
    * Logout user and clear stored tokens
    */
   logout: async (): Promise<void> => {
+    console.log('🚪 AuthService: Starting logout process');
     try {
-      await api.auth.logout();
+      // Call logout API (don't throw if it fails)
+      try {
+        await api.auth.logout();
+        console.log('✅ AuthService: Logout API call successful');
+      } catch (apiError) {
+        console.warn('⚠️ AuthService: Logout API call failed, but continuing with local cleanup:', apiError);
+        // Continue with local cleanup even if API fails
+      }
+      
+      // Always clear local storage
       await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_DATA_KEY]);
+      console.log('✅ AuthService: Local storage cleared');
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('❌ AuthService: Logout error:', error);
+      // Even if there's an error, try to clear storage
+      try {
+        await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_DATA_KEY]);
+        console.log('✅ AuthService: Local storage cleared after error');
+      } catch (clearError) {
+        console.error('❌ AuthService: Failed to clear local storage:', clearError);
+      }
       throw error;
     }
   },
@@ -297,6 +315,30 @@ export const authService = {
     } catch (error) {
       console.error('Get token error:', error);
       return null;
+    }
+  },
+
+  /**
+   * Refresh access token using refresh token
+   */
+  refreshToken: async (refreshToken: string): Promise<LoginResponse> => {
+    try {
+      const response = await api.auth.refreshToken(refreshToken);
+      
+      // Get current user data from storage since refresh endpoint only returns tokens
+      const currentUser = await authService.getCurrentUser();
+      
+      // Normalize response format to match LoginResponse interface
+      const normalizedResponse: LoginResponse = {
+        accessToken: response.token,
+        refreshToken: response.refreshToken,
+        user: currentUser || {} as any, // Use current user or empty object as fallback
+      };
+      
+      return normalizedResponse;
+    } catch (error) {
+      console.error('Refresh token error:', error);
+      throw error;
     }
   },
   

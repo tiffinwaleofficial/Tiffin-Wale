@@ -1,11 +1,15 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DeviceEventEmitter } from 'react-native';
 import { getWebSocketManager } from './websocketManager';
 import { tokenValidator } from './tokenValidator';
+import { tokenManager } from './tokenManager';
+import { useAuthStore } from '@/store/authStore';
 import {
   CustomerProfile,
   DeliveryAddress,
   OrderCreateData,
+  Subscription,
   LoginResponse,
   RegisterRequest,
   Order,
@@ -14,7 +18,6 @@ import {
   MenuCategory,
   MenuItem,
   SubscriptionPlan,
-  Subscription,
   PaymentMethod,
   PaymentMethodData,
   PaymentData,
@@ -26,7 +29,7 @@ import {
   MealCustomization,
   SubscriptionCreateData,
 } from '../types/api';
-import { Meal } from '../types';
+import { Meal, Review } from '../types';
 
 interface WebSocketMessage {
   type: string;
@@ -56,60 +59,33 @@ apiClient.interceptors.request.use(
     try {
       // Skip auth for login/register endpoints
       if (config.url?.includes('/auth/login') || config.url?.includes('/auth/register')) {
+        console.log('🔓 Skipping auth for public endpoint:', config.url);
         return config;
       }
 
-      // Use token validator for consistent validation
-      const validation = await tokenValidator.validateToken(config.url);
+      // Use TokenManager for secure token management (handles refresh automatically)
+      const token = await tokenManager.getAccessToken();
       
-      if (validation.isValid) {
-        const token = await AsyncStorage.getItem('auth_token');
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-          console.log('🔐 Adding auth token to request:', config.url, 'Token:', token.substring(0, 20) + '...');
-        }
-      } else if (validation.needsRefresh) {
-        console.log('🔄 Token needs refresh for request:', config.url);
-        // Try to refresh token before making request
-        try {
-          const { API_BASE_URL } = await import('./apiConfig');
-          const refreshToken = await AsyncStorage.getItem('refresh_token');
-          
-          if (refreshToken) {
-            const refreshResponse = await axios.post(`${API_BASE_URL}/api/auth/refresh-token`, {
-              refreshToken
-            }, {
-              timeout: 10000,
-              headers: { 'Content-Type': 'application/json' }
-            });
-            
-            if (refreshResponse.status === 200 && refreshResponse.data.token) {
-              const newToken = refreshResponse.data.token;
-              await AsyncStorage.setItem('auth_token', newToken);
-              if (refreshResponse.data.refreshToken) {
-                await AsyncStorage.setItem('refresh_token', refreshResponse.data.refreshToken);
-              }
-              
-              config.headers.Authorization = `Bearer ${newToken}`;
-              console.log('✅ Token refreshed and added to request:', config.url);
-              tokenValidator.clearCache(); // Clear cache after successful refresh
-            }
-          }
-        } catch (refreshError) {
-          console.error('❌ Token refresh failed in request interceptor:', refreshError);
-          // Clear tokens on refresh failure
-          await AsyncStorage.multiRemove(['auth_token', 'refresh_token', 'user_data']);
-          tokenValidator.clearCache();
-        }
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+        console.log('🔐 TokenManager: Adding auth token to request:', config.url);
       } else {
-        console.log('⚠️ Invalid token for request:', config.url, 'Error:', validation.error);
+        console.warn('⚠️ TokenManager: No valid token available for request:', config.url);
+        
+        // Check if user should be authenticated
+        const isAuthenticated = await tokenManager.isAuthenticated();
+        if (!isAuthenticated) {
+          console.log('🚨 TokenManager: User not authenticated, request may fail');
+        }
       }
     } catch (error) {
-      console.error('❌ Error in request interceptor:', error);
+      console.error('❌ TokenManager: Error in request interceptor:', error);
     }
+    
     return config;
   },
   (error: AxiosError): Promise<never> => {
+    console.error('❌ Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -120,7 +96,13 @@ apiClient.interceptors.response.use(
   async (error: AxiosError): Promise<never> => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
     
-    // Handle 401 Unauthorized (token expired)
+    // Skip interceptor for logout calls to prevent infinite loops
+    if (originalRequest.url?.includes('/api/auth/logout')) {
+      console.log('🚪 Skipping interceptor for logout call');
+      return Promise.reject(error);
+    }
+    
+    // Handle 401 Unauthorized (token expired) using TokenManager
     if (error.response?.status === 401 && !originalRequest._retry) {
       console.log('🚨 401 Unauthorized error for:', originalRequest.url);
       console.log('🔍 Error response:', error.response.data);
@@ -128,37 +110,28 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       
       try {
-        console.log('🔄 Attempting to refresh token...');
-        const refreshToken = await AsyncStorage.getItem('refresh_token');
+        console.log('🔄 TokenManager: Attempting to refresh token...');
         
-        if (refreshToken && refreshToken.length > 10) {
-          // Try to refresh the token directly
-          const { API_BASE_URL } = await import('./apiConfig');
-          const refreshResponse = await axios.post(`${API_BASE_URL}/api/auth/refresh-token`, {
-            refreshToken
-          }, {
-            timeout: 10000,
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          });
+        // Use TokenManager to handle token refresh
+        const newToken = await tokenManager.refreshAccessToken();
+        
+        if (newToken) {
+          console.log('✅ TokenManager: Token refreshed successfully');
           
-          if (refreshResponse.status === 200 && refreshResponse.data) {
-            const { token: newToken, refreshToken: newRefreshToken } = refreshResponse.data;
-            
-            if (newToken && newToken.length > 10) {
-              console.log('✅ Token refreshed successfully');
-              // Store new tokens
-              await AsyncStorage.setItem('auth_token', newToken);
-              if (newRefreshToken) {
-                await AsyncStorage.setItem('refresh_token', newRefreshToken);
-              }
-              
-              // Retry the original request with new token
-              originalRequest.headers.Authorization = `Bearer ${newToken}`;
-              return apiClient(originalRequest);
-            }
-          }
+          // Retry the original request with new token
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return apiClient(originalRequest);
+        } else {
+          console.log('❌ TokenManager: Token refresh failed');
+          
+          // Clear all tokens and emit auth error
+          await tokenManager.clearTokens();
+          
+          // Emit logout event for the app to handle
+          DeviceEventEmitter.emit('auth_error', {
+            type: 'token_refresh_failed',
+            message: 'Session expired. Please login again.'
+          });
         }
         
         console.log('❌ No refresh token available or refresh failed');
@@ -172,9 +145,7 @@ apiClient.interceptors.response.use(
         await AsyncStorage.multiRemove(['auth_token', 'refresh_token', 'user_data']);
         
         // Emit a custom event to notify the app about auth failure
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('auth:token-expired'));
-        }
+        DeviceEventEmitter.emit('auth:token-expired');
       } catch (clearError) {
         console.error('❌ Error clearing tokens:', clearError);
       }
@@ -247,7 +218,7 @@ const api = {
       return response.data;
     },
     updateProfile: async (data: Partial<CustomerProfile>): Promise<CustomerProfile> => {
-      const response = await apiClient.put<CustomerProfile>('/api/customers/profile', data);
+      const response = await apiClient.patch<CustomerProfile>('/users/profile', data);
       return response.data;
     },
   },
@@ -259,7 +230,7 @@ const api = {
       return response.data;
     },
     updateProfile: async (data: Partial<CustomerProfile>): Promise<CustomerProfile> => {
-      const response = await apiClient.put<CustomerProfile>('/api/customers/profile', data);
+      const response = await apiClient.patch<CustomerProfile>('/api/customers/profile', data);
       return response.data;
     },
     getAddresses: async (): Promise<DeliveryAddress[]> => {
@@ -412,25 +383,61 @@ const api = {
       const response = await apiClient.get<Menu>(`/api/menu/partner/${partnerId}`);
       return response.data;
     },
+    getItemDetails: async (itemId: string): Promise<MenuItem> => {
+      const response = await apiClient.get<MenuItem>(`/api/menu/item/${itemId}`);
+      return response.data;
+    },
   },
 
-  // Meal endpoints
-  meal: {
-    getTodayMeals: async (): Promise<Meal[]> => {
+  // Reviews endpoints
+  reviews: {
+    getRestaurantReviews: async (restaurantId: string): Promise<Review[]> => {
+      const response = await apiClient.get<Review[]>(`/api/reviews/restaurant/${restaurantId}`);
+      return response.data;
+    },
+    getMenuItemReviews: async (itemId: string): Promise<Review[]> => {
+      const response = await apiClient.get<Review[]>(`/api/reviews/menu-item/${itemId}`);
+      return response.data;
+    },
+    createReview: async (data: any): Promise<Review> => {
+      // Determine the correct endpoint based on data
+      let endpoint = '/api/reviews';
+      if (data.restaurantId) {
+        endpoint = `/api/reviews/restaurant/${data.restaurantId}`;
+      } else if (data.menuItemId) {
+        endpoint = `/api/reviews/menu-item/${data.menuItemId}`;
+      }
+      
+      console.log('🔍 API Client: Creating review at endpoint:', endpoint, 'with data:', data);
+      
+      const response = await apiClient.post<Review>(endpoint, {
+        rating: data.rating,
+        comment: data.comment,
+        images: data.images,
+      });
+      return response.data;
+    },
+    markHelpful: async (reviewId: string): Promise<void> => {
+      await apiClient.patch(`/api/reviews/${reviewId}/helpful`);
+    },
+  },
+
+  // Meals endpoints
+  meals: {
+    getToday: async (): Promise<Meal[]> => {
       const response = await apiClient.get<Meal[]>('/api/meals/today');
       return response.data;
     },
-    getMeal: async (id: string): Promise<Meal> => {
-      const response = await apiClient.get<Meal>(`/api/meals/${id}`);
-      return response.data;
-    },
-    customizeMeal: async (id: string, customizations: MealCustomization): Promise<Meal> => {
-      const response = await apiClient.post<Meal>(`/api/meals/${id}/customize`, customizations);
-      return response.data;
-    },
-    // Additional methods that stores expect
     getHistory: async (): Promise<Meal[]> => {
       const response = await apiClient.get<Meal[]>('/api/meals/me/history');
+      return response.data;
+    },
+    getUpcoming: async (): Promise<Meal[]> => {
+      const response = await apiClient.get<Meal[]>('/api/meals/upcoming');
+      return response.data;
+    },
+    getById: async (id: string): Promise<Meal> => {
+      const response = await apiClient.get<Meal>(`/api/meals/${id}`);
       return response.data;
     },
     rateMeal: async (id: string, rating: number, comment?: string): Promise<void> => {
@@ -442,32 +449,12 @@ const api = {
     updateStatus: async (id: string, status: string): Promise<void> => {
       await apiClient.patch(`/api/meals/${id}/status`, { status });
     },
+    customizeMeal: async (id: string, customizations: MealCustomization): Promise<Meal> => {
+      const response = await apiClient.post<Meal>(`/api/meals/${id}/customize`, customizations);
+      return response.data;
+    },
   },
 
-  // Legacy meals endpoint for backward compatibility
-  meals: {
-    getToday: async (): Promise<Meal[]> => {
-      const response = await apiClient.get<Meal[]>('/api/meals/today');
-      return response.data;
-    },
-    getHistory: async (): Promise<Meal[]> => {
-      const response = await apiClient.get<Meal[]>('/api/meals/me/history');
-      return response.data;
-    },
-    getById: async (id: string): Promise<Meal> => {
-      const response = await apiClient.get<Meal>(`/api/meals/${id}`);
-      return response.data;
-    },
-    updateStatus: async (id: string, status: string): Promise<void> => {
-      await apiClient.patch(`/api/meals/${id}/status`, { status });
-    },
-    skipMeal: async (id: string, reason?: string): Promise<void> => {
-      await apiClient.patch(`/api/meals/${id}/skip`, { reason });
-    },
-    rateMeal: async (id: string, rating: number, review?: string): Promise<void> => {
-      await apiClient.post(`/api/meals/${id}/rate`, { rating, review });
-    },
-  },
 
   // Legacy orders endpoint for backward compatibility
   orders: {
@@ -517,46 +504,6 @@ const api = {
     },
   },
 
-  subscriptions: {
-    getAll: async (): Promise<Subscription[]> => {
-      // This gets ALL subscriptions - not ideal but kept for backward compatibility
-      const response = await apiClient.get<Subscription[]>('/api/subscriptions');
-      return response.data;
-    },
-    getActive: async (): Promise<Subscription[]> => {
-      const response = await apiClient.get<Subscription[]>('/api/subscriptions/active');
-      return response.data;
-    },
-    getByCustomer: async (customerId: string): Promise<Subscription[]> => {
-      const response = await apiClient.get<Subscription[]>(`/api/subscriptions/customer/${customerId}`);
-      return response.data;
-    },
-    create: async (data: {
-      customer: string;
-      plan: string;
-      startDate: Date | string;
-      endDate: Date | string;
-      totalAmount: number;
-      autoRenew?: boolean;
-      paymentId?: string;
-      isPaid?: boolean;
-    }): Promise<Subscription> => {
-      const response = await apiClient.post<Subscription>('/api/subscriptions', data);
-      return response.data;
-    },
-    cancel: async (id: string): Promise<Subscription> => {
-      const response = await apiClient.patch<Subscription>(`/api/subscriptions/${id}/cancel`);
-      return response.data;
-    },
-    pause: async (id: string): Promise<Subscription> => {
-      const response = await apiClient.patch<Subscription>(`/api/subscriptions/${id}/pause`);
-      return response.data;
-    },
-    resume: async (id: string): Promise<Subscription> => {
-      const response = await apiClient.patch<Subscription>(`/api/subscriptions/${id}/resume`);
-      return response.data;
-    },
-  },
 
   // Payment endpoints
   payment: {
@@ -632,6 +579,60 @@ const api = {
     },
   },
 
+  // Subscriptions endpoints
+  subscriptions: {
+    getCurrent: async (): Promise<Subscription | null> => {
+      const response = await apiClient.get('/api/subscriptions/me/current');
+      return response.data;
+    },
+    getAll: async (): Promise<Subscription[]> => {
+      const response = await apiClient.get('/api/subscriptions/me/all');
+      return response.data;
+    },
+    create: async (planId: string): Promise<Subscription> => {
+      // Get current user ID from auth store
+      const authStore = useAuthStore.getState();
+      const userId = authStore.user?.id;
+      
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+      
+      // Calculate subscription dates
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 1); // Default to 1 month
+      
+      // Get plan details to calculate total amount
+      const plan = await api.subscriptionPlans.getById(planId);
+      
+      const subscriptionData = {
+        customer: userId,
+        plan: planId,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        totalAmount: plan.price || 0,
+        autoRenew: false,
+        paymentFrequency: 'monthly',
+        discountAmount: 0,
+        isPaid: false,
+        customizations: [],
+      };
+      
+      const response = await apiClient.post('/api/subscriptions', subscriptionData);
+      return response.data;
+    },
+    cancel: async (id: string, reason: string): Promise<void> => {
+      await apiClient.patch(`/api/subscriptions/${id}/cancel?reason=${encodeURIComponent(reason)}`);
+    },
+    pause: async (id: string): Promise<void> => {
+      await apiClient.patch(`/api/subscriptions/${id}/pause`);
+    },
+    resume: async (id: string): Promise<void> => {
+      await apiClient.patch(`/api/subscriptions/${id}/resume`);
+    },
+  },
+
   // Notifications endpoints
   notifications: {
     getUserNotifications: async (userId: string): Promise<Record<string, unknown>[]> => {
@@ -667,6 +668,23 @@ const api = {
     },
     getStats: async (id: string): Promise<Record<string, unknown>> => {
       const response = await apiClient.get(`/api/partners/${id}/stats`);
+      return response.data;
+    },
+  },
+
+  
+  // Upload endpoints
+  upload: {
+    uploadImage: async (file: FormData, type: string = 'general'): Promise<{ url: string; publicId: string; type: string }> => {
+      const response = await apiClient.post(`/api/upload/image?type=${type}`, file, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    },
+    deleteImage: async (publicId: string): Promise<{ deleted: boolean; publicId: string }> => {
+      const response = await apiClient.delete(`/api/upload/image/${publicId}`);
       return response.data;
     },
   },

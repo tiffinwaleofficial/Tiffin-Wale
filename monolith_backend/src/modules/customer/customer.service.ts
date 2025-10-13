@@ -28,7 +28,26 @@ export class CustomerService {
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
-    return user;
+
+    // Get user's active subscription
+    const activeSubscription = await this.subscriptionModel
+      .findOne({
+        customer: userId,
+        status: { $in: ["active", "pending"] },
+      })
+      .populate("plan", "name description price features")
+      .sort({ createdAt: -1 })
+      .exec();
+
+    // Get user's delivery addresses
+    const addresses = await this.deliveryAddressModel.find({ userId }).exec();
+
+    // Return enhanced profile with subscription and address data
+    return {
+      ...user.toObject(),
+      currentSubscription: activeSubscription,
+      deliveryAddresses: addresses,
+    };
   }
 
   async updateProfile(

@@ -61,6 +61,9 @@ export interface CustomerProfile {
   dob?: string;
   createdAt: string;
   updatedAt: string;
+  // Enhanced profile data from backend
+  currentSubscription?: any; // Will be populated with active subscription data
+  deliveryAddresses?: DeliveryAddress[]; // Will be populated with user's addresses
 }
 
 export interface LoginResponse {

@@ -30,7 +30,19 @@ export const useRestaurantStore = create<RestaurantState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       // Fetch restaurants from real API
-      const restaurants = await api.partners.getAll();
+      const partners = await api.partners.getAll() as any[];
+      
+      // Map Partner data to Restaurant interface
+      const restaurants: Restaurant[] = partners.map((partner: any) => ({
+        ...partner,
+        id: partner._id, // Map MongoDB _id to id field
+        name: partner.businessName,
+        rating: partner.averageRating || 0,
+        reviewCount: partner.totalReviews || 0,
+        image: partner.logoUrl || partner.bannerUrl || 'https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg',
+        formattedAddress: `${partner.address.street}, ${partner.address.city}, ${partner.address.state}`,
+        cuisineType: partner.cuisineTypes || [],
+      }));
       
       set({ 
         restaurants,
@@ -49,12 +61,22 @@ export const useRestaurantStore = create<RestaurantState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       // Fetch all restaurants and select featured ones
-      const allRestaurants = await api.partners.getAll();
+      const allRestaurants = await api.partners.getAll() as any[];
       
       // Select top restaurants by rating as featured
-      const featured = [...allRestaurants]
-        .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-        .slice(0, 2);
+      const featured: Restaurant[] = [...allRestaurants]
+        .sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0))
+        .slice(0, 2)
+        .map((partner: any) => ({
+          ...partner,
+          id: partner._id, // Map MongoDB _id to id field
+          name: partner.businessName,
+          rating: partner.averageRating || 0,
+          reviewCount: partner.totalReviews || 0,
+          image: partner.logoUrl || partner.bannerUrl || 'https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg',
+          formattedAddress: `${partner.address.street}, ${partner.address.city}, ${partner.address.state}`,
+          cuisineType: partner.cuisineTypes || [],
+        }));
       
       set({ 
         featuredRestaurants: featured,
@@ -73,7 +95,18 @@ export const useRestaurantStore = create<RestaurantState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       // Fetch restaurant details from real API
-      const restaurant = await api.partners.getById(id);
+      const partner = await api.partners.getById(id) as any;
+      
+      const restaurant: Restaurant = {
+        ...partner,
+        id: partner._id, // Map MongoDB _id to id field
+        name: partner.businessName,
+        rating: partner.averageRating || 0,
+        reviewCount: partner.totalReviews || 0,
+        image: partner.logoUrl || partner.bannerUrl || 'https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg',
+        formattedAddress: `${partner.address.street}, ${partner.address.city}, ${partner.address.state}`,
+        cuisineType: partner.cuisineTypes || [],
+      };
       
       set({ 
         currentRestaurant: restaurant,
@@ -91,9 +124,18 @@ export const useRestaurantStore = create<RestaurantState>((set) => ({
   fetchMenuForRestaurant: async (partnerId: string) => {
     set({ isLoading: true, error: null });
     try {
-      const menu = await api.menu.getByPartner(partnerId);
+      const menuData = await api.menu.getByPartner(partnerId) as any;
+      // Convert menu data to MenuItem array format
+      const rawMenuItems = Array.isArray(menuData) ? menuData : (menuData.items || []);
+      
+      // Map MongoDB _id to id field for each menu item
+      const menuItems: MenuItem[] = rawMenuItems.map((item: any) => ({
+        ...item,
+        id: item._id || item.id, // Use _id if available, fallback to id
+      }));
+      
       set({
-        currentRestaurantMenu: menu,
+        currentRestaurantMenu: menuItems,
         isLoading: false,
       });
     } catch (error) {
@@ -110,15 +152,26 @@ export const useRestaurantStore = create<RestaurantState>((set) => ({
     try {
       // Fetch all restaurants and filter locally
       // In a real implementation, you might want to add a search endpoint to the backend
-      const allRestaurants = await api.partners.getAll();
+      const allPartners = await api.partners.getAll() as any[];
       
       const normalizedQuery = query.toLowerCase();
       
-      const results = allRestaurants.filter((restaurant: Restaurant) => 
-        restaurant.name?.toLowerCase().includes(normalizedQuery) ||
-        restaurant.cuisineType?.some((cuisine: string) => cuisine.toLowerCase().includes(normalizedQuery)) ||
-        restaurant.address?.toLowerCase().includes(normalizedQuery)
-      );
+      const results: Restaurant[] = allPartners
+        .filter((partner: any) => 
+          partner.businessName?.toLowerCase().includes(normalizedQuery) ||
+          partner.cuisineTypes?.some((cuisine: string) => cuisine.toLowerCase().includes(normalizedQuery)) ||
+          `${partner.address.street}, ${partner.address.city}, ${partner.address.state}`.toLowerCase().includes(normalizedQuery)
+        )
+        .map((partner: any) => ({
+          ...partner,
+          id: partner._id, // Map MongoDB _id to id field
+          name: partner.businessName,
+          rating: partner.averageRating || 0,
+          reviewCount: partner.totalReviews || 0,
+          image: partner.logoUrl || partner.bannerUrl || 'https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg',
+          formattedAddress: `${partner.address.street}, ${partner.address.city}, ${partner.address.state}`,
+          cuisineType: partner.cuisineTypes || [],
+        }));
       
       set({ 
         restaurants: results,
@@ -137,24 +190,36 @@ export const useRestaurantStore = create<RestaurantState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       // Fetch all restaurants and filter locally
-      const allRestaurants = await api.partners.getAll();
+      const allPartners = await api.partners.getAll() as any[];
       
-      let results = [...allRestaurants];
+      let results = [...allPartners];
       
       if (cuisineType) {
-        results = results.filter(restaurant => 
-          restaurant.cuisineType?.some((cuisine: string) => 
+        results = results.filter((partner: any) => 
+          partner.cuisineTypes?.some((cuisine: string) => 
             cuisine.toLowerCase() === cuisineType.toLowerCase()
           )
         );
       }
       
       if (rating) {
-        results = results.filter(restaurant => (restaurant.rating || 0) >= rating);
+        results = results.filter((partner: any) => (partner.averageRating || 0) >= rating);
       }
       
+      // Map filtered partners to Restaurant interface
+      const restaurants: Restaurant[] = results.map((partner: any) => ({
+        ...partner,
+        id: partner._id, // Map MongoDB _id to id field
+        name: partner.businessName,
+        rating: partner.averageRating || 0,
+        reviewCount: partner.totalReviews || 0,
+        image: partner.logoUrl || partner.bannerUrl || 'https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg',
+        formattedAddress: `${partner.address.street}, ${partner.address.city}, ${partner.address.state}`,
+        cuisineType: partner.cuisineTypes || [],
+      }));
+      
       set({ 
-        restaurants: results,
+        restaurants,
         isLoading: false 
       });
     } catch (error) {

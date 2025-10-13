@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { DeviceEventEmitter } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
 import authService from '@/utils/authService';
-import { CustomerProfile } from '@/types/auth';
+import { CustomerProfile } from '@/types/api';
 import { RegisterRequest } from '@/types/api';
 
 interface AuthContextType {
@@ -41,33 +42,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Listen for token expiration events
   useEffect(() => {
-    const handleTokenExpired = () => {
+    let isHandlingTokenExpired = false;
+    
+    const handleTokenExpired = async () => {
+      // Prevent multiple simultaneous token expiration handling
+      if (isHandlingTokenExpired) {
+        console.log('🚨 AuthProvider: Token expiration already being handled, skipping');
+        return;
+      }
+      
       console.log('🚨 AuthProvider: Token expired event received');
-      authStore.logout();
+      isHandlingTokenExpired = true;
+      
+      try {
+        // Only logout if user is currently authenticated
+        if (authStore.isAuthenticated && !authStore.isLoggingOut) {
+          await authStore.logout();
+        } else {
+          console.log('🚨 AuthProvider: User already logged out or logout in progress');
+        }
+      } catch (error) {
+        console.error('❌ AuthProvider: Error handling token expiration:', error);
+      } finally {
+        isHandlingTokenExpired = false;
+      }
     };
 
     // Add event listener for token expiration
-    if (typeof window !== 'undefined') {
-      window.addEventListener('auth:token-expired', handleTokenExpired);
-      
-      return () => {
-        window.removeEventListener('auth:token-expired', handleTokenExpired);
-      };
-    }
+    const subscription = DeviceEventEmitter.addListener('auth:token-expired', handleTokenExpired);
+    
+    return () => {
+      subscription.remove();
+      isHandlingTokenExpired = false;
+    };
   }, [authStore]);
 
   // Periodically check authentication status (reduced frequency)
   useEffect(() => {
-    if (authStore.isAuthenticated && !isCheckingAuth) {
+    if (authStore.isAuthenticated && !isCheckingAuth && !authStore.isLoggingOut) {
       const checkAuthInterval = setInterval(async () => {
         console.log('🔍 AuthProvider: Periodic auth check');
+        
+        // Skip if logout is in progress
+        if (authStore.isLoggingOut) {
+          console.log('🔍 AuthProvider: Logout in progress, skipping auth check');
+          return;
+        }
+        
         setIsCheckingAuth(true);
         try {
           // Only check with backend if local token seems valid
           const isLocallyValid = await authService.isAuthenticated();
           if (!isLocallyValid) {
             console.log('🔍 AuthProvider: Local token invalid, logging out');
-            await authStore.logout();
+            if (!authStore.isLoggingOut) {
+              await authStore.logout();
+            }
             return;
           }
           
@@ -75,14 +105,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const isValid = await authService.validateToken();
           if (!isValid) {
             console.log('🔍 AuthProvider: Backend validation failed, logging out');
-            await authStore.logout();
+            if (!authStore.isLoggingOut) {
+              await authStore.logout();
+            }
           } else {
             console.log('✅ AuthProvider: Periodic auth check passed');
           }
         } catch (error) {
           console.error('❌ AuthProvider: Auth check failed:', error);
           // Don't logout on network errors
-          if (error instanceof Error && !error.message.includes('network')) {
+          if (error instanceof Error && !error.message.includes('network') && !authStore.isLoggingOut) {
             await authStore.logout();
           }
         } finally {
@@ -92,7 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return () => clearInterval(checkAuthInterval);
     }
-  }, [authStore.isAuthenticated, isCheckingAuth, authStore]);
+  }, [authStore.isAuthenticated, isCheckingAuth, authStore.isLoggingOut, authStore]);
 
   const checkAuth = async () => {
     if (authStore.isAuthenticated) {

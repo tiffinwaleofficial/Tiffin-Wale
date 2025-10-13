@@ -310,7 +310,7 @@ export const databaseConfig = registerAs('database', () => ({
 
 export const jwtConfig = registerAs('jwt', () => ({
   secret: process.env.JWT_SECRET,
-  expiresIn: process.env.JWT_EXPIRATION || '1d',
+  expiresIn: process.env.JWT_EXPIRATION || '30d',
 }));
 ```
 
@@ -774,6 +774,12 @@ describe('OrderController (e2e)', () => {
 
 **Last Updated**: January 2025  
 **Version**: 1.0.0
+
+
+
+
+
+
 
 
 

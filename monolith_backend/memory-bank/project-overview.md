@@ -166,7 +166,7 @@ MONGODB_PASSWORD=
 
 # Authentication
 JWT_SECRET=your_secret_key_here
-JWT_EXPIRATION=1d
+JWT_EXPIRATION=30d
 
 # Swagger
 SWAGGER_TITLE=TiffinMate API
@@ -285,6 +285,12 @@ npm run format
 **Last Updated**: January 2025  
 **Version**: 1.0.0  
 **Maintainer**: Development Team
+
+
+
+
+
+
 
 
 

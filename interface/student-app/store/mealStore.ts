@@ -1,67 +1,193 @@
-import create from 'zustand';
-import { Meal, OrderAdditional, Review } from '@/types';
+import { create } from 'zustand';
+import { Meal } from '@/types';
 import api from '@/utils/apiClient';
+import { getErrorMessage } from '@/utils/errorHandler';
 
 interface MealState {
-  meals: Meal[];
+  // Data
   todayMeals: Meal[];
+  upcomingMeals: Meal[];
+  mealHistory: Meal[];
+  
+  // Loading states
   isLoading: boolean;
+  isLoadingToday: boolean;
+  isLoadingUpcoming: boolean;
+  isLoadingHistory: boolean;
   error: string | null;
-  fetchMeals: () => Promise<void>;
-  fetchTodayMeals: () => Promise<void>;
-  rateMeal: (mealId: string, rating: number, comment: string) => Promise<void>;
+  
+  // Cache management
+  lastFetched: Date | null;
+  lastTodayFetched: Date | null;
+  lastUpcomingFetched: Date | null;
+  lastHistoryFetched: Date | null;
+  
+  // Actions with smart caching
+  fetchTodayMeals: (forceRefresh?: boolean) => Promise<void>;
+  fetchUpcomingMeals: (forceRefresh?: boolean) => Promise<void>;
+  fetchMealHistory: (forceRefresh?: boolean) => Promise<void>;
+  refreshAllMealData: () => Promise<void>;
+  
+  // Meal actions
+  rateMeal: (mealId: string, rating: number, comment?: string) => Promise<void>;
   skipMeal: (mealId: string, reason?: string) => Promise<void>;
+  
+  // Utility
+  clearError: () => void;
 }
 
-export const useMealStore = create<MealState>((set: any, get: any) => ({
-  meals: [],
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const TODAY_CACHE_DURATION = 2 * 60 * 1000; // 2 minutes for today's meals (more frequent updates)
+
+export const useMealStore = create<MealState>((set, get) => ({
+  // Initial state
   todayMeals: [],
+  upcomingMeals: [],
+  mealHistory: [],
   isLoading: false,
+  isLoadingToday: false,
+  isLoadingUpcoming: false,
+  isLoadingHistory: false,
   error: null,
-  
-  fetchMeals: async () => {
-    set({ isLoading: true, error: null });
-    try {
-      // Fetch meal history from real API
-      const meals = await api.meals.getHistory();
-      
-      set({ 
-        meals,
-        isLoading: false 
-      });
-    } catch (error) {
-      console.error('Error fetching meals:', error);
-      set({ 
-        error: error instanceof Error ? error.message : 'Failed to fetch meals', 
-        isLoading: false 
-      });
+  lastFetched: null,
+  lastTodayFetched: null,
+  lastUpcomingFetched: null,
+  lastHistoryFetched: null,
+
+  fetchTodayMeals: async (forceRefresh = false) => {
+    const { lastTodayFetched, isLoadingToday } = get();
+    
+    // Check cache validity
+    if (!forceRefresh && lastTodayFetched && isLoadingToday) {
+      console.log('🔄 MealStore: Already fetching today\'s meals');
+      return;
     }
-  },
-  
-  fetchTodayMeals: async () => {
-    set({ isLoading: true, error: null });
+    
+    if (!forceRefresh && lastTodayFetched && Date.now() - lastTodayFetched.getTime() < TODAY_CACHE_DURATION) {
+      console.log('📦 MealStore: Using cached today\'s meals');
+      return;
+    }
+
+    set({ isLoadingToday: true, isLoading: true, error: null });
     try {
-      // Fetch today's meals from real API
+      console.log('🔔 MealStore: Fetching today\'s meals...');
+      
       const todayMeals = await api.meals.getToday();
+      console.log('✅ MealStore: Today\'s meals fetched:', todayMeals);
       
-      set({ todayMeals, isLoading: false });
-    } catch (error) {
-      console.error('Error fetching today\'s meals:', error);
       set({ 
-        error: error instanceof Error ? error.message : 'Failed to fetch today\'s meals', 
-        isLoading: false 
+        todayMeals,
+        isLoadingToday: false,
+        isLoading: false,
+        lastTodayFetched: new Date(),
+      });
+    } catch (error) {
+      console.error('❌ MealStore: Error fetching today\'s meals:', error);
+      set({ 
+        error: getErrorMessage(error), 
+        isLoadingToday: false,
+        isLoading: false,
       });
     }
   },
-  
-  rateMeal: async (mealId: string, rating: number, comment: string) => {
+
+  fetchUpcomingMeals: async (forceRefresh = false) => {
+    const { lastUpcomingFetched, isLoadingUpcoming } = get();
+    
+    // Check cache validity
+    if (!forceRefresh && lastUpcomingFetched && isLoadingUpcoming) {
+      console.log('🔄 MealStore: Already fetching upcoming meals');
+      return;
+    }
+    
+    if (!forceRefresh && lastUpcomingFetched && Date.now() - lastUpcomingFetched.getTime() < CACHE_DURATION) {
+      console.log('📦 MealStore: Using cached upcoming meals');
+      return;
+    }
+
+    set({ isLoadingUpcoming: true, isLoading: true, error: null });
+    try {
+      console.log('🔔 MealStore: Fetching upcoming meals...');
+      
+      const upcomingMeals = await api.meals.getUpcoming();
+      console.log('✅ MealStore: Upcoming meals fetched:', upcomingMeals);
+      
+      set({ 
+        upcomingMeals,
+        isLoadingUpcoming: false,
+        isLoading: false,
+        lastUpcomingFetched: new Date(),
+      });
+    } catch (error) {
+      console.error('❌ MealStore: Error fetching upcoming meals:', error);
+      set({ 
+        error: getErrorMessage(error), 
+        isLoadingUpcoming: false,
+        isLoading: false,
+      });
+    }
+  },
+
+  fetchMealHistory: async (forceRefresh = false) => {
+    const { lastHistoryFetched, isLoadingHistory } = get();
+    
+    // Check cache validity
+    if (!forceRefresh && lastHistoryFetched && isLoadingHistory) {
+      console.log('🔄 MealStore: Already fetching meal history');
+      return;
+    }
+    
+    if (!forceRefresh && lastHistoryFetched && Date.now() - lastHistoryFetched.getTime() < CACHE_DURATION) {
+      console.log('📦 MealStore: Using cached meal history');
+      return;
+    }
+
+    set({ isLoadingHistory: true, isLoading: true, error: null });
+    try {
+      console.log('🔔 MealStore: Fetching meal history...');
+      
+      const mealHistory = await api.meals.getHistory();
+      console.log('✅ MealStore: Meal history fetched:', mealHistory);
+      
+      set({ 
+        mealHistory,
+        isLoadingHistory: false,
+        isLoading: false,
+        lastHistoryFetched: new Date(),
+      });
+    } catch (error) {
+      console.error('❌ MealStore: Error fetching meal history:', error);
+      set({ 
+        error: getErrorMessage(error), 
+        isLoadingHistory: false,
+        isLoading: false,
+      });
+    }
+  },
+
+  refreshAllMealData: async () => {
+    console.log('🔄 MealStore: Refreshing all meal data...');
+    
+    // Force refresh all data
+    await Promise.all([
+      get().fetchTodayMeals(true),
+      get().fetchUpcomingMeals(true),
+      get().fetchMealHistory(true),
+    ]);
+    
+    console.log('✅ MealStore: All meal data refreshed');
+  },
+
+  rateMeal: async (mealId: string, rating: number, comment?: string) => {
     set({ isLoading: true, error: null });
     try {
-      // Submit rating to real API
+      console.log('🔔 MealStore: Rating meal:', mealId, 'with rating:', rating);
+      
       await api.meals.rateMeal(mealId, rating, comment);
+      console.log('✅ MealStore: Meal rated successfully');
       
       // Update local state to reflect the rating
-      const { meals, todayMeals } = get();
+      const { todayMeals, upcomingMeals, mealHistory } = get();
       
       const updateMealRating = (meal: Meal) => {
         if (meal.id === mealId) {
@@ -74,32 +200,64 @@ export const useMealStore = create<MealState>((set: any, get: any) => ({
         return meal;
       };
       
-      set({ 
-        meals: meals.map(updateMealRating),
+      set({
         todayMeals: todayMeals.map(updateMealRating),
-        isLoading: false 
+        upcomingMeals: upcomingMeals.map(updateMealRating),
+        mealHistory: mealHistory.map(updateMealRating),
+        isLoading: false
       });
     } catch (error) {
-      console.error('Error rating meal:', error);
+      console.error('❌ MealStore: Error rating meal:', error);
       set({ 
-        error: error instanceof Error ? error.message : 'Failed to submit review', 
+        error: getErrorMessage(error), 
         isLoading: false 
       });
+      throw error; // Re-throw for UI handling
     }
   },
-  
+
   skipMeal: async (mealId: string, reason?: string) => {
     set({ isLoading: true, error: null });
     try {
+      console.log('🔔 MealStore: Skipping meal:', mealId, 'with reason:', reason);
+      
       await api.meals.skipMeal(mealId, reason);
-      // You might want to update the local state here as well
-      set({ isLoading: false });
-    } catch (error) {
-      console.error('Error skipping meal:', error);
+      console.log('✅ MealStore: Meal skipped successfully');
+      
+      // Update local state to reflect the skip
+      const { todayMeals, upcomingMeals, mealHistory } = get();
+      
+      const updateMealStatus = (meal: Meal) => {
+        if (meal.id === mealId) {
+          return {
+            ...meal,
+            status: 'skipped' as const
+          };
+        }
+        return meal;
+      };
+      
       set({
-        error: 'Failed to skip meal',
-        isLoading: false,
+        todayMeals: todayMeals.map(updateMealStatus),
+        upcomingMeals: upcomingMeals.map(updateMealStatus),
+        mealHistory: mealHistory.map(updateMealStatus),
+        isLoading: false
       });
+    } catch (error) {
+      console.error('❌ MealStore: Error skipping meal:', error);
+      set({ 
+        error: getErrorMessage(error), 
+        isLoading: false 
+      });
+      throw error; // Re-throw for UI handling
     }
+  },
+
+  clearError: () => set({ error: null }),
+
+  // Legacy methods for backward compatibility
+  fetchMeals: async () => {
+    console.log('⚠️ MealStore: fetchMeals is deprecated, use fetchMealHistory');
+    return get().fetchMealHistory();
   },
 }));

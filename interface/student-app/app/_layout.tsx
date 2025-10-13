@@ -7,6 +7,9 @@ import { Text, View, StyleSheet, ActivityIndicator } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from '@/context/AuthProvider';
 import { ThemeProvider, DefaultTheme } from '@react-navigation/native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import NotificationContainer from '@/components/NotificationContainer';
+import { nativeWebSocketService } from '@/services/nativeWebSocketService';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -35,6 +38,11 @@ export default function RootLayout() {
   useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
+      
+      // Initialize native WebSocket service
+      nativeWebSocketService.initialize().catch((error) => {
+        console.warn('⚠️ Native WebSocket initialization failed:', error);
+      });
     }
   }, [fontsLoaded, fontError]);
 
@@ -49,19 +57,23 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={customTheme}>
-      <AuthProvider>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: '#FFFAF0' },
-          }}
-        >
-          {/* File-based routes are automatically discovered */}
-        </Stack>
-        <StatusBar style="dark" />
-      </AuthProvider>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider value={customTheme}>
+        <AuthProvider>
+          <NotificationContainer>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: '#FFFAF0' },
+              }}
+            >
+              {/* File-based routes are automatically discovered */}
+            </Stack>
+          </NotificationContainer>
+          <StatusBar style="dark" />
+        </AuthProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 

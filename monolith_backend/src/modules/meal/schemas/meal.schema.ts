@@ -25,6 +25,12 @@ export class Meal {
   @Prop({ required: true })
   id: string;
 
+  @Prop({ type: String })
+  name: string;
+
+  @Prop({ type: String })
+  image?: string;
+
   @Prop({
     required: true,
     enum: MealType,

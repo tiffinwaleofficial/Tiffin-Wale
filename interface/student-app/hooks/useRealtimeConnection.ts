@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
-import { useRealtimeStore } from '../store/realtimeStore';
-import { useNotificationStore } from '../store/notificationStore';
+import { useRealtimeStore, initializeRealtimeConnection } from '../store/realtimeStore';
 
 /**
  * Hook to initialize real-time connections
@@ -8,29 +7,11 @@ import { useNotificationStore } from '../store/notificationStore';
  */
 export const useRealtimeConnection = () => {
   const { connect, isConnected, isConnecting } = useRealtimeStore();
-  const { subscribeToWebSocketNotifications } = useNotificationStore();
 
   useEffect(() => {
-    // Initialize WebSocket connection
-    const initializeConnection = async () => {
-      if (!isConnected && !isConnecting) {
-        try {
-          await connect();
-        } catch (error) {
-          console.error('Failed to initialize real-time connection:', error);
-        }
-      }
-    };
-
-    initializeConnection();
+    // Initialize realtime connection
+    initializeRealtimeConnection();
   }, []);
-
-  useEffect(() => {
-    // Subscribe to notifications when connected
-    if (isConnected) {
-      subscribeToWebSocketNotifications();
-    }
-  }, [isConnected, subscribeToWebSocketNotifications]);
 
   return {
     isConnected,
@@ -42,17 +23,19 @@ export const useRealtimeConnection = () => {
  * Hook to manage real-time order tracking
  */
 export const useRealtimeOrderTracking = (orderId: string) => {
-  const { subscribeToOrderUpdates, unsubscribeFromOrderUpdates } = useNotificationStore();
+  const { sendMessage } = useRealtimeStore();
 
   useEffect(() => {
     if (orderId) {
-      subscribeToOrderUpdates(orderId);
+      // Join order room for real-time updates
+      sendMessage('join_order_room', { orderId });
       
       return () => {
-        unsubscribeFromOrderUpdates(orderId);
+        // Leave order room when component unmounts
+        sendMessage('leave_order_room', { orderId });
       };
     }
-  }, [orderId, subscribeToOrderUpdates, unsubscribeFromOrderUpdates]);
+  }, [orderId, sendMessage]);
 };
 
 /**
@@ -71,6 +54,11 @@ export const useRealtimeStatus = () => {
 };
 
 export default useRealtimeConnection;
+
+
+
+
+
 
 
 

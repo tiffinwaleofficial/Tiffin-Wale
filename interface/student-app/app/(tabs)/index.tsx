@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView, StyleSheet, Text, TouchableOpacity, RefreshControl, ActivityIndicator, Image } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Bell, Calendar, MapPin, Clock, Star } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -25,11 +25,12 @@ export default function HomeScreen() {
   const { 
     currentSubscription, 
     isLoading: subscriptionLoading, 
-    fetchUserSubscriptions 
+    fetchCurrentSubscription 
   } = useSubscriptionStore();
   const { 
-    unreadCount, 
-    fetchNotifications 
+    getUnreadCount, 
+    notifications,
+    fetchNotifications
   } = useNotificationStore();
   const {
     restaurants,
@@ -39,38 +40,53 @@ export default function HomeScreen() {
   
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch initial data
+  // Fetch initial data with fresh subscription status
   useEffect(() => {
     const loadInitialData = async () => {
       if (user?.id) {
+        console.log('🔄 Dashboard: Loading fresh data for user:', user.id);
         await Promise.all([
-          fetchTodayMeals(),
-          fetchUserSubscriptions(),
-          fetchNotifications(user.id),
-          fetchRestaurants(),
+          fetchTodayMeals(true), // Force refresh meals
+          fetchCurrentSubscription(true), // Force refresh current subscription
+          fetchRestaurants(), // Fetch restaurants
+          fetchNotifications(user.id, true), // Force refresh notifications
         ]);
+        console.log('✅ Dashboard: Fresh data loaded successfully');
       }
     };
 
     loadInitialData();
-  }, [user?.id, fetchTodayMeals, fetchUserSubscriptions, fetchNotifications, fetchRestaurants]);
+  }, [user?.id, fetchTodayMeals, fetchCurrentSubscription, fetchRestaurants, fetchNotifications]);
+
+  // Refresh subscription and notification data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user?.id) {
+        console.log('🔄 Dashboard: Screen focused, refreshing subscription and notification data');
+        fetchCurrentSubscription(true); // Force refresh current subscription status
+        fetchNotifications(user.id, true); // Force refresh notifications
+      }
+    }, [user?.id, fetchCurrentSubscription, fetchNotifications])
+  );
 
   // Pull to refresh handler
   const onRefresh = async () => {
     setRefreshing(true);
     try {
       if (user?.id) {
+        console.log('🔄 Dashboard: Manual refresh triggered');
         await Promise.all([
-          fetchTodayMeals(),
-          fetchUserSubscriptions(),
-          fetchNotifications(user.id),
-          fetchRestaurants(),
+          fetchTodayMeals(true), // Force refresh meals
+          fetchCurrentSubscription(true), // Force refresh current subscription
+          fetchRestaurants(), // Fetch restaurants
+          fetchNotifications(user.id, true), // Force refresh notifications
         ]);
+        console.log('✅ Dashboard: Manual refresh completed');
       }
     } catch (error) {
-      console.error('Error refreshing data:', error);
+      console.error('❌ Dashboard: Error refreshing data:', error);
     } finally {
-    setRefreshing(false);
+      setRefreshing(false);
     }
   };
 
@@ -147,10 +163,10 @@ export default function HomeScreen() {
             onPress={() => router.push('/notifications' as never)}
           >
             <Bell size={24} color="#333333" />
-            {unreadCount > 0 && (
+            {getUnreadCount() > 0 && (
               <View style={styles.notificationBadge}>
                 <Text style={styles.notificationBadgeText}>
-                  {unreadCount > 99 ? '99+' : unreadCount}
+                  {getUnreadCount() > 99 ? '99+' : getUnreadCount()}
                 </Text>
               </View>
             )}
@@ -177,38 +193,50 @@ export default function HomeScreen() {
               <Text style={styles.loadingText}>Loading subscription...</Text>
             </View>
           ) : currentSubscription ? (
-      <ActiveSubscriptionDashboard 
-        user={user} 
-        todayMeals={todayMeals} 
-              isLoading={mealsLoading}
-            />
+            <>
+              {console.log('🔍 Dashboard: Rendering ActiveSubscriptionDashboard with subscription:', {
+                id: currentSubscription.id,
+                status: currentSubscription.status,
+                planName: currentSubscription.plan?.name
+              })}
+              <ActiveSubscriptionDashboard 
+                user={user} 
+                todayMeals={todayMeals} 
+                isLoading={mealsLoading}
+              />
+            </>
           ) : (
-            <NoSubscriptionDashboard />
+            <>
+              {console.log('🔍 Dashboard: Rendering NoSubscriptionDashboard - no current subscription found')}
+              <NoSubscriptionDashboard />
+            </>
           )}
         </Animated.View>
 
-        {/* Explore Restaurants */}
-        <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Explore Restaurants</Text>
-          {restaurantsLoading ? (
-            <ActivityIndicator style={{ marginTop: 20 }} size="large" color="#FF9B42" />
-          ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.restaurantList}>
-              {restaurants.map(restaurant => (
-                <TouchableOpacity key={restaurant.id} style={styles.restaurantCard} onPress={() => router.push(`/restaurant/${restaurant.id}`)}>
-                  <Image source={{ uri: restaurant.image }} style={styles.restaurantImage} />
-                  <View style={styles.restaurantInfo}>
-                    <Text style={styles.restaurantName} numberOfLines={1}>{restaurant.name}</Text>
-                    <View style={styles.restaurantRating}>
-                      <Star size={14} color="#FFD700" fill="#FFD700" />
-                      <Text style={styles.restaurantRatingText}>{restaurant.rating}</Text>
+        {/* Explore Restaurants - Only show when restaurants exist */}
+        {restaurants.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.section}>
+            <Text style={styles.sectionTitle}>Explore Restaurants</Text>
+            {restaurantsLoading ? (
+              <ActivityIndicator style={{ marginTop: 20 }} size="large" color="#FF9B42" />
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.restaurantList}>
+                {restaurants.map(restaurant => (
+                  <TouchableOpacity key={restaurant.id} style={styles.restaurantCard} onPress={() => router.push(`/restaurant/${restaurant.id}`)}>
+                    <Image source={{ uri: restaurant.image }} style={styles.restaurantImage} />
+                    <View style={styles.restaurantInfo}>
+                      <Text style={styles.restaurantName} numberOfLines={1}>{restaurant.name}</Text>
+                      <View style={styles.restaurantRating}>
+                        <Star size={14} color="#FFD700" fill="#FFD700" />
+                        <Text style={styles.restaurantRatingText}>{restaurant.rating}</Text>
+                      </View>
                     </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
-        </Animated.View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+          </Animated.View>
+        )}
 
         {/* Today's Meals - Only show when no active subscription */}
         {!currentSubscription && (
@@ -228,7 +256,7 @@ export default function HomeScreen() {
             <View style={styles.errorCard}>
               <Text style={styles.errorText}>{mealsError}</Text>
               <TouchableOpacity 
-                onPress={fetchTodayMeals}
+                onPress={() => fetchTodayMeals()}
                 style={styles.retryButton}
               >
                 <Text style={styles.retryButtonText}>Retry</Text>

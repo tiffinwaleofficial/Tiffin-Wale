@@ -21,6 +21,7 @@ import {
   ApiParam,
 } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { GetCurrentUser } from "../../common/decorators/user.decorator";
 
 @ApiTags("Subscriptions")
 @Controller("subscriptions")
@@ -49,6 +50,33 @@ export class SubscriptionController {
   @ApiResponse({ status: 401, description: "Unauthorized." })
   findAll() {
     return this.subscriptionService.findAll();
+  }
+
+  @Get("me/current")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get current active subscription for authenticated user" })
+  @ApiResponse({
+    status: 200,
+    description: "Return current active subscription.",
+  })
+  @ApiResponse({ status: 401, description: "Unauthorized." })
+  @ApiResponse({ status: 404, description: "No active subscription found." })
+  getCurrentSubscription(@GetCurrentUser("_id") userId: string) {
+    return this.subscriptionService.getCurrentSubscription(userId);
+  }
+
+  @Get("me/all")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get all subscriptions for authenticated user" })
+  @ApiResponse({
+    status: 200,
+    description: "Return all user subscriptions.",
+  })
+  @ApiResponse({ status: 401, description: "Unauthorized." })
+  getAllUserSubscriptions(@GetCurrentUser("_id") userId: string) {
+    return this.subscriptionService.findByCustomer(userId);
   }
 
   @Get("customer/:customerId")

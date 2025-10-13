@@ -44,4 +44,12 @@ export class CreateUserDto {
   @IsString()
   @IsOptional()
   phoneNumber?: string;
+
+  @ApiPropertyOptional({
+    example: "https://example.com/profile.jpg",
+    description: "Profile image URL",
+  })
+  @IsString()
+  @IsOptional()
+  profileImage?: string;
 }

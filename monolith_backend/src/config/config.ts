@@ -15,7 +15,7 @@ export const databaseConfig = registerAs("database", () => ({
 
 export const jwtConfig = registerAs("jwt", () => ({
   secret: process.env.JWT_SECRET,
-  expiresIn: process.env.JWT_EXPIRATION || "1d",
+  expiresIn: process.env.JWT_EXPIRATION || "30d",
 }));
 
 export const swaggerConfig = registerAs("swagger", () => ({

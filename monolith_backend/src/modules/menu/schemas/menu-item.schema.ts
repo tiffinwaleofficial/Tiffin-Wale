@@ -16,14 +16,26 @@ export class MenuItem extends Document {
   @Prop()
   imageUrl: string;
 
+  @Prop({ type: [String], default: [] })
+  images: string[]; // Multiple images for each menu item
+
   @Prop({ required: true, type: MongooseSchema.Types.ObjectId, ref: "User" })
   businessPartner: User | string;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: "Category" })
   category: string;
 
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: "Menu" })
+  menu?: string; // Optional menu grouping
+
   @Prop({ default: true })
   isAvailable: boolean;
+
+  @Prop({ type: Number, default: 0 })
+  averageRating: number;
+
+  @Prop({ type: Number, default: 0 })
+  totalReviews: number;
 
   @Prop()
   tags: string[];

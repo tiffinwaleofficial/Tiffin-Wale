@@ -62,11 +62,13 @@ export default function Signup() {
     try {
       await register(userData);
       console.log('✅ Registration successful');
+      // Don't clear form fields on success - let the redirect handle it
       if (!error) {
         router.replace('/dashboard');
       }
     } catch (err) {
-      console.error('❌ Registration failed:', err);
+      console.error('❌ Registration failed, keeping form fields:', err);
+      // Form fields are preserved automatically by useState
     }
   };
 

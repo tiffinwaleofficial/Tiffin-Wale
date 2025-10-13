@@ -3,6 +3,7 @@ import { View, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
 import { useMealStore } from '@/store/mealStore';
+import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { ActiveSubscriptionDashboard } from '@/components/ActiveSubscriptionDashboard';
 import { Home, ClipboardList, MapPin, User, CreditCard } from 'lucide-react-native';
 import { TouchableOpacity } from 'react-native';
@@ -11,25 +12,76 @@ import { ProtectedRoute } from '@/components/RouteGuard';
 export default function DashboardScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { todayMeals, fetchTodayMeals, isLoading: mealsLoading } = useMealStore();
+  const { 
+    todayMeals, 
+    upcomingMeals, 
+    fetchTodayMeals, 
+    fetchUpcomingMeals, 
+    refreshAllMealData,
+    isLoading: mealsLoading 
+  } = useMealStore();
+  const { 
+    currentSubscription, 
+    fetchCurrentSubscription, 
+    refreshSubscriptionData,
+    isLoading: subscriptionLoading 
+  } = useSubscriptionStore();
 
+  // Initialize data on mount
   useEffect(() => {
-    // Fetch today's meals on mount
-    fetchTodayMeals();
-    
-    // Fetch user subscriptions to update status
-    const fetchSubscriptions = async () => {
+    const initializeDashboard = async () => {
+      console.log('🔔 Dashboard: Initializing dashboard data...');
+      
       try {
-        const { useSubscriptionStore } = await import('@/store/subscriptionStore');
-        const { fetchUserSubscriptions } = useSubscriptionStore.getState();
-        await fetchUserSubscriptions();
+        // Fetch all data in parallel for better performance
+        await Promise.all([
+          fetchTodayMeals(),
+          fetchUpcomingMeals(),
+          fetchCurrentSubscription(),
+        ]);
+        
+        console.log('✅ Dashboard: All data initialized successfully');
       } catch (error) {
-        console.error('Error fetching subscriptions:', error);
+        console.error('❌ Dashboard: Error initializing data:', error);
       }
     };
     
-    fetchSubscriptions();
+    initializeDashboard();
   }, []);
+
+  // Refresh data when user changes (login/logout)
+  useEffect(() => {
+    if (user?.id) {
+      const refreshUserData = async () => {
+        console.log('🔔 Dashboard: User changed, refreshing data for user:', user.id);
+        
+        try {
+          await Promise.all([
+            refreshAllMealData(),
+            refreshSubscriptionData(),
+          ]);
+          
+          console.log('✅ Dashboard: User data refreshed successfully');
+        } catch (error) {
+          console.error('❌ Dashboard: Error refreshing user data:', error);
+        }
+      };
+      
+      refreshUserData();
+    }
+  }, [user?.id]);
+
+  // Debug logging for data state
+  useEffect(() => {
+    console.log('🔔 Dashboard: Data state update:', {
+      currentSubscription,
+      userSubscription: (user as any)?.currentSubscription,
+      todayMealsCount: todayMeals.length,
+      upcomingMealsCount: upcomingMeals.length,
+      isLoadingMeals: mealsLoading,
+      isLoadingSubscription: subscriptionLoading,
+    });
+  }, [currentSubscription, user, todayMeals, upcomingMeals, mealsLoading, subscriptionLoading]);
 
   const navigateTo = (route: string) => {
     console.log('🔍 Dashboard navigateTo called with route:', route);
@@ -52,7 +104,8 @@ export default function DashboardScreen() {
         <ActiveSubscriptionDashboard 
           user={user} 
           todayMeals={todayMeals} 
-          isLoading={mealsLoading} 
+          upcomingMeals={upcomingMeals}
+          isLoading={mealsLoading || subscriptionLoading} 
         />
         
         {/* Bottom Navigation Bar */}

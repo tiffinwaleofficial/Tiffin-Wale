@@ -69,6 +69,25 @@ export class MealService {
       .exec();
   }
 
+  async getUpcomingMeals(userId: string): Promise<Meal[]> {
+    const now = new Date();
+    
+    return this.mealModel
+      .find({
+        userId: userId,
+        date: {
+          $gt: now,
+        },
+        status: {
+          $in: [MealStatus.SCHEDULED, MealStatus.PREPARING, MealStatus.READY],
+        },
+      })
+      .populate("restaurantId", "name address")
+      .sort({ date: 1 })
+      .limit(10)
+      .exec();
+  }
+
   async updateStatus(id: string, status: MealStatus): Promise<Meal> {
     const meal = await this.findById(id);
 

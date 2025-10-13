@@ -1,259 +1,265 @@
 import { create } from 'zustand';
+import { Subscription, Plan } from '@/types';
 import api from '@/utils/apiClient';
-import { Subscription, SubscriptionPlan } from '@/types/api';
 import { getErrorMessage } from '@/utils/errorHandler';
 
 interface SubscriptionState {
-  plans: SubscriptionPlan[];
-  activePlans: SubscriptionPlan[];
-  userSubscriptions: Subscription[];
+  // Data
   currentSubscription: Subscription | null;
+  allSubscriptions: Subscription[];
+  availablePlans: Plan[];
+  
+  // Loading states
   isLoading: boolean;
+  isLoadingPlans: boolean;
   error: string | null;
   
-  // Plan actions
-  fetchPlans: () => Promise<void>;
-  fetchActivePlans: () => Promise<void>;
+  // Cache management
+  lastFetched: Date | null;
+  lastPlansFetched: Date | null;
   
-  // Subscription actions
-  fetchUserSubscriptions: () => Promise<void>;
-  createSubscription: (planId: string, paymentMethodId?: string) => Promise<void>;
+  // Actions
+  fetchCurrentSubscription: (forceRefresh?: boolean) => Promise<void>;
+  fetchAllSubscriptions: (forceRefresh?: boolean) => Promise<void>;
+  fetchAvailablePlans: (forceRefresh?: boolean) => Promise<void>;
+  createSubscription: (planId: string) => Promise<void>;
+  cancelSubscription: (subscriptionId: string, reason: string) => Promise<void>;
   pauseSubscription: (subscriptionId: string) => Promise<void>;
   resumeSubscription: (subscriptionId: string) => Promise<void>;
-  cancelSubscription: (subscriptionId: string) => Promise<void>;
+  refreshSubscriptionData: () => Promise<void>;
+  clearError: () => void;
 }
 
-export const useSubscriptionStore = create<SubscriptionState>((set: any) => ({
-  plans: [],
-  activePlans: [],
-  userSubscriptions: [],
+const CACHE_DURATION = 1 * 60 * 1000; // 1 minute (reduced for better freshness)
+
+export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
+  // Initial state
   currentSubscription: null,
+  allSubscriptions: [],
+  availablePlans: [],
   isLoading: false,
+  isLoadingPlans: false,
   error: null,
-  
-  fetchPlans: async () => {
+  lastFetched: null,
+  lastPlansFetched: null,
+
+  fetchCurrentSubscription: async (forceRefresh = false) => {
+    const { lastFetched, isLoading } = get();
+    
+    // Check cache validity
+    if (!forceRefresh && lastFetched && isLoading) {
+      console.log('🔄 SubscriptionStore: Already fetching current subscription');
+      return;
+    }
+    
+    if (!forceRefresh && lastFetched && Date.now() - lastFetched.getTime() < CACHE_DURATION) {
+      console.log('📦 SubscriptionStore: Using cached current subscription');
+      return;
+    }
+
     set({ isLoading: true, error: null });
     try {
-      const plans = await api.subscriptionPlans.getAll();
-      set({ plans, isLoading: false });
-    } catch (error) {
-      console.error('Error fetching subscription plans:', error);
-      const errorMessage = getErrorMessage(error);
+      console.log('🔔 SubscriptionStore: Fetching current subscription...');
+      
+      const currentSubscription = await api.subscriptions.getCurrent();
+      console.log('✅ SubscriptionStore: Current subscription fetched:', currentSubscription);
+      
       set({ 
-        error: errorMessage, 
+        currentSubscription,
+        isLoading: false,
+        lastFetched: new Date(),
+      });
+    } catch (error) {
+      console.error('❌ SubscriptionStore: Error fetching current subscription:', error);
+      set({ 
+        error: getErrorMessage(error), 
         isLoading: false 
       });
     }
   },
-  
-  fetchActivePlans: async () => {
-    set({ isLoading: true, error: null });
-    try {
-      const activePlans = await api.subscriptionPlans.getActive();
-      set({ activePlans, isLoading: false });
-    } catch (error) {
-      console.error('Error fetching active plans:', error);
-      set({ 
-        error: error instanceof Error ? error.message : 'Failed to fetch active plans', 
-        isLoading: false 
-      });
+
+  fetchAllSubscriptions: async (forceRefresh = false) => {
+    const { lastFetched, isLoading } = get();
+    
+    // Check cache validity
+    if (!forceRefresh && lastFetched && isLoading) {
+      console.log('🔄 SubscriptionStore: Already fetching all subscriptions');
+      return;
     }
-  },
-  
-  fetchUserSubscriptions: async () => {
+    
+    if (!forceRefresh && lastFetched && Date.now() - lastFetched.getTime() < CACHE_DURATION) {
+      console.log('📦 SubscriptionStore: Using cached all subscriptions');
+      return;
+    }
+
     set({ isLoading: true, error: null });
     try {
-      // Import authStore to get current user ID
-      const { useAuthStore } = await import('./authStore');
-      const userId = useAuthStore.getState().user?.id;
+      console.log('🔔 SubscriptionStore: Fetching all subscriptions...');
       
-      if (!userId) {
-        throw new Error('User not authenticated');
-      }
+      const allSubscriptions = await api.subscriptions.getAll();
+      console.log('✅ SubscriptionStore: All subscriptions fetched:', allSubscriptions);
       
-      const subscriptions = await api.subscriptions.getByCustomer(userId);
-      // Consider both 'active' and 'pending' subscriptions as valid
-      const activeSubscription = subscriptions.find((sub: Subscription) => 
-        sub.status === 'active' || sub.status === 'pending'
+      // Find current active subscription from all subscriptions
+      const currentSubscription = allSubscriptions.find(
+        (sub: Subscription) => sub.status === 'active' || sub.status === 'pending'
       ) || null;
       
       set({ 
-        userSubscriptions: subscriptions,
-        currentSubscription: activeSubscription,
-        isLoading: false 
+        allSubscriptions,
+        currentSubscription,
+        isLoading: false,
+        lastFetched: new Date(),
       });
     } catch (error) {
-      console.error('Error fetching user subscriptions:', error);
-      const errorMessage = getErrorMessage(error);
+      console.error('❌ SubscriptionStore: Error fetching all subscriptions:', error);
       set({ 
-        error: errorMessage, 
+        error: getErrorMessage(error), 
         isLoading: false 
       });
     }
   },
-  
-  createSubscription: async (planId: string, paymentMethodId?: string) => {
+
+  fetchAvailablePlans: async (forceRefresh = false) => {
+    const { lastPlansFetched, isLoadingPlans } = get();
+    
+    // Check cache validity
+    if (!forceRefresh && lastPlansFetched && isLoadingPlans) {
+      console.log('🔄 SubscriptionStore: Already fetching available plans');
+      return;
+    }
+    
+    if (!forceRefresh && lastPlansFetched && Date.now() - lastPlansFetched.getTime() < CACHE_DURATION) {
+      console.log('📦 SubscriptionStore: Using cached available plans');
+      return;
+    }
+
+    set({ isLoadingPlans: true, error: null });
+    try {
+      console.log('🔔 SubscriptionStore: Fetching available plans...');
+      
+      // Use the existing subscription plan API
+      const availablePlans = await api.subscriptionPlans.getAll();
+      console.log('✅ SubscriptionStore: Available plans fetched:', availablePlans);
+      
+      set({ 
+        availablePlans,
+        isLoadingPlans: false,
+        lastPlansFetched: new Date(),
+      });
+    } catch (error) {
+      console.error('❌ SubscriptionStore: Error fetching available plans:', error);
+      set({ 
+        error: getErrorMessage(error), 
+        isLoadingPlans: false 
+      });
+    }
+  },
+
+  createSubscription: async (planId: string) => {
     set({ isLoading: true, error: null });
     try {
-      // Import authStore to get current user ID
-      const { useAuthStore } = await import('./authStore');
-      const userId = useAuthStore.getState().user?.id;
+      console.log('🔔 SubscriptionStore: Creating subscription for plan:', planId);
       
-      if (!userId) {
-        throw new Error('User not authenticated');
-      }
+      const newSubscription = await api.subscriptions.create(planId);
+      console.log('✅ SubscriptionStore: Subscription created:', newSubscription);
       
-      // Get the plan details to calculate end date and amount
-      const plan = await api.subscriptionPlans.getById(planId);
-      
-      console.log('📋 Plan data received:', plan);
-      
-      if (!plan) {
-        throw new Error('Subscription plan not found');
-      }
-      
-      // Calculate start and end dates based on plan duration
-      const startDate = new Date();
-      const endDate = new Date();
-      
-      // Handle plan duration - use durationValue and durationType from the actual plan data
-      let durationInDays = 30; // Default to 30 days
-      
-      if (plan.durationValue && plan.durationType) {
-        if (plan.durationType === 'month') {
-          durationInDays = plan.durationValue * 30;
-        } else if (plan.durationType === 'day') {
-          durationInDays = plan.durationValue;
-        }
-      } else if (plan.duration) {
-        // Fallback to plan.duration if available
-        durationInDays = plan.duration;
-      }
-      
-      // Ensure we have a valid duration
-      if (!durationInDays || isNaN(durationInDays) || durationInDays <= 0) {
-        durationInDays = 30; // Default to 30 days
-      }
-      
-      endDate.setDate(endDate.getDate() + durationInDays);
-      
-      // Validate dates before proceeding
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        throw new Error('Invalid date calculation');
-      }
-      
-      console.log('📅 Date calculation:', {
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        planDuration: durationInDays,
-        planDurationValue: plan.durationValue,
-        planDurationType: plan.durationType,
-        planDurationFallback: plan.duration,
-        planData: {
-          id: plan.id,
-          name: plan.name,
-          price: plan.price,
-          discountedPrice: plan.discountedPrice
-        }
-      });
-      
-      // Prepare subscription data with all required fields
-      const subscriptionData = {
-        customer: userId,
-        plan: planId,
-        startDate: startDate,
-        endDate: endDate,
-        totalAmount: plan.discountedPrice || plan.price,
-        autoRenew: false,
-        paymentId: paymentMethodId,
-        isPaid: false, // Will be set to true after payment confirmation
-      };
-      
-      console.log('📤 Creating subscription with data:', subscriptionData);
-      
-      const newSubscription = await api.subscriptions.create(subscriptionData);
-      
-      console.log('✅ Subscription created successfully:', newSubscription);
-      
-      set((state: any) => ({
-        userSubscriptions: [...state.userSubscriptions, newSubscription],
-        currentSubscription: newSubscription,
-        isLoading: false
-      }));
+      // Refresh data after creation
+      await get().refreshSubscriptionData();
     } catch (error) {
-      console.error('❌ Error creating subscription:', error);
+      console.error('❌ SubscriptionStore: Error creating subscription:', error);
       set({ 
-        error: error instanceof Error ? error.message : 'Failed to create subscription', 
+        error: getErrorMessage(error), 
         isLoading: false 
       });
-      throw error; // Re-throw so the UI can handle it
+      throw error; // Re-throw for UI handling
     }
   },
-  
+
+  cancelSubscription: async (subscriptionId: string, reason: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      console.log('🔔 SubscriptionStore: Cancelling subscription:', subscriptionId);
+      
+      await api.subscriptions.cancel(subscriptionId, reason);
+      console.log('✅ SubscriptionStore: Subscription cancelled');
+      
+      // Refresh data after cancellation
+      await get().refreshSubscriptionData();
+    } catch (error) {
+      console.error('❌ SubscriptionStore: Error cancelling subscription:', error);
+      set({ 
+        error: getErrorMessage(error), 
+        isLoading: false 
+      });
+    }
+  },
+
   pauseSubscription: async (subscriptionId: string) => {
     set({ isLoading: true, error: null });
     try {
-      const updatedSubscription = await api.subscriptions.pause(subscriptionId);
+      console.log('🔔 SubscriptionStore: Pausing subscription:', subscriptionId);
       
-      set((state: any) => ({
-        userSubscriptions: state.userSubscriptions.map((sub: any) => 
-          sub.id === subscriptionId ? updatedSubscription : sub
-        ),
-        currentSubscription: state.currentSubscription?.id === subscriptionId 
-          ? updatedSubscription 
-          : state.currentSubscription,
-        isLoading: false
-      }));
+      await api.subscriptions.pause(subscriptionId);
+      console.log('✅ SubscriptionStore: Subscription paused');
+      
+      // Refresh data after pausing
+      await get().refreshSubscriptionData();
     } catch (error) {
-      console.error('Error pausing subscription:', error);
+      console.error('❌ SubscriptionStore: Error pausing subscription:', error);
       set({ 
-        error: error instanceof Error ? error.message : 'Failed to pause subscription', 
+        error: getErrorMessage(error), 
         isLoading: false 
       });
     }
   },
-  
+
   resumeSubscription: async (subscriptionId: string) => {
     set({ isLoading: true, error: null });
     try {
-      const updatedSubscription = await api.subscriptions.resume(subscriptionId);
+      console.log('🔔 SubscriptionStore: Resuming subscription:', subscriptionId);
       
-      set((state: any) => ({
-        userSubscriptions: state.userSubscriptions.map((sub: any) => 
-          sub.id === subscriptionId ? updatedSubscription : sub
-        ),
-        currentSubscription: updatedSubscription,
-        isLoading: false
-      }));
+      await api.subscriptions.resume(subscriptionId);
+      console.log('✅ SubscriptionStore: Subscription resumed');
+      
+      // Refresh data after resuming
+      await get().refreshSubscriptionData();
     } catch (error) {
-      console.error('Error resuming subscription:', error);
+      console.error('❌ SubscriptionStore: Error resuming subscription:', error);
       set({ 
-        error: error instanceof Error ? error.message : 'Failed to resume subscription', 
+        error: getErrorMessage(error), 
         isLoading: false 
       });
     }
   },
-  
-  cancelSubscription: async (subscriptionId: string) => {
-    set({ isLoading: true, error: null });
-    try {
-      const updatedSubscription = await api.subscriptions.cancel(subscriptionId);
-      
-      set((state: any) => ({
-        userSubscriptions: state.userSubscriptions.map((sub: any) => 
-          sub.id === subscriptionId ? updatedSubscription : sub
-        ),
-        currentSubscription: state.currentSubscription?.id === subscriptionId 
-          ? null 
-          : state.currentSubscription,
-        isLoading: false
-      }));
-    } catch (error) {
-      console.error('Error cancelling subscription:', error);
-      set({ 
-        error: error instanceof Error ? error.message : 'Failed to cancel subscription', 
-        isLoading: false 
-      });
-    }
+
+  refreshSubscriptionData: async () => {
+    console.log('🔄 SubscriptionStore: Refreshing all subscription data...');
+    
+    // Force refresh all data
+    await Promise.all([
+      get().fetchCurrentSubscription(true),
+      get().fetchAllSubscriptions(true),
+      get().fetchAvailablePlans(true),
+    ]);
+    
+    console.log('✅ SubscriptionStore: All subscription data refreshed');
   },
-})); 
+
+  clearError: () => set({ error: null }),
+
+  // Legacy methods for backward compatibility
+  fetchUserSubscriptions: async () => {
+    console.log('⚠️ SubscriptionStore: fetchUserSubscriptions is deprecated, use fetchAllSubscriptions');
+    return get().fetchAllSubscriptions();
+  },
+
+  fetchPlans: async () => {
+    console.log('⚠️ SubscriptionStore: fetchPlans is deprecated, use fetchAvailablePlans');
+    return get().fetchAvailablePlans();
+  },
+
+  fetchActivePlans: async () => {
+    console.log('⚠️ SubscriptionStore: fetchActivePlans is deprecated, use fetchAvailablePlans');
+    return get().fetchAvailablePlans();
+  },
+}));

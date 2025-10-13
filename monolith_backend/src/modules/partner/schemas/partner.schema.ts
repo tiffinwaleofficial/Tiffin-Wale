@@ -88,6 +88,71 @@ export class Partner extends Document {
 
   @Prop({ default: 0 })
   totalReviews: number;
+
+  // Business details
+
+  @Prop({ default: "" })
+  gstNumber: string;
+
+  @Prop({ default: "" })
+  licenseNumber: string;
+
+  @Prop({ default: 0 })
+  establishedYear: number;
+
+  // Contact information
+  @Prop({ default: "" })
+  contactEmail: string;
+
+  @Prop({ default: "" })
+  contactPhone: string;
+
+  @Prop({ default: "" })
+  whatsappNumber: string;
+
+  // Delivery information
+  @Prop({ default: 5 })
+  deliveryRadius: number;
+
+  @Prop({ default: 100 })
+  minimumOrderAmount: number;
+
+  @Prop({ default: 0 })
+  deliveryFee: number;
+
+  @Prop({ default: 30 })
+  estimatedDeliveryTime: number;
+
+  // Financial information
+  @Prop({ default: 20 })
+  commissionRate: number;
+
+  // Social media
+  @Prop({ type: Object, default: {} })
+  socialMedia: {
+    instagram?: string;
+    facebook?: string;
+    twitter?: string;
+  };
+
+  // Operational details
+  @Prop({ default: false })
+  isVegetarian: boolean;
+
+  @Prop({ default: true })
+  hasDelivery: boolean;
+
+  @Prop({ default: true })
+  hasPickup: boolean;
+
+  @Prop({ default: true })
+  acceptsCash: boolean;
+
+  @Prop({ default: true })
+  acceptsCard: boolean;
+
+  @Prop({ default: true })
+  acceptsUPI: boolean;
 }
 
 export const PartnerSchema = SchemaFactory.createForClass(Partner);

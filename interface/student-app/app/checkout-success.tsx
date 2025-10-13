@@ -147,7 +147,7 @@ export default function CheckoutSuccessScreen() {
 
           <TouchableOpacity 
             style={styles.secondaryButton}
-            onPress={() => router.push('/(tabs)/profile')}
+            onPress={() => router.push('/subscription-details')}
           >
             <FileText size={20} color="#FF9B42" />
             <Text style={styles.secondaryButtonText}>View Subscription Details</Text>

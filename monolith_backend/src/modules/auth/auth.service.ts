@@ -38,12 +38,17 @@ export class AuthService {
       );
 
       if (isValidPassword) {
-        const { password, ...result } = user.toObject();
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { password: _password, ...result } = user.toObject();
         return result;
       }
 
       return null;
     } catch (error) {
+      console.error(
+        `❌ AuthService.validateUser: Error during validation:`,
+        error,
+      );
       return null;
     }
   }
@@ -84,6 +89,7 @@ export class AuthService {
       }
 
       const user = await this.userService.create(registerDto);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password: _password, ...result } = user.toObject();
       return this.generateToken(result);
     } catch (error) {
@@ -122,6 +128,7 @@ export class AuthService {
       };
 
       const user = await this.userService.create(superAdminData);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password: _password, ...result } = user.toObject();
       return this.generateToken(result);
     } catch (error) {
@@ -192,7 +199,8 @@ export class AuthService {
       }
 
       // Prepare plain user object (without password)
-      const { password, ...plainUser } = (user as any).toObject
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password: _password, ...plainUser } = (user as any).toObject
         ? (user as any).toObject()
         : (user as any);
 

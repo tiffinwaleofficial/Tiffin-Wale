@@ -5,6 +5,7 @@ import { ArrowLeft, Plus, X, Trash2, Edit, MapPin, Home, Building, MapPin as Oth
 import { useCustomerStore } from '@/store/customerStore';
 import { DeliveryAddress } from '@/types/api';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { showNotification } from '@/utils/notificationService';
 
 export default function DeliveryAddressesScreen() {
   const router = useRouter();

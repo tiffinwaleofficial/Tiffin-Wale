@@ -152,13 +152,8 @@ export class PartnerPhase extends BaseSeederPhase {
         totalReviews: faker.number.int({ min: 5, max: 500 }),
 
         // Enhanced fields with images
-        logo: this.imageGenerator.generateRestaurantImage(businessName),
-        coverImage: this.imageGenerator.generateRestaurantImage(),
-        gallery: this.imageGenerator.generateImageGallery(
-          "restaurant",
-          "restaurant-interior",
-          3,
-        ),
+        logoUrl: this.imageGenerator.generateRestaurantImage(businessName),
+        bannerUrl: this.imageGenerator.generateRestaurantImage(),
 
         // Business details
         establishedYear: faker.number.int({ min: 2015, max: 2023 }),
@@ -275,7 +270,7 @@ export class PartnerPhase extends BaseSeederPhase {
         const category = {
           name: categoryName,
           description: this.generateCategoryDescription(categoryName),
-          businessPartner: partner.user,
+          businessPartner: partner._id, // Use partner._id instead of partner.user
           isActive: faker.datatype.boolean(0.95),
           displayOrder: faker.number.int({ min: 1, max: 10 }),
           image: this.imageGenerator.generateFoodImage(
@@ -299,7 +294,7 @@ export class PartnerPhase extends BaseSeederPhase {
     let itemCount = 0;
     for (const category of this.categories) {
       const partner = this.partners.find(
-        (p) => p.user.toString() === category.businessPartner.toString(),
+        (p) => p._id.toString() === category.businessPartner.toString(),
       );
       if (!partner) continue;
 
@@ -355,7 +350,7 @@ export class PartnerPhase extends BaseSeederPhase {
       name: itemName,
       description: this.generateItemDescription(itemName, category.name),
       price: faker.number.int(priceRange),
-      businessPartner: partner.user,
+      businessPartner: partner._id, // Use partner._id instead of partner.user
       category: category._id,
       isAvailable: faker.datatype.boolean(0.9),
       isVegetarian: faker.datatype.boolean(0.6),
@@ -363,19 +358,13 @@ export class PartnerPhase extends BaseSeederPhase {
       isGlutenFree: faker.datatype.boolean(0.1),
 
       // Enhanced fields
-      image: this.imageGenerator.generateFoodImage(
+      imageUrl: this.imageGenerator.generateFoodImage(
         category.name.toLowerCase(),
         itemName,
       ),
-      gallery: faker.helpers.maybe(
-        () =>
-          this.imageGenerator.generateImageGallery(
-            "food",
-            category.name.toLowerCase(),
-            2,
-          ),
-        { probability: 0.3 },
-      ),
+      images: this.imageGenerator.generateImageGallery('food', category.name.toLowerCase(), 3),
+      averageRating: faker.number.float({ min: 3.5, max: 5, fractionDigits: 1 }),
+      totalReviews: faker.number.int({ min: 0, max: 150 }),
 
       tags: this.generateItemTags(itemName, category.name),
       allergens: this.generateAllergens(),
@@ -399,8 +388,7 @@ export class PartnerPhase extends BaseSeederPhase {
       // Customization options
       customizations: this.generateCustomizations(category.name),
 
-      // Ratings and reviews
-      averageRating: this.generateRating(3.5, 5.0),
+      // Ratings and reviews (already set above)
       totalRatings: faker.number.int({ min: 0, max: 100 }),
 
       // Availability

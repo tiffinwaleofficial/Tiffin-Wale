@@ -4,12 +4,12 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   TextInput,
 } from 'react-native';
 import { usePayment } from '../hooks/usePayment';
 import { UserDetails } from '../hooks/usePayment';
+import { useNotification } from '../hooks/useNotification';
 
 interface PaymentButtonProps {
   amount: number;
@@ -46,6 +46,8 @@ export const PaymentButton: React.FC<PaymentButtonProps> = ({
     handleWalletTopUp,
     clearError,
   } = usePayment();
+
+  const { warning } = useNotification();
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -159,7 +161,7 @@ export const WalletTopUpForm: React.FC<WalletTopUpFormProps> = ({
     if (topUpAmount && topUpAmount > 0) {
       onTopUp(topUpAmount);
     } else {
-      Alert.alert('Invalid Amount', 'Please enter a valid amount');
+      warning('Please enter a valid amount');
     }
   };
 
@@ -448,6 +450,10 @@ const styles = StyleSheet.create({
 });
 
 export default PaymentButton;
+
+
+
+
 
 
 

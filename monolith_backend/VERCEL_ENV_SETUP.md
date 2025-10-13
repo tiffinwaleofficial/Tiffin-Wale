@@ -20,7 +20,7 @@ MONGODB_URI=mongodb+srv://SupremeRahul:OptimusPrime@clusternse.wpf8cel.mongodb.n
 ### JWT Configuration
 ```
 JWT_SECRET=your_super_secure_jwt_secret_key_change_this_in_production
-JWT_EXPIRATION=1d
+JWT_EXPIRATION=30d
 ```
 
 ### Swagger Configuration

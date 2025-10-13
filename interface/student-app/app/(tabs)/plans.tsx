@@ -13,11 +13,13 @@ export default function PlansScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { 
-    activePlans, 
+    availablePlans, 
     currentSubscription, 
     isLoading, 
     error, 
-    fetchActivePlans,
+    fetchAvailablePlans,
+    fetchCurrentSubscription,
+    refreshSubscriptionData,
     createSubscription 
   } = useSubscriptionStore();
   
@@ -26,16 +28,34 @@ export default function PlansScreen() {
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  // Fetch plans on component mount
+  // Fetch plans and current subscription on component mount
   useEffect(() => {
-    fetchActivePlans();
-  }, [fetchActivePlans]);
+    const initializePlans = async () => {
+      console.log('🔔 Plans: Initializing plans data...');
+      
+      try {
+        await Promise.all([
+          fetchAvailablePlans(),
+          fetchCurrentSubscription(),
+        ]);
+        
+        console.log('✅ Plans: Data initialized successfully');
+      } catch (error) {
+        console.error('❌ Plans: Error initializing data:', error);
+      }
+    };
+    
+    initializePlans();
+  }, []);
 
   // Pull to refresh handler
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await fetchActivePlans();
+      await Promise.all([
+        fetchAvailablePlans(true), // Force refresh
+        fetchCurrentSubscription(true), // Force refresh
+      ]);
     } catch (error) {
       console.error('Error refreshing plans:', error);
     } finally {
@@ -228,7 +248,7 @@ export default function PlansScreen() {
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity 
-            onPress={fetchActivePlans}
+            onPress={() => fetchAvailablePlans(true)}
             style={styles.retryButton}
           >
             <Text style={styles.retryButtonText}>Retry</Text>
@@ -260,7 +280,7 @@ export default function PlansScreen() {
           />
         }
       >
-        {activePlans.length === 0 ? (
+        {availablePlans.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Crown size={64} color="#CCCCCC" />
             <Text style={styles.emptyTitle}>No plans available</Text>
@@ -270,13 +290,13 @@ export default function PlansScreen() {
           </View>
         ) : (
           <View style={styles.plansContainer}>
-            {activePlans.map((plan, index) => renderPlanCard(plan, index))}
+            {availablePlans.map((plan, index) => renderPlanCard(plan, index))}
           </View>
         )}
 
         {/* Additional Info */}
         <Animated.View 
-          entering={FadeInDown.delay(activePlans.length * 150 + 200).duration(400)}
+          entering={FadeInDown.delay(availablePlans.length * 150 + 200).duration(400)}
           style={styles.infoCard}
         >
           <Text style={styles.infoTitle}>Why Subscribe?</Text>

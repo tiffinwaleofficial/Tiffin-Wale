@@ -10,7 +10,7 @@ import { MenuModule } from "./modules/menu/menu.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { PartnerModule } from "./modules/partner/partner.module";
 import { PaymentModule } from "./modules/payment/payment.module";
-import { NotificationModule } from "./modules/notification/notification.module";
+import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { CustomerModule } from "./modules/customer/customer.module";
 import { SystemModule } from "./modules/system/system.module";
 import { LandingModule } from "./modules/landing/landing.module";
@@ -24,6 +24,7 @@ import { SupportModule } from "./modules/support/support.module";
 import { UploadModule } from "./modules/upload/upload.module";
 import { SeederModule } from "./modules/seeder/seeder.module";
 import { ChatModule } from "./modules/chat/chat.module";
+import { ReviewModule } from "./modules/review/review.module";
 
 @Module({
   imports: [
@@ -44,7 +45,7 @@ import { ChatModule } from "./modules/chat/chat.module";
     AdminModule,
     PartnerModule,
     PaymentModule,
-    NotificationModule,
+    NotificationsModule,
     CustomerModule,
     SystemModule,
     LandingModule,
@@ -58,6 +59,7 @@ import { ChatModule } from "./modules/chat/chat.module";
     UploadModule,
     SeederModule,
     ChatModule,
+    ReviewModule,
   ],
   controllers: [],
   providers: [],

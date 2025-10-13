@@ -22,15 +22,75 @@ export interface SubscriptionPlan {
 }
 
 export interface Restaurant {
+  _id: string;
   id: string;
-  name: string;
-  address: string;
-  cuisineType: string[];
-  rating: number;
-  reviewCount: number;
-  image: string;
-  featuredDish?: string;
-  distance?: string;
+  user: string;
+  businessName: string;
+  description: string;
+  cuisineTypes: string[];
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+  };
+  businessHours: {
+    open: string;
+    close: string;
+    days: string[];
+  };
+  logoUrl: string;
+  bannerUrl: string;
+  isAcceptingOrders: boolean;
+  isFeatured: boolean;
+  status: 'pending' | 'approved' | 'rejected' | 'suspended';
+  averageRating: number;
+  totalReviews: number;
+  createdAt: string;
+  updatedAt: string;
+  
+  // Business details
+  gstNumber?: string;
+  licenseNumber?: string;
+  establishedYear?: number;
+  
+  // Contact information
+  contactEmail?: string;
+  contactPhone?: string;
+  whatsappNumber?: string;
+  
+  // Delivery information
+  deliveryRadius?: number;
+  minimumOrderAmount?: number;
+  deliveryFee?: number;
+  estimatedDeliveryTime?: number;
+  
+  // Financial information
+  commissionRate?: number;
+  
+  // Social media
+  socialMedia?: {
+    instagram?: string;
+    facebook?: string;
+    twitter?: string;
+  };
+  
+  // Operational details
+  isVegetarian?: boolean;
+  hasDelivery?: boolean;
+  hasPickup?: boolean;
+  acceptsCash?: boolean;
+  acceptsCard?: boolean;
+  acceptsUPI?: boolean;
+  
+  // Computed properties for UI
+  name?: string;
+  rating?: number;
+  reviewCount?: number;
+  image?: string;
+  formattedAddress?: string;
+  cuisineType?: string[];
 }
 
 export interface MenuItem {
@@ -38,18 +98,56 @@ export interface MenuItem {
   name: string;
   description: string;
   price: number;
-  image: string;
-  category: 'breakfast' | 'lunch' | 'dinner' | 'snack';
-  tags: string[];
-  isVegetarian: boolean;
+  imageUrl: string;
+  images?: string[];
+  category: string;
+  averageRating?: number;
+  totalReviews?: number;
+  isAvailable: boolean;
+  tags?: string[];
+  allergens?: string[];
+  nutritionalInfo?: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+  businessPartner: string;
+}
+
+export interface Review {
+  id: string;
+  user: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string; // Fallback for compatibility
+    avatar?: string;
+  };
   rating: number;
-  reviewCount: number;
-  availableToday: boolean;
-  restaurantId: string;
+  comment?: string;
+  images?: string[];
+  helpfulCount: number;
+  createdAt: string;
+  restaurantId?: string;
+  menuItemId?: string;
+}
+
+export interface Menu {
+  id: string;
+  name: string;
+  description: string;
+  restaurant: string;
+  images?: string[];
+  items: MenuItem[];
+  availableFrom?: string;
+  availableTo?: string;
 }
 
 export interface Meal {
   id: string;
+  name: string;
+  image?: string;
   type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   date: string;
   menu: MenuItem[];
@@ -74,16 +172,6 @@ export interface OrderAdditional {
   paymentStatus: 'pending' | 'paid';
 }
 
-export interface Review {
-  id: string;
-  mealId: string;
-  restaurantId: string;
-  rating: number;
-  comment: string;
-  date: string;
-  userName: string;
-  userImage?: string;
-}
 
 export interface Notification {
   id: string;
@@ -93,4 +181,32 @@ export interface Notification {
   read: boolean;
   date: string;
   actionLink?: string;
+}
+
+export interface Plan {
+  _id: string;
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  features: string[];
+  mealsPerDay?: number;
+}
+
+export interface Subscription {
+  _id: string;
+  id: string;
+  customer: string;
+  plan: Plan;
+  status: 'active' | 'pending' | 'cancelled' | 'paused';
+  startDate: string;
+  endDate: string;
+  autoRenew: boolean;
+  paymentFrequency: 'monthly' | 'quarterly' | 'yearly';
+  totalAmount: number;
+  discountAmount: number;
+  isPaid: boolean;
+  customizations: any[];
+  createdAt: string;
+  updatedAt: string;
 }

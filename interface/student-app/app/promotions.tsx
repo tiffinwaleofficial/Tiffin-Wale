@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Tag } from 'lucide-react-native';
 import { useMarketingStore } from '@/store/marketingStore';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useNotification } from '@/hooks/useNotification';
 
 export default function PromotionsScreen() {
   const router = useRouter();
   const { promotions, isLoading, error, fetchPromotions, applyPromotion } = useMarketingStore();
   const [promoCode, setPromoCode] = useState('');
+  const { warning, success, showError } = useNotification();
 
   useEffect(() => {
     fetchPromotions();
@@ -16,15 +18,15 @@ export default function PromotionsScreen() {
 
   const handleApplyPromo = async () => {
     if (!promoCode) {
-      Alert.alert('Promo Code Required', 'Please enter a promotion code.');
+      warning('Please enter a promotion code.');
       return;
     }
     try {
       await applyPromotion(promoCode);
-      Alert.alert('Success', 'Promotion applied successfully!');
+      success('Promotion applied successfully! 🎉');
       setPromoCode('');
     } catch (e) {
-      Alert.alert('Error', e instanceof Error ? e.message : 'Failed to apply promotion.');
+      showError(e instanceof Error ? e.message : 'Failed to apply promotion.');
     }
   };
 

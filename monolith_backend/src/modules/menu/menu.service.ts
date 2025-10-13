@@ -136,4 +136,37 @@ export class MenuService {
 
     return { deleted: true };
   }
+
+  async getMenuItemDetails(itemId: string): Promise<MenuItem> {
+    const menuItem = await this.menuItemModel
+      .findById(itemId)
+      .populate("category", "name description")
+      .populate("businessPartner", "firstName lastName")
+      .exec();
+
+    if (!menuItem) {
+      throw new NotFoundException(`Menu item with ID ${itemId} not found`);
+    }
+
+    return menuItem;
+  }
+
+  async getRestaurantMenus(restaurantId: string): Promise<any[]> {
+    // For now, return categories as menus since we don't have separate menu grouping yet
+    // This can be enhanced later when Menu schema is fully integrated
+    const categories = await this.categoryModel
+      .find({ businessPartner: restaurantId })
+      .populate("businessPartner", "businessName")
+      .exec();
+
+    return categories.map(category => ({
+      id: category._id,
+      name: category.name,
+      description: category.description,
+      restaurant: restaurantId,
+      images: [], // Categories don't have images in current schema
+      isActive: category.isActive,
+      items: [], // Will be populated separately if needed
+    }));
+  }
 }

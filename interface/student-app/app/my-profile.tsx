@@ -10,6 +10,7 @@ import {
   Switch,
   ActivityIndicator,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
@@ -29,13 +30,16 @@ import {
 } from 'lucide-react-native';
 import { useAuthStore } from '@/store/authStore';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
+import { showNotification } from '@/utils/notificationService';
+import { profileImageService } from '@/services/profileImageService';
 
 export default function MyProfileScreen() {
   const router = useRouter();
   const { user, logout, fetchUserProfile, isLoading } = useAuthStore();
-  const { currentSubscription, fetchUserSubscriptions } = useSubscriptionStore();
+  const { currentSubscription, fetchCurrentSubscription } = useSubscriptionStore();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   console.log('🔍 MyProfileScreen: Component rendered');
   console.log('👤 MyProfileScreen: User state:', user);
@@ -46,10 +50,10 @@ export default function MyProfileScreen() {
     console.log('👤 MyProfileScreen: Fetching user profile...');
     
     fetchUserProfile();
-    fetchUserSubscriptions();
+    fetchCurrentSubscription();
     
     console.log('✅ MyProfileScreen: Profile fetch calls made');
-  }, [fetchUserProfile, fetchUserSubscriptions]);
+  }, [fetchUserProfile, fetchCurrentSubscription]);
 
   const handleLogout = async () => {
     console.log('🚪 MyProfileScreen: Starting logout process...');
@@ -63,17 +67,68 @@ export default function MyProfileScreen() {
       
       console.log('✅ MyProfileScreen: Logout successful, redirecting to login...');
       
+      // Show success notification
+      showNotification.success('Logged out successfully');
+      
       // Redirect to login page immediately
       router.replace('/(auth)/login');
       
     } catch (error) {
       console.error('❌ MyProfileScreen: Logout error:', error);
       
+      // Show error notification but still redirect
+      showNotification.error('Logout failed, but you have been signed out locally');
+      
       // Even if API fails, clear local data and redirect
       console.log('🚪 MyProfileScreen: API failed, but clearing local data and redirecting...');
       router.replace('/(auth)/login');
     } finally {
       setIsLoggingOut(false);
+    }
+  };
+
+  const handleImageUpload = async () => {
+    try {
+      // Check permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        showNotification.error('Permission to access camera roll is required');
+        return;
+      }
+
+      // Check if Cloudinary is configured
+      if (!profileImageService.isConfigured()) {
+        showNotification.error('Image upload service is not configured');
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setIsUploadingImage(true);
+        showNotification.info('Uploading image...');
+
+        const uploadResult = await profileImageService.uploadProfileImage(result.assets[0].uri);
+
+        if (uploadResult.success && uploadResult.url) {
+          showNotification.success('Profile image updated successfully');
+          // TODO: Update user profile with new image URL
+          console.log('📸 New profile image URL:', uploadResult.url);
+        } else {
+          showNotification.error(uploadResult.error || 'Failed to upload image');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Image upload error:', error);
+      showNotification.error('Failed to upload image');
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -92,7 +147,7 @@ export default function MyProfileScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <Animated.View entering={FadeIn.delay(100).duration(300)} style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.push('/(tabs)/profile')} style={styles.backButton}>
           <ArrowLeft size={24} color="#333333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Profile</Text>
@@ -108,10 +163,22 @@ export default function MyProfileScreen() {
           {/* Profile Card */}
           <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.profileCard}>
             <View style={styles.profileHeader}>
-              <Image 
-                source={{ uri: user?.profileImage || 'https://images.pexels.com/photos/2379005/pexels-photo-2379005.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2' }} 
-                style={styles.profileImage} 
-              />
+              <TouchableOpacity onPress={handleImageUpload} disabled={isUploadingImage}>
+                <View style={styles.profileImageContainer}>
+                  <Image 
+                    source={{ uri: user?.profileImage || 'https://images.pexels.com/photos/2379005/pexels-photo-2379005.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2' }} 
+                    style={styles.profileImage} 
+                  />
+                  {isUploadingImage && (
+                    <View style={styles.uploadOverlay}>
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    </View>
+                  )}
+                  <View style={styles.editImageButton}>
+                    <Edit size={16} color="#FFFFFF" />
+                  </View>
+                </View>
+              </TouchableOpacity>
               <View style={styles.profileInfo}>
                 <Text style={styles.profileName}>
                   {user?.firstName && user?.lastName 
@@ -367,10 +434,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
+  profileImageContainer: {
+    position: 'relative',
+    width: 60,
+    height: 60,
+  },
   profileImage: {
     width: 60,
     height: 60,
     borderRadius: 30,
+  },
+  uploadOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editImageButton: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#FF9B42',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   profileInfo: {
     flex: 1,

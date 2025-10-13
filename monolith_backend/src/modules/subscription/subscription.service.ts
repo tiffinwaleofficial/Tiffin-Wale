@@ -55,6 +55,20 @@ export class SubscriptionService {
       .exec();
   }
 
+  async getCurrentSubscription(customerId: string): Promise<Subscription | null> {
+    const subscription = await this.subscriptionModel
+      .findOne({ 
+        customer: customerId,
+        status: { $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING] },
+        endDate: { $gt: new Date() }
+      })
+      .populate("plan")
+      .sort({ createdAt: -1 })
+      .exec();
+
+    return subscription;
+  }
+
   async update(
     id: string,
     updateSubscriptionDto: UpdateSubscriptionDto,
