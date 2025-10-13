@@ -30,3 +30,4 @@ export class Menu extends Document {
 }
 
 export const MenuSchema = SchemaFactory.createForClass(Menu);
+

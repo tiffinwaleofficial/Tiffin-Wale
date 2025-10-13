@@ -36,3 +36,4 @@ TypingIndicatorSchema.index({ lastTypingAt: -1 });
 // TTL index to automatically remove old typing indicators
 TypingIndicatorSchema.index({ lastTypingAt: 1 }, { expireAfterSeconds: 30 });
 
+
