@@ -12,21 +12,18 @@
     "install:mobile": "cd interface/student-app && bun install",
     "install:partner": "cd interface/partner-app && bun install",
     "install:admin": "cd interface/super-admin-web && bun install",
-    
     "// Backend Commands": "",
     "backend": "cd monolith_backend && bun start",
     "backend:dev": "cd monolith_backend && bun run start:dev",
     "backend:build": "cd monolith_backend && bun run build",
     "backend:test": "cd monolith_backend && bun test",
     "backend:lint": "cd monolith_backend && bun lint",
-    
     "// Frontend (Official Web) Commands": "",
     "frontend": "cd interface/official-web-app && bun run dev",
     "frontend:dev": "cd interface/official-web-app && bun run dev",
     "frontend:build": "cd interface/official-web-app && bun run build",
     "frontend:preview": "cd interface/official-web-app && bun run start:static",
     "frontend:check": "cd interface/official-web-app && bun run check",
-    
     "// Student Mobile App Commands": "",
     "mobile": "cd interface/student-app && bun run start",
     "mobile:dev": "cd interface/student-app && bun run dev",
@@ -38,15 +35,17 @@
     "mobile:lint": "cd interface/student-app && bun exec expo lint",
     "mobile:build:gcloud": "cd interface/student-app && bun run build:gcloud",
     "mobile:deploy:gcloud": "cd interface/student-app && bun run deploy:gcloud",
-    
     "// Partner App Commands": "",
     "partner": "cd interface/partner-app && bun run start",
     "partner:dev": "cd interface/partner-app && bun run dev",
+    "partner:android": "cd interface/partner-app && bun exec expo run:android",
+    "partner:ios": "cd interface/partner-app && bun exec expo run:ios",
     "partner:build:web": "cd interface/partner-app && bun exec expo export --platform web",
+    "partner:build:android": "cd interface/partner-app && eas build -p android",
+    "partner:build:ios": "cd interface/partner-app && eas build -p ios",
     "partner:build:gcloud": "cd interface/partner-app && bun run build:gcloud",
     "partner:deploy:gcloud": "cd interface/partner-app && bun run deploy:gcloud",
     "partner:lint": "cd interface/partner-app && bun exec expo lint",
-    
     "// Admin Dashboard Commands": "",
     "admin": "cd interface/super-admin-web && bun run dev",
     "admin:dev": "cd interface/super-admin-web && bun run dev",
@@ -54,18 +53,15 @@
     "admin:start": "cd interface/super-admin-web && bun start",
     "admin:lint": "cd interface/super-admin-web && bun lint",
     "admin:typecheck": "cd interface/super-admin-web && bun run typecheck",
-    
     "// Combined Development Commands": "",
     "dev": "concurrently \"bun run backend:dev\" \"bun run frontend:dev\"",
     "dev:all": "concurrently \"bun run backend:dev\" \"bun run frontend:dev\" \"bun run mobile:dev\" \"bun run partner:dev\" \"bun run admin:dev\"",
     "dev:web": "concurrently \"bun run backend:dev\" \"bun run frontend:dev\" \"bun run admin:dev\"",
     "dev:mobile": "concurrently \"bun run backend:dev\" \"bun run mobile:dev\" \"bun run partner:dev\"",
-    
     "// Build Commands": "",
     "build": "concurrently \"bun run backend:build\" \"bun run frontend:build\"",
     "build:all": "concurrently \"bun run backend:build\" \"bun run frontend:build\" \"bun run admin:build\"",
     "build:mobile": "concurrently \"bun run mobile:build:web\" \"bun run partner:build:web\"",
-    
     "// Deployment Commands": "",
     "deploy:backend": "cd monolith_backend && gcloud app deploy app.yaml",
     "deploy:frontend": "cd interface/official-web-app && bun run build:gcloud && gcloud app deploy app.yaml",
@@ -74,21 +70,17 @@
     "deploy:admin": "cd interface/super-admin-web && bun run build && gcloud app deploy app.yaml",
     "deploy:all": "bun run deploy:backend && bun run deploy:frontend && bun run deploy:mobile && bun run deploy:partner && bun run deploy:admin && gcloud app deploy dispatch.yaml",
     "deploy:dispatch": "gcloud app deploy dispatch.yaml",
-    
     "// Utility Commands": "",
     "clean": "bun run clean:modules && bun run clean:build",
     "clean:modules": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +",
     "clean:build": "find . -name 'dist' -type d -prune -exec rm -rf '{}' + && find . -name 'build' -type d -prune -exec rm -rf '{}' + && find . -name '.next' -type d -prune -exec rm -rf '{}' +",
     "clean:lock": "find . -name 'bun.lockb' -type f -delete",
     "reinstall": "bun run clean && bun install:all",
-    
     "// Testing Commands": "",
     "test": "bun run backend:test",
     "test:all": "concurrently \"bun run backend:test\" \"cd interface/student-app && bun test\"",
-    
     "// Linting Commands": "",
     "lint": "concurrently \"bun run backend:lint\" \"bun run mobile:lint\" \"bun run partner:lint\" \"bun run admin:lint\"",
-    
     "// Legacy Commands (for backward compatibility)": "",
     "both": "bun run dev",
     "both:dev": "bun run dev",
@@ -102,5 +94,6 @@
     "node": ">=18.0.0",
     "bun": ">=1.0.0"
   },
-  "packageManager": "bun@1.0.0"
-} 
+  "packageManager": "bun@1.0.0",
+  "dependencies": {}
+}

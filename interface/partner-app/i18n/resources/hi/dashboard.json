@@ -1,0 +1,30 @@
+{
+  "dashboard": "डैशबोर्ड",
+  "todayOrders": "आज के ऑर्डर",
+  "totalEarnings": "कुल कमाई",
+  "activeOrders": "सक्रिय ऑर्डर",
+  "completedOrders": "पूर्ण ऑर्डर",
+  "pendingOrders": "लंबित ऑर्डर",
+  "cancelledOrders": "रद्द ऑर्डर",
+  "acceptingOrders": "ऑर्डर स्वीकार कर रहे हैं",
+  "notAcceptingOrders": "ऑर्डर स्वीकार नहीं कर रहे",
+  "toggleAcceptingOrders": "ऑर्डर स्वीकारना टॉगल करें",
+  "quickActions": "त्वरित कार्य",
+  "viewAllOrders": "सभी ऑर्डर देखें",
+  "addMenuItem": "मेनू आइटम जोड़ें",
+  "viewMenu": "मेनू देखें",
+  "viewReviews": "समीक्षा देखें",
+  "earnings": "कमाई",
+  "stats": "आंकड़े",
+  "recentActivity": "हाल की गतिविधि",
+  "noOrdersToday": "आज कोई ऑर्डर नहीं",
+  "noActiveOrders": "कोई सक्रिय ऑर्डर नहीं",
+  "orderAccepted": "ऑर्डर स्वीकार किया गया",
+  "orderRejected": "ऑर्डर अस्वीकार किया गया",
+  "orderReady": "ऑर्डर तैयार",
+  "orderDelivered": "ऑर्डर डिलीवर किया गया",
+  "orderCancelled": "ऑर्डर रद्द किया गया"
+}
+
+
+

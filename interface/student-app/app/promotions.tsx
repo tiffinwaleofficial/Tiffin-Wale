@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Tag } from 'lucide-react-native';
+import { Tag } from 'lucide-react-native';
 import { useMarketingStore } from '@/store/marketingStore';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useNotification } from '@/hooks/useNotification';
@@ -33,9 +33,7 @@ export default function PromotionsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#333" />
-        </TouchableOpacity>
+        <BackButton />
         <Text style={styles.headerTitle}>Promotions</Text>
       </View>
       <ScrollView style={styles.content}>

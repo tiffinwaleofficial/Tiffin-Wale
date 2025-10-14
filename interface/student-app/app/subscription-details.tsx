@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { 
-  ArrowLeft, 
   Package, 
   Calendar, 
   Clock, 
@@ -82,12 +81,7 @@ export default function SubscriptionDetailsScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <ArrowLeft size={24} color="#333333" />
-          </TouchableOpacity>
+          <BackButton />
           <Text style={styles.headerTitle}>Subscription Details</Text>
         </View>
         
@@ -115,12 +109,7 @@ export default function SubscriptionDetailsScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <ArrowLeft size={24} color="#333333" />
-        </TouchableOpacity>
+        <BackButton />
         <Text style={styles.headerTitle}>Subscription Details</Text>
       </View>
 

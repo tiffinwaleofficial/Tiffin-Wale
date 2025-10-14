@@ -37,6 +37,16 @@ export const useAuthStore = create<AuthState>((set: any, get: any) => ({
     set({ isLoading: true, error: null });
     
     try {
+      // Debug: Check what's in storage
+      const token = await authService.getToken();
+      const user = await authService.getCurrentUser();
+      console.log('🔍 AuthStore: Storage check:', { 
+        hasToken: !!token, 
+        tokenLength: token?.length || 0,
+        hasUser: !!user,
+        userId: user?.id 
+      });
+      
       // First check if we have a valid token locally
       const isAuthenticated = await authService.isAuthenticated();
       console.log('🔍 AuthStore: Local auth check result:', isAuthenticated);

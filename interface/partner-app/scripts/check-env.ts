@@ -1,39 +1,26 @@
-// Environment Configuration Checker for TiffinWale Partner App
-import 'dotenv/config';
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+#!/usr/bin/env node
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+import 'dotenv/config';
+import fs from 'fs';
+import path from 'path';
 
 console.log('🔍 Environment Configuration Check');
 console.log('=====================================');
+console.log();
 
-// Check if .env file exists
-try {
-  const envPath = join(__dirname, '..', '.env');
-  const envContent = readFileSync(envPath, 'utf8');
-  console.log('✅ .env file found');
-  
-  // Parse .env content to show current configuration
-  const lines = envContent.split('\n');
-  const apiLines = lines.filter(line => line.includes('API_BASE_URL') && !line.trim().startsWith('#'));
-  
-  if (apiLines.length > 0) {
-    console.log('📝 Current active API configuration:');
-    apiLines.forEach(line => {
-      console.log(`  ${line}`);
-    });
-  } else {
-    console.log('⚠️ No active API_BASE_URL found (all lines are commented)');
-  }
-  
-} catch (error) {
-  console.log('❌ .env file not found');
-  console.log('   Please create a .env file in the project root');
+console.log('📁 .env file status:');
+
+const envPath = path.join(__dirname, '..', '.env');
+if (fs.existsSync(envPath)) {
+  console.log('  ✅ .env file exists');
+  console.log('  📍 Location:', envPath);
+} else {
+  console.log('  ❌ .env file not found');
+  console.log('  📍 Expected location:', envPath);
 }
 
-console.log('\n🌐 API Configuration:');
+console.log();
+console.log('🌐 API Configuration:');
 const apiUrl = process.env.API_BASE_URL;
 if (apiUrl) {
   console.log('  ✅ API_BASE_URL found:', apiUrl);
@@ -49,19 +36,19 @@ if (apiUrl) {
   }
 } else {
   console.log('  ❌ API_BASE_URL not found in .env file');
-  console.log('  📋 Expected format:');
+  console.log('  💡 Add this line to your .env file:');
   console.log('     API_BASE_URL=https://api.tiffin-wale.com');
 }
 
-console.log('\n🔧 Expo Environment Variables:');
-console.log('  EXPO_PUBLIC_APP_ENV:', process.env.EXPO_PUBLIC_APP_ENV || 'Not set');
-
-console.log('\n💡 To switch environments:');
-console.log('  1. Open the .env file in the project root');
+console.log();
+console.log('📋 Available options for .env:');
+console.log('  # For production:');
+console.log('  API_BASE_URL=https://api.tiffin-wale.com');
+console.log();
+console.log('  # For local development:');
+console.log('  API_BASE_URL=http://127.0.0.1:3001');
+console.log();
+console.log('💡 To switch environments:');
+console.log('  1. Edit your .env file');
 console.log('  2. Comment/uncomment the desired API_BASE_URL');
-console.log('  3. Restart the dev server');
-
-console.log('\n📖 Available environments:');
-console.log('  🌍 Production:  API_BASE_URL=https://api.tiffin-wale.com');
-console.log('  🏠 Local:       API_BASE_URL=http://127.0.0.1:3001');
-console.log('  🔧 Staging:     API_BASE_URL=https://tiffinwale-backend-12345.appspot.com'); 
+console.log('  3. Restart Expo: npx expo start --clear');

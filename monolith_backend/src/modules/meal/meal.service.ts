@@ -71,7 +71,7 @@ export class MealService {
 
   async getUpcomingMeals(userId: string): Promise<Meal[]> {
     const now = new Date();
-    
+
     return this.mealModel
       .find({
         userId: userId,

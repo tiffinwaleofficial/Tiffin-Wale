@@ -18,26 +18,36 @@ export class ReviewService {
     @InjectModel(MenuItem.name) private readonly menuItemModel: Model<MenuItem>,
   ) {}
 
-  async createReview(createReviewDto: CreateReviewDto, userId: string): Promise<Review> {
-    const { rating, comment, images, restaurantId, menuItemId } = createReviewDto;
+  async createReview(
+    createReviewDto: CreateReviewDto,
+    userId: string,
+  ): Promise<Review> {
+    const { rating, comment, images, restaurantId, menuItemId } =
+      createReviewDto;
 
     // Validate that either restaurantId or menuItemId is provided, but not both
     if (!restaurantId && !menuItemId) {
-      throw new BadRequestException("Either restaurantId or menuItemId must be provided");
+      throw new BadRequestException(
+        "Either restaurantId or menuItemId must be provided",
+      );
     }
     if (restaurantId && menuItemId) {
-      throw new BadRequestException("Cannot review both restaurant and menu item in one review");
+      throw new BadRequestException(
+        "Cannot review both restaurant and menu item in one review",
+      );
     }
 
     // Check if user already reviewed this specific restaurant/item
     const existingReview = await this.reviewModel.findOne({
       user: userId,
       ...(restaurantId ? { restaurant: restaurantId } : {}),
-      ...(menuItemId ? { menuItem: menuItemId } : {})
+      ...(menuItemId ? { menuItem: menuItemId } : {}),
     });
 
     if (existingReview) {
-      throw new BadRequestException("You have already reviewed this restaurant/item");
+      throw new BadRequestException(
+        "You have already reviewed this restaurant/item",
+      );
     }
 
     // Verify restaurant/item exists
@@ -92,7 +102,7 @@ export class ReviewService {
     const review = await this.reviewModel.findByIdAndUpdate(
       reviewId,
       { $inc: { helpfulCount: 1 } },
-      { new: true }
+      { new: true },
     );
 
     if (!review) {
@@ -102,10 +112,15 @@ export class ReviewService {
     return review;
   }
 
-  private async updateRatingStats(restaurantId?: string, menuItemId?: string): Promise<void> {
+  private async updateRatingStats(
+    restaurantId?: string,
+    menuItemId?: string,
+  ): Promise<void> {
     if (restaurantId) {
       const reviews = await this.reviewModel.find({ restaurant: restaurantId });
-      const averageRating = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
+      const averageRating =
+        reviews.reduce((sum, review) => sum + review.rating, 0) /
+        reviews.length;
       const totalReviews = reviews.length;
 
       await this.partnerModel.findByIdAndUpdate(restaurantId, {
@@ -116,7 +131,9 @@ export class ReviewService {
 
     if (menuItemId) {
       const reviews = await this.reviewModel.find({ menuItem: menuItemId });
-      const averageRating = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
+      const averageRating =
+        reviews.reduce((sum, review) => sum + review.rating, 0) /
+        reviews.length;
       const totalReviews = reviews.length;
 
       await this.menuItemModel.findByIdAndUpdate(menuItemId, {
@@ -124,5 +141,67 @@ export class ReviewService {
         totalReviews,
       });
     }
+  }
+
+  async updateReview(reviewId: string, updateData: any, userId: string) {
+    const review = await this.reviewModel.findById(reviewId);
+    if (!review) {
+      throw new Error('Review not found');
+    }
+
+    // Check if user owns this review
+    if (review.user.toString() !== userId) {
+      throw new Error('Not authorized to update this review');
+    }
+
+    // Update the review
+    const updatedReview = await this.reviewModel.findByIdAndUpdate(
+      reviewId,
+      {
+        rating: updateData.rating,
+        comment: updateData.comment,
+        images: updateData.images || [],
+      },
+      { new: true }
+    ).populate('user', 'firstName lastName name');
+
+    // Update rating statistics
+    if (review.restaurant) {
+      await this.updateRatingStats(review.restaurant.toString(), null);
+    }
+    if (review.menuItem) {
+      await this.updateRatingStats(null, review.menuItem.toString());
+    }
+
+    return updatedReview;
+  }
+
+  async deleteReview(reviewId: string, userId: string) {
+    const review = await this.reviewModel.findById(reviewId);
+    if (!review) {
+      throw new Error('Review not found');
+    }
+
+    // Check if user owns this review
+    if (review.user.toString() !== userId) {
+      throw new Error('Not authorized to delete this review');
+    }
+
+    // Store references before deletion
+    const restaurantId = review.restaurant?.toString();
+    const menuItemId = review.menuItem?.toString();
+
+    // Delete the review
+    await this.reviewModel.findByIdAndDelete(reviewId);
+
+    // Update rating statistics
+    if (restaurantId) {
+      await this.updateRatingStats(restaurantId, null);
+    }
+    if (menuItemId) {
+      await this.updateRatingStats(null, menuItemId);
+    }
+
+    return { message: 'Review deleted successfully' };
   }
 }

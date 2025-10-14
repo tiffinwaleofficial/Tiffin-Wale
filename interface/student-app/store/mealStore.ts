@@ -55,6 +55,7 @@ export const useMealStore = create<MealState>((set, get) => ({
   lastHistoryFetched: null,
 
   fetchTodayMeals: async (forceRefresh = false) => {
+    console.log('🍽️ MealStore: fetchTodayMeals called with forceRefresh:', forceRefresh);
     const { lastTodayFetched, isLoadingToday } = get();
     
     // Check cache validity

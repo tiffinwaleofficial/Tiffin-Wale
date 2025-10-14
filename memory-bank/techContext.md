@@ -62,7 +62,7 @@
 - **Monitoring**: Google Cloud Monitoring
 
 ### Development Tools
-- **Package Manager**: pnpm
+- **Package Manager**: Bun (Partner App), pnpm (Other apps)
 - **Version Control**: Git
 - **Code Quality**: ESLint, Prettier
 - **Type Checking**: TypeScript
@@ -75,7 +75,8 @@
 ```bash
 # Required software
 Node.js >= 18.0.0
-pnpm >= 8.0.0
+Bun >= 1.0.0 (for Partner App)
+pnpm >= 8.0.0 (for other apps)
 Git
 Google Cloud CLI
 Expo CLI
@@ -190,14 +191,18 @@ pnpm run mobile:deploy:gcloud # Deploy to Google Cloud
 ### Partner App Commands
 ```bash
 # Development
-pnpm run partner:dev          # Start Expo development server
+bun run dev                   # Start Expo development server
+bun run start                 # Start Expo development server
+bun run api:generate          # Generate API clients with Orval
+bun run api:watch            # Watch mode for API generation
 
 # Building
-pnpm run partner:build:web    # Build for web
-pnpm run partner:build:gcloud # Build for Google Cloud
+bun run build:web            # Build for web
+bun run build:gcloud         # Build for Google Cloud
+bun run export:web           # Export for web
 
 # Deployment
-pnpm run partner:deploy:gcloud # Deploy to Google Cloud
+bun run deploy:gcloud        # Deploy to Google Cloud
 ```
 
 ### Admin Dashboard Commands

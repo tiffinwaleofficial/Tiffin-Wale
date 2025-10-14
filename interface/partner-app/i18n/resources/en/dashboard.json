@@ -1,0 +1,30 @@
+{
+  "dashboard": "Dashboard",
+  "todayOrders": "Today's Orders",
+  "totalEarnings": "Total Earnings",
+  "activeOrders": "Active Orders",
+  "completedOrders": "Completed Orders",
+  "pendingOrders": "Pending Orders",
+  "cancelledOrders": "Cancelled Orders",
+  "acceptingOrders": "Accepting Orders",
+  "notAcceptingOrders": "Not Accepting Orders",
+  "toggleAcceptingOrders": "Toggle Accepting Orders",
+  "quickActions": "Quick Actions",
+  "viewAllOrders": "View All Orders",
+  "addMenuItem": "Add Menu Item",
+  "viewMenu": "View Menu",
+  "viewReviews": "View Reviews",
+  "earnings": "Earnings",
+  "stats": "Statistics",
+  "recentActivity": "Recent Activity",
+  "noOrdersToday": "No orders today",
+  "noActiveOrders": "No active orders",
+  "orderAccepted": "Order accepted",
+  "orderRejected": "Order rejected",
+  "orderReady": "Order ready",
+  "orderDelivered": "Order delivered",
+  "orderCancelled": "Order cancelled"
+}
+
+
+

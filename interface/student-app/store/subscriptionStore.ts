@@ -44,6 +44,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   lastPlansFetched: null,
 
   fetchCurrentSubscription: async (forceRefresh = false) => {
+    console.log('💳 SubscriptionStore: fetchCurrentSubscription called with forceRefresh:', forceRefresh);
     const { lastFetched, isLoading } = get();
     
     // Check cache validity
@@ -61,8 +62,35 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
     try {
       console.log('🔔 SubscriptionStore: Fetching current subscription...');
       
-      const currentSubscription = await api.subscriptions.getCurrent();
-      console.log('✅ SubscriptionStore: Current subscription fetched:', currentSubscription);
+      const apiSubscription = await api.subscriptions.getCurrent();
+      console.log('✅ SubscriptionStore: Current subscription fetched:', apiSubscription);
+      
+      // Map API subscription to frontend type
+      const currentSubscription = apiSubscription ? {
+        _id: apiSubscription.id,
+        id: apiSubscription.id,
+        customer: typeof apiSubscription.customer === 'string' ? apiSubscription.customer : apiSubscription.customer.id,
+        plan: {
+          _id: apiSubscription.plan.id,
+          id: apiSubscription.plan.id,
+          name: apiSubscription.plan.name,
+          description: apiSubscription.plan.description,
+          price: apiSubscription.plan.price,
+          features: apiSubscription.plan.features,
+          mealsPerDay: apiSubscription.plan.mealsPerDay,
+        },
+        status: (apiSubscription.status === 'canceled' ? 'cancelled' : apiSubscription.status) as 'active' | 'pending' | 'cancelled' | 'paused',
+        startDate: apiSubscription.startDate,
+        endDate: apiSubscription.endDate,
+        autoRenew: apiSubscription.autoRenew,
+        paymentFrequency: 'monthly' as const, // Default value
+        totalAmount: apiSubscription.plan.price,
+        discountAmount: 0,
+        isPaid: true, // Default value
+        customizations: [],
+        createdAt: apiSubscription.createdAt || new Date().toISOString(),
+        updatedAt: apiSubscription.updatedAt || new Date().toISOString(),
+      } : null;
       
       set({ 
         currentSubscription,
@@ -96,12 +124,39 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
     try {
       console.log('🔔 SubscriptionStore: Fetching all subscriptions...');
       
-      const allSubscriptions = await api.subscriptions.getAll();
-      console.log('✅ SubscriptionStore: All subscriptions fetched:', allSubscriptions);
+      const apiSubscriptions = await api.subscriptions.getAll();
+      console.log('✅ SubscriptionStore: All subscriptions fetched:', apiSubscriptions);
+      
+      // Map API subscriptions to frontend types
+      const allSubscriptions = apiSubscriptions.map((apiSub: any) => ({
+        _id: apiSub.id,
+        id: apiSub.id,
+        customer: typeof apiSub.customer === 'string' ? apiSub.customer : apiSub.customer.id,
+        plan: {
+          _id: apiSub.plan.id,
+          id: apiSub.plan.id,
+          name: apiSub.plan.name,
+          description: apiSub.plan.description,
+          price: apiSub.plan.price,
+          features: apiSub.plan.features,
+          mealsPerDay: apiSub.plan.mealsPerDay,
+        },
+        status: (apiSub.status === 'canceled' ? 'cancelled' : apiSub.status) as 'active' | 'pending' | 'cancelled' | 'paused',
+        startDate: apiSub.startDate,
+        endDate: apiSub.endDate,
+        autoRenew: apiSub.autoRenew,
+        paymentFrequency: 'monthly' as const,
+        totalAmount: apiSub.plan.price,
+        discountAmount: 0,
+        isPaid: true,
+        customizations: [],
+        createdAt: apiSub.createdAt || new Date().toISOString(),
+        updatedAt: apiSub.updatedAt || new Date().toISOString(),
+      }));
       
       // Find current active subscription from all subscriptions
       const currentSubscription = allSubscriptions.find(
-        (sub: Subscription) => sub.status === 'active' || sub.status === 'pending'
+        (sub: any) => sub.status === 'active' || sub.status === 'pending'
       ) || null;
       
       set({ 
@@ -138,8 +193,19 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       console.log('🔔 SubscriptionStore: Fetching available plans...');
       
       // Use the existing subscription plan API
-      const availablePlans = await api.subscriptionPlans.getAll();
-      console.log('✅ SubscriptionStore: Available plans fetched:', availablePlans);
+      const apiPlans = await api.subscriptionPlans.getAll();
+      console.log('✅ SubscriptionStore: Available plans fetched:', apiPlans);
+      
+      // Map API plans to frontend types
+      const availablePlans = apiPlans.map((apiPlan: any) => ({
+        _id: apiPlan.id,
+        id: apiPlan.id,
+        name: apiPlan.name,
+        description: apiPlan.description,
+        price: apiPlan.price,
+        features: apiPlan.features,
+        mealsPerDay: apiPlan.mealsPerDay,
+      }));
       
       set({ 
         availablePlans,

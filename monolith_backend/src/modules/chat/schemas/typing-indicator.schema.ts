@@ -37,3 +37,7 @@ TypingIndicatorSchema.index({ lastTypingAt: -1 });
 TypingIndicatorSchema.index({ lastTypingAt: 1 }, { expireAfterSeconds: 30 });
 
 
+
+
+
+

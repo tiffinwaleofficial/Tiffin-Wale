@@ -474,6 +474,193 @@ const useNotifications = () => {
 };
 ```
 
+## Partner App Specific Patterns
+
+### Global Theme System Pattern
+```typescript
+// Centralized theme management with Zustand persistence
+interface ThemeStore {
+  mode: ThemeMode;
+  theme: Theme;
+  setTheme: (mode: ThemeMode) => void;
+  toggleTheme: () => void;
+  getActiveTheme: () => Theme;
+}
+
+export const useThemeStore = create<ThemeStore>()(
+  persist(
+    (set, get) => ({
+      mode: 'light',
+      theme: themes.light,
+      setTheme: (mode) => set({ mode, theme: themes[mode] }),
+      toggleTheme: () => set((state) => {
+        const newMode = state.mode === 'light' ? 'dark' : 'light';
+        return { mode: newMode, theme: themes[newMode] };
+      }),
+      getActiveTheme: () => get().theme,
+    }),
+    {
+      name: 'theme-storage',
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({ mode: state.mode }),
+    }
+  )
+);
+```
+
+### Component Library Pattern
+```typescript
+// Theme-driven reusable components with comprehensive prop interfaces
+interface ButtonProps {
+  title: string;
+  onPress: () => void;
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  disabled?: boolean;
+  loading?: boolean;
+  fullWidth?: boolean;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
+  style?: ViewStyle;
+  textStyle?: TextStyle;
+  theme?: {
+    backgroundColor?: string;
+    textColor?: string;
+    borderColor?: string;
+  };
+}
+
+const Button: React.FC<ButtonProps> = ({ 
+  variant = 'primary', 
+  size = 'md', 
+  theme: customTheme,
+  ...props 
+}: ButtonProps) => {
+  const { theme: activeTheme } = useTheme();
+  const currentTheme = customTheme || activeTheme;
+  
+  return (
+    <TouchableOpacity
+      style={[
+        styles.button,
+        variantStyles[variant](currentTheme),
+        sizeStyles[size],
+        props.fullWidth && styles.fullWidth,
+        props.disabled && styles.disabled,
+        props.style,
+      ]}
+      onPress={props.onPress}
+      disabled={props.disabled || props.loading}
+    >
+      {/* Component implementation with loading state */}
+    </TouchableOpacity>
+  );
+};
+```
+
+### Business Component Pattern
+```typescript
+// Domain-specific business components with rich functionality
+interface OrderCardProps {
+  orderId: string;
+  customerName: string;
+  items: OrderItem[];
+  totalAmount: number;
+  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
+  onStatusUpdate?: (orderId: string, newStatus: string) => void;
+  onViewDetails?: (orderId: string) => void;
+  onCallCustomer?: (phone: string) => void;
+  // ... other props
+}
+
+const OrderCard: React.FC<OrderCardProps> = ({ ... }) => {
+  const { theme } = useTheme();
+  
+  // Business logic for status management
+  const getNextStatus = (currentStatus: string) => {
+    // Status transition logic
+  };
+  
+  return (
+    <Card>
+      {/* Rich UI with business-specific interactions */}
+    </Card>
+  );
+};
+```
+
+### API Client Generation Pattern
+```typescript
+// swagger-typescript-api configuration (migrated from Orval)
+// Package.json script:
+"api:generate": "bunx swagger-typescript-api generate -p http://localhost:3001/api-docs-json -o ./api/generated -n api.ts --axios --route-types --responses"
+
+// Generated files:
+// - api/generated/api.ts (8,948 lines of TypeScript)
+// - api/hooks/useApi.ts (React Query hooks wrapper)
+// - api/custom-instance.ts (Axios instance with auth interceptors)
+
+// Usage pattern:
+import { useGetOrders, useCreateOrder } from '@/api';
+
+const { data, isLoading, error } = useGetOrders();
+const createOrder = useCreateOrder();
+```
+
+### Environment Configuration Pattern
+```typescript
+// Centralized environment variable management
+interface Config {
+  apiBaseUrl: string;
+  isDevelopment: boolean;
+  isProduction: boolean;
+}
+
+const extra = Constants.expoConfig?.extra as ExtraConfig | undefined;
+
+export const envConfig: Config = {
+  ...defaultConfig,
+  ...(extra?.apiBaseUrl && { apiBaseUrl: extra.apiBaseUrl }),
+};
+```
+
+### i18n Pattern
+```typescript
+// Namespace-based translation structure
+const resources = {
+  en: {
+    common: enCommon,
+    auth: enAuth,
+    dashboard: enDashboard,
+    orders: enOrders,
+  },
+  hi: {
+    common: hiCommon,
+    auth: hiAuth,
+    dashboard: hiDashboard,
+    orders: hiOrders,
+  },
+};
+
+// Custom hook for typed translations
+export const useTranslation = (ns: Namespace | Namespace[] = 'common') => {
+  return useTranslationI18n(ns);
+};
+```
+
+### Package Manager Pattern
+```json
+// Bun-first package management
+{
+  "packageManager": "bun@1.0.0",
+  "scripts": {
+    "dev": "EXPO_NO_TELEMETRY=1 bunx expo start --clear --offline",
+    "api:generate": "bunx orval --config orval.config.ts",
+    "api:watch": "bunx orval --config orval.config.ts --watch"
+  }
+}
+```
+
 ---
 
 *This document defines the technical patterns and architectural decisions used throughout the project. All new code should follow these established patterns.* 

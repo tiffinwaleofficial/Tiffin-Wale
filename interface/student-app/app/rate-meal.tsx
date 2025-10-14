@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Star, ArrowLeft } from 'lucide-react-native';
+import { Star,} from 'lucide-react-native';
 import { useOrderStore } from '@/store/orderStore';
 import Animated from 'react-native-reanimated';
 
@@ -25,9 +25,7 @@ export default function RateMealScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#333" />
-        </TouchableOpacity>
+        <BackButton />
         <Text style={styles.headerTitle}>Rate Meal</Text>
       </View>
       <View style={styles.content}>

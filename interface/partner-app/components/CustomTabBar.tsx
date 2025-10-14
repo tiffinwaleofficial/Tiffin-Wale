@@ -4,11 +4,11 @@ import { useRouter, usePathname } from 'expo-router';
 import { Chrome as Home, ClipboardList, ChartBar as BarChart3, Bell, User } from 'lucide-react-native';
 
 const tabs = [
-  { name: 'index', path: '/', title: 'Home', Icon: Home },
-  { name: 'orders', path: '/orders', title: 'Orders', Icon: ClipboardList },
-  { name: 'earnings', path: '/earnings', title: 'Earnings', Icon: BarChart3 },
-  { name: 'notifications', path: '/notifications', title: 'Alerts', Icon: Bell },
-  { name: 'profile', path: '/profile', title: 'Profile', Icon: User },
+  { name: 'dashboard', path: '/(tabs)/dashboard', title: 'Dashboard', Icon: Home },
+  { name: 'orders', path: '/(tabs)/orders', title: 'Orders', Icon: ClipboardList },
+  { name: 'earnings', path: '/(tabs)/earnings', title: 'Earnings', Icon: BarChart3 },
+  { name: 'notifications', path: '/(tabs)/notifications', title: 'Alerts', Icon: Bell },
+  { name: 'profile', path: '/(tabs)/profile', title: 'Profile', Icon: User },
 ];
 
 export default function CustomTabBar() {

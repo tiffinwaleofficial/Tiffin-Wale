@@ -3,6 +3,8 @@ import {
   Get,
   Post,
   Patch,
+  Put,
+  Delete,
   Body,
   Param,
   UseGuards,
@@ -30,7 +32,10 @@ export class ReviewController {
   @ApiOperation({ summary: "Create restaurant review" })
   @ApiParam({ name: "restaurantId", description: "Restaurant ID" })
   @ApiResponse({ status: 201, description: "Review created successfully" })
-  @ApiResponse({ status: 400, description: "Invalid input or already reviewed" })
+  @ApiResponse({
+    status: 400,
+    description: "Invalid input or already reviewed",
+  })
   @ApiResponse({ status: 404, description: "Restaurant not found" })
   createRestaurantReview(
     @Param("restaurantId") restaurantId: string,
@@ -49,7 +54,10 @@ export class ReviewController {
   @ApiOperation({ summary: "Create menu item review" })
   @ApiParam({ name: "itemId", description: "Menu item ID" })
   @ApiResponse({ status: 201, description: "Review created successfully" })
-  @ApiResponse({ status: 400, description: "Invalid input or already reviewed" })
+  @ApiResponse({
+    status: 400,
+    description: "Invalid input or already reviewed",
+  })
   @ApiResponse({ status: 404, description: "Menu item not found" })
   createMenuItemReview(
     @Param("itemId") itemId: string,
@@ -88,5 +96,35 @@ export class ReviewController {
   markHelpful(@Param("id") id: string) {
     return this.reviewService.markHelpful(id);
   }
-}
 
+  @Put(":id")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Update review" })
+  @ApiParam({ name: "id", description: "Review ID" })
+  @ApiResponse({ status: 200, description: "Review updated successfully" })
+  @ApiResponse({ status: 404, description: "Review not found" })
+  @ApiResponse({ status: 403, description: "Not authorized to update this review" })
+  updateReview(
+    @Param("id") id: string,
+    @Body() updateReviewDto: CreateReviewDto,
+    @GetCurrentUser("_id") userId: string,
+  ) {
+    return this.reviewService.updateReview(id, updateReviewDto, userId);
+  }
+
+  @Delete(":id")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Delete review" })
+  @ApiParam({ name: "id", description: "Review ID" })
+  @ApiResponse({ status: 200, description: "Review deleted successfully" })
+  @ApiResponse({ status: 404, description: "Review not found" })
+  @ApiResponse({ status: 403, description: "Not authorized to delete this review" })
+  deleteReview(
+    @Param("id") id: string,
+    @GetCurrentUser("_id") userId: string,
+  ) {
+    return this.reviewService.deleteReview(id, userId);
+  }
+}

@@ -1,14 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Star, ThumbsUp, Play } from 'lucide-react-native';
 import { Review } from '@/types';
+import { useAuthStore } from '@/store/authStore';
 
 interface ReviewCardProps {
   review: Review;
-  onMarkHelpful?: (reviewId: string) => void;
+  onMarkHelpful?: (reviewId: string, isHelpful: boolean) => void;
 }
 
 export const ReviewCard: React.FC<ReviewCardProps> = ({ review, onMarkHelpful }) => {
+  const { user } = useAuthStore();
+  const [isHelpful, setIsHelpful] = useState(false);
+  const [helpfulCount, setHelpfulCount] = useState(review.helpfulCount || 0);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -16,6 +21,22 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({ review, onMarkHelpful })
       month: 'short', 
       day: 'numeric' 
     });
+  };
+
+  const handleMarkHelpful = () => {
+    if (!review.id || review.id === 'undefined') {
+      console.error('❌ ReviewCard: Invalid review ID:', review.id);
+      return;
+    }
+
+    const newIsHelpful = !isHelpful;
+    const newCount = newIsHelpful ? helpfulCount + 1 : helpfulCount - 1;
+    
+    setIsHelpful(newIsHelpful);
+    setHelpfulCount(newCount);
+    
+    console.log('🔍 ReviewCard: Marking helpful for review:', review.id, 'isHelpful:', newIsHelpful);
+    onMarkHelpful?.(review.id, newIsHelpful);
   };
 
   const renderStars = (rating: number) => {
@@ -86,18 +107,15 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({ review, onMarkHelpful })
       {/* Helpful Button */}
       <TouchableOpacity 
         style={styles.helpfulButton}
-        onPress={() => {
-          console.log('🔍 ReviewCard: Marking helpful for review:', review.id);
-          if (!review.id || review.id === 'undefined') {
-            console.error('❌ ReviewCard: Invalid review ID:', review.id);
-            return;
-          }
-          onMarkHelpful?.(review.id);
-        }}
+        onPress={handleMarkHelpful}
       >
-        <ThumbsUp size={16} color="#666" />
-        <Text style={styles.helpfulText}>
-          Helpful ({review.helpfulCount})
+        <ThumbsUp 
+          size={16} 
+          color={isHelpful ? "#FF9B42" : "#666"} 
+          fill={isHelpful ? "#FF9B42" : "transparent"}
+        />
+        <Text style={[styles.helpfulText, isHelpful && styles.helpfulTextActive]}>
+          Helpful ({helpfulCount})
         </Text>
       </TouchableOpacity>
     </View>
@@ -206,5 +224,9 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginLeft: 4,
     fontFamily: 'Poppins-Regular',
+  },
+  helpfulTextActive: {
+    color: '#FF9B42',
+    fontWeight: '600',
   },
 });

@@ -9,32 +9,41 @@ import {
   FlatList,
   ActivityIndicator,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Star, Clock, Utensils, AlertTriangle, ShoppingCart } from 'lucide-react-native';
+import { Star, Clock, Utensils, AlertTriangle, ShoppingCart, Edit, Trash2 } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import api from '@/utils/apiClient';
 import { useReviewStore } from '@/store/reviewStore';
 import { ReviewCard } from '@/components/ReviewCard';
 import { ReviewModal } from '@/components/ReviewModal';
+import { BackButton } from '@/components/BackButton';
 import { MenuItem, Review } from '@/types';
+import { useAuthStore } from '@/store/authStore';
+import { useNotification } from '@/hooks/useNotification';
 
 const { width } = Dimensions.get('window');
 
 export default function FoodItemDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { user } = useAuthStore();
+  const { showError, success } = useNotification();
   
   const [menuItem, setMenuItem] = useState<MenuItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [editingReview, setEditingReview] = useState<Review | null>(null);
   
   const { 
     menuItemReviews, 
     fetchMenuItemReviews, 
     markHelpful,
+    updateReview,
+    deleteReview: deleteReviewFromStore,
     isLoading: reviewsLoading 
   } = useReviewStore();
 
@@ -45,11 +54,81 @@ export default function FoodItemDetailScreen() {
     }
   }, [id]);
 
+  // Check if current user has already reviewed this item
+  const getUserReview = () => {
+    if (!user?.id) return null;
+    const userId = user.id;
+    return menuItemReviews.find(review => 
+      review.user?.id === userId
+    );
+  };
+
+  const hasUserReviewed = () => {
+    return !!getUserReview();
+  };
+
+  const handleWriteReview = () => {
+    const userReview = getUserReview();
+    if (userReview) {
+      showError('You have already reviewed this item. You can edit or delete your existing review.');
+      return;
+    }
+    setEditingReview(null);
+    setShowReviewModal(true);
+  };
+
+  const handleEditReview = () => {
+    const userReview = getUserReview();
+    if (userReview) {
+      setEditingReview(userReview);
+      setShowReviewModal(true);
+    }
+  };
+
+  const handleDeleteReview = () => {
+    const userReview = getUserReview();
+    if (!userReview) return;
+
+    Alert.alert(
+      'Delete Review',
+      'Are you sure you want to delete your review? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: () => deleteReview(userReview.id)
+        }
+      ]
+    );
+  };
+
+  const deleteReview = async (reviewId: string) => {
+    try {
+      await deleteReviewFromStore(reviewId);
+      success('Review deleted successfully');
+      
+      // Refresh reviews
+      if (id) {
+        fetchMenuItemReviews(id);
+      }
+    } catch (error) {
+      console.error('Error deleting review:', error);
+      showError('Failed to delete review. Please try again.');
+    }
+  };
+
   const fetchMenuItemDetails = async () => {
     try {
       setIsLoading(true);
       const item = await api.menu.getItemDetails(id!);
-      setMenuItem(item);
+      // Ensure the item has required fields
+      const menuItem: MenuItem = {
+        ...item,
+        imageUrl: item.imageUrl || item.images?.[0] || '',
+        businessPartner: item.businessPartner || '',
+      };
+      setMenuItem(menuItem);
     } catch (err) {
       setError('Failed to load menu item details');
       console.error('Error fetching menu item:', err);
@@ -197,12 +276,31 @@ export default function FoodItemDetailScreen() {
       <View style={styles.reviewsSection}>
         <View style={styles.reviewsHeader}>
           <Text style={styles.sectionTitle}>Reviews</Text>
-          <TouchableOpacity
-            style={styles.writeReviewButton}
-            onPress={() => setShowReviewModal(true)}
-          >
-            <Text style={styles.writeReviewText}>Write Review</Text>
-          </TouchableOpacity>
+          {hasUserReviewed() ? (
+            <View style={styles.reviewActions}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.editButton]}
+                onPress={handleEditReview}
+              >
+                <Edit size={16} color="#FF9B42" />
+                <Text style={styles.editButtonText}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.deleteButton]}
+                onPress={handleDeleteReview}
+              >
+                <Trash2 size={16} color="#FF6B6B" />
+                <Text style={styles.deleteButtonText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.writeReviewButton}
+              onPress={handleWriteReview}
+            >
+              <Text style={styles.writeReviewText}>Write Review</Text>
+            </TouchableOpacity>
+          )}
         </View>
         
         {reviewsLoading ? (
@@ -212,7 +310,7 @@ export default function FoodItemDetailScreen() {
             <ReviewCard
               key={review.id}
               review={review}
-              onMarkHelpful={markHelpful}
+              onMarkHelpful={(reviewId, isHelpful) => markHelpful(reviewId)}
             />
           ))
         ) : (
@@ -246,9 +344,7 @@ export default function FoodItemDetailScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#333333" />
-        </TouchableOpacity>
+        <BackButton />
         <Text style={styles.headerTitle}>Menu Item</Text>
         <View style={styles.placeholder} />
       </View>
@@ -290,12 +386,17 @@ export default function FoodItemDetailScreen() {
       {/* Review Modal */}
       <ReviewModal
         visible={showReviewModal}
-        onClose={() => setShowReviewModal(false)}
+        onClose={() => {
+          setShowReviewModal(false);
+          setEditingReview(null);
+        }}
         menuItemId={id}
+        editingReview={editingReview}
         onReviewSubmitted={() => {
           console.log('🔄 Review submitted, refreshing data...');
           fetchMenuItemReviews(id!);
           fetchMenuItemDetails();
+          setEditingReview(null);
         }}
       />
     </View>
@@ -531,6 +632,42 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
+  },
+  reviewActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginLeft: 8,
+  },
+  editButton: {
+    backgroundColor: '#FFF5E8',
+    borderWidth: 1,
+    borderColor: '#FF9B42',
+  },
+  deleteButton: {
+    backgroundColor: '#FFE8E8',
+    borderWidth: 1,
+    borderColor: '#FF6B6B',
+  },
+  editButtonText: {
+    color: '#FF9B42',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+    fontFamily: 'Poppins-SemiBold',
+  },
+  deleteButtonText: {
+    color: '#FF6B6B',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
     fontFamily: 'Poppins-SemiBold',
   },
   noReviewsText: {

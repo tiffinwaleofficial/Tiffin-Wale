@@ -55,12 +55,16 @@ export class SubscriptionService {
       .exec();
   }
 
-  async getCurrentSubscription(customerId: string): Promise<Subscription | null> {
+  async getCurrentSubscription(
+    customerId: string,
+  ): Promise<Subscription | null> {
     const subscription = await this.subscriptionModel
-      .findOne({ 
+      .findOne({
         customer: customerId,
-        status: { $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING] },
-        endDate: { $gt: new Date() }
+        status: {
+          $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING],
+        },
+        endDate: { $gt: new Date() },
       })
       .populate("plan")
       .sort({ createdAt: -1 })

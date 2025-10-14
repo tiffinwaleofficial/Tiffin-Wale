@@ -15,7 +15,9 @@ import {
 import { Star, X, Camera, Image as ImageIcon, Trash2, Video, Play } from 'lucide-react-native';
 import { useReviewStore } from '@/store/reviewStore';
 import { imageUploadService, UploadType } from '@/services/imageUploadService';
+import { cloudinaryDeleteService } from '@/services/cloudinaryDeleteService';
 import * as ImagePicker from 'expo-image-picker';
+import { Review } from '@/types';
 
 interface ReviewModalProps {
   visible: boolean;
@@ -23,6 +25,7 @@ interface ReviewModalProps {
   restaurantId?: string;
   menuItemId?: string;
   onReviewSubmitted?: () => void;
+  editingReview?: Review | null;
 }
 
 export const ReviewModal: React.FC<ReviewModalProps> = ({
@@ -31,15 +34,61 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   restaurantId,
   menuItemId,
   onReviewSubmitted,
+  editingReview,
 }) => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [mediaFiles, setMediaFiles] = useState<Array<{uri: string, type: 'image' | 'video', duration?: number, cloudinaryUrl?: string, uploading?: boolean}>>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+
+  // Initialize form with editing review data
+  React.useEffect(() => {
+    if (editingReview) {
+      setRating(editingReview.rating);
+      setComment(editingReview.comment || '');
+      // Initialize media files from existing review images
+      const existingMedia = (editingReview.images || []).map(imageUrl => ({
+        uri: imageUrl,
+        type: 'image' as const,
+        cloudinaryUrl: imageUrl,
+        uploading: false,
+      }));
+      setMediaFiles(existingMedia);
+    } else {
+      // Reset form for new review
+      setRating(0);
+      setComment('');
+      setMediaFiles([]);
+    }
+  }, [editingReview, visible]);
   const [previewMedia, setPreviewMedia] = useState<{uri: string, type: 'image' | 'video'} | null>(null);
   
-  const { createReview } = useReviewStore();
+  const { createReview, updateReview } = useReviewStore();
+
+  // Remove media file and clean up Cloudinary asset if needed
+  const removeMediaFile = async (index: number) => {
+    const fileToRemove = mediaFiles[index];
+    
+    // If it's a Cloudinary URL (not a local file), delete from Cloudinary
+    if (fileToRemove.cloudinaryUrl && fileToRemove.cloudinaryUrl.startsWith('http')) {
+      console.log('🗑️ ReviewModal: Removing Cloudinary asset:', fileToRemove.cloudinaryUrl);
+      
+      if (cloudinaryDeleteService.isConfigured()) {
+        const success = await cloudinaryDeleteService.deleteAsset(fileToRemove.cloudinaryUrl);
+        if (success) {
+          console.log('✅ ReviewModal: Cloudinary asset deleted successfully');
+        } else {
+          console.warn('⚠️ ReviewModal: Failed to delete Cloudinary asset');
+        }
+      } else {
+        console.warn('⚠️ ReviewModal: Cloudinary delete service not configured');
+      }
+    }
+    
+    // Remove from local state
+    setMediaFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
   // Upload to Cloudinary immediately when file is selected
   const uploadToCloudinary = async (fileUri: string, mediaType: 'image' | 'video') => {
@@ -124,14 +173,24 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
         console.log('✅ Using uploaded media URLs:', uploadedMediaUrls);
       }
       
-      // Create review with uploaded media URLs
-      await createReview({
-        rating,
-        comment: comment.trim() || undefined,
-        images: uploadedMediaUrls, // Backend expects 'images' field for all media
-        restaurantId,
-        menuItemId,
-      });
+      // Create or update review with uploaded media URLs
+      if (editingReview) {
+        // Update existing review
+        await updateReview(editingReview.id, {
+          rating,
+          comment: comment.trim() || undefined,
+          images: uploadedMediaUrls,
+        });
+      } else {
+        // Create new review
+        await createReview({
+          rating,
+          comment: comment.trim() || undefined,
+          images: uploadedMediaUrls, // Backend expects 'images' field for all media
+          restaurantId,
+          menuItemId,
+        });
+      }
       
       // Reset form
       setRating(0);
@@ -345,8 +404,16 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
     }
   };
 
-  const removeMedia = (index: number) => {
-    setMediaFiles(prev => prev.filter((_, i) => i !== index));
+  // Keep the old function name for compatibility, but use the new implementation
+  const removeMedia = async (index: number) => {
+    await removeMediaFile(index);
+  };
+
+  // Handle modal close with cleanup
+  const handleClose = () => {
+    // If we're in editing mode and have unsaved changes, we might want to clean up
+    // any newly uploaded assets that weren't saved. For now, we'll just close.
+    onClose();
   };
 
   return (
@@ -359,7 +426,9 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Write a Review</Text>
+          <Text style={styles.title}>
+            {editingReview ? 'Edit Review' : 'Write a Review'}
+          </Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <X size={24} color="#666" />
           </TouchableOpacity>
@@ -492,7 +561,10 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
               styles.submitButtonText,
               rating === 0 && styles.submitButtonTextDisabled,
             ]}>
-              {isSubmitting ? (isUploadingMedia ? 'Uploading Media...' : 'Submitting...') : 'Submit Review'}
+              {isSubmitting 
+                ? (isUploadingMedia ? 'Uploading Media...' : 'Submitting...') 
+                : (editingReview ? 'Update Review' : 'Submit Review')
+              }
             </Text>
           </TouchableOpacity>
         </View>

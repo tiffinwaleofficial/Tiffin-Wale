@@ -55,7 +55,9 @@ export class SubscriptionController {
   @Get("me/current")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Get current active subscription for authenticated user" })
+  @ApiOperation({
+    summary: "Get current active subscription for authenticated user",
+  })
   @ApiResponse({
     status: 200,
     description: "Return current active subscription.",

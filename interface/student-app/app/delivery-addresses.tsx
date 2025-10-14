@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Plus, X, Trash2, Edit, MapPin, Home, Building, MapPin as OtherIcon } from 'lucide-react-native';
+import { Plus, X, Trash2, Edit, MapPin, Home, Building, MapPin as OtherIcon } from 'lucide-react-native';
 import { useCustomerStore } from '@/store/customerStore';
 import { DeliveryAddress } from '@/types/api';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -261,9 +261,7 @@ export default function DeliveryAddressesScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#333" />
-        </TouchableOpacity>
+        <BackButton />
         <Text style={styles.headerTitle}>Delivery Addresses</Text>
         <TouchableOpacity onPress={() => openModal()} style={styles.addButton}>
           <Plus size={24} color="#FF9B42" />

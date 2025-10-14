@@ -420,6 +420,13 @@ const api = {
     markHelpful: async (reviewId: string): Promise<void> => {
       await apiClient.patch(`/api/reviews/${reviewId}/helpful`);
     },
+    updateReview: async (id: string, data: any): Promise<any> => {
+      const response = await apiClient.put(`/api/reviews/${id}`, data);
+      return response.data;
+    },
+    deleteReview: async (id: string): Promise<void> => {
+      await apiClient.delete(`/api/reviews/${id}`);
+    },
   },
 
   // Meals endpoints
@@ -635,8 +642,8 @@ const api = {
 
   // Notifications endpoints
   notifications: {
-    getUserNotifications: async (userId: string): Promise<Record<string, unknown>[]> => {
-      const response = await apiClient.get(`/api/notifications/user/${userId}`);
+    getUserNotifications: async (userId: string, page = 1, limit = 20): Promise<Record<string, unknown>[]> => {
+      const response = await apiClient.get(`/api/notifications/history?page=${page}&limit=${limit}`);
       return response.data;
     },
     markAsRead: async (id: string): Promise<void> => {

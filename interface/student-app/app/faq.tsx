@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 const FAQ_ITEMS = [
@@ -58,9 +58,7 @@ export default function FAQScreen() {
   return (
     <View style={styles.container}>
       <Animated.View entering={FadeIn.delay(100).duration(300)} style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#333333" />
-        </TouchableOpacity>
+        <BackButton />
         <Text style={styles.headerTitle}>Frequently Asked Questions</Text>
         <View style={styles.placeholder} />
       </Animated.View>

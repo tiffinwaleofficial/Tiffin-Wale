@@ -98,7 +98,7 @@ export interface MenuItem {
   name: string;
   description: string;
   price: number;
-  imageUrl: string;
+  imageUrl?: string;
   images?: string[];
   category: string;
   averageRating?: number;
@@ -112,7 +112,7 @@ export interface MenuItem {
     carbs: number;
     fat: number;
   };
-  businessPartner: string;
+  businessPartner?: string;
 }
 
 export interface Review {

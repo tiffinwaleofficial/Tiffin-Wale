@@ -15,7 +15,7 @@ import { Restaurant } from '@/types';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, isInitialized, isLoading: authLoading } = useAuthStore();
   const { 
     todayMeals, 
     isLoading: mealsLoading, 
@@ -43,46 +43,73 @@ export default function HomeScreen() {
   // Fetch initial data with fresh subscription status
   useEffect(() => {
     const loadInitialData = async () => {
-      if (user?.id) {
-        console.log('🔄 Dashboard: Loading fresh data for user:', user.id);
-        await Promise.all([
-          fetchTodayMeals(true), // Force refresh meals
-          fetchCurrentSubscription(true), // Force refresh current subscription
-          fetchRestaurants(), // Fetch restaurants
-          fetchNotifications(user.id, true), // Force refresh notifications
-        ]);
-        console.log('✅ Dashboard: Fresh data loaded successfully');
+      console.log('🔍 Dashboard: Auth state check:', { 
+        isInitialized, 
+        authLoading, 
+        userId: user?.id,
+        isAuthenticated: !!user,
+        userObject: user
+      });
+      
+      if (!isInitialized || authLoading) {
+        console.log('⏳ Dashboard: Waiting for auth initialization...', { isInitialized, authLoading });
+        return;
+      }
+      
+      const userId = user?.id || user?._id;
+      if (userId) {
+        console.log('🔄 Dashboard: Loading fresh data for user:', userId);
+        console.log('🔄 Dashboard: About to call APIs...');
+        try {
+          const results = await Promise.all([
+            fetchTodayMeals(true), // Force refresh meals
+            fetchCurrentSubscription(true), // Force refresh current subscription
+            fetchRestaurants(), // Fetch restaurants
+            fetchNotifications(userId, true), // Force refresh notifications
+          ]);
+          console.log('✅ Dashboard: Fresh data loaded successfully', results);
+        } catch (error) {
+          console.error('❌ Dashboard: Error loading initial data:', error);
+        }
+      } else {
+        console.log('⚠️ Dashboard: No authenticated user found - user object:', user);
       }
     };
 
     loadInitialData();
-  }, [user?.id, fetchTodayMeals, fetchCurrentSubscription, fetchRestaurants, fetchNotifications]);
+  }, [isInitialized, authLoading, user?.id, user?._id, fetchTodayMeals, fetchCurrentSubscription, fetchRestaurants, fetchNotifications]);
 
   // Refresh subscription and notification data when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      if (user?.id) {
+      const userId = user?.id || user?._id;
+      if (isInitialized && !authLoading && userId) {
         console.log('🔄 Dashboard: Screen focused, refreshing subscription and notification data');
         fetchCurrentSubscription(true); // Force refresh current subscription status
-        fetchNotifications(user.id, true); // Force refresh notifications
+        fetchNotifications(userId, true); // Force refresh notifications
       }
-    }, [user?.id, fetchCurrentSubscription, fetchNotifications])
+    }, [isInitialized, authLoading, user?.id, user?._id, fetchCurrentSubscription, fetchNotifications])
   );
 
   // Pull to refresh handler
   const onRefresh = async () => {
+    const userId = user?.id || user?._id;
+    if (!isInitialized || authLoading || !userId) {
+      console.log('⚠️ Dashboard: Cannot refresh - auth not ready');
+      setRefreshing(false);
+      return;
+    }
+    
     setRefreshing(true);
     try {
-      if (user?.id) {
-        console.log('🔄 Dashboard: Manual refresh triggered');
-        await Promise.all([
-          fetchTodayMeals(true), // Force refresh meals
-          fetchCurrentSubscription(true), // Force refresh current subscription
-          fetchRestaurants(), // Fetch restaurants
-          fetchNotifications(user.id, true), // Force refresh notifications
-        ]);
-        console.log('✅ Dashboard: Manual refresh completed');
-      }
+      console.log('🔄 Dashboard: Manual refresh triggered');
+      await Promise.all([
+        fetchTodayMeals(true), // Force refresh meals
+        fetchCurrentSubscription(true), // Force refresh current subscription
+        fetchRestaurants(), // Fetch restaurants
+        fetchNotifications(userId, true), // Force refresh notifications
+      ]);
+      console.log('✅ Dashboard: Manual refresh completed');
     } catch (error) {
       console.error('❌ Dashboard: Error refreshing data:', error);
     } finally {
@@ -140,6 +167,18 @@ export default function HomeScreen() {
       default: return status;
     }
   };
+
+  // Show loading screen while auth is initializing
+  if (!isInitialized || authLoading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FF9B42" />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -663,5 +702,17 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontSize: 12,
     color: '#666',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFAF0',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontFamily: 'Poppins-Medium',
+    color: '#666666',
   },
 });

@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Linking, Alert } from 'react-native';
-import { ArrowLeft, MessageCircle, Phone, HelpCircle, ChevronRight } from 'lucide-react-native';
+import { MessageCircle, Phone, HelpCircle, ChevronRight } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
@@ -127,9 +127,7 @@ export default function HelpSupportScreen() {
   return (
     <View style={styles.container}>
       <Animated.View entering={FadeIn.delay(100).duration(300)} style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#333333" />
-        </TouchableOpacity>
+        <BackButton />
         <Text style={styles.headerTitle}>Help & Support</Text>
         <View style={styles.placeholder} />
       </Animated.View>

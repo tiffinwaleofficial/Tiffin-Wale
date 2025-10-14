@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, ActivityIndicator, Alert, Modal, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert, Modal, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Camera, User, Mail, Phone, Calendar, Edit2 } from 'lucide-react-native';
+import { User, Mail, Phone, Calendar, Edit2 } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useAuthStore } from '@/store/authStore';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
@@ -9,6 +9,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { profileImageService } from '@/services/profileImageService';
 import { useNotification } from '@/hooks/useNotification';
+import { BackButton } from '@/components/BackButton';
+import { ProfileAvatar } from '@/components/ProfileAvatar';
 
 export default function AccountInformation() {
   const router = useRouter();
@@ -183,9 +185,7 @@ export default function AccountInformation() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.push('/(tabs)/profile')} style={styles.backButton}>
-            <ArrowLeft size={24} color="#333333" />
-          </TouchableOpacity>
+          <BackButton />
           <Text style={styles.headerTitle}>Account Information</Text>
           <View style={styles.editButton} />
         </View>
@@ -202,9 +202,7 @@ export default function AccountInformation() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.push('/(tabs)/profile')} style={styles.backButton}>
-            <ArrowLeft size={24} color="#333333" />
-          </TouchableOpacity>
+          <BackButton />
           <Text style={styles.headerTitle}>Account Information</Text>
           <View style={styles.editButton} />
         </View>
@@ -224,9 +222,7 @@ export default function AccountInformation() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.push('/(tabs)/profile')} style={styles.backButton}>
-          <ArrowLeft size={24} color="#333333" />
-        </TouchableOpacity>
+        <BackButton />
         <Text style={styles.headerTitle}>Account Information</Text>
         <TouchableOpacity 
           style={styles.editButton}
@@ -238,25 +234,16 @@ export default function AccountInformation() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.profileSection}>
-          <View style={styles.avatarContainer}>
-            <Image 
-              source={{ uri: user?.profileImage || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2' }}
-              style={styles.avatar}
-            />
-            {isEditing && (
-              <TouchableOpacity 
-                style={styles.cameraButton}
-                onPress={handleImageUpload}
-                disabled={isUploadingImage}
-              >
-                {isUploadingImage ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Camera size={20} color="#FFFFFF" />
-                )}
-              </TouchableOpacity>
-            )}
-          </View>
+          <ProfileAvatar
+            profileImage={user?.profileImage}
+            firstName={user?.firstName}
+            lastName={user?.lastName}
+            name={user?.name}
+            size={100}
+            onPress={isEditing ? handleImageUpload : undefined}
+            showCameraIcon={isEditing}
+            isUploading={isUploadingImage}
+          />
           
           <Text style={styles.userName}>{getDisplayName()}</Text>
           {hasActiveSubscription() && (

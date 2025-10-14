@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Plus, Minus, ShoppingCart } from 'lucide-react-native';
+import { Plus, Minus, ShoppingCart } from 'lucide-react-native';
 import api from '@/utils/apiClient';
 import { useAuthStore } from '@/store/authStore';
 import { useNotification } from '@/hooks/useNotification';
@@ -220,9 +220,7 @@ export default function AddOrderScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.push('/(tabs)/index')} style={styles.backButton}>
-          <ArrowLeft size={24} color="#333333" />
-        </TouchableOpacity>
+        <BackButton />
         <Text style={styles.headerTitle}>Add Order</Text>
         <View style={styles.cartIconContainer}>
           <TouchableOpacity 

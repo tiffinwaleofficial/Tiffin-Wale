@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Calendar, CreditCard, Utensils, Wallet } from 'lucide-react-native';
+import { Calendar, CreditCard, Utensils, Wallet } from 'lucide-react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 type PaymentMethod = 'upi' | 'card' | 'wallet';
@@ -19,9 +19,7 @@ export default function SubscriptionCheckoutScreen() {
   return (
     <View style={styles.container}>
       <Animated.View entering={FadeIn.delay(100).duration(300)} style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#333333" />
-        </TouchableOpacity>
+        <BackButton />
         <Text style={styles.headerTitle}>Checkout</Text>
         <View style={styles.placeholder} />
       </Animated.View>

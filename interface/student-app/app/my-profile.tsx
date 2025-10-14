@@ -15,7 +15,6 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import {
-  ArrowLeft,
   User,
   Mail,
   Phone,
@@ -32,6 +31,8 @@ import { useAuthStore } from '@/store/authStore';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { showNotification } from '@/utils/notificationService';
 import { profileImageService } from '@/services/profileImageService';
+import { BackButton } from '@/components/BackButton';
+import { ProfileAvatar } from '@/components/ProfileAvatar';
 
 export default function MyProfileScreen() {
   const router = useRouter();
@@ -147,9 +148,7 @@ export default function MyProfileScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <Animated.View entering={FadeIn.delay(100).duration(300)} style={styles.header}>
-        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.push('/(tabs)/profile')} style={styles.backButton}>
-          <ArrowLeft size={24} color="#333333" />
-        </TouchableOpacity>
+        <BackButton />
         <Text style={styles.headerTitle}>My Profile</Text>
         <View style={styles.placeholder} />
       </Animated.View>
@@ -163,22 +162,16 @@ export default function MyProfileScreen() {
           {/* Profile Card */}
           <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.profileCard}>
             <View style={styles.profileHeader}>
-              <TouchableOpacity onPress={handleImageUpload} disabled={isUploadingImage}>
-                <View style={styles.profileImageContainer}>
-                  <Image 
-                    source={{ uri: user?.profileImage || 'https://images.pexels.com/photos/2379005/pexels-photo-2379005.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2' }} 
-                    style={styles.profileImage} 
-                  />
-                  {isUploadingImage && (
-                    <View style={styles.uploadOverlay}>
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    </View>
-                  )}
-                  <View style={styles.editImageButton}>
-                    <Edit size={16} color="#FFFFFF" />
-                  </View>
-                </View>
-              </TouchableOpacity>
+              <ProfileAvatar
+                profileImage={user?.profileImage}
+                firstName={user?.firstName}
+                lastName={user?.lastName}
+                name={user?.name}
+                size={60}
+                onPress={handleImageUpload}
+                showCameraIcon={true}
+                isUploading={isUploadingImage}
+              />
               <View style={styles.profileInfo}>
                 <Text style={styles.profileName}>
                   {user?.firstName && user?.lastName 

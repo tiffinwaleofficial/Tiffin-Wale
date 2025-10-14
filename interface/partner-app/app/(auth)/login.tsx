@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Eye, EyeOff, ArrowRight } from 'lucide-react-native';
-import { useAuthStore } from '../../store/authStore';
+import { useAuthContext } from '../../context/AuthProvider';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -21,7 +21,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
-  const { login, isLoading, error, clearError } = useAuthStore();
+  const { login, isLoading, error, clearError } = useAuthContext();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -34,7 +34,7 @@ export default function LoginScreen() {
       await login(email, password);
       
       // Navigate to main app
-      router.replace('/(tabs)');
+      router.replace('/(tabs)/dashboard');
     } catch (error: any) {
       Alert.alert(
         'Login Failed',
@@ -113,7 +113,7 @@ export default function LoginScreen() {
 
         <View style={styles.signupContainer}>
           <Text style={styles.signupText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={() => router.push('/signup')}>
+          <TouchableOpacity onPress={() => router.push('/onboarding/welcome')}>
             <Text style={styles.signupLink}>Sign Up</Text>
           </TouchableOpacity>
         </View>

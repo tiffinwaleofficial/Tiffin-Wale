@@ -112,7 +112,7 @@ export default function OrdersScreen() {
   };
 
   // Filter and sort meals by date (newest first)
-  const sortedMeals = [...meals].sort((a, b) => 
+  const sortedMeals = [...(meals || [])].sort((a, b) => 
     new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 

@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Plus, CreditCard } from 'lucide-react-native';
+import { Plus, CreditCard } from 'lucide-react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 export default function PaymentMethodsScreen() {
@@ -26,9 +26,7 @@ export default function PaymentMethodsScreen() {
   return (
     <View style={styles.container}>
       <Animated.View entering={FadeIn.delay(100).duration(300)} style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#333333" />
-        </TouchableOpacity>
+        <BackButton />
         <Text style={styles.headerTitle}>Payment Methods</Text>
         <View style={styles.placeholder} />
       </Animated.View>

@@ -143,13 +143,13 @@ export const useNotificationStore = create<NotificationStore>()(
   persist(
     (set, get) => ({
       // Initial state
-      notifications: [],
+  notifications: [],
       history: [],
       settings: defaultSettings,
       config: null,
       stats: defaultStats,
-      isLoading: false,
-      error: null,
+  isLoading: false,
+  error: null,
       lastFetched: null,
 
       // Notification management
@@ -370,6 +370,7 @@ export const useNotificationStore = create<NotificationStore>()(
 
       // Fetch notifications from API with caching
       fetchNotifications: async (userId: string, forceRefresh = false) => {
+        console.log('🔔 NotificationStore: fetchNotifications called with userId:', userId, 'forceRefresh:', forceRefresh);
         const { lastFetched, isLoading } = get();
         
         // Check cache validity
@@ -390,8 +391,8 @@ export const useNotificationStore = create<NotificationStore>()(
           // Import API client dynamically to avoid circular dependency
           const api = await import('../utils/apiClient');
           
-          // Fetch notifications from backend
-          const notifications = await api.default.notifications.getUserNotifications(userId);
+          // Fetch notifications from backend with pagination
+          const notifications = await api.default.notifications.getUserNotifications(userId, 1, 50);
           console.log('✅ NotificationStore: Notifications fetched:', notifications.length);
           
           // Convert API response to NotificationData format
@@ -418,9 +419,9 @@ export const useNotificationStore = create<NotificationStore>()(
           });
           
           console.log('✅ NotificationStore: Notifications stored successfully');
-        } catch (error) {
+      } catch (error) {
           console.error('❌ NotificationStore: Failed to fetch notifications:', error);
-          set({
+        set({ 
             error: error instanceof Error ? error.message : 'Failed to fetch notifications',
             isLoading: false
           });

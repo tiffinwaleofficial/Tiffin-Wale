@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, TextInput, Switch } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Plus, Minus, X, Info, AlertCircle } from 'lucide-react-native';
+import { Plus, Minus, X, Info, AlertCircle } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 // Mock data for addon items
@@ -58,12 +58,7 @@ export default function CustomizeMealScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
-          onPress={() => router.back()} 
-          style={styles.backButton}
-        >
-          <ArrowLeft size={24} color="#333333" />
-        </TouchableOpacity>
+        <BackButton />
         <Text style={styles.headerTitle}>Customize Meal</Text>
         <View style={styles.placeholder} />
       </View>

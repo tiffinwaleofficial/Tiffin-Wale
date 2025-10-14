@@ -27,6 +27,7 @@ export const useRestaurantStore = create<RestaurantState>((set) => ({
   error: null,
   
   fetchRestaurants: async () => {
+    console.log('🏪 RestaurantStore: fetchRestaurants called');
     set({ isLoading: true, error: null });
     try {
       // Fetch restaurants from real API

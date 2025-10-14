@@ -159,7 +159,7 @@ export class MenuService {
       .populate("businessPartner", "businessName")
       .exec();
 
-    return categories.map(category => ({
+    return categories.map((category) => ({
       id: category._id,
       name: category.name,
       description: category.description,

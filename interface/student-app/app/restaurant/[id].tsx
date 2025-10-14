@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, TouchableOpacity, Dimensions, FlatList } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRestaurantStore } from '@/store/restaurantStore';
+import { BackButton } from '@/components/BackButton';
 import { 
   Star, 
-  ArrowLeft, 
   Clock, 
   MapPin, 
   Phone, 
@@ -111,9 +111,7 @@ export default function RestaurantDetails() {
     <View style={styles.container}>
       {/* Header with Back Button and Favorite */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        <BackButton color="#FFFFFF" />
         <TouchableOpacity 
           onPress={() => setIsFavorite(!isFavorite)} 
           style={styles.favoriteButton}

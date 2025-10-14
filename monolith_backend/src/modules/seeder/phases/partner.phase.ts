@@ -362,8 +362,16 @@ export class PartnerPhase extends BaseSeederPhase {
         category.name.toLowerCase(),
         itemName,
       ),
-      images: this.imageGenerator.generateImageGallery('food', category.name.toLowerCase(), 3),
-      averageRating: faker.number.float({ min: 3.5, max: 5, fractionDigits: 1 }),
+      images: this.imageGenerator.generateImageGallery(
+        "food",
+        category.name.toLowerCase(),
+        3,
+      ),
+      averageRating: faker.number.float({
+        min: 3.5,
+        max: 5,
+        fractionDigits: 1,
+      }),
       totalReviews: faker.number.int({ min: 0, max: 150 }),
 
       tags: this.generateItemTags(itemName, category.name),
