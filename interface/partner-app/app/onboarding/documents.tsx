@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { View, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
-import * as DocumentPicker from 'expo-document-picker';
 import { Screen } from '../../components/layout/Screen';
 import { Container } from '../../components/layout/Container';
 import { Card } from '../../components/layout/Card';
@@ -9,10 +8,12 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Text } from '../../components/ui/Text';
 import { Icon } from '../../components/ui/Icon';
+import UploadComponent from '../../components/ui/UploadComponent';
 import ProgressIndicator from '../../components/onboarding/ProgressIndicator';
 import BackButton from '../../components/navigation/BackButton';
 import { useOnboardingStore, DocumentsData } from '../../store/onboardingStore';
 import { useTheme } from '../../store/themeStore';
+import { UploadType } from '../../services/cloudinaryUploadService';
 
 const Documents: React.FC = () => {
   const { theme } = useTheme();
@@ -33,16 +34,15 @@ const Documents: React.FC = () => {
       panNumber: '',
       licenseNumber: '',
       documents: {
-        fssaiDocument: '',
-        gstDocument: '',
-        panDocument: '',
-        bankDocument: '',
+        licenseDocuments: [],
+        certificationDocuments: [],
+        identityDocuments: [],
+        otherDocuments: [],
       },
     }
   );
 
   const [errors, setLocalErrors] = useState<Record<string, string>>({});
-  const [uploadingDocs, setUploadingDocs] = useState<Record<string, boolean>>({});
 
   const validateField = (field: string, value: string): string => {
     switch (field) {
@@ -85,50 +85,13 @@ const Documents: React.FC = () => {
     }
   };
 
-  const pickDocument = async (docType: keyof DocumentsData['documents']) => {
-    try {
-      setUploadingDocs(prev => ({ ...prev, [docType]: true }));
-
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ['application/pdf', 'image/*'],
-        copyToCacheDirectory: true,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        // TODO: Implement actual document upload to Cloudinary
-        // For now, we'll simulate the upload
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        const documentUrl = `https://via.placeholder.com/300x400/FF9F43/FFFFFF?text=${docType.toUpperCase()}`;
-        
-        const newDocuments = { ...localData.documents, [docType]: documentUrl };
-        setLocalData({ ...localData, documents: newDocuments });
-        
-        Alert.alert('Success', `${docType.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} uploaded successfully!`);
-      }
-    } catch (error) {
-      Alert.alert('Error', `Failed to upload ${docType}. Please try again.`);
-    } finally {
-      setUploadingDocs(prev => ({ ...prev, [docType]: false }));
-    }
-  };
-
-  const removeDocument = (docType: keyof DocumentsData['documents']) => {
-    Alert.alert(
-      'Remove Document',
-      'Are you sure you want to remove this document?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () => {
-            const newDocuments = { ...localData.documents, [docType]: '' };
-            setLocalData({ ...localData, documents: newDocuments });
-          },
-        },
-      ]
-    );
+  const handleDocumentChange = (docType: keyof DocumentsData['documents'], files: any[]) => {
+    const urls = files
+      .filter(file => file.cloudinaryUrl)
+      .map(file => file.cloudinaryUrl);
+    
+    const newDocuments = { ...localData.documents, [docType]: urls };
+    setLocalData({ ...localData, documents: newDocuments });
   };
 
   const handleBack = () => {
@@ -168,73 +131,6 @@ const Documents: React.FC = () => {
     localData.panNumber.trim() && 
     localData.licenseNumber.trim();
 
-  const renderDocumentUpload = (
-    title: string,
-    description: string,
-    docType: keyof DocumentsData['documents'],
-    required: boolean = true
-  ) => (
-    <View style={{ marginBottom: theme.spacing.lg }}>
-      <Text variant="subtitle" style={{ color: theme.colors.text, marginBottom: theme.spacing.xs }}>
-        {title} {required && <Text style={{ color: theme.colors.error }}>*</Text>}
-      </Text>
-      <Text variant="caption" style={{ color: theme.colors.textSecondary, marginBottom: theme.spacing.sm }}>
-        {description}
-      </Text>
-      
-      {localData.documents[docType] ? (
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          padding: theme.spacing.md,
-          borderWidth: 1,
-          borderColor: theme.colors.success,
-          borderRadius: theme.borderRadius.md,
-          backgroundColor: theme.colors.success + '10',
-        }}>
-          <Icon name="check-circle" size={20} color={theme.colors.success} />
-          <Text variant="body" style={{ color: theme.colors.success, marginLeft: theme.spacing.sm, flex: 1 }}>
-            Document uploaded successfully
-          </Text>
-          <TouchableOpacity onPress={() => removeDocument(docType)}>
-            <Icon name="trash" size={16} color={theme.colors.error} />
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <TouchableOpacity
-          onPress={() => pickDocument(docType)}
-          disabled={uploadingDocs[docType]}
-          style={{
-            borderWidth: 2,
-            borderColor: theme.colors.border,
-            borderStyle: 'dashed',
-            borderRadius: theme.borderRadius.md,
-            padding: theme.spacing.lg,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.colors.background,
-            minHeight: 80,
-          }}
-        >
-          {uploadingDocs[docType] ? (
-            <View style={{ alignItems: 'center' }}>
-              <Icon name="loading" size={24} color={theme.colors.primary} />
-              <Text variant="caption" style={{ color: theme.colors.primary, marginTop: theme.spacing.sm }}>
-                Uploading...
-              </Text>
-            </View>
-          ) : (
-            <View style={{ alignItems: 'center' }}>
-              <Icon name="upload" size={24} color={theme.colors.textSecondary} />
-              <Text variant="caption" style={{ color: theme.colors.textSecondary, marginTop: theme.spacing.sm }}>
-                Tap to upload {title.toLowerCase()}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      )}
-    </View>
-  );
 
   return (
     <Screen backgroundColor={theme.colors.background}>
@@ -340,29 +236,49 @@ const Documents: React.FC = () => {
                 Document Uploads
               </Text>
 
-              {renderDocumentUpload(
-                'FSSAI License Document',
-                'Upload your FSSAI license certificate (PDF or Image)',
-                'fssaiDocument'
-              )}
+              <UploadComponent
+                title="License Documents"
+                description="Upload your FSSAI license certificate and other business licenses"
+                uploadType={UploadType.DOCUMENT}
+                maxFiles={3}
+                allowedTypes={['image', 'document']}
+                onFilesChange={(files) => handleDocumentChange('licenseDocuments', files)}
+                files={localData.documents?.licenseDocuments?.map(url => ({ uri: url, cloudinaryUrl: url, uploading: false })) || []}
+                folder="partner-documents/licenses"
+              />
 
-              {renderDocumentUpload(
-                'GST Certificate',
-                'Upload your GST registration certificate (PDF or Image)',
-                'gstDocument'
-              )}
+              <UploadComponent
+                title="Certification Documents"
+                description="Upload your GST certificate and other certifications"
+                uploadType={UploadType.DOCUMENT}
+                maxFiles={3}
+                allowedTypes={['image', 'document']}
+                onFilesChange={(files) => handleDocumentChange('certificationDocuments', files)}
+                files={localData.documents?.certificationDocuments?.map(url => ({ uri: url, cloudinaryUrl: url, uploading: false })) || []}
+                folder="partner-documents/certifications"
+              />
 
-              {renderDocumentUpload(
-                'PAN Card',
-                'Upload your PAN card (PDF or Image)',
-                'panDocument'
-              )}
+              <UploadComponent
+                title="Identity Documents"
+                description="Upload your PAN card and other identity documents"
+                uploadType={UploadType.DOCUMENT}
+                maxFiles={3}
+                allowedTypes={['image', 'document']}
+                onFilesChange={(files) => handleDocumentChange('identityDocuments', files)}
+                files={localData.documents?.identityDocuments?.map(url => ({ uri: url, cloudinaryUrl: url, uploading: false })) || []}
+                folder="partner-documents/identity"
+              />
 
-              {renderDocumentUpload(
-                'Bank Account Proof',
-                'Upload bank statement or cancelled cheque (PDF or Image)',
-                'bankDocument'
-              )}
+              <UploadComponent
+                title="Other Documents"
+                description="Upload bank statements, cancelled cheques, or other required documents"
+                uploadType={UploadType.DOCUMENT}
+                maxFiles={5}
+                allowedTypes={['image', 'document']}
+                onFilesChange={(files) => handleDocumentChange('otherDocuments', files)}
+                files={localData.documents?.otherDocuments?.map(url => ({ uri: url, cloudinaryUrl: url, uploading: false })) || []}
+                folder="partner-documents/other"
+              />
 
               {/* Continue Button */}
               <Button
@@ -373,16 +289,6 @@ const Documents: React.FC = () => {
                 style={{ marginBottom: theme.spacing.md }}
               />
             </Card>
-
-            {/* Back Button */}
-            <View style={{ alignItems: 'center' }}>
-              <Button
-                title="Back"
-                variant="outline"
-                onPress={handleBack}
-                style={{ minWidth: 120 }}
-              />
-            </View>
           </Container>
         </ScrollView>
       </KeyboardAvoidingView>

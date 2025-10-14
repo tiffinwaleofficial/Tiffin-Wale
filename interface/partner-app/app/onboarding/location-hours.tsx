@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Text } from '../../components/ui/Text';
 import { Switch } from '../../components/ui/Switch';
+import CustomDateTimePicker from '../../components/ui/DateTimePicker';
 import ProgressIndicator from '../../components/onboarding/ProgressIndicator';
 import BackButton from '../../components/navigation/BackButton';
 import { useOnboardingStore, LocationHoursData } from '../../store/onboardingStore';
@@ -130,15 +131,31 @@ const LocationHours: React.FC = () => {
     }
   };
 
-  const handleTimeChange = (type: 'open' | 'close', time: string) => {
-    const newBusinessHours = { ...localData.businessHours, [type]: time };
+  const handleTimeChange = (type: 'open' | 'close', date: Date) => {
+    const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    const newBusinessHours = { ...localData.businessHours, [type]: timeString };
     const newData = { ...localData, businessHours: newBusinessHours };
     setLocalData(newData);
+    updateFormData('step4', newData);
   };
 
   const handleDeliveryRadiusChange = (radius: number) => {
     const newData = { ...localData, deliveryRadius: radius };
     setLocalData(newData);
+    updateFormData('step4', newData);
+    
+    // Validate delivery radius
+    if (radius <= 0) {
+      setLocalErrors(prev => ({ ...prev, deliveryRadius: 'Delivery radius must be at least 1 km' }));
+      setError('deliveryRadius', 'Delivery radius must be at least 1 km');
+    } else {
+      setLocalErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.deliveryRadius;
+        return newErrors;
+      });
+      clearError('deliveryRadius');
+    }
   };
 
   const handleBack = () => {
@@ -185,7 +202,8 @@ const LocationHours: React.FC = () => {
     localData.address.city.trim() && 
     localData.address.state.trim() && 
     localData.address.postalCode.trim() && 
-    localData.businessHours.days.length > 0;
+    localData.businessHours.days.length > 0 &&
+    localData.deliveryRadius > 0;
 
   return (
     <Screen backgroundColor={theme.colors.background}>
@@ -351,46 +369,22 @@ const LocationHours: React.FC = () => {
               {/* Operating Times */}
               <View style={{ flexDirection: 'row', marginBottom: theme.spacing.lg }}>
                 <View style={{ flex: 1, marginRight: theme.spacing.sm }}>
-                  <Text 
-                    variant="body" 
-                    style={{ 
-                      marginBottom: theme.spacing.sm,
-                      color: theme.colors.textSecondary 
-                    }}
-                  >
-                    Opening Time
-                  </Text>
-                  <View style={{ 
-                    borderWidth: 1, 
-                    borderColor: theme.colors.border, 
-                    borderRadius: theme.borderRadius.md,
-                    padding: theme.spacing.sm 
-                  }}>
-                    <Text variant="body" style={{ color: theme.colors.text }}>
-                      {localData.businessHours.open}
-                    </Text>
-                  </View>
+                  <CustomDateTimePicker
+                    label="Opening Time"
+                    mode="time"
+                    value={new Date(`2000-01-01T${localData.businessHours.open}:00`)}
+                    onChange={(date) => handleTimeChange('open', date)}
+                    placeholder="Select opening time"
+                  />
                 </View>
                 <View style={{ flex: 1, marginLeft: theme.spacing.sm }}>
-                  <Text 
-                    variant="body" 
-                    style={{ 
-                      marginBottom: theme.spacing.sm,
-                      color: theme.colors.textSecondary 
-                    }}
-                  >
-                    Closing Time
-                  </Text>
-                  <View style={{ 
-                    borderWidth: 1, 
-                    borderColor: theme.colors.border, 
-                    borderRadius: theme.borderRadius.md,
-                    padding: theme.spacing.sm 
-                  }}>
-                    <Text variant="body" style={{ color: theme.colors.text }}>
-                      {localData.businessHours.close}
-                    </Text>
-                  </View>
+                  <CustomDateTimePicker
+                    label="Closing Time"
+                    mode="time"
+                    value={new Date(`2000-01-01T${localData.businessHours.close}:00`)}
+                    onChange={(date) => handleTimeChange('close', date)}
+                    placeholder="Select closing time"
+                  />
                 </View>
               </View>
 
@@ -404,27 +398,49 @@ const LocationHours: React.FC = () => {
               >
                 Delivery Radius
               </Text>
-              <Text 
-                variant="body" 
-                style={{ 
-                  marginBottom: theme.spacing.sm,
-                  color: theme.colors.textSecondary 
+              
+              <Input
+                label={`Delivery Radius: ${localData.deliveryRadius || 0} km`}
+                value={localData.deliveryRadius ? localData.deliveryRadius.toString() : ''}
+                onChangeText={(value) => {
+                  if (value === '') {
+                    // Allow empty field
+                    handleDeliveryRadiusChange(0);
+                    return;
+                  }
+                  const radius = parseInt(value);
+                  if (!isNaN(radius) && radius >= 0 && radius <= 50) {
+                    handleDeliveryRadiusChange(radius);
+                  }
                 }}
-              >
-                {localData.deliveryRadius} km
-              </Text>
+                placeholder="Enter delivery radius (1-50 km)"
+                type="numeric"
+                error={errors.deliveryRadius}
+                style={{ marginBottom: theme.spacing.md }}
+              />
+              
               <View style={{ 
-                height: 4, 
+                height: 6, 
                 backgroundColor: theme.colors.border, 
-                borderRadius: 2,
-                marginBottom: theme.spacing.lg 
+                borderRadius: 3,
+                marginBottom: theme.spacing.lg,
+                position: 'relative'
               }}>
                 <View style={{ 
                   height: '100%', 
                   backgroundColor: theme.colors.primary, 
-                  borderRadius: 2,
-                  width: `${(localData.deliveryRadius / 20) * 100}%`
+                  borderRadius: 3,
+                  width: `${Math.min((localData.deliveryRadius / 50) * 100, 100)}%`
                 }} />
+                <Text style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: -20,
+                  fontSize: 12,
+                  color: theme.colors.textSecondary
+                }}>
+                  Max: 50km
+                </Text>
               </View>
 
               {/* Continue Button */}
@@ -436,16 +452,6 @@ const LocationHours: React.FC = () => {
                 style={{ marginBottom: theme.spacing.md }}
               />
             </Card>
-
-            {/* Back Button */}
-            <View style={{ alignItems: 'center' }}>
-              <Button
-                title="Back"
-                variant="outline"
-                onPress={handleBack}
-                style={{ minWidth: 120 }}
-              />
-            </View>
           </Container>
         </ScrollView>
       </KeyboardAvoidingView>

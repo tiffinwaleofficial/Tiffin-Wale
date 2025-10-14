@@ -95,5 +95,7 @@
     "bun": ">=1.0.0"
   },
   "packageManager": "bun@1.0.0",
-  "dependencies": {}
+  "dependencies": {
+    "expo-document-picker": "^14.0.7"
+  }
 }

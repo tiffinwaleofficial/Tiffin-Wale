@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '../../components/layout/Screen';
 import { Container } from '../../components/layout/Container';
@@ -9,28 +9,139 @@ import { Text } from '../../components/ui/Text';
 import { Icon } from '../../components/ui/Icon';
 import { useOnboardingStore } from '../../store/onboardingStore';
 import { useTheme } from '../../store/themeStore';
+import { useAuthContext } from '../../context/AuthProvider';
 
 const Success: React.FC = () => {
   const { theme } = useTheme();
-  const { resetOnboarding } = useOnboardingStore();
+  const { formData, resetOnboarding, setCurrentStep } = useOnboardingStore();
+  const { register, isLoading } = useAuthContext();
+  const [isRegistering, setIsRegistering] = useState(false);
 
   useEffect(() => {
-    // Reset onboarding data after successful submission
-    const timer = setTimeout(() => {
-      resetOnboarding();
-    }, 5000); // Reset after 5 seconds
+    // Automatically register the user when the success screen loads
+    handleRegister();
+  }, []);
 
-    return () => clearTimeout(timer);
-  }, [resetOnboarding]);
-
-  const handleGoToDashboard = () => {
-    resetOnboarding();
-    router.replace('/dashboard');
+  const handleRegister = async () => {
+    try {
+      setIsRegistering(true);
+      
+      // Pass complete form data to register
+      await register(formData);
+      
+      // Registration successful, navigate to dashboard
+      router.replace('/(tabs)/dashboard');
+    } catch (error: any) {
+      console.error('Registration failed:', error);
+      
+      // Parse backend validation errors
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        
+        // Find which step has the error
+        const errorStep = mapErrorToStep(errors[0].field);
+        
+        // Show alert with specific error
+        Alert.alert(
+          'Validation Error',
+          `${errors[0].field}: ${errors[0].errors.join(', ')}`,
+          [
+            {
+              text: 'Fix Now',
+              onPress: () => {
+                // Navigate to the step with error
+                setCurrentStep(errorStep);
+                router.replace(getStepRoute(errorStep) as any);
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert(
+          'Registration Failed',
+          error.message || 'There was an error creating your account. Please try again.',
+          [
+            {
+              text: 'Try Again',
+              onPress: () => handleRegister()
+            }
+          ]
+        );
+      }
+    } finally {
+      setIsRegistering(false);
+    }
   };
 
-  const handleGoToLogin = () => {
-    resetOnboarding();
-    router.replace('/(auth)/login');
+  const mapErrorToStep = (field: string): number => {
+    const fieldToStepMap: Record<string, number> = {
+      // Step 1: Personal Info
+      email: 1, 
+      firstName: 1, 
+      lastName: 1, 
+      phoneNumber: 1,
+      
+      // Step 2: Account Setup
+      password: 2,
+      
+      // Step 3: Business Profile
+      businessName: 3, 
+      description: 3,
+      businessType: 3,
+      establishedDate: 3,
+      
+      // Step 4: Location & Hours
+      address: 4,
+      businessHours: 4,
+      deliveryRadius: 4,
+      
+      // Step 5: Cuisine & Services
+      cuisineTypes: 5,
+      isVegetarian: 5,
+      hasDelivery: 5,
+      hasPickup: 5,
+      acceptsCash: 5,
+      acceptsCard: 5,
+      minimumOrderAmount: 5,
+      deliveryFee: 5,
+      estimatedDeliveryTime: 5,
+      
+      // Step 6: Images & Branding
+      logoUrl: 6,
+      bannerUrl: 6,
+      socialMedia: 6,
+      
+      // Step 7: Documents
+      gstNumber: 7,
+      licenseNumber: 7,
+      documents: 7,
+      
+      // Step 8: Payment Setup
+      bankDetails: 8,
+      upiId: 8,
+      commissionRate: 8,
+      
+      // Step 9: Review & Submit
+      agreeToTerms: 9,
+      agreeToMarketing: 9,
+    };
+    return fieldToStepMap[field] || 1;
+  };
+
+  const getStepRoute = (step: number): string => {
+    const routes = [
+      '', // Step 0 (not used)
+      '/onboarding/welcome',
+      '/onboarding/account-setup',
+      '/onboarding/business-profile',
+      '/onboarding/location-hours',
+      '/onboarding/cuisine-services',
+      '/onboarding/images-branding',
+      '/onboarding/documents',
+      '/onboarding/payment-setup',
+      '/onboarding/review-submit'
+    ];
+    return routes[step] || '/onboarding/welcome';
   };
 
   return (
@@ -58,7 +169,7 @@ const Success: React.FC = () => {
               color: theme.colors.text 
             }}
           >
-            Application Submitted Successfully!
+            {isRegistering ? 'Creating Your Account...' : 'Account Created Successfully!'}
           </Text>
           
           <Text 
@@ -156,24 +267,30 @@ const Success: React.FC = () => {
           </View>
         </Card>
 
-        {/* Action Buttons */}
-        <View style={{ flexDirection: 'row', marginBottom: theme.spacing.md }}>
-          <View style={{ flex: 1, marginRight: theme.spacing.sm }}>
-            <Button
-              title="Go to Login"
-              variant="outline"
-              onPress={handleGoToLogin}
-              fullWidth
-            />
+        {/* Loading Indicator */}
+        {isRegistering && (
+          <View style={{ alignItems: 'center', marginBottom: theme.spacing.lg }}>
+            <Text 
+              variant="body" 
+              style={{ 
+                textAlign: 'center', 
+                color: theme.colors.textSecondary,
+                marginBottom: theme.spacing.md
+              }}
+            >
+              Setting up your account...
+            </Text>
+            <View style={{
+              width: 30,
+              height: 30,
+              borderRadius: 15,
+              borderWidth: 3,
+              borderColor: theme.colors.primary + '30',
+              borderTopColor: theme.colors.primary,
+              // Add rotation animation here if needed
+            }} />
           </View>
-          <View style={{ flex: 1, marginLeft: theme.spacing.sm }}>
-            <Button
-              title="Download App"
-              onPress={handleGoToDashboard}
-              fullWidth
-            />
-          </View>
-        </View>
+        )}
 
         {/* Footer */}
         <Text 

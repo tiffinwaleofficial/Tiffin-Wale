@@ -52,6 +52,9 @@ export class Partner extends Document {
   @Prop({ required: true })
   businessName: string;
 
+  @Prop({ type: [String], default: [] })
+  businessType: string[];
+
   @Prop({ required: true })
   description: string;
 
@@ -133,6 +136,15 @@ export class Partner extends Document {
     instagram?: string;
     facebook?: string;
     twitter?: string;
+  };
+
+  // Documents
+  @Prop({ type: Object, default: {} })
+  documents: {
+    licenseDocuments?: string[];
+    certificationDocuments?: string[];
+    identityDocuments?: string[];
+    otherDocuments?: string[];
   };
 
   // Operational details

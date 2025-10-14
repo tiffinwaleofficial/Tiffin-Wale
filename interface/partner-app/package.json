@@ -19,8 +19,8 @@
     "start:localhost": "EXPO_NO_DOCTOR=1 bun exec expo start --localhost --clear",
     "clear-cache": "EXPO_NO_DOCTOR=1 bun exec expo start --clear",
     "reset-cache": "bun run clear-cache",
-    "api:generate": "bun exec swagger-typescript-api -p http://localhost:3001/api-docs-json -o ./api/generated -n api.ts --axios --route-types --responses",
-    "api:watch": "bun exec swagger-typescript-api -p http://localhost:3001/api-docs-json -o ./api/generated -n api.ts --axios --route-types --responses",
+    "api:generate": "bun swagger-typescript-api generate -p http://localhost:3001/api-docs-json -o ./api/generated -n api.ts --axios --route-types --responses",
+    "api:watch": "bun swagger-typescript-api generate -p http://localhost:3001/api-docs-json -o ./api/generated -n api.ts --axios --route-types --responses",
     "android": "bun exec expo run:android",
     "ios": "bun exec expo run:ios"
   },

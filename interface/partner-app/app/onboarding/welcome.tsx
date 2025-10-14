@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '../../components/layout/Screen';
@@ -36,6 +36,11 @@ const Step1Welcome: React.FC = () => {
   );
 
   const [errors, setLocalErrors] = useState<Record<string, string>>({});
+
+  // Ensure we're on step 1 when this component loads
+  useEffect(() => {
+    setCurrentStep(1);
+  }, [setCurrentStep]);
 
   const validateField = (field: keyof PersonalInfoData, value: string): string => {
     switch (field) {

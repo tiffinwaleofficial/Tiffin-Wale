@@ -8,12 +8,14 @@ import {
 import { JwtService } from "@nestjs/jwt";
 import { UserService } from "../user/user.service";
 import { RegisterDto } from "./dto/register.dto";
+import { RegisterPartnerDto } from "./dto/register-partner.dto";
 import { LoginDto } from "./dto/login.dto";
 import { ChangePasswordDto } from "./dto/change-password.dto";
 import { UserRole } from "../../common/interfaces/user.interface";
 import { SubscriptionService } from "../subscription/subscription.service";
 import { CustomerProfileService } from "../customer-profile/customer-profile.service";
 import { MealService } from "../meal/meal.service";
+import { PartnerService } from "../partner/partner.service";
 
 @Injectable()
 export class AuthService {
@@ -23,6 +25,7 @@ export class AuthService {
     private readonly subscriptionService: SubscriptionService,
     private readonly customerProfileService: CustomerProfileService,
     private readonly mealService: MealService,
+    private readonly partnerService: PartnerService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -107,6 +110,93 @@ export class AuthService {
       throw new BadRequestException(
         error.response?.message ||
           "Registration failed. Please check your information and try again.",
+      );
+    }
+  }
+
+  async registerPartner(registerPartnerDto: RegisterPartnerDto) {
+    try {
+      // Check if user with email already exists
+      const existingUser = await this.userService.findByEmailSafe(
+        registerPartnerDto.email,
+      );
+      if (existingUser) {
+        throw new ConflictException("Email already in use");
+      }
+
+      // Create user with business role
+      const userData = {
+        email: registerPartnerDto.email,
+        password: registerPartnerDto.password,
+        role: UserRole.BUSINESS,
+        firstName: registerPartnerDto.firstName,
+        lastName: registerPartnerDto.lastName,
+        phoneNumber: registerPartnerDto.phoneNumber,
+      };
+
+      const user = await this.userService.create(userData);
+
+      // Create partner profile with all business data
+      const partnerData = {
+        businessName: registerPartnerDto.businessName,
+        businessType: registerPartnerDto.businessType,
+        description: registerPartnerDto.description,
+        cuisineTypes: registerPartnerDto.cuisineTypes,
+        address: registerPartnerDto.address,
+        businessHours: registerPartnerDto.businessHours,
+        contactEmail:
+          registerPartnerDto.contactEmail || registerPartnerDto.email,
+        contactPhone:
+          registerPartnerDto.contactPhone || registerPartnerDto.phoneNumber,
+        whatsappNumber: registerPartnerDto.whatsappNumber,
+        gstNumber: registerPartnerDto.gstNumber,
+        licenseNumber: registerPartnerDto.licenseNumber,
+        establishedYear: registerPartnerDto.establishedYear,
+        deliveryRadius: registerPartnerDto.deliveryRadius || 5,
+        minimumOrderAmount: registerPartnerDto.minimumOrderAmount || 100,
+        deliveryFee: registerPartnerDto.deliveryFee || 0,
+        estimatedDeliveryTime: registerPartnerDto.estimatedDeliveryTime || 30,
+        commissionRate: registerPartnerDto.commissionRate || 20,
+        logoUrl: registerPartnerDto.logoUrl,
+        bannerUrl: registerPartnerDto.bannerUrl,
+        socialMedia: registerPartnerDto.socialMedia,
+        isVegetarian: registerPartnerDto.isVegetarian || false,
+        hasDelivery: registerPartnerDto.hasDelivery !== false, // Default true
+        hasPickup: registerPartnerDto.hasPickup !== false, // Default true
+        acceptsCash: registerPartnerDto.acceptsCash !== false, // Default true
+        acceptsCard: registerPartnerDto.acceptsCard !== false, // Default true
+        acceptsUPI: registerPartnerDto.acceptsUPI !== false, // Default true
+        documents: registerPartnerDto.documents || {},
+        isAcceptingOrders: true,
+        isFeatured: false,
+        averageRating: 0,
+        totalReviews: 0,
+      };
+
+      await this.partnerService.create(partnerData);
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password: _password, ...result } = user.toObject();
+      return this.generateToken(result);
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+
+      // Prevent leaking database errors as "user not found" messages
+      if (error.message && error.message.includes("not found")) {
+        throw new BadRequestException(
+          "Registration failed. Please check your information and try again.",
+        );
+      }
+
+      console.error(
+        "❌ AuthService.registerPartner: Registration error:",
+        error,
+      );
+      throw new BadRequestException(
+        error.response?.message ||
+          "Partner registration failed. Please check your information and try again.",
       );
     }
   }

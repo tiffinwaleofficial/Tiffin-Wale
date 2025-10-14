@@ -1,5 +1,8 @@
+import { Platform } from 'react-native';
+
 interface EnvironmentConfig {
   API_BASE_URL: string;
+  PROD_API_BASE_URL: string;
   CLOUDINARY_CLOUD_NAME: string;
   CLOUDINARY_UPLOAD_PRESET: string;
   CLOUDINARY_API_KEY: string;
@@ -33,8 +36,20 @@ const validateEnv = (): void => {
 // Validate environment variables
 validateEnv();
 
+// Platform-specific API URL selection
+const getApiBaseUrl = (): string => {
+  if (Platform.OS === 'web') {
+    // Use localhost for web development
+    return process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+  } else {
+    // Use production URL for mobile (Android/iOS)
+    return process.env.EXPO_PUBLIC_PROD_API_BASE_URL || process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+  }
+};
+
 export const ENV: EnvironmentConfig = {
-  API_BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL!,
+  API_BASE_URL: getApiBaseUrl(),
+  PROD_API_BASE_URL: process.env.EXPO_PUBLIC_PROD_API_BASE_URL || '',
   CLOUDINARY_CLOUD_NAME: process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME!,
   CLOUDINARY_UPLOAD_PRESET: process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET!,
   CLOUDINARY_API_KEY: process.env.EXPO_PUBLIC_CLOUDINARY_API_KEY || '',

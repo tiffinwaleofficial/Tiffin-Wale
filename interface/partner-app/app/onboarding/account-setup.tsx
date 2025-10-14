@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '../../components/layout/Screen';
 import { Container } from '../../components/layout/Container';
@@ -29,8 +29,6 @@ const Step2AccountSetup: React.FC = () => {
     formData.step2 || {
       password: '',
       confirmPassword: '',
-      agreeToTerms: false,
-      agreeToMarketing: false,
     }
   );
 
@@ -70,13 +68,16 @@ const Step2AccountSetup: React.FC = () => {
       case 'password':
         if (!value || (typeof value === 'string' && value.length === 0)) return 'Password is required';
         if (typeof value === 'string' && value.length < 8) return 'Password must be at least 8 characters';
+        if (typeof value === 'string') {
+          const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+          if (!passwordRegex.test(value)) {
+            return 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character';
+          }
+        }
         return '';
       case 'confirmPassword':
         if (!value || (typeof value === 'string' && value.length === 0)) return 'Please confirm your password';
         if (typeof value === 'string' && value !== localData.password) return 'Passwords do not match';
-        return '';
-      case 'agreeToTerms':
-        if (!value) return 'You must agree to the terms and conditions';
         return '';
       default:
         return '';
@@ -153,8 +154,7 @@ const Step2AccountSetup: React.FC = () => {
   const passwordStrength = getPasswordStrength(localData.password);
   const isFormValid = Object.keys(errors).length === 0 && 
     localData.password.length >= 8 && 
-    localData.password === localData.confirmPassword && 
-    localData.agreeToTerms;
+    localData.password === localData.confirmPassword;
 
   return (
     <Screen backgroundColor={theme.colors.background}>
@@ -265,47 +265,6 @@ const Step2AccountSetup: React.FC = () => {
                 style={{ marginBottom: theme.spacing.lg }}
               />
 
-              {/* Terms and Conditions */}
-              <Checkbox
-                checked={localData.agreeToTerms}
-                onPress={() => handleFieldChange('agreeToTerms', !localData.agreeToTerms)}
-                style={{ marginBottom: theme.spacing.md }}
-              >
-                <Text variant="body" style={{ color: theme.colors.text }}>
-                  I agree to the{' '}
-                  <Text 
-                    variant="body" 
-                    style={{ 
-                      color: theme.colors.primary,
-                      textDecorationLine: 'underline' 
-                    }}
-                  >
-                    Terms and Conditions
-                  </Text>
-                  {' '}and{' '}
-                  <Text 
-                    variant="body" 
-                    style={{ 
-                      color: theme.colors.primary,
-                      textDecorationLine: 'underline' 
-                    }}
-                  >
-                    Privacy Policy
-                  </Text>
-                </Text>
-              </Checkbox>
-
-              {/* Marketing Emails (Optional) */}
-              <Checkbox
-                checked={localData.agreeToMarketing}
-                onPress={() => handleFieldChange('agreeToMarketing', !localData.agreeToMarketing)}
-                style={{ marginBottom: theme.spacing.lg }}
-              >
-                <Text variant="body" style={{ color: theme.colors.text }}>
-                  I would like to receive marketing emails and updates about new features
-                </Text>
-              </Checkbox>
-
               {/* Continue Button */}
               <Button
                 title="Create Account"
@@ -315,16 +274,6 @@ const Step2AccountSetup: React.FC = () => {
                 style={{ marginBottom: theme.spacing.md }}
               />
             </Card>
-
-            {/* Back Button */}
-            <View style={{ alignItems: 'center' }}>
-              <Button
-                title="Back"
-                variant="outline"
-                onPress={handleBack}
-                style={{ minWidth: 120 }}
-              />
-            </View>
           </Container>
         </ScrollView>
       </KeyboardAvoidingView>

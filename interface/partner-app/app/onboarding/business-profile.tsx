@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Text } from '../../components/ui/Text';
 import { Icon } from '../../components/ui/Icon';
+import CustomDateTimePicker from '../../components/ui/DateTimePicker';
 import ProgressIndicator from '../../components/onboarding/ProgressIndicator';
 import BackButton from '../../components/navigation/BackButton';
 import { useOnboardingStore, BusinessProfileData } from '../../store/onboardingStore';
@@ -52,39 +53,47 @@ const BusinessProfile: React.FC = () => {
     setCurrentStep 
   } = useOnboardingStore();
 
-  const [localData, setLocalData] = useState<BusinessProfileData>(
-    formData.step3 || {
+  const [localData, setLocalData] = useState<BusinessProfileData>(() => {
+    const defaultDate = new Date();
+    defaultDate.setFullYear(defaultDate.getFullYear() - 1); // Default to 1 year ago
+    
+    return formData.step3 || {
       businessName: '',
-      businessType: 'restaurant',
+      businessType: ['restaurant'],
       description: '',
-      establishedYear: new Date().getFullYear().toString(),
-    }
-  );
+      establishedDate: defaultDate.toISOString().split('T')[0], // YYYY-MM-DD format
+    };
+  });
 
   const [errors, setLocalErrors] = useState<Record<string, string>>({});
 
-  const validateField = (field: keyof BusinessProfileData, value: string | number): string => {
+  const validateField = (field: keyof BusinessProfileData, value: string | number | ('restaurant' | 'cloud_kitchen' | 'catering' | 'home_chef')[]): string => {
     switch (field) {
       case 'businessName':
         if (!value || (typeof value === 'string' && value.trim().length === 0)) return 'Business name is required';
         if (typeof value === 'string' && value.trim().length < 2) return 'Business name must be at least 2 characters';
+        return '';
+      case 'businessType':
+        if (!Array.isArray(value) || value.length === 0) return 'Please select at least one business type';
         return '';
       case 'description':
         if (!value || (typeof value === 'string' && value.trim().length === 0)) return 'Business description is required';
         if (typeof value === 'string' && value.trim().length < 10) return 'Description must be at least 10 characters';
         if (typeof value === 'string' && value.trim().length > 500) return 'Description must be less than 500 characters';
         return '';
-      case 'establishedYear':
-        if (!value || typeof value !== 'number') return 'Established year is required';
-        if (value < 1900) return 'Please enter a valid year';
-        if (value > new Date().getFullYear()) return 'Year cannot be in the future';
+      case 'establishedDate':
+        if (!value || typeof value !== 'string') return 'Establishment date is required';
+        const date = new Date(value);
+        if (isNaN(date.getTime())) return 'Please enter a valid date';
+        if (date.getFullYear() < 1900) return 'Please enter a date after 1900';
+        if (date > new Date()) return 'Date cannot be in the future';
         return '';
       default:
         return '';
     }
   };
 
-  const handleFieldChange = (field: keyof BusinessProfileData, value: string | number) => {
+  const handleFieldChange = (field: keyof BusinessProfileData, value: string | number | ('restaurant' | 'cloud_kitchen' | 'catering' | 'home_chef')[]) => {
     const newData = { ...localData, [field]: value };
     setLocalData(newData);
     
@@ -106,8 +115,29 @@ const BusinessProfile: React.FC = () => {
     }
   };
 
-  const handleBusinessTypeSelect = (businessType: BusinessProfileData['businessType']) => {
-    handleFieldChange('businessType', businessType);
+  const handleDateChange = (date: Date) => {
+    const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+    handleFieldChange('establishedDate', dateString);
+  };
+
+  const handleBusinessTypeSelect = (businessType: 'restaurant' | 'cloud_kitchen' | 'catering' | 'home_chef') => {
+    const currentTypes = localData.businessType;
+    let newTypes: ('restaurant' | 'cloud_kitchen' | 'catering' | 'home_chef')[];
+    
+    if (currentTypes.includes(businessType)) {
+      // Remove if already selected
+      newTypes = currentTypes.filter(type => type !== businessType);
+    } else {
+      // Add if not selected
+      newTypes = [...currentTypes, businessType];
+    }
+    
+    // Ensure at least one business type is selected
+    if (newTypes.length === 0) {
+      newTypes = ['restaurant']; // Default to restaurant if none selected
+    }
+    
+    handleFieldChange('businessType', newTypes);
   };
 
   const handleBack = () => {
@@ -141,9 +171,11 @@ const BusinessProfile: React.FC = () => {
 
   const isFormValid = Object.keys(errors).length === 0 && 
     localData.businessName.trim() && 
+    localData.businessType.length > 0 &&
     localData.description.trim() && 
-    parseInt(localData.establishedYear) > 1900 && 
-    parseInt(localData.establishedYear) <= new Date().getFullYear();
+    localData.establishedDate &&
+    new Date(localData.establishedDate).getFullYear() >= 1900 &&
+    new Date(localData.establishedDate) <= new Date();
 
   return (
     <Screen backgroundColor={theme.colors.background}>
@@ -205,55 +237,67 @@ const BusinessProfile: React.FC = () => {
               <Text 
                 variant="subtitle" 
                 style={{ 
-                  marginBottom: theme.spacing.md,
+                  marginBottom: theme.spacing.sm,
                   color: theme.colors.text 
                 }}
               >
                 Business Type
               </Text>
+              <Text 
+                variant="caption" 
+                style={{ 
+                  marginBottom: theme.spacing.md,
+                  color: theme.colors.textSecondary 
+                }}
+              >
+                Select all that apply to your business
+              </Text>
               <View style={{ marginBottom: theme.spacing.lg }}>
-                {businessTypes.map((type) => (
-                  <TouchableOpacity
-                    key={type.id}
-                    onPress={() => handleBusinessTypeSelect(type.id as BusinessProfileData['businessType'])}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      padding: theme.spacing.md,
-                      borderWidth: 2,
-                      borderColor: localData.businessType === type.id ? theme.colors.primary : theme.colors.border,
-                      borderRadius: theme.borderRadius.md,
-                      backgroundColor: localData.businessType === type.id ? theme.colors.primary + '10' : theme.colors.background,
-                      marginBottom: theme.spacing.sm,
-                    }}
-                  >
-                    <Text style={{ fontSize: 24, marginRight: theme.spacing.md }}>
-                      {type.icon}
-                    </Text>
-                    <View style={{ flex: 1 }}>
-                      <Text 
-                        variant="subtitle" 
-                        style={{ 
-                          color: localData.businessType === type.id ? theme.colors.primary : theme.colors.text,
-                          marginBottom: theme.spacing.xs 
-                        }}
-                      >
-                        {type.title}
+                {businessTypes.map((type) => {
+                  const isSelected = localData.businessType.includes(type.id as 'restaurant' | 'cloud_kitchen' | 'catering' | 'home_chef');
+                  return (
+                    <TouchableOpacity
+                      key={type.id}
+                      onPress={() => handleBusinessTypeSelect(type.id as 'restaurant' | 'cloud_kitchen' | 'catering' | 'home_chef')}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        padding: theme.spacing.md,
+                        borderWidth: 2,
+                        borderColor: isSelected ? theme.colors.primary : theme.colors.border,
+                        borderRadius: theme.borderRadius.md,
+                        backgroundColor: isSelected ? theme.colors.primary + '10' : theme.colors.background,
+                        marginBottom: theme.spacing.sm,
+                      }}
+                    >
+                      <Text style={{ fontSize: 24, marginRight: theme.spacing.md }}>
+                        {type.icon}
                       </Text>
-                      <Text 
-                        variant="caption" 
-                        style={{ 
-                          color: localData.businessType === type.id ? theme.colors.primary : theme.colors.textSecondary 
-                        }}
-                      >
-                        {type.description}
-                      </Text>
-                    </View>
-                    {localData.businessType === type.id && (
-                      <Icon name="check" size={20} color={theme.colors.primary} />
-                    )}
-                  </TouchableOpacity>
-                ))}
+                      <View style={{ flex: 1 }}>
+                        <Text 
+                          variant="subtitle" 
+                          style={{ 
+                            color: isSelected ? theme.colors.primary : theme.colors.text,
+                            marginBottom: theme.spacing.xs 
+                          }}
+                        >
+                          {type.title}
+                        </Text>
+                        <Text 
+                          variant="caption" 
+                          style={{ 
+                            color: isSelected ? theme.colors.primary : theme.colors.textSecondary 
+                          }}
+                        >
+                          {type.description}
+                        </Text>
+                      </View>
+                      {isSelected && (
+                        <Icon name="check" size={20} color={theme.colors.primary} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
 
               {/* Description */}
@@ -280,19 +324,16 @@ const BusinessProfile: React.FC = () => {
                 {localData.description.length}/500 characters
               </Text>
 
-              {/* Established Year */}
-              <Input
-                label="Established Year"
-                value={localData.establishedYear.toString()}
-                onChangeText={(value) => {
-                  const year = parseInt(value.replace(/\D/g, '')) || 0;
-                  if (year <= new Date().getFullYear()) {
-                    handleFieldChange('establishedYear', year);
-                  }
-                }}
-                placeholder="Enter the year your business was established"
-                type="numeric"
-                error={errors.establishedYear}
+              {/* Establishment Date */}
+              <CustomDateTimePicker
+                label="Establishment Date"
+                mode="date"
+                value={localData.establishedDate ? new Date(localData.establishedDate) : new Date()}
+                onChange={handleDateChange}
+                placeholder="Select establishment date"
+                error={errors.establishedDate}
+                minimumDate={new Date(1900, 0, 1)}
+                maximumDate={new Date()}
                 style={{ marginBottom: theme.spacing.lg }}
               />
 
@@ -305,16 +346,6 @@ const BusinessProfile: React.FC = () => {
                 style={{ marginBottom: theme.spacing.md }}
               />
             </Card>
-
-            {/* Back Button */}
-            <View style={{ alignItems: 'center' }}>
-              <Button
-                title="Back"
-                variant="outline"
-                onPress={handleBack}
-                style={{ minWidth: 120 }}
-              />
-            </View>
           </Container>
         </ScrollView>
       </KeyboardAvoidingView>

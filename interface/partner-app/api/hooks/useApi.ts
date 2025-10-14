@@ -1,13 +1,11 @@
 import { useMutation, useQuery, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
 import { Api } from '../generated/api';
 import { customInstance } from '../custom-instance';
-import { envConfig } from '../../config/env';
+import { ENV } from '../../config/env';
 
 // Initialize API client with custom instance
 const api = new Api({
-  baseURL: envConfig.apiBaseUrl,
-  // Use custom axios instance for requests
-  instance: customInstance as any,
+  baseURL: ENV.API_BASE_URL,
 });
 
 // Export the API client for direct usage
@@ -31,6 +29,14 @@ export const useRegister = (options?: UseMutationOptions<any, any, any>) => {
   });
 };
 
+export const useRegisterPartner = (options?: UseMutationOptions<any, any, any>) => {
+  return useMutation({
+    mutationKey: ['registerPartner'],
+    mutationFn: (data) => api.api.authControllerRegisterPartner(data),
+    ...options,
+  });
+};
+
 export const useChangePassword = (options?: UseMutationOptions<any, any, any>) => {
   return useMutation({
     mutationFn: (data) => api.api.authControllerChangePassword(data),
@@ -45,14 +51,14 @@ export const useChangePassword = (options?: UseMutationOptions<any, any, any>) =
 export const useGetProfile = (options?: UseQueryOptions<any>) => {
   return useQuery({
     queryKey: ['user', 'profile'],
-    queryFn: () => api.api.usersControllerGetProfile(),
+    queryFn: () => api.api.userControllerGetProfile(),
     ...options,
   });
 };
 
 export const useUpdateProfile = (options?: UseMutationOptions<any, any, any>) => {
   return useMutation({
-    mutationFn: (data) => api.api.usersControllerUpdateProfile(data),
+    mutationFn: (data) => api.api.userControllerUpdateProfile(data),
     ...options,
   });
 };
@@ -106,7 +112,7 @@ export const useCancelOrder = (options?: UseMutationOptions<any, any, string>) =
 export const useGetMenus = (options?: UseQueryOptions<any>) => {
   return useQuery({
     queryKey: ['menus'],
-    queryFn: () => api.api.menuControllerFindAll(),
+    queryFn: () => api.api.menuControllerFindAllMenuItems(),
     ...options,
   });
 };
@@ -114,7 +120,7 @@ export const useGetMenus = (options?: UseQueryOptions<any>) => {
 export const useGetMenu = (id: string, options?: UseQueryOptions<any>) => {
   return useQuery({
     queryKey: ['menu', id],
-    queryFn: () => api.api.menuControllerFindOne(id),
+    queryFn: () => api.api.menuControllerFindMenuItemById(id),
     enabled: !!id,
     ...options,
   });
@@ -122,21 +128,21 @@ export const useGetMenu = (id: string, options?: UseQueryOptions<any>) => {
 
 export const useCreateMenu = (options?: UseMutationOptions<any, any, any>) => {
   return useMutation({
-    mutationFn: (data) => api.api.menuControllerCreate(data),
+    mutationFn: (data) => api.api.menuControllerCreateMenuItem(data),
     ...options,
   });
 };
 
 export const useUpdateMenu = (options?: UseMutationOptions<any, any, { id: string; data: any }>) => {
   return useMutation({
-    mutationFn: ({ id, data }) => api.api.menuControllerUpdate(id, data),
+    mutationFn: ({ id, data }) => api.api.menuControllerUpdateMenuItem(id, data),
     ...options,
   });
 };
 
 export const useDeleteMenu = (options?: UseMutationOptions<any, any, string>) => {
   return useMutation({
-    mutationFn: (id) => api.api.menuControllerRemove(id),
+    mutationFn: (id) => api.api.menuControllerDeleteMenuItem(id),
     ...options,
   });
 };

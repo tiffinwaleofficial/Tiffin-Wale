@@ -508,16 +508,6 @@ const CuisineServices: React.FC = () => {
                 style={{ marginBottom: theme.spacing.md }}
               />
             </Card>
-
-            {/* Back Button */}
-            <View style={{ alignItems: 'center' }}>
-              <Button
-                title="Back"
-                variant="outline"
-                onPress={handleBack}
-                style={{ minWidth: 120 }}
-              />
-            </View>
           </Container>
         </ScrollView>
       </KeyboardAvoidingView>

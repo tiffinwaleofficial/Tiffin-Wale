@@ -10,6 +10,7 @@ import { UserModule } from "../user/user.module";
 import { SubscriptionModule } from "../subscription/subscription.module";
 import { CustomerProfileModule } from "../customer-profile/customer-profile.module";
 import { MealModule } from "../meal/meal.module";
+import { PartnerModule } from "../partner/partner.module";
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { MealModule } from "../meal/meal.module";
     SubscriptionModule,
     CustomerProfileModule,
     MealModule,
+    PartnerModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({

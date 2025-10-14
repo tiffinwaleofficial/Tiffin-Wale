@@ -15,6 +15,7 @@ import {
 } from "@nestjs/swagger";
 import { AuthService } from "./auth.service";
 import { RegisterDto } from "./dto/register.dto";
+import { RegisterPartnerDto } from "./dto/register-partner.dto";
 import { LoginDto } from "./dto/login.dto";
 import { ChangePasswordDto } from "./dto/change-password.dto";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
@@ -33,6 +34,15 @@ export class AuthController {
   @ApiResponse({ status: 409, description: "Email already exists" })
   register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
+  }
+
+  @Post("register-partner")
+  @ApiOperation({ summary: "Register a new partner (business user)" })
+  @ApiResponse({ status: 201, description: "Partner has been registered" })
+  @ApiResponse({ status: 400, description: "Bad request" })
+  @ApiResponse({ status: 409, description: "Email already exists" })
+  registerPartner(@Body() registerPartnerDto: RegisterPartnerDto) {
+    return this.authService.registerPartner(registerPartnerDto);
   }
 
   @Post("super-admin/register")

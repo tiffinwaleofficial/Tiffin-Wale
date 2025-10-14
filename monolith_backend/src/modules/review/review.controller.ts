@@ -104,7 +104,10 @@ export class ReviewController {
   @ApiParam({ name: "id", description: "Review ID" })
   @ApiResponse({ status: 200, description: "Review updated successfully" })
   @ApiResponse({ status: 404, description: "Review not found" })
-  @ApiResponse({ status: 403, description: "Not authorized to update this review" })
+  @ApiResponse({
+    status: 403,
+    description: "Not authorized to update this review",
+  })
   updateReview(
     @Param("id") id: string,
     @Body() updateReviewDto: CreateReviewDto,
@@ -120,11 +123,11 @@ export class ReviewController {
   @ApiParam({ name: "id", description: "Review ID" })
   @ApiResponse({ status: 200, description: "Review deleted successfully" })
   @ApiResponse({ status: 404, description: "Review not found" })
-  @ApiResponse({ status: 403, description: "Not authorized to delete this review" })
-  deleteReview(
-    @Param("id") id: string,
-    @GetCurrentUser("_id") userId: string,
-  ) {
+  @ApiResponse({
+    status: 403,
+    description: "Not authorized to delete this review",
+  })
+  deleteReview(@Param("id") id: string, @GetCurrentUser("_id") userId: string) {
     return this.reviewService.deleteReview(id, userId);
   }
 }

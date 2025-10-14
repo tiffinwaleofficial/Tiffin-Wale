@@ -8,8 +8,22 @@ import { AuthProvider } from '@/context/AuthProvider';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import NotificationContainer from '@/components/NotificationContainer';
 import { Slot } from 'expo-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 SplashScreen.preventAutoHideAsync();
+
+// Create a QueryClient instance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+    },
+    mutations: {
+      retry: 1,
+    },
+  },
+});
 
 // Custom theme for your TiffinWale Partner app
 // const customTheme = {
@@ -51,12 +65,14 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <NotificationContainer>
-          <Slot />
-        </NotificationContainer>
-        <StatusBar style="dark" />
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <NotificationContainer>
+            <Slot />
+          </NotificationContainer>
+          <StatusBar style="dark" />
+        </AuthProvider>
+      </QueryClientProvider>
     </SafeAreaProvider>
   );
 }

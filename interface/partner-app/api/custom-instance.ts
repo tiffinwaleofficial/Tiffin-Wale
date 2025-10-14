@@ -1,11 +1,11 @@
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { envConfig } from '../config/env';
+import { ENV } from '../config/env';
 import NavigationService from '../services/navigationService';
 
 // Create axios instance
 const axiosInstance = axios.create({
-  baseURL: envConfig.apiBaseUrl,
+  baseURL: ENV.API_BASE_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -47,7 +47,7 @@ axiosInstance.interceptors.response.use(
         
         if (refreshToken) {
           // Make refresh request
-          const refreshResponse = await axios.post(`${envConfig.apiBaseUrl}/auth/refresh`, {
+          const refreshResponse = await axios.post(`${ENV.API_BASE_URL}/auth/refresh`, {
             refreshToken,
           });
           

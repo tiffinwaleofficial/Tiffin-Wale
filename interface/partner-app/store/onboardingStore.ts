@@ -17,16 +17,14 @@ export type WelcomeData = PersonalInfoData;
 export interface AccountSetupData {
   password: string;
   confirmPassword: string;
-  agreeToTerms: boolean;
-  agreeToMarketing: boolean;
 }
 
 // Step 3: Business Profile
 export interface BusinessProfileData {
   businessName: string;
-  businessType: 'restaurant' | 'cloud_kitchen' | 'catering' | 'home_chef';
+  businessType: ('restaurant' | 'cloud_kitchen' | 'catering' | 'home_chef')[];
   description: string;
-  establishedYear: string;
+  establishedDate: string; // ISO date string (YYYY-MM-DD)
 }
 
 // Step 4: Location & Hours
@@ -77,10 +75,10 @@ export interface DocumentsData {
   panNumber: string;
   licenseNumber: string;
   documents: {
-    fssaiDocument: string;
-    gstDocument: string;
-    panDocument: string;
-    bankDocument: string;
+    licenseDocuments: string[];
+    certificationDocuments: string[];
+    identityDocuments: string[];
+    otherDocuments: string[];
   };
 }
 
@@ -106,6 +104,9 @@ export interface OnboardingFormData {
   step6?: ImagesBrandingData;
   step7?: DocumentsData;
   step8?: PaymentSetupData;
+  // Final submission preferences
+  agreeToTerms?: boolean;
+  agreeToMarketing?: boolean;
 }
 
 interface OnboardingStore {
@@ -118,6 +119,7 @@ interface OnboardingStore {
   
   // Validation
   errors: Record<string, string>;
+  isStepValid: Record<number, boolean>;
   
   // Submission state
   isSubmitting: boolean;
@@ -129,7 +131,9 @@ interface OnboardingStore {
   setError: (field: string, error: string) => void;
   clearError: (field: string) => void;
   clearAllErrors: () => void;
+  setStepValid: (step: number, isValid: boolean) => void;
   validateStep: (step: number) => boolean;
+  validateField: (field: string, value: string) => string | null;
   submitApplication: () => Promise<void>;
   resetOnboarding: () => void;
 }
@@ -142,6 +146,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
       currentStep: 1,
       totalSteps: 9,
       errors: {},
+      isStepValid: {},
       isSubmitting: false,
       submissionError: null,
 
@@ -180,6 +185,48 @@ export const useOnboardingStore = create<OnboardingStore>()(
         set({ errors: {} });
       },
 
+      setStepValid: (step, isValid) => {
+        set((state) => ({
+          isStepValid: {
+            ...state.isStepValid,
+            [step]: isValid,
+          },
+        }));
+      },
+
+      validateField: (field, value) => {
+        // Email validation
+        if (field === 'email') {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(value)) {
+            return 'Please enter a valid email address';
+          }
+        }
+
+        // Password validation
+        if (field === 'password') {
+          const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+          if (!passwordRegex.test(value)) {
+            return 'Password must contain uppercase, lowercase, number, and special character';
+          }
+        }
+
+        // Phone validation
+        if (field === 'phoneNumber') {
+          const phoneRegex = /^[0-9]{10,15}$/;
+          if (!phoneRegex.test(value)) {
+            return 'Phone number must be 10-15 digits';
+          }
+        }
+
+        // Required field validation
+        if (field.includes('required') && !value.trim()) {
+          return 'This field is required';
+        }
+
+        return null;
+      },
+
       validateStep: (step: number) => {
         const { formData } = get();
         // Basic validation - can be expanded
@@ -187,9 +234,21 @@ export const useOnboardingStore = create<OnboardingStore>()(
           case 1:
             return !!(formData.step1?.firstName && formData.step1?.lastName && formData.step1?.email && formData.step1?.phoneNumber);
           case 2:
-            return !!(formData.step2?.password && formData.step2?.confirmPassword && formData.step2?.agreeToTerms);
+            return !!(formData.step2?.password && formData.step2?.confirmPassword);
           case 3:
             return !!(formData.step3?.businessName && formData.step3?.businessType && formData.step3?.description);
+          case 4:
+            return !!(formData.step4?.address?.street && formData.step4?.address?.city && formData.step4?.address?.state && formData.step4?.address?.postalCode);
+          case 5:
+            return !!(formData.step5?.cuisineTypes && formData.step5?.cuisineTypes.length > 0);
+          case 6:
+            return true; // Images are optional
+          case 7:
+            return !!(formData.step7?.fssaiLicense && formData.step7?.gstNumber);
+          case 8:
+            return !!(formData.step8?.bankDetails?.accountNumber && formData.step8?.bankDetails?.ifscCode);
+          case 9:
+            return !!(formData.agreeToTerms); // Final step requires terms agreement
           default:
             return true;
         }

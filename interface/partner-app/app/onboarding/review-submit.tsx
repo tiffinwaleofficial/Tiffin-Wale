@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ScrollView, TouchableOpacity } from 'react-native';
+import { View, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '../../components/layout/Screen';
 import { Container } from '../../components/layout/Container';
@@ -10,6 +10,7 @@ import { Checkbox } from '../../components/ui/Checkbox';
 import { Icon } from '../../components/ui/Icon';
 import ProgressIndicator from '../../components/onboarding/ProgressIndicator';
 import BackButton from '../../components/navigation/BackButton';
+import { PolicyModal, TermsAndConditions, PrivacyPolicy } from '../../components/policies';
 import { useOnboardingStore } from '../../store/onboardingStore';
 import { useTheme } from '../../store/themeStore';
 
@@ -22,10 +23,16 @@ const ReviewSubmit: React.FC = () => {
     submitApplication, 
     isSubmitting, 
     errors,
-    setCurrentStep 
+    setCurrentStep,
+    updateFormData
   } = useOnboardingStore();
 
   const [agreeToSubmit, setAgreeToSubmit] = useState(false);
+  const [agreeToMarketing, setAgreeToMarketing] = useState(false);
+  
+  // Policy modal states
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   const handleBack = () => {
     setCurrentStep(8);
@@ -58,6 +65,10 @@ const ReviewSubmit: React.FC = () => {
       return;
     }
     
+    // Save final preferences to store
+    updateFormData('agreeToTerms', agreeToSubmit);
+    updateFormData('agreeToMarketing', agreeToMarketing);
+    
     await submitApplication();
     
     // Navigate to success screen or dashboard
@@ -86,9 +97,13 @@ const ReviewSubmit: React.FC = () => {
             <Text variant="caption" style={{ color: theme.colors.textSecondary, textTransform: 'capitalize' }}>
               {field.replace(/([A-Z])/g, ' $1').trim()}:
             </Text>
-            <Text variant="body" style={{ color: theme.colors.text }}>
-              {formatValue(field, value)}
-            </Text>
+            {typeof formatValue(field, value) === 'string' ? (
+              <Text variant="body" style={{ color: theme.colors.text }}>
+                {formatValue(field, value)}
+              </Text>
+            ) : (
+              formatValue(field, value)
+            )}
           </View>
         );
       })}
@@ -99,7 +114,55 @@ const ReviewSubmit: React.FC = () => {
     return path.split('.').reduce((current, key) => current?.[key], obj);
   };
 
-  const formatValue = (field: string, value: any): string => {
+  const formatValue = (field: string, value: any): string | React.ReactNode => {
+    // Handle image URLs specially
+    if ((field === 'logoUrl' || field === 'bannerUrl') && typeof value === 'string' && value.includes('cloudinary.com')) {
+      return (
+        <View style={{ marginTop: theme.spacing.sm }}>
+          <Image
+            source={{ uri: value }}
+            style={{
+              width: field === 'logoUrl' ? 80 : 120,
+              height: field === 'logoUrl' ? 80 : 60,
+              borderRadius: theme.borderRadius.sm,
+              backgroundColor: theme.colors.surface,
+            }}
+            resizeMode="cover"
+          />
+          <Text style={{
+            fontSize: 10,
+            color: theme.colors.textSecondary,
+            marginTop: theme.spacing.xs,
+          }}>
+            {field === 'logoUrl' ? 'Logo' : 'Banner'}
+          </Text>
+        </View>
+      );
+    }
+    
+    // Handle business types array specially
+    if (field === 'businessType' && Array.isArray(value)) {
+      const businessTypeLabels: Record<string, string> = {
+        'restaurant': 'Restaurant',
+        'cloud_kitchen': 'Cloud Kitchen',
+        'catering': 'Catering Service',
+        'home_chef': 'Home Chef',
+      };
+      return value.map(type => businessTypeLabels[type] || type).join(', ');
+    }
+    
+    // Handle establishment date specially
+    if (field === 'establishedDate' && typeof value === 'string') {
+      const date = new Date(value);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      }
+    }
+    
     if (Array.isArray(value)) {
       return value.join(', ');
     }
@@ -167,7 +230,7 @@ const ReviewSubmit: React.FC = () => {
             'Business Profile',
             3,
             formData.step3,
-            ['businessName', 'businessType', 'description', 'establishedYear']
+            ['businessName', 'businessType', 'description', 'establishedDate']
           )}
 
           {formData.step4 && renderSummaryCard(
@@ -214,25 +277,40 @@ const ReviewSubmit: React.FC = () => {
             >
               <Text variant="body" style={{ color: theme.colors.text }}>
                 I confirm that all the information provided is accurate and complete. I agree to the{' '}
-                <Text 
-                  variant="body" 
-                  style={{ 
-                    color: theme.colors.primary,
-                    textDecorationLine: 'underline' 
-                  }}
-                >
-                  Terms and Conditions
-                </Text>
+                <TouchableOpacity onPress={() => setShowTermsModal(true)}>
+                  <Text 
+                    variant="body" 
+                    style={{ 
+                      color: theme.colors.primary,
+                      textDecorationLine: 'underline' 
+                    }}
+                  >
+                    Terms and Conditions
+                  </Text>
+                </TouchableOpacity>
                 {' '}and{' '}
-                <Text 
-                  variant="body" 
-                  style={{ 
-                    color: theme.colors.primary,
-                    textDecorationLine: 'underline' 
-                  }}
-                >
-                  Privacy Policy
-                </Text>
+                <TouchableOpacity onPress={() => setShowPrivacyModal(true)}>
+                  <Text 
+                    variant="body" 
+                    style={{ 
+                      color: theme.colors.primary,
+                      textDecorationLine: 'underline' 
+                    }}
+                  >
+                    Privacy Policy
+                  </Text>
+                </TouchableOpacity>
+              </Text>
+            </Checkbox>
+
+            {/* Marketing Emails (Optional) */}
+            <Checkbox
+              checked={agreeToMarketing}
+              onPress={() => setAgreeToMarketing(!agreeToMarketing)}
+              style={{ marginBottom: theme.spacing.lg }}
+            >
+              <Text variant="body" style={{ color: theme.colors.text }}>
+                I would like to receive marketing emails and updates about new features
               </Text>
             </Checkbox>
 
@@ -262,19 +340,26 @@ const ReviewSubmit: React.FC = () => {
               fullWidth
               style={{ marginBottom: theme.spacing.md }}
             />
-          </Card>
-
-          {/* Back Button */}
-          <View style={{ alignItems: 'center' }}>
-            <Button
-              title="Back"
-              variant="outline"
-              onPress={handleBack}
-              style={{ minWidth: 120 }}
-            />
-          </View>
+            </Card>
         </Container>
       </ScrollView>
+
+      {/* Policy Modals */}
+      <PolicyModal
+        visible={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        title="Terms and Conditions"
+      >
+        <TermsAndConditions />
+      </PolicyModal>
+
+      <PolicyModal
+        visible={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+        title="Privacy Policy"
+      >
+        <PrivacyPolicy />
+      </PolicyModal>
     </Screen>
   );
 };

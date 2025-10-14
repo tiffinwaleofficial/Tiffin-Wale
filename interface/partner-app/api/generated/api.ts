@@ -43,6 +43,261 @@ export interface RegisterDto {
   phoneNumber?: string;
 }
 
+export interface AddressDto {
+  /**
+   * Street address
+   * @example "123 Main Street"
+   */
+  street: string;
+  /**
+   * City
+   * @example "New York"
+   */
+  city: string;
+  /**
+   * State
+   * @example "NY"
+   */
+  state: string;
+  /**
+   * Postal code
+   * @example "10001"
+   */
+  postalCode: string;
+  /**
+   * Country
+   * @example "USA"
+   */
+  country: string;
+}
+
+export interface BusinessHoursDto {
+  /**
+   * Opening time
+   * @example "09:00"
+   */
+  open: string;
+  /**
+   * Closing time
+   * @example "22:00"
+   */
+  close: string;
+  /**
+   * Operating days
+   * @example ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"]
+   */
+  days: string[];
+}
+
+export interface SocialMediaDto {
+  /**
+   * Instagram URL
+   * @example "https://instagram.com/restaurant"
+   */
+  instagram?: string;
+  /**
+   * Facebook URL
+   * @example "https://facebook.com/restaurant"
+   */
+  facebook?: string;
+  /**
+   * Twitter URL
+   * @example "https://twitter.com/restaurant"
+   */
+  twitter?: string;
+}
+
+export interface DocumentsDto {
+  /**
+   * License documents URLs
+   * @example ["https://cloudinary.com/license1.jpg","https://cloudinary.com/license2.pdf"]
+   */
+  licenseDocuments?: string[];
+  /**
+   * Certification documents URLs
+   * @example ["https://cloudinary.com/cert1.jpg","https://cloudinary.com/cert2.pdf"]
+   */
+  certificationDocuments?: string[];
+  /**
+   * Identity documents URLs
+   * @example ["https://cloudinary.com/id1.jpg","https://cloudinary.com/id2.pdf"]
+   */
+  identityDocuments?: string[];
+  /**
+   * Other documents URLs
+   * @example ["https://cloudinary.com/other1.jpg","https://cloudinary.com/other2.pdf"]
+   */
+  otherDocuments?: string[];
+}
+
+export interface RegisterPartnerDto {
+  /**
+   * Email address
+   * @example "partner@example.com"
+   */
+  email: string;
+  /**
+   * Password (min 8 characters, must include uppercase, lowercase, number, and special character)
+   * @example "Password123!"
+   */
+  password: string;
+  /**
+   * User role
+   * @default "business"
+   */
+  role: "customer" | "business" | "admin" | "super_admin";
+  /**
+   * First name
+   * @example "John"
+   */
+  firstName: string;
+  /**
+   * Last name
+   * @example "Doe"
+   */
+  lastName: string;
+  /**
+   * Phone number
+   * @example "1234567890"
+   */
+  phoneNumber: string;
+  /**
+   * Business name
+   * @example "Tasty Bites Restaurant"
+   */
+  businessName: string;
+  /**
+   * Business description
+   * @example "Delicious home-cooked meals with authentic flavors"
+   */
+  description: string;
+  /**
+   * Cuisine types offered
+   * @example ["Indian","Chinese","Continental"]
+   */
+  cuisineTypes: string[];
+  /** Business address */
+  address: AddressDto;
+  /** Business operating hours */
+  businessHours: BusinessHoursDto;
+  /**
+   * Contact email
+   * @example "contact@restaurant.com"
+   */
+  contactEmail?: string;
+  /**
+   * Contact phone
+   * @example "+1234567890"
+   */
+  contactPhone?: string;
+  /**
+   * WhatsApp number
+   * @example "+1234567890"
+   */
+  whatsappNumber?: string;
+  /**
+   * GST number
+   * @example "GST123456789"
+   */
+  gstNumber?: string;
+  /**
+   * License number
+   * @example "LIC123456789"
+   */
+  licenseNumber?: string;
+  /**
+   * Year established
+   * @example 2010
+   */
+  establishedYear?: number;
+  /**
+   * Delivery radius in km
+   * @default 5
+   * @example 5
+   */
+  deliveryRadius?: number;
+  /**
+   * Minimum order amount
+   * @default 100
+   * @example 100
+   */
+  minimumOrderAmount?: number;
+  /**
+   * Delivery fee
+   * @default 0
+   * @example 0
+   */
+  deliveryFee?: number;
+  /**
+   * Estimated delivery time in minutes
+   * @default 30
+   * @example 30
+   */
+  estimatedDeliveryTime?: number;
+  /**
+   * Commission rate percentage
+   * @default 20
+   * @example 20
+   */
+  commissionRate?: number;
+  /**
+   * Logo URL
+   * @example "https://cloudinary.com/logo.jpg"
+   */
+  logoUrl?: string;
+  /**
+   * Banner URL
+   * @example "https://cloudinary.com/banner.jpg"
+   */
+  bannerUrl?: string;
+  /** Social media links */
+  socialMedia?: SocialMediaDto;
+  /**
+   * Is vegetarian only
+   * @default false
+   * @example false
+   */
+  isVegetarian?: boolean;
+  /**
+   * Has delivery service
+   * @default true
+   * @example true
+   */
+  hasDelivery?: boolean;
+  /**
+   * Has pickup service
+   * @default true
+   * @example true
+   */
+  hasPickup?: boolean;
+  /**
+   * Accepts cash payments
+   * @default true
+   * @example true
+   */
+  acceptsCash?: boolean;
+  /**
+   * Accepts card payments
+   * @default true
+   * @example true
+   */
+  acceptsCard?: boolean;
+  /**
+   * Accepts UPI payments
+   * @default true
+   * @example true
+   */
+  acceptsUPI?: boolean;
+  /** Business documents */
+  documents?: DocumentsDto;
+  /**
+   * Agree to marketing emails
+   * @default false
+   * @example false
+   */
+  agreeToMarketing?: boolean;
+}
+
 export interface LoginDto {
   /**
    * Email address
@@ -297,177 +552,161 @@ export interface CreateMealDto {
   userId: string;
 }
 
-export interface OrderItemDto {
+export interface CreatePartnerDto {
   /**
-   * Menu Item ID
-   * @example "6075c1a5a9f14a2c9c5df91a"
+   * Business name
+   * @example "Tasty Bites Restaurant"
    */
-  mealId: string;
+  businessName: string;
   /**
-   * Quantity of the menu item
-   * @example 2
+   * Business description
+   * @example "Delicious home-cooked meals with authentic flavors"
    */
-  quantity: number;
+  description: string;
   /**
-   * Special instructions for this item
-   * @example "No onions please"
+   * Cuisine types offered
+   * @example ["Indian","Chinese","Continental"]
    */
-  specialInstructions?: string;
+  cuisineTypes: string[];
+  /** Business address */
+  address: AddressDto;
+  /** Business operating hours */
+  businessHours: BusinessHoursDto;
   /**
-   * Price of the item
-   * @example 12.99
+   * Contact email
+   * @example "contact@restaurant.com"
    */
-  price: number;
-}
-
-export interface CreateOrderDto {
+  contactEmail?: string;
   /**
-   * Customer ID
-   * @example "6075c1a5a9f14a2c9c5df91a"
+   * Contact phone
+   * @example "+1234567890"
    */
-  customer: string;
+  contactPhone?: string;
   /**
-   * Business partner ID
-   * @example "6075c1a5a9f14a2c9c5df91b"
+   * WhatsApp number
+   * @example "+1234567890"
    */
-  businessPartner: string;
+  whatsappNumber?: string;
   /**
-   * Array of order items
-   * @example [{"mealId":"6075c1a5a9f14a2c9c5df91a","quantity":2,"specialInstructions":"Extra spicy","price":12.99}]
+   * GST number
+   * @example "GST123456789"
    */
-  items: OrderItemDto[];
+  gstNumber?: string;
   /**
-   * Total order amount
-   * @example 25.98
+   * License number
+   * @example "LIC123456789"
    */
-  totalAmount: number;
+  licenseNumber?: string;
   /**
-   * Delivery address
-   * @example "123 Main St, New York, NY 10001"
+   * Year established
+   * @example 2010
    */
-  deliveryAddress: string;
+  establishedYear?: number;
   /**
-   * Delivery instructions
-   * @example "Leave at the door"
+   * Delivery radius in km
+   * @default 5
+   * @example 5
    */
-  deliveryInstructions?: string;
+  deliveryRadius?: number;
   /**
-   * Scheduled delivery time
-   * @example "2023-04-20T18:00:00Z"
+   * Minimum order amount
+   * @default 100
+   * @example 100
    */
-  scheduledDeliveryTime?: string;
-}
-
-export interface UpdateOrderDto {
+  minimumOrderAmount?: number;
   /**
-   * Customer ID
-   * @example "6075c1a5a9f14a2c9c5df91a"
+   * Delivery fee
+   * @default 0
+   * @example 0
    */
-  customer?: string;
+  deliveryFee?: number;
   /**
-   * Business partner ID
-   * @example "6075c1a5a9f14a2c9c5df91b"
+   * Estimated delivery time in minutes
+   * @default 30
+   * @example 30
    */
-  businessPartner?: string;
+  estimatedDeliveryTime?: number;
   /**
-   * Array of order items
-   * @example [{"mealId":"6075c1a5a9f14a2c9c5df91a","quantity":2,"specialInstructions":"Extra spicy","price":12.99}]
+   * Commission rate percentage
+   * @default 20
+   * @example 20
    */
-  items?: OrderItemDto[];
+  commissionRate?: number;
   /**
-   * Total order amount
-   * @example 25.98
+   * Logo URL
+   * @example "https://cloudinary.com/logo.jpg"
    */
-  totalAmount?: number;
+  logoUrl?: string;
   /**
-   * Order status
-   * @example "confirmed"
+   * Banner URL
+   * @example "https://cloudinary.com/banner.jpg"
    */
-  status?:
-    | "pending"
-    | "confirmed"
-    | "preparing"
-    | "ready"
-    | "delivered"
-    | "cancelled";
+  bannerUrl?: string;
+  /** Social media links */
+  socialMedia?: SocialMediaDto;
   /**
-   * Delivery address
-   * @example "123 Main St, New York, NY 10001"
+   * Is vegetarian only
+   * @default false
+   * @example false
    */
-  deliveryAddress?: string;
+  isVegetarian?: boolean;
   /**
-   * Delivery instructions
-   * @example "Leave at the door"
-   */
-  deliveryInstructions?: string;
-  /**
-   * Is the order paid
+   * Has delivery service
+   * @default true
    * @example true
    */
-  isPaid?: boolean;
+  hasDelivery?: boolean;
   /**
-   * Scheduled delivery time
-   * @example "2023-04-20T18:00:00Z"
+   * Has pickup service
+   * @default true
+   * @example true
    */
-  scheduledDeliveryTime?: string;
+  hasPickup?: boolean;
   /**
-   * Actual delivery time
-   * @example "2023-04-20T18:15:00Z"
+   * Accepts cash payments
+   * @default true
+   * @example true
    */
-  actualDeliveryTime?: string;
-}
-
-export interface UpdateOrderStatusDto {
+  acceptsCash?: boolean;
   /**
-   * New order status
-   * @example "confirmed"
+   * Accepts card payments
+   * @default true
+   * @example true
    */
-  status:
-    | "pending"
-    | "confirmed"
-    | "preparing"
-    | "ready"
-    | "delivered"
-    | "cancelled";
-}
-
-export interface MarkOrderPaidDto {
+  acceptsCard?: boolean;
   /**
-   * Payment transaction ID
-   * @example "txn_123456789"
+   * Accepts UPI payments
+   * @default true
+   * @example true
    */
-  transactionId: string;
+  acceptsUPI?: boolean;
+  /** Business documents */
+  documents?: DocumentsDto;
   /**
-   * Payment amount
-   * @example 25.98
+   * Whether the partner is accepting orders
+   * @default true
+   * @example true
    */
-  amount: number;
+  isAcceptingOrders: boolean;
   /**
-   * Payment method used
-   * @example "credit_card"
+   * Whether the partner is featured
+   * @default false
+   * @example false
    */
-  paymentMethod: string;
+  isFeatured: boolean;
   /**
-   * Payment date and time
-   * @example "2023-04-20T18:00:00Z"
-   */
-  paidAt?: string;
-}
-
-export interface AddOrderReviewDto {
-  /**
-   * Rating (1-5)
-   * @min 1
-   * @max 5
+   * Average rating
    * @example 4.5
    */
-  rating: number;
+  averageRating?: number;
   /**
-   * Review text
-   * @example "Food was delicious and delivered on time. Will order again!"
+   * Total review count
+   * @example 150
    */
-  review: string;
+  totalReviews?: number;
 }
+
+export type UpdatePartnerDto = object;
 
 export interface CreateCategoryDto {
   /**
@@ -683,93 +922,6 @@ export interface UpdateMenuItemDto {
   nutritionalInfo?: UpdateNutritionalInfoDto;
 }
 
-export interface CreatePartnerDto {
-  /**
-   * Business name
-   * @example "Tasty Bites Restaurant"
-   */
-  businessName: string;
-  /**
-   * Business description
-   * @example "Delicious home-cooked meals with authentic flavors"
-   */
-  description: string;
-  /**
-   * Cuisine types offered
-   * @example ["Indian","Chinese","Continental"]
-   */
-  cuisineTypes: string[];
-  /**
-   * Business address
-   * @example "123 Main Street, Downtown"
-   */
-  address: string;
-  /**
-   * City
-   * @example "New York"
-   */
-  city: string;
-  /**
-   * State
-   * @example "NY"
-   */
-  state: string;
-  /**
-   * ZIP code
-   * @example "10001"
-   */
-  zipCode: string;
-  /**
-   * Country
-   * @example "USA"
-   */
-  country: string;
-  /**
-   * Phone number
-   * @example "+1234567890"
-   */
-  phoneNumber: string;
-  /**
-   * Business hours
-   * @example "Mon-Fri: 9AM-10PM, Sat-Sun: 10AM-11PM"
-   */
-  businessHours: string;
-  /**
-   * Logo URL
-   * @example "https://example.com/logo.png"
-   */
-  logoUrl?: string;
-  /**
-   * Banner URL
-   * @example "https://example.com/banner.png"
-   */
-  bannerUrl?: string;
-  /**
-   * Whether the partner is accepting orders
-   * @default true
-   * @example true
-   */
-  isAcceptingOrders: boolean;
-  /**
-   * Whether the partner is featured
-   * @default false
-   * @example false
-   */
-  isFeatured: boolean;
-  /**
-   * Average rating
-   * @example 4.5
-   */
-  averageRating?: number;
-  /**
-   * Total review count
-   * @example 150
-   */
-  totalReviews?: number;
-}
-
-export type UpdatePartnerDto = object;
-
 export interface CreateFeedbackDto {
   /**
    * Type of feedback
@@ -873,6 +1025,178 @@ export interface FeedbackResponseDto {
    * @example "2023-06-03T10:15:30.000Z"
    */
   updatedAt: string;
+}
+
+export interface OrderItemDto {
+  /**
+   * Menu Item ID
+   * @example "6075c1a5a9f14a2c9c5df91a"
+   */
+  mealId: string;
+  /**
+   * Quantity of the menu item
+   * @example 2
+   */
+  quantity: number;
+  /**
+   * Special instructions for this item
+   * @example "No onions please"
+   */
+  specialInstructions?: string;
+  /**
+   * Price of the item
+   * @example 12.99
+   */
+  price: number;
+}
+
+export interface CreateOrderDto {
+  /**
+   * Customer ID
+   * @example "6075c1a5a9f14a2c9c5df91a"
+   */
+  customer: string;
+  /**
+   * Business partner ID
+   * @example "6075c1a5a9f14a2c9c5df91b"
+   */
+  businessPartner: string;
+  /**
+   * Array of order items
+   * @example [{"mealId":"6075c1a5a9f14a2c9c5df91a","quantity":2,"specialInstructions":"Extra spicy","price":12.99}]
+   */
+  items: OrderItemDto[];
+  /**
+   * Total order amount
+   * @example 25.98
+   */
+  totalAmount: number;
+  /**
+   * Delivery address
+   * @example "123 Main St, New York, NY 10001"
+   */
+  deliveryAddress: string;
+  /**
+   * Delivery instructions
+   * @example "Leave at the door"
+   */
+  deliveryInstructions?: string;
+  /**
+   * Scheduled delivery time
+   * @example "2023-04-20T18:00:00Z"
+   */
+  scheduledDeliveryTime?: string;
+}
+
+export interface UpdateOrderDto {
+  /**
+   * Customer ID
+   * @example "6075c1a5a9f14a2c9c5df91a"
+   */
+  customer?: string;
+  /**
+   * Business partner ID
+   * @example "6075c1a5a9f14a2c9c5df91b"
+   */
+  businessPartner?: string;
+  /**
+   * Array of order items
+   * @example [{"mealId":"6075c1a5a9f14a2c9c5df91a","quantity":2,"specialInstructions":"Extra spicy","price":12.99}]
+   */
+  items?: OrderItemDto[];
+  /**
+   * Total order amount
+   * @example 25.98
+   */
+  totalAmount?: number;
+  /**
+   * Order status
+   * @example "confirmed"
+   */
+  status?:
+    | "pending"
+    | "confirmed"
+    | "preparing"
+    | "ready"
+    | "delivered"
+    | "cancelled";
+  /**
+   * Delivery address
+   * @example "123 Main St, New York, NY 10001"
+   */
+  deliveryAddress?: string;
+  /**
+   * Delivery instructions
+   * @example "Leave at the door"
+   */
+  deliveryInstructions?: string;
+  /**
+   * Is the order paid
+   * @example true
+   */
+  isPaid?: boolean;
+  /**
+   * Scheduled delivery time
+   * @example "2023-04-20T18:00:00Z"
+   */
+  scheduledDeliveryTime?: string;
+  /**
+   * Actual delivery time
+   * @example "2023-04-20T18:15:00Z"
+   */
+  actualDeliveryTime?: string;
+}
+
+export interface UpdateOrderStatusDto {
+  /**
+   * New order status
+   * @example "confirmed"
+   */
+  status:
+    | "pending"
+    | "confirmed"
+    | "preparing"
+    | "ready"
+    | "delivered"
+    | "cancelled";
+}
+
+export interface MarkOrderPaidDto {
+  /**
+   * Payment transaction ID
+   * @example "txn_123456789"
+   */
+  transactionId: string;
+  /**
+   * Payment amount
+   * @example 25.98
+   */
+  amount: number;
+  /**
+   * Payment method used
+   * @example "credit_card"
+   */
+  paymentMethod: string;
+  /**
+   * Payment date and time
+   * @example "2023-04-20T18:00:00Z"
+   */
+  paidAt?: string;
+}
+
+export interface AddOrderReviewDto {
+  /**
+   * Rating (1-5)
+   * @min 1
+   * @max 5
+   * @example 4.5
+   */
+  rating: number;
+  /**
+   * Review text
+   * @example "Food was delicious and delivered on time. Will order again!"
+   */
+  review: string;
 }
 
 export interface CreatePaymentMethodDto {
@@ -1697,6 +2021,24 @@ export namespace Api {
   /**
    * No description
    * @tags auth
+   * @name AuthControllerRegisterPartner
+   * @summary Register a new partner (business user)
+   * @request POST:/api/auth/register-partner
+   * @response `201` `void` Partner has been registered
+   * @response `400` `void` Bad request
+   * @response `409` `void` Email already exists
+   */
+  export namespace AuthControllerRegisterPartner {
+    export type RequestParams = {};
+    export type RequestQuery = {};
+    export type RequestBody = RegisterPartnerDto;
+    export type RequestHeaders = {};
+    export type ResponseBody = void;
+  }
+
+  /**
+   * No description
+   * @tags auth
    * @name AuthControllerRegisterSuperAdmin
    * @summary Register a super admin user (development only)
    * @request POST:/api/auth/super-admin/register
@@ -2506,70 +2848,40 @@ export namespace Api {
 
   /**
    * No description
-   * @tags orders
-   * @name OrderControllerCreate
-   * @summary Create a new order
-   * @request POST:/api/orders
+   * @tags partners
+   * @name PartnerControllerCreate
+   * @summary Create a new partner
+   * @request POST:/api/partners
    * @secure
-   * @response `201` `void` Order has been created
+   * @response `201` `void` Partner created successfully
    * @response `400` `void` Bad request
    */
-  export namespace OrderControllerCreate {
+  export namespace PartnerControllerCreate {
     export type RequestParams = {};
     export type RequestQuery = {};
-    export type RequestBody = CreateOrderDto;
+    export type RequestBody = CreatePartnerDto;
     export type RequestHeaders = {};
     export type ResponseBody = void;
   }
 
   /**
    * No description
-   * @tags orders
-   * @name OrderControllerFindAll
-   * @summary Get all orders
-   * @request GET:/api/orders
-   * @secure
-   * @response `200` `void` Return all orders
+   * @tags partners
+   * @name PartnerControllerFindAll
+   * @summary Get all partners/restaurants
+   * @request GET:/api/partners
+   * @response `200` `void` Return all partners
    */
-  export namespace OrderControllerFindAll {
+  export namespace PartnerControllerFindAll {
     export type RequestParams = {};
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = void;
-  }
-
-  /**
-   * No description
-   * @tags orders
-   * @name OrderControllerGetMyOrders
-   * @summary Get orders for current authenticated customer
-   * @request GET:/api/orders/me
-   * @secure
-   * @response `200` `void` Return customer orders
-   */
-  export namespace OrderControllerGetMyOrders {
-    export type RequestParams = {};
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = void;
-  }
-
-  /**
-   * No description
-   * @tags orders
-   * @name OrderControllerFindByStatus
-   * @summary Get orders by status
-   * @request GET:/api/orders/status/{status}
-   * @secure
-   * @response `200` `void` Return orders by status
-   */
-  export namespace OrderControllerFindByStatus {
-    export type RequestParams = {
-      status: string;
+    export type RequestQuery = {
+      /** Filter by cuisine type */
+      cuisineType?: string;
+      /** Filter by minimum rating */
+      rating?: number;
+      /** Filter by city */
+      city?: string;
     };
-    export type RequestQuery = {};
     export type RequestBody = never;
     export type RequestHeaders = {};
     export type ResponseBody = void;
@@ -2577,54 +2889,16 @@ export namespace Api {
 
   /**
    * No description
-   * @tags orders
-   * @name OrderControllerFindByCustomer
-   * @summary Get orders by customer
-   * @request GET:/api/orders/customer/{customerId}
-   * @secure
-   * @response `200` `void` Return customer orders
+   * @tags partners
+   * @name PartnerControllerFindOne
+   * @summary Get a specific partner by ID
+   * @request GET:/api/partners/{id}
+   * @response `200` `void` Return the partner
+   * @response `404` `void` Partner not found
    */
-  export namespace OrderControllerFindByCustomer {
+  export namespace PartnerControllerFindOne {
     export type RequestParams = {
-      customerId: string;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = void;
-  }
-
-  /**
-   * No description
-   * @tags orders
-   * @name OrderControllerFindByPartner
-   * @summary Get orders by business partner
-   * @request GET:/api/orders/partner/{partnerId}
-   * @secure
-   * @response `200` `void` Return partner orders
-   */
-  export namespace OrderControllerFindByPartner {
-    export type RequestParams = {
-      partnerId: string;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = void;
-  }
-
-  /**
-   * No description
-   * @tags orders
-   * @name OrderControllerFindOne
-   * @summary Get order by ID
-   * @request GET:/api/orders/{id}
-   * @secure
-   * @response `200` `void` Return the order
-   * @response `404` `void` Order not found
-   */
-  export namespace OrderControllerFindOne {
-    export type RequestParams = {
+      /** Partner ID */
       id: string;
     };
     export type RequestQuery = {};
@@ -2635,38 +2909,38 @@ export namespace Api {
 
   /**
    * No description
-   * @tags orders
-   * @name OrderControllerUpdate
-   * @summary Update an order
-   * @request PATCH:/api/orders/{id}
+   * @tags partners
+   * @name PartnerControllerUpdate
+   * @summary Update a partner
+   * @request PATCH:/api/partners/{id}
    * @secure
-   * @response `200` `void` Order has been updated
-   * @response `400` `void` Bad request
-   * @response `404` `void` Order not found
+   * @response `200` `void` Partner updated successfully
+   * @response `404` `void` Partner not found
    */
-  export namespace OrderControllerUpdate {
+  export namespace PartnerControllerUpdate {
     export type RequestParams = {
+      /** Partner ID */
       id: string;
     };
     export type RequestQuery = {};
-    export type RequestBody = UpdateOrderDto;
+    export type RequestBody = UpdatePartnerDto;
     export type RequestHeaders = {};
     export type ResponseBody = void;
   }
 
   /**
    * No description
-   * @tags orders
-   * @name OrderControllerRemove
-   * @summary Delete an order
-   * @request DELETE:/api/orders/{id}
+   * @tags partners
+   * @name PartnerControllerRemove
+   * @summary Delete a partner
+   * @request DELETE:/api/partners/{id}
    * @secure
-   * @response `204` `void` Order has been deleted
-   * @response `400` `void` Bad request
-   * @response `404` `void` Order not found
+   * @response `200` `void` Partner deleted successfully
+   * @response `404` `void` Partner not found
    */
-  export namespace OrderControllerRemove {
+  export namespace PartnerControllerRemove {
     export type RequestParams = {
+      /** Partner ID */
       id: string;
     };
     export type RequestQuery = {};
@@ -2677,65 +2951,60 @@ export namespace Api {
 
   /**
    * No description
-   * @tags orders
-   * @name OrderControllerUpdateStatus
-   * @summary Update order status
-   * @request PATCH:/api/orders/{id}/status
-   * @secure
-   * @response `200` `void` Order status has been updated
-   * @response `400` `void` Bad request
-   * @response `404` `void` Order not found
+   * @tags partners
+   * @name PartnerControllerGetMenu
+   * @summary Get menu for a specific partner
+   * @request GET:/api/partners/{id}/menu
+   * @response `200` `void` Return partner menu
+   * @response `404` `void` Partner not found
    */
-  export namespace OrderControllerUpdateStatus {
+  export namespace PartnerControllerGetMenu {
     export type RequestParams = {
+      /** Partner ID */
       id: string;
     };
     export type RequestQuery = {};
-    export type RequestBody = UpdateOrderStatusDto;
+    export type RequestBody = never;
     export type RequestHeaders = {};
     export type ResponseBody = void;
   }
 
   /**
    * No description
-   * @tags orders
-   * @name OrderControllerMarkAsPaid
-   * @summary Mark order as paid
-   * @request PATCH:/api/orders/{id}/paid
-   * @secure
-   * @response `200` `void` Order has been marked as paid
-   * @response `400` `void` Bad request
-   * @response `404` `void` Order not found
-   * @response `409` `void` Order is already paid
+   * @tags partners
+   * @name PartnerControllerGetReviews
+   * @summary Get reviews for a specific partner
+   * @request GET:/api/partners/{id}/reviews
+   * @response `200` `void` Return partner reviews
+   * @response `404` `void` Partner not found
    */
-  export namespace OrderControllerMarkAsPaid {
+  export namespace PartnerControllerGetReviews {
     export type RequestParams = {
+      /** Partner ID */
       id: string;
     };
     export type RequestQuery = {};
-    export type RequestBody = MarkOrderPaidDto;
+    export type RequestBody = never;
     export type RequestHeaders = {};
     export type ResponseBody = void;
   }
 
   /**
    * No description
-   * @tags orders
-   * @name OrderControllerAddReview
-   * @summary Add review to an order
-   * @request PATCH:/api/orders/{id}/review
-   * @secure
-   * @response `200` `void` Review has been added
-   * @response `400` `void` Bad request
-   * @response `404` `void` Order not found
-   * @response `409` `void` Order already has a review
+   * @tags partners
+   * @name PartnerControllerGetStats
+   * @summary Get statistics for a specific partner
+   * @request GET:/api/partners/{id}/stats
+   * @response `200` `void` Return partner statistics
+   * @response `404` `void` Partner not found
    */
-  export namespace OrderControllerAddReview {
+  export namespace PartnerControllerGetStats {
     export type RequestParams = {
+      /** Partner ID */
       id: string;
     };
     export type RequestQuery = {};
-    export type RequestBody = AddOrderReviewDto;
+    export type RequestBody = never;
     export type RequestHeaders = {};
     export type ResponseBody = void;
   }
@@ -2990,6 +3259,279 @@ export namespace Api {
 
   /**
    * No description
+   * @tags feedback
+   * @name FeedbackControllerSubmitFeedback
+   * @summary Submit feedback or report
+   * @request POST:/api/feedback
+   * @response `201` `FeedbackResponseDto` Feedback submitted successfully
+   * @response `400` `void` Invalid data format or missing required fields
+   * @response `429` `void` Too many requests (rate limiting)
+   */
+  export namespace FeedbackControllerSubmitFeedback {
+    export type RequestParams = {};
+    export type RequestQuery = {};
+    export type RequestBody = CreateFeedbackDto;
+    export type RequestHeaders = {};
+    export type ResponseBody = FeedbackResponseDto;
+  }
+
+  /**
+   * No description
+   * @tags feedback
+   * @name FeedbackControllerGetFeedback
+   * @summary View customer feedback (admin)
+   * @request GET:/api/admin/feedback
+   * @secure
+   * @response `200` `void` List of feedback returned successfully
+   * @response `401` `void` Unauthorized
+   * @response `403` `void` Forbidden
+   */
+  export namespace FeedbackControllerGetFeedback {
+    export type RequestParams = {};
+    export type RequestQuery = {};
+    export type RequestBody = never;
+    export type RequestHeaders = {};
+    export type ResponseBody = void;
+  }
+
+  /**
+   * No description
+   * @tags orders
+   * @name OrderControllerCreate
+   * @summary Create a new order
+   * @request POST:/api/orders
+   * @secure
+   * @response `201` `void` Order has been created
+   * @response `400` `void` Bad request
+   */
+  export namespace OrderControllerCreate {
+    export type RequestParams = {};
+    export type RequestQuery = {};
+    export type RequestBody = CreateOrderDto;
+    export type RequestHeaders = {};
+    export type ResponseBody = void;
+  }
+
+  /**
+   * No description
+   * @tags orders
+   * @name OrderControllerFindAll
+   * @summary Get all orders
+   * @request GET:/api/orders
+   * @secure
+   * @response `200` `void` Return all orders
+   */
+  export namespace OrderControllerFindAll {
+    export type RequestParams = {};
+    export type RequestQuery = {};
+    export type RequestBody = never;
+    export type RequestHeaders = {};
+    export type ResponseBody = void;
+  }
+
+  /**
+   * No description
+   * @tags orders
+   * @name OrderControllerGetMyOrders
+   * @summary Get orders for current authenticated customer
+   * @request GET:/api/orders/me
+   * @secure
+   * @response `200` `void` Return customer orders
+   */
+  export namespace OrderControllerGetMyOrders {
+    export type RequestParams = {};
+    export type RequestQuery = {};
+    export type RequestBody = never;
+    export type RequestHeaders = {};
+    export type ResponseBody = void;
+  }
+
+  /**
+   * No description
+   * @tags orders
+   * @name OrderControllerFindByStatus
+   * @summary Get orders by status
+   * @request GET:/api/orders/status/{status}
+   * @secure
+   * @response `200` `void` Return orders by status
+   */
+  export namespace OrderControllerFindByStatus {
+    export type RequestParams = {
+      status: string;
+    };
+    export type RequestQuery = {};
+    export type RequestBody = never;
+    export type RequestHeaders = {};
+    export type ResponseBody = void;
+  }
+
+  /**
+   * No description
+   * @tags orders
+   * @name OrderControllerFindByCustomer
+   * @summary Get orders by customer
+   * @request GET:/api/orders/customer/{customerId}
+   * @secure
+   * @response `200` `void` Return customer orders
+   */
+  export namespace OrderControllerFindByCustomer {
+    export type RequestParams = {
+      customerId: string;
+    };
+    export type RequestQuery = {};
+    export type RequestBody = never;
+    export type RequestHeaders = {};
+    export type ResponseBody = void;
+  }
+
+  /**
+   * No description
+   * @tags orders
+   * @name OrderControllerFindByPartner
+   * @summary Get orders by business partner
+   * @request GET:/api/orders/partner/{partnerId}
+   * @secure
+   * @response `200` `void` Return partner orders
+   */
+  export namespace OrderControllerFindByPartner {
+    export type RequestParams = {
+      partnerId: string;
+    };
+    export type RequestQuery = {};
+    export type RequestBody = never;
+    export type RequestHeaders = {};
+    export type ResponseBody = void;
+  }
+
+  /**
+   * No description
+   * @tags orders
+   * @name OrderControllerFindOne
+   * @summary Get order by ID
+   * @request GET:/api/orders/{id}
+   * @secure
+   * @response `200` `void` Return the order
+   * @response `404` `void` Order not found
+   */
+  export namespace OrderControllerFindOne {
+    export type RequestParams = {
+      id: string;
+    };
+    export type RequestQuery = {};
+    export type RequestBody = never;
+    export type RequestHeaders = {};
+    export type ResponseBody = void;
+  }
+
+  /**
+   * No description
+   * @tags orders
+   * @name OrderControllerUpdate
+   * @summary Update an order
+   * @request PATCH:/api/orders/{id}
+   * @secure
+   * @response `200` `void` Order has been updated
+   * @response `400` `void` Bad request
+   * @response `404` `void` Order not found
+   */
+  export namespace OrderControllerUpdate {
+    export type RequestParams = {
+      id: string;
+    };
+    export type RequestQuery = {};
+    export type RequestBody = UpdateOrderDto;
+    export type RequestHeaders = {};
+    export type ResponseBody = void;
+  }
+
+  /**
+   * No description
+   * @tags orders
+   * @name OrderControllerRemove
+   * @summary Delete an order
+   * @request DELETE:/api/orders/{id}
+   * @secure
+   * @response `204` `void` Order has been deleted
+   * @response `400` `void` Bad request
+   * @response `404` `void` Order not found
+   */
+  export namespace OrderControllerRemove {
+    export type RequestParams = {
+      id: string;
+    };
+    export type RequestQuery = {};
+    export type RequestBody = never;
+    export type RequestHeaders = {};
+    export type ResponseBody = void;
+  }
+
+  /**
+   * No description
+   * @tags orders
+   * @name OrderControllerUpdateStatus
+   * @summary Update order status
+   * @request PATCH:/api/orders/{id}/status
+   * @secure
+   * @response `200` `void` Order status has been updated
+   * @response `400` `void` Bad request
+   * @response `404` `void` Order not found
+   */
+  export namespace OrderControllerUpdateStatus {
+    export type RequestParams = {
+      id: string;
+    };
+    export type RequestQuery = {};
+    export type RequestBody = UpdateOrderStatusDto;
+    export type RequestHeaders = {};
+    export type ResponseBody = void;
+  }
+
+  /**
+   * No description
+   * @tags orders
+   * @name OrderControllerMarkAsPaid
+   * @summary Mark order as paid
+   * @request PATCH:/api/orders/{id}/paid
+   * @secure
+   * @response `200` `void` Order has been marked as paid
+   * @response `400` `void` Bad request
+   * @response `404` `void` Order not found
+   * @response `409` `void` Order is already paid
+   */
+  export namespace OrderControllerMarkAsPaid {
+    export type RequestParams = {
+      id: string;
+    };
+    export type RequestQuery = {};
+    export type RequestBody = MarkOrderPaidDto;
+    export type RequestHeaders = {};
+    export type ResponseBody = void;
+  }
+
+  /**
+   * No description
+   * @tags orders
+   * @name OrderControllerAddReview
+   * @summary Add review to an order
+   * @request PATCH:/api/orders/{id}/review
+   * @secure
+   * @response `200` `void` Review has been added
+   * @response `400` `void` Bad request
+   * @response `404` `void` Order not found
+   * @response `409` `void` Order already has a review
+   */
+  export namespace OrderControllerAddReview {
+    export type RequestParams = {
+      id: string;
+    };
+    export type RequestQuery = {};
+    export type RequestBody = AddOrderReviewDto;
+    export type RequestHeaders = {};
+    export type ResponseBody = void;
+  }
+
+  /**
+   * No description
    * @tags Admin
    * @name AdminControllerGetDashboardStats
    * @request GET:/api/admin/dashboard/stats
@@ -3166,206 +3708,6 @@ export namespace Api {
    * @response `200` `void` Revenue history returned
    */
   export namespace AdminControllerGetRevenueHistory {
-    export type RequestParams = {};
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = void;
-  }
-
-  /**
-   * No description
-   * @tags partners
-   * @name PartnerControllerCreate
-   * @summary Create a new partner
-   * @request POST:/api/partners
-   * @secure
-   * @response `201` `void` Partner created successfully
-   * @response `400` `void` Bad request
-   */
-  export namespace PartnerControllerCreate {
-    export type RequestParams = {};
-    export type RequestQuery = {};
-    export type RequestBody = CreatePartnerDto;
-    export type RequestHeaders = {};
-    export type ResponseBody = void;
-  }
-
-  /**
-   * No description
-   * @tags partners
-   * @name PartnerControllerFindAll
-   * @summary Get all partners/restaurants
-   * @request GET:/api/partners
-   * @response `200` `void` Return all partners
-   */
-  export namespace PartnerControllerFindAll {
-    export type RequestParams = {};
-    export type RequestQuery = {
-      /** Filter by cuisine type */
-      cuisineType?: string;
-      /** Filter by minimum rating */
-      rating?: number;
-      /** Filter by city */
-      city?: string;
-    };
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = void;
-  }
-
-  /**
-   * No description
-   * @tags partners
-   * @name PartnerControllerFindOne
-   * @summary Get a specific partner by ID
-   * @request GET:/api/partners/{id}
-   * @response `200` `void` Return the partner
-   * @response `404` `void` Partner not found
-   */
-  export namespace PartnerControllerFindOne {
-    export type RequestParams = {
-      /** Partner ID */
-      id: string;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = void;
-  }
-
-  /**
-   * No description
-   * @tags partners
-   * @name PartnerControllerUpdate
-   * @summary Update a partner
-   * @request PATCH:/api/partners/{id}
-   * @secure
-   * @response `200` `void` Partner updated successfully
-   * @response `404` `void` Partner not found
-   */
-  export namespace PartnerControllerUpdate {
-    export type RequestParams = {
-      /** Partner ID */
-      id: string;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = UpdatePartnerDto;
-    export type RequestHeaders = {};
-    export type ResponseBody = void;
-  }
-
-  /**
-   * No description
-   * @tags partners
-   * @name PartnerControllerRemove
-   * @summary Delete a partner
-   * @request DELETE:/api/partners/{id}
-   * @secure
-   * @response `200` `void` Partner deleted successfully
-   * @response `404` `void` Partner not found
-   */
-  export namespace PartnerControllerRemove {
-    export type RequestParams = {
-      /** Partner ID */
-      id: string;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = void;
-  }
-
-  /**
-   * No description
-   * @tags partners
-   * @name PartnerControllerGetMenu
-   * @summary Get menu for a specific partner
-   * @request GET:/api/partners/{id}/menu
-   * @response `200` `void` Return partner menu
-   * @response `404` `void` Partner not found
-   */
-  export namespace PartnerControllerGetMenu {
-    export type RequestParams = {
-      /** Partner ID */
-      id: string;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = void;
-  }
-
-  /**
-   * No description
-   * @tags partners
-   * @name PartnerControllerGetReviews
-   * @summary Get reviews for a specific partner
-   * @request GET:/api/partners/{id}/reviews
-   * @response `200` `void` Return partner reviews
-   * @response `404` `void` Partner not found
-   */
-  export namespace PartnerControllerGetReviews {
-    export type RequestParams = {
-      /** Partner ID */
-      id: string;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = void;
-  }
-
-  /**
-   * No description
-   * @tags partners
-   * @name PartnerControllerGetStats
-   * @summary Get statistics for a specific partner
-   * @request GET:/api/partners/{id}/stats
-   * @response `200` `void` Return partner statistics
-   * @response `404` `void` Partner not found
-   */
-  export namespace PartnerControllerGetStats {
-    export type RequestParams = {
-      /** Partner ID */
-      id: string;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = void;
-  }
-
-  /**
-   * No description
-   * @tags feedback
-   * @name FeedbackControllerSubmitFeedback
-   * @summary Submit feedback or report
-   * @request POST:/api/feedback
-   * @response `201` `FeedbackResponseDto` Feedback submitted successfully
-   * @response `400` `void` Invalid data format or missing required fields
-   * @response `429` `void` Too many requests (rate limiting)
-   */
-  export namespace FeedbackControllerSubmitFeedback {
-    export type RequestParams = {};
-    export type RequestQuery = {};
-    export type RequestBody = CreateFeedbackDto;
-    export type RequestHeaders = {};
-    export type ResponseBody = FeedbackResponseDto;
-  }
-
-  /**
-   * No description
-   * @tags feedback
-   * @name FeedbackControllerGetFeedback
-   * @summary View customer feedback (admin)
-   * @request GET:/api/admin/feedback
-   * @secure
-   * @response `200` `void` List of feedback returned successfully
-   * @response `401` `void` Unauthorized
-   * @response `403` `void` Forbidden
-   */
-  export namespace FeedbackControllerGetFeedback {
     export type RequestParams = {};
     export type RequestQuery = {};
     export type RequestBody = never;
@@ -5236,6 +5578,29 @@ export class Api<
      * No description
      *
      * @tags auth
+     * @name AuthControllerRegisterPartner
+     * @summary Register a new partner (business user)
+     * @request POST:/api/auth/register-partner
+     * @response `201` `void` Partner has been registered
+     * @response `400` `void` Bad request
+     * @response `409` `void` Email already exists
+     */
+    authControllerRegisterPartner: (
+      data: RegisterPartnerDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, void>({
+        path: `/api/auth/register-partner`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags auth
      * @name AuthControllerRegisterSuperAdmin
      * @summary Register a super admin user (development only)
      * @request POST:/api/auth/super-admin/register
@@ -6136,17 +6501,20 @@ export class Api<
     /**
      * No description
      *
-     * @tags orders
-     * @name OrderControllerCreate
-     * @summary Create a new order
-     * @request POST:/api/orders
+     * @tags partners
+     * @name PartnerControllerCreate
+     * @summary Create a new partner
+     * @request POST:/api/partners
      * @secure
-     * @response `201` `void` Order has been created
+     * @response `201` `void` Partner created successfully
      * @response `400` `void` Bad request
      */
-    orderControllerCreate: (data: CreateOrderDto, params: RequestParams = {}) =>
+    partnerControllerCreate: (
+      data: CreatePartnerDto,
+      params: RequestParams = {},
+    ) =>
       this.request<void, void>({
-        path: `/api/orders`,
+        path: `/api/partners`,
         method: "POST",
         body: data,
         secure: true,
@@ -6157,137 +6525,65 @@ export class Api<
     /**
      * No description
      *
-     * @tags orders
-     * @name OrderControllerFindAll
-     * @summary Get all orders
-     * @request GET:/api/orders
-     * @secure
-     * @response `200` `void` Return all orders
+     * @tags partners
+     * @name PartnerControllerFindAll
+     * @summary Get all partners/restaurants
+     * @request GET:/api/partners
+     * @response `200` `void` Return all partners
      */
-    orderControllerFindAll: (params: RequestParams = {}) =>
-      this.request<void, any>({
-        path: `/api/orders`,
-        method: "GET",
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags orders
-     * @name OrderControllerGetMyOrders
-     * @summary Get orders for current authenticated customer
-     * @request GET:/api/orders/me
-     * @secure
-     * @response `200` `void` Return customer orders
-     */
-    orderControllerGetMyOrders: (params: RequestParams = {}) =>
-      this.request<void, any>({
-        path: `/api/orders/me`,
-        method: "GET",
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags orders
-     * @name OrderControllerFindByStatus
-     * @summary Get orders by status
-     * @request GET:/api/orders/status/{status}
-     * @secure
-     * @response `200` `void` Return orders by status
-     */
-    orderControllerFindByStatus: (status: string, params: RequestParams = {}) =>
-      this.request<void, any>({
-        path: `/api/orders/status/${status}`,
-        method: "GET",
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags orders
-     * @name OrderControllerFindByCustomer
-     * @summary Get orders by customer
-     * @request GET:/api/orders/customer/{customerId}
-     * @secure
-     * @response `200` `void` Return customer orders
-     */
-    orderControllerFindByCustomer: (
-      customerId: string,
+    partnerControllerFindAll: (
+      query?: {
+        /** Filter by cuisine type */
+        cuisineType?: string;
+        /** Filter by minimum rating */
+        rating?: number;
+        /** Filter by city */
+        city?: string;
+      },
       params: RequestParams = {},
     ) =>
       this.request<void, any>({
-        path: `/api/orders/customer/${customerId}`,
+        path: `/api/partners`,
         method: "GET",
-        secure: true,
+        query: query,
         ...params,
       }),
 
     /**
      * No description
      *
-     * @tags orders
-     * @name OrderControllerFindByPartner
-     * @summary Get orders by business partner
-     * @request GET:/api/orders/partner/{partnerId}
-     * @secure
-     * @response `200` `void` Return partner orders
+     * @tags partners
+     * @name PartnerControllerFindOne
+     * @summary Get a specific partner by ID
+     * @request GET:/api/partners/{id}
+     * @response `200` `void` Return the partner
+     * @response `404` `void` Partner not found
      */
-    orderControllerFindByPartner: (
-      partnerId: string,
-      params: RequestParams = {},
-    ) =>
-      this.request<void, any>({
-        path: `/api/orders/partner/${partnerId}`,
-        method: "GET",
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags orders
-     * @name OrderControllerFindOne
-     * @summary Get order by ID
-     * @request GET:/api/orders/{id}
-     * @secure
-     * @response `200` `void` Return the order
-     * @response `404` `void` Order not found
-     */
-    orderControllerFindOne: (id: string, params: RequestParams = {}) =>
+    partnerControllerFindOne: (id: string, params: RequestParams = {}) =>
       this.request<void, void>({
-        path: `/api/orders/${id}`,
+        path: `/api/partners/${id}`,
         method: "GET",
-        secure: true,
         ...params,
       }),
 
     /**
      * No description
      *
-     * @tags orders
-     * @name OrderControllerUpdate
-     * @summary Update an order
-     * @request PATCH:/api/orders/{id}
+     * @tags partners
+     * @name PartnerControllerUpdate
+     * @summary Update a partner
+     * @request PATCH:/api/partners/{id}
      * @secure
-     * @response `200` `void` Order has been updated
-     * @response `400` `void` Bad request
-     * @response `404` `void` Order not found
+     * @response `200` `void` Partner updated successfully
+     * @response `404` `void` Partner not found
      */
-    orderControllerUpdate: (
+    partnerControllerUpdate: (
       id: string,
-      data: UpdateOrderDto,
+      data: UpdatePartnerDto,
       params: RequestParams = {},
     ) =>
       this.request<void, void>({
-        path: `/api/orders/${id}`,
+        path: `/api/partners/${id}`,
         method: "PATCH",
         body: data,
         secure: true,
@@ -6298,18 +6594,17 @@ export class Api<
     /**
      * No description
      *
-     * @tags orders
-     * @name OrderControllerRemove
-     * @summary Delete an order
-     * @request DELETE:/api/orders/{id}
+     * @tags partners
+     * @name PartnerControllerRemove
+     * @summary Delete a partner
+     * @request DELETE:/api/partners/{id}
      * @secure
-     * @response `204` `void` Order has been deleted
-     * @response `400` `void` Bad request
-     * @response `404` `void` Order not found
+     * @response `200` `void` Partner deleted successfully
+     * @response `404` `void` Partner not found
      */
-    orderControllerRemove: (id: string, params: RequestParams = {}) =>
+    partnerControllerRemove: (id: string, params: RequestParams = {}) =>
       this.request<void, void>({
-        path: `/api/orders/${id}`,
+        path: `/api/partners/${id}`,
         method: "DELETE",
         secure: true,
         ...params,
@@ -6318,80 +6613,51 @@ export class Api<
     /**
      * No description
      *
-     * @tags orders
-     * @name OrderControllerUpdateStatus
-     * @summary Update order status
-     * @request PATCH:/api/orders/{id}/status
-     * @secure
-     * @response `200` `void` Order status has been updated
-     * @response `400` `void` Bad request
-     * @response `404` `void` Order not found
+     * @tags partners
+     * @name PartnerControllerGetMenu
+     * @summary Get menu for a specific partner
+     * @request GET:/api/partners/{id}/menu
+     * @response `200` `void` Return partner menu
+     * @response `404` `void` Partner not found
      */
-    orderControllerUpdateStatus: (
-      id: string,
-      data: UpdateOrderStatusDto,
-      params: RequestParams = {},
-    ) =>
+    partnerControllerGetMenu: (id: string, params: RequestParams = {}) =>
       this.request<void, void>({
-        path: `/api/orders/${id}/status`,
-        method: "PATCH",
-        body: data,
-        secure: true,
-        type: ContentType.Json,
+        path: `/api/partners/${id}/menu`,
+        method: "GET",
         ...params,
       }),
 
     /**
      * No description
      *
-     * @tags orders
-     * @name OrderControllerMarkAsPaid
-     * @summary Mark order as paid
-     * @request PATCH:/api/orders/{id}/paid
-     * @secure
-     * @response `200` `void` Order has been marked as paid
-     * @response `400` `void` Bad request
-     * @response `404` `void` Order not found
-     * @response `409` `void` Order is already paid
+     * @tags partners
+     * @name PartnerControllerGetReviews
+     * @summary Get reviews for a specific partner
+     * @request GET:/api/partners/{id}/reviews
+     * @response `200` `void` Return partner reviews
+     * @response `404` `void` Partner not found
      */
-    orderControllerMarkAsPaid: (
-      id: string,
-      data: MarkOrderPaidDto,
-      params: RequestParams = {},
-    ) =>
+    partnerControllerGetReviews: (id: string, params: RequestParams = {}) =>
       this.request<void, void>({
-        path: `/api/orders/${id}/paid`,
-        method: "PATCH",
-        body: data,
-        secure: true,
-        type: ContentType.Json,
+        path: `/api/partners/${id}/reviews`,
+        method: "GET",
         ...params,
       }),
 
     /**
      * No description
      *
-     * @tags orders
-     * @name OrderControllerAddReview
-     * @summary Add review to an order
-     * @request PATCH:/api/orders/{id}/review
-     * @secure
-     * @response `200` `void` Review has been added
-     * @response `400` `void` Bad request
-     * @response `404` `void` Order not found
-     * @response `409` `void` Order already has a review
+     * @tags partners
+     * @name PartnerControllerGetStats
+     * @summary Get statistics for a specific partner
+     * @request GET:/api/partners/{id}/stats
+     * @response `200` `void` Return partner statistics
+     * @response `404` `void` Partner not found
      */
-    orderControllerAddReview: (
-      id: string,
-      data: AddOrderReviewDto,
-      params: RequestParams = {},
-    ) =>
+    partnerControllerGetStats: (id: string, params: RequestParams = {}) =>
       this.request<void, void>({
-        path: `/api/orders/${id}/review`,
-        method: "PATCH",
-        body: data,
-        secure: true,
-        type: ContentType.Json,
+        path: `/api/partners/${id}/stats`,
+        method: "GET",
         ...params,
       }),
 
@@ -6670,6 +6936,312 @@ export class Api<
     /**
      * No description
      *
+     * @tags feedback
+     * @name FeedbackControllerSubmitFeedback
+     * @summary Submit feedback or report
+     * @request POST:/api/feedback
+     * @response `201` `FeedbackResponseDto` Feedback submitted successfully
+     * @response `400` `void` Invalid data format or missing required fields
+     * @response `429` `void` Too many requests (rate limiting)
+     */
+    feedbackControllerSubmitFeedback: (
+      data: CreateFeedbackDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<FeedbackResponseDto, void>({
+        path: `/api/feedback`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags feedback
+     * @name FeedbackControllerGetFeedback
+     * @summary View customer feedback (admin)
+     * @request GET:/api/admin/feedback
+     * @secure
+     * @response `200` `void` List of feedback returned successfully
+     * @response `401` `void` Unauthorized
+     * @response `403` `void` Forbidden
+     */
+    feedbackControllerGetFeedback: (params: RequestParams = {}) =>
+      this.request<void, void>({
+        path: `/api/admin/feedback`,
+        method: "GET",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags orders
+     * @name OrderControllerCreate
+     * @summary Create a new order
+     * @request POST:/api/orders
+     * @secure
+     * @response `201` `void` Order has been created
+     * @response `400` `void` Bad request
+     */
+    orderControllerCreate: (data: CreateOrderDto, params: RequestParams = {}) =>
+      this.request<void, void>({
+        path: `/api/orders`,
+        method: "POST",
+        body: data,
+        secure: true,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags orders
+     * @name OrderControllerFindAll
+     * @summary Get all orders
+     * @request GET:/api/orders
+     * @secure
+     * @response `200` `void` Return all orders
+     */
+    orderControllerFindAll: (params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/orders`,
+        method: "GET",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags orders
+     * @name OrderControllerGetMyOrders
+     * @summary Get orders for current authenticated customer
+     * @request GET:/api/orders/me
+     * @secure
+     * @response `200` `void` Return customer orders
+     */
+    orderControllerGetMyOrders: (params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/orders/me`,
+        method: "GET",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags orders
+     * @name OrderControllerFindByStatus
+     * @summary Get orders by status
+     * @request GET:/api/orders/status/{status}
+     * @secure
+     * @response `200` `void` Return orders by status
+     */
+    orderControllerFindByStatus: (status: string, params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/orders/status/${status}`,
+        method: "GET",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags orders
+     * @name OrderControllerFindByCustomer
+     * @summary Get orders by customer
+     * @request GET:/api/orders/customer/{customerId}
+     * @secure
+     * @response `200` `void` Return customer orders
+     */
+    orderControllerFindByCustomer: (
+      customerId: string,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, any>({
+        path: `/api/orders/customer/${customerId}`,
+        method: "GET",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags orders
+     * @name OrderControllerFindByPartner
+     * @summary Get orders by business partner
+     * @request GET:/api/orders/partner/{partnerId}
+     * @secure
+     * @response `200` `void` Return partner orders
+     */
+    orderControllerFindByPartner: (
+      partnerId: string,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, any>({
+        path: `/api/orders/partner/${partnerId}`,
+        method: "GET",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags orders
+     * @name OrderControllerFindOne
+     * @summary Get order by ID
+     * @request GET:/api/orders/{id}
+     * @secure
+     * @response `200` `void` Return the order
+     * @response `404` `void` Order not found
+     */
+    orderControllerFindOne: (id: string, params: RequestParams = {}) =>
+      this.request<void, void>({
+        path: `/api/orders/${id}`,
+        method: "GET",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags orders
+     * @name OrderControllerUpdate
+     * @summary Update an order
+     * @request PATCH:/api/orders/{id}
+     * @secure
+     * @response `200` `void` Order has been updated
+     * @response `400` `void` Bad request
+     * @response `404` `void` Order not found
+     */
+    orderControllerUpdate: (
+      id: string,
+      data: UpdateOrderDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, void>({
+        path: `/api/orders/${id}`,
+        method: "PATCH",
+        body: data,
+        secure: true,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags orders
+     * @name OrderControllerRemove
+     * @summary Delete an order
+     * @request DELETE:/api/orders/{id}
+     * @secure
+     * @response `204` `void` Order has been deleted
+     * @response `400` `void` Bad request
+     * @response `404` `void` Order not found
+     */
+    orderControllerRemove: (id: string, params: RequestParams = {}) =>
+      this.request<void, void>({
+        path: `/api/orders/${id}`,
+        method: "DELETE",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags orders
+     * @name OrderControllerUpdateStatus
+     * @summary Update order status
+     * @request PATCH:/api/orders/{id}/status
+     * @secure
+     * @response `200` `void` Order status has been updated
+     * @response `400` `void` Bad request
+     * @response `404` `void` Order not found
+     */
+    orderControllerUpdateStatus: (
+      id: string,
+      data: UpdateOrderStatusDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, void>({
+        path: `/api/orders/${id}/status`,
+        method: "PATCH",
+        body: data,
+        secure: true,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags orders
+     * @name OrderControllerMarkAsPaid
+     * @summary Mark order as paid
+     * @request PATCH:/api/orders/{id}/paid
+     * @secure
+     * @response `200` `void` Order has been marked as paid
+     * @response `400` `void` Bad request
+     * @response `404` `void` Order not found
+     * @response `409` `void` Order is already paid
+     */
+    orderControllerMarkAsPaid: (
+      id: string,
+      data: MarkOrderPaidDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, void>({
+        path: `/api/orders/${id}/paid`,
+        method: "PATCH",
+        body: data,
+        secure: true,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags orders
+     * @name OrderControllerAddReview
+     * @summary Add review to an order
+     * @request PATCH:/api/orders/{id}/review
+     * @secure
+     * @response `200` `void` Review has been added
+     * @response `400` `void` Bad request
+     * @response `404` `void` Order not found
+     * @response `409` `void` Order already has a review
+     */
+    orderControllerAddReview: (
+      id: string,
+      data: AddOrderReviewDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, void>({
+        path: `/api/orders/${id}/review`,
+        method: "PATCH",
+        body: data,
+        secure: true,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
      * @tags Admin
      * @name AdminControllerGetDashboardStats
      * @request GET:/api/admin/dashboard/stats
@@ -6869,213 +7441,6 @@ export class Api<
       this.request<void, any>({
         path: `/api/admin/analytics/revenue-history`,
         method: "GET",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags partners
-     * @name PartnerControllerCreate
-     * @summary Create a new partner
-     * @request POST:/api/partners
-     * @secure
-     * @response `201` `void` Partner created successfully
-     * @response `400` `void` Bad request
-     */
-    partnerControllerCreate: (
-      data: CreatePartnerDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<void, void>({
-        path: `/api/partners`,
-        method: "POST",
-        body: data,
-        secure: true,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags partners
-     * @name PartnerControllerFindAll
-     * @summary Get all partners/restaurants
-     * @request GET:/api/partners
-     * @response `200` `void` Return all partners
-     */
-    partnerControllerFindAll: (
-      query?: {
-        /** Filter by cuisine type */
-        cuisineType?: string;
-        /** Filter by minimum rating */
-        rating?: number;
-        /** Filter by city */
-        city?: string;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<void, any>({
-        path: `/api/partners`,
-        method: "GET",
-        query: query,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags partners
-     * @name PartnerControllerFindOne
-     * @summary Get a specific partner by ID
-     * @request GET:/api/partners/{id}
-     * @response `200` `void` Return the partner
-     * @response `404` `void` Partner not found
-     */
-    partnerControllerFindOne: (id: string, params: RequestParams = {}) =>
-      this.request<void, void>({
-        path: `/api/partners/${id}`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags partners
-     * @name PartnerControllerUpdate
-     * @summary Update a partner
-     * @request PATCH:/api/partners/{id}
-     * @secure
-     * @response `200` `void` Partner updated successfully
-     * @response `404` `void` Partner not found
-     */
-    partnerControllerUpdate: (
-      id: string,
-      data: UpdatePartnerDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<void, void>({
-        path: `/api/partners/${id}`,
-        method: "PATCH",
-        body: data,
-        secure: true,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags partners
-     * @name PartnerControllerRemove
-     * @summary Delete a partner
-     * @request DELETE:/api/partners/{id}
-     * @secure
-     * @response `200` `void` Partner deleted successfully
-     * @response `404` `void` Partner not found
-     */
-    partnerControllerRemove: (id: string, params: RequestParams = {}) =>
-      this.request<void, void>({
-        path: `/api/partners/${id}`,
-        method: "DELETE",
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags partners
-     * @name PartnerControllerGetMenu
-     * @summary Get menu for a specific partner
-     * @request GET:/api/partners/{id}/menu
-     * @response `200` `void` Return partner menu
-     * @response `404` `void` Partner not found
-     */
-    partnerControllerGetMenu: (id: string, params: RequestParams = {}) =>
-      this.request<void, void>({
-        path: `/api/partners/${id}/menu`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags partners
-     * @name PartnerControllerGetReviews
-     * @summary Get reviews for a specific partner
-     * @request GET:/api/partners/{id}/reviews
-     * @response `200` `void` Return partner reviews
-     * @response `404` `void` Partner not found
-     */
-    partnerControllerGetReviews: (id: string, params: RequestParams = {}) =>
-      this.request<void, void>({
-        path: `/api/partners/${id}/reviews`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags partners
-     * @name PartnerControllerGetStats
-     * @summary Get statistics for a specific partner
-     * @request GET:/api/partners/{id}/stats
-     * @response `200` `void` Return partner statistics
-     * @response `404` `void` Partner not found
-     */
-    partnerControllerGetStats: (id: string, params: RequestParams = {}) =>
-      this.request<void, void>({
-        path: `/api/partners/${id}/stats`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags feedback
-     * @name FeedbackControllerSubmitFeedback
-     * @summary Submit feedback or report
-     * @request POST:/api/feedback
-     * @response `201` `FeedbackResponseDto` Feedback submitted successfully
-     * @response `400` `void` Invalid data format or missing required fields
-     * @response `429` `void` Too many requests (rate limiting)
-     */
-    feedbackControllerSubmitFeedback: (
-      data: CreateFeedbackDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<FeedbackResponseDto, void>({
-        path: `/api/feedback`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags feedback
-     * @name FeedbackControllerGetFeedback
-     * @summary View customer feedback (admin)
-     * @request GET:/api/admin/feedback
-     * @secure
-     * @response `200` `void` List of feedback returned successfully
-     * @response `401` `void` Unauthorized
-     * @response `403` `void` Forbidden
-     */
-    feedbackControllerGetFeedback: (params: RequestParams = {}) =>
-      this.request<void, void>({
-        path: `/api/admin/feedback`,
-        method: "GET",
-        secure: true,
         ...params,
       }),
 

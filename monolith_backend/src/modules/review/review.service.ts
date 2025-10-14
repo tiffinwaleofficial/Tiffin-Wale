@@ -146,24 +146,26 @@ export class ReviewService {
   async updateReview(reviewId: string, updateData: any, userId: string) {
     const review = await this.reviewModel.findById(reviewId);
     if (!review) {
-      throw new Error('Review not found');
+      throw new Error("Review not found");
     }
 
     // Check if user owns this review
     if (review.user.toString() !== userId) {
-      throw new Error('Not authorized to update this review');
+      throw new Error("Not authorized to update this review");
     }
 
     // Update the review
-    const updatedReview = await this.reviewModel.findByIdAndUpdate(
-      reviewId,
-      {
-        rating: updateData.rating,
-        comment: updateData.comment,
-        images: updateData.images || [],
-      },
-      { new: true }
-    ).populate('user', 'firstName lastName name');
+    const updatedReview = await this.reviewModel
+      .findByIdAndUpdate(
+        reviewId,
+        {
+          rating: updateData.rating,
+          comment: updateData.comment,
+          images: updateData.images || [],
+        },
+        { new: true },
+      )
+      .populate("user", "firstName lastName name");
 
     // Update rating statistics
     if (review.restaurant) {
@@ -179,12 +181,12 @@ export class ReviewService {
   async deleteReview(reviewId: string, userId: string) {
     const review = await this.reviewModel.findById(reviewId);
     if (!review) {
-      throw new Error('Review not found');
+      throw new Error("Review not found");
     }
 
     // Check if user owns this review
     if (review.user.toString() !== userId) {
-      throw new Error('Not authorized to delete this review');
+      throw new Error("Not authorized to delete this review");
     }
 
     // Store references before deletion
@@ -202,6 +204,6 @@ export class ReviewService {
       await this.updateRatingStats(null, menuItemId);
     }
 
-    return { message: 'Review deleted successfully' };
+    return { message: "Review deleted successfully" };
   }
 }
