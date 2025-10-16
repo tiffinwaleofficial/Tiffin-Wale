@@ -39,20 +39,10 @@ async function createNestServer(): Promise<NestExpressApplication> {
     exclude: ['/'], // Exclude root path from global prefix
   });
 
-  // Enable CORS with more permissive settings for production
+  // Enable CORS - Allow all origins for maximum compatibility
   app.enableCors({
-    origin: [
-      'https://tiffin-wale.com',
-      'https://www.tiffin-wale.com',
-      'https://m.tiffin-wale.com',
-      'https://partner.tiffin-wale.com',
-      'https://admin.tiffin-wale.com',
-      /^https:\/\/.*\.vercel\.app$/,
-      /^https:\/\/.*\.netlify\.app$/,
-      process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : '',
-      process.env.NODE_ENV === 'development' ? 'http://localhost:5173' : '',
-    ].filter(Boolean),
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    origin: true, // Allow all origins
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
     credentials: true,
     allowedHeaders: [
       'Origin',
@@ -61,7 +51,16 @@ async function createNestServer(): Promise<NestExpressApplication> {
       'Accept',
       'Authorization',
       'Cache-Control',
+      'Pragma',
+      'Expires',
+      'X-Forwarded-For',
+      'X-Real-IP',
+      'User-Agent',
+      'Referer',
     ],
+    exposedHeaders: ['Authorization', 'Content-Length', 'X-Requested-With'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
   logger.log('CORS configured for production domains');
 
@@ -218,18 +217,25 @@ function handleWebSocketConnection(client: WebSocket, request: IncomingMessage) 
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    console.log('Vercel handler started:', req.method, req.url);
+    console.log('🚀 Vercel handler started:', req.method, req.url);
+    
+    // Add CORS headers immediately
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma, Expires, X-Forwarded-For, X-Real-IP, User-Agent, Referer');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Expose-Headers', 'Authorization, Content-Length, X-Requested-With');
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      console.log('✅ Handling preflight request');
+      res.status(204).end();
+      return;
+    }
     
     // Handle WebSocket upgrade requests
     if (req.url === '/native-ws' && req.headers.upgrade === 'websocket') {
       console.log('🔌 WebSocket upgrade request detected');
-      
-      // Create WebSocket server if it doesn't exist
-      if (!wsServer) {
-        wsServer = new WebSocket.Server({ noServer: true });
-        wsServer.on('connection', handleWebSocketConnection);
-        console.log('✅ WebSocket server created for Vercel');
-      }
       
       // In Vercel serverless environment, we need to handle WebSocket differently
       // For now, return a 426 Upgrade Required response
@@ -241,7 +247,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
     
-    console.log('Environment variables check:', {
+    console.log('🔍 Environment variables check:', {
       NODE_ENV: process.env.NODE_ENV,
       MONGODB_URI: process.env.MONGODB_URI ? 'SET' : 'MISSING',
       JWT_SECRET: process.env.JWT_SECRET ? 'SET' : 'MISSING',
@@ -251,10 +257,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const httpAdapter = server.getHttpAdapter();
     
     // Handle the request
+    console.log('📡 Forwarding request to NestJS application');
     return httpAdapter.getInstance()(req, res);
   } catch (error) {
-    console.error('Vercel handler error:', error);
-    console.error('Error stack:', error.stack);
+    console.error('❌ Vercel handler error:', error);
+    console.error('📋 Error stack:', error.stack);
+    
+    // Add CORS headers to error response too
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
     
     res.status(500).json({
       error: 'Internal Server Error',
