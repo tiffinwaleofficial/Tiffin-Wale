@@ -110,12 +110,7 @@ export default function PhoneVerificationScreen() {
             <ArrowLeft size={24} color="#333" />
           </TouchableOpacity>
           
-          <View style={styles.progressContainer}>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: '40%' }]} />
-            </View>
-            <Text style={styles.progressText}>{t('stepProgress', { current: 2, total: 5 })}</Text>
-          </View>
+          {/* Progress removed for authentication flow */}
         </View>
 
         {/* Content */}
@@ -221,25 +216,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  progressContainer: {
-    flex: 1,
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: '#E5E5E5',
-    borderRadius: 2,
-    marginBottom: 8,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#FF9B42',
-    borderRadius: 2,
-  },
-  progressText: {
-    fontSize: 12,
-    fontFamily: 'Poppins-Medium',
-    color: '#666',
-  },
+  // Progress styles removed for authentication flow
   content: {
     flex: 1,
     padding: 24,

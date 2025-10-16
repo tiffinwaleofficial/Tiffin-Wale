@@ -44,7 +44,6 @@
     "@react-email/tailwind": "^1.2.2",
     "@types/ws": "^8.18.1",
     "@vercel/analytics": "^1.5.0",
-    "@vercel/speed-insights": "^1.2.0",
     "bcrypt": "^5.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",

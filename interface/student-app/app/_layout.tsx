@@ -11,6 +11,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from '@/context/AuthProvider';
 import { ThemeProvider, DefaultTheme } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import NotificationContainer from '@/components/NotificationContainer';
 import { nativeWebSocketService } from '@/services/nativeWebSocketService';
 import KeyboardAvoidingWrapper from '@/components/KeyboardAvoidingWrapper';
@@ -74,28 +75,30 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
-      <ThemeProvider value={customTheme}>
-        <AuthProvider>
-          <NotificationContainer>
-            <KeyboardAvoidingWrapper>
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  contentStyle: { backgroundColor: '#FFFAF0' },
-                }}
-              >
-                {/* File-based routes are automatically discovered */}
-              </Stack>
-            </KeyboardAvoidingWrapper>
-          </NotificationContainer>
-          <StatusBar style="dark" />
-          {/* Vercel Analytics - Web only */}
-          {Platform.OS === 'web' && Analytics && <Analytics />}
-          {Platform.OS === 'web' && SpeedInsights && <SpeedInsights />}
-        </AuthProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeProvider value={customTheme}>
+          <AuthProvider>
+            <NotificationContainer>
+              <KeyboardAvoidingWrapper>
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    contentStyle: { backgroundColor: '#FFFAF0' },
+                  }}
+                >
+                  {/* File-based routes are automatically discovered */}
+                </Stack>
+              </KeyboardAvoidingWrapper>
+            </NotificationContainer>
+            <StatusBar style="dark" />
+            {/* Vercel Analytics - Web only */}
+            {Platform.OS === 'web' && Analytics && <Analytics />}
+            {Platform.OS === 'web' && SpeedInsights && <SpeedInsights />}
+          </AuthProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 

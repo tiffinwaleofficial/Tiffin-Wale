@@ -1,4 +1,4 @@
-import create from 'zustand';
+import { create } from 'zustand';
 import { Order, OrderCreateData } from '@/types/api';
 import api from '@/utils/apiClient';
 import { i18n } from '@/i18n/config';

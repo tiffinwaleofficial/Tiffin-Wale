@@ -154,13 +154,19 @@ export const useNotificationStore = create<NotificationStore>()(
 
       // Notification management
       addNotification: (notification) => {
+        // Ensure notification has an ID (do this outside the set callback)
+        const notificationWithId = {
+          ...notification,
+          id: notification.id || `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        }
+
         set((state) => {
           // Check for duplicates
-          const exists = state.notifications.find(n => n.id === notification.id)
+          const exists = state.notifications.find(n => n.id === notificationWithId.id)
           if (exists) return state
 
           // Add to notifications
-          const newNotifications = [...state.notifications, notification]
+          const newNotifications = [...state.notifications, notificationWithId]
           
           // Limit number of active notifications
           const maxNotifications = state.config?.maxNotifications || 5
@@ -173,8 +179,8 @@ export const useNotificationStore = create<NotificationStore>()(
           }
         })
 
-        // Add to history
-        get().addToHistory(notification)
+        // Add to history (now notificationWithId is in scope)
+        get().addToHistory(notificationWithId)
       },
 
       removeNotification: (id) => {

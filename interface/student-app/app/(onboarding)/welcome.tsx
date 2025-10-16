@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowRight, Check, Users, Clock, MapPin, Heart } from 'lucide-react-native';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { useTranslation } from '@/hooks/useTranslation';
+import { PolicyModal } from '@/components/ui/PolicyModal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -20,15 +21,24 @@ export default function WelcomeScreen() {
   const router = useRouter();
   const { setCurrentStep, nextStep } = useOnboardingStore();
   const { t } = useTranslation('onboarding');
+  const [policyModalVisible, setPolicyModalVisible] = useState(false);
+  const [policyType, setPolicyType] = useState<'terms' | 'privacy'>('terms');
 
   const handleGetStarted = () => {
     setCurrentStep(2);
     router.push('/(onboarding)/phone-verification' as any);
   };
 
-  const handleLogin = () => {
-    setCurrentStep(2);
-    router.push('/(onboarding)/phone-verification' as any);
+  // Removed handleLogin - no longer needed since we handle both new and existing users through phone verification
+
+  const handleTermsPress = () => {
+    setPolicyType('terms');
+    setPolicyModalVisible(true);
+  };
+
+  const handlePrivacyPress = () => {
+    setPolicyType('privacy');
+    setPolicyModalVisible(true);
   };
 
   const benefits = [
@@ -132,26 +142,29 @@ export default function WelcomeScreen() {
             <Text style={styles.getStartedText}>{t('getStarted')}</Text>
             <ArrowRight size={20} color="#FFFFFF" />
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={handleLogin}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.loginText}>{t('alreadyHaveAccount')}</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Terms */}
         <View style={styles.termsContainer}>
           <Text style={styles.termsText}>
             {t('termsText')}{' '}
-            <Text style={styles.termsLink}>{t('termsOfService')}</Text>
+            <TouchableOpacity onPress={handleTermsPress}>
+              <Text style={styles.termsLink}>{t('termsOfService')}</Text>
+            </TouchableOpacity>
             {' '}{t('and')}{' '}
-            <Text style={styles.termsLink}>{t('privacyPolicy')}</Text>
+            <TouchableOpacity onPress={handlePrivacyPress}>
+              <Text style={styles.termsLink}>{t('privacyPolicy')}</Text>
+            </TouchableOpacity>
           </Text>
         </View>
       </View>
+
+      {/* Policy Modal */}
+      <PolicyModal
+        visible={policyModalVisible}
+        type={policyType}
+        onClose={() => setPolicyModalVisible(false)}
+      />
     </ScrollView>
   );
 }
@@ -330,15 +343,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginRight: 8,
   },
-  loginButton: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  loginText: {
-    fontSize: 16,
-    fontFamily: 'Poppins-Medium',
-    color: '#FF9B42',
-  },
+  // Removed loginButton and loginText styles - no longer needed
   termsContainer: {
     alignItems: 'center',
     paddingHorizontal: 20,

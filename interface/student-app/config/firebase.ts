@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, initializeAuth } from "firebase/auth";
+import { getAuth, initializeAuth, getReactNativePersistence } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
@@ -18,18 +18,20 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Auth with persistence for React Native
+// Initialize Firebase Auth with proper persistence for React Native
 let auth;
 try {
   if (Platform.OS === 'web') {
     auth = getAuth(app);
   } else {
-    // For React Native, we'll use the default persistence
-    // AsyncStorage persistence is handled automatically by Firebase v9+
-    auth = initializeAuth(app);
+    // For React Native, use proper AsyncStorage persistence
+    auth = initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage)
+    });
   }
 } catch (error) {
   // If auth is already initialized, get the existing instance
+  console.log('Firebase Auth already initialized, using existing instance');
   auth = getAuth(app);
 }
 

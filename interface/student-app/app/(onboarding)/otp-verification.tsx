@@ -14,7 +14,10 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Shield, RotateCcw } from 'lucide-react-native';
 import phoneAuthService from '@/services/phoneAuthService';
+import { secureAuthService } from '@/services/secureAuthService';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import { useAuthStore } from '@/store/authStore';
+import { notificationActions } from '@/store/notificationStore';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function OTPVerificationScreen() {
@@ -27,6 +30,7 @@ export default function OTPVerificationScreen() {
   const router = useRouter();
   const { phoneNumber } = useLocalSearchParams<{ phoneNumber: string }>();
   const { setPhoneVerification, nextStep, setCurrentStep } = useOnboardingStore();
+  const { initializeAuth } = useAuthStore();
   const { t } = useTranslation('onboarding');
   
   // Refs for OTP inputs
@@ -91,30 +95,66 @@ export default function OTPVerificationScreen() {
       const result = await phoneAuthService.verifyOTP(otpCode);
       
       if (result.success && result.user) {
+        console.log('🔐 OTP Verification: Firebase OTP verified successfully');
+        
         // Mark phone as verified in onboarding store
         setPhoneVerification({
           phoneNumber: phoneNumber!,
           isVerified: true
         });
 
-        // Check if user exists in backend
-        const { useAuthStore } = await import('@/store/authStore');
-        const authStore = useAuthStore.getState();
-        
-        const userExists = await authStore.checkUserExists(phoneNumber!);
-        
-        if (userExists) {
-          // Existing user - login directly
-          try {
-            await authStore.loginWithPhone(phoneNumber!, result.user.uid);
-            router.replace('/(tabs)');
-          } catch (loginError) {
-            Alert.alert(t('loginFailedTitle'), t('loginFailedMessage'));
+        // Use secure authentication service to check user existence and handle login
+        const authResult = await secureAuthService.checkUserExistsSecurely(
+          phoneNumber!,
+          result.user.uid
+        );
+
+        if (authResult.success) {
+          if (authResult.userExists && authResult.user && authResult.token) {
+            // User exists and is logged in successfully
+            console.log('✅ OTP Verification: User logged in successfully');
+            
+            // Show success notification
+            notificationActions.showNotification({
+              id: `login-success-${Date.now()}`,
+              type: 'toast',
+              variant: 'success',
+              title: `Welcome back, ${authResult.user.firstName}!`,
+              message: 'You have been successfully logged in.',
+              duration: 4000,
+            });
+            
+            // Initialize auth store with the logged-in user
+            await initializeAuth();
+            
+            // Small delay to ensure notification is shown before navigation
+            setTimeout(() => {
+              // Navigate to main app
+              router.replace('/(tabs)' as any);
+            }, 500);
+            
+          } else if (authResult.requiresOnboarding) {
+            // User doesn't exist, proceed with onboarding
+            console.log('📝 OTP Verification: User requires onboarding');
+            
+            // Show welcome notification for new user
+            notificationActions.showNotification({
+              id: `welcome-new-user-${Date.now()}`,
+              type: 'toast',
+              variant: 'success',
+              title: 'Welcome to TiffinWale!',
+              message: 'Let\'s set up your account to get started.',
+              duration: 3000,
+            });
+            
+            // Continue to personal info step
+            setCurrentStep(3);
+            router.push('/(onboarding)/personal-info' as any);
+          } else {
+            throw new Error(authResult.error || 'Authentication failed');
           }
         } else {
-          // New user - proceed to onboarding
-          setCurrentStep(3);
-          router.push('/(onboarding)/personal-info' as any);
+          throw new Error(authResult.error || 'Security validation failed');
         }
       } else {
         Alert.alert(t('verificationFailedTitle'), result.error || t('verificationFailedMessage'));
@@ -175,12 +215,7 @@ export default function OTPVerificationScreen() {
             <ArrowLeft size={24} color="#333" />
           </TouchableOpacity>
           
-          <View style={styles.progressContainer}>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: '40%' }]} />
-            </View>
-            <Text style={styles.progressText}>{t('stepProgress', { current: 2, total: 5 })}</Text>
-          </View>
+          {/* Progress removed for authentication flow */}
         </View>
 
         {/* Content */}
@@ -304,25 +339,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  progressContainer: {
-    flex: 1,
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: '#E5E5E5',
-    borderRadius: 2,
-    marginBottom: 8,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#FF9B42',
-    borderRadius: 2,
-  },
-  progressText: {
-    fontSize: 12,
-    fontFamily: 'Poppins-Medium',
-    color: '#666',
-  },
+  // Progress styles removed for authentication flow
   content: {
     flex: 1,
     padding: 24,

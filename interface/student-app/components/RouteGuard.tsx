@@ -32,7 +32,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({
 
   // If authentication is required and user is not authenticated
   if (requireAuth && !isAuthenticated) {
-    return <Redirect href="/(auth)/login" />;
+    return <Redirect href="/" />;
   }
 
   // If user is authenticated but trying to access auth pages (should redirect to main app)

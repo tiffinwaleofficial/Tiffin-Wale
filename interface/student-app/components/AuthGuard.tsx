@@ -30,7 +30,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
 
   // If authentication is required and user is not authenticated
   if (requireAuth && !isAuthenticated) {
-    return <Redirect href="/(auth)/welcome" />;
+    return <Redirect href="/" />;
   }
 
   // If user is authenticated but trying to access auth pages (should redirect to main app)
