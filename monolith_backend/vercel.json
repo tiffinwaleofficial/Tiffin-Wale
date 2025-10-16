@@ -8,8 +8,7 @@
         "includeFiles": [
           "src/**",
           "package.json",
-          "tsconfig.json",
-          "node_modules/**"
+          "tsconfig.json"
         ],
         "maxLambdaSize": "50mb"
       }
@@ -52,5 +51,7 @@
     "api/index.ts": {
       "maxDuration": 30
     }
-  }
+  },
+  "installCommand": "bun install",
+  "buildCommand": "echo 'Skipping build - Vercel will handle TypeScript compilation'"
 }
