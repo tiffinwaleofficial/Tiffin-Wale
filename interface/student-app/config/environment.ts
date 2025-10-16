@@ -38,13 +38,20 @@ const getApiBaseUrl = (): string => {
   const environment = getEnvironment();
   
   if (environment === 'development') {
-    // For development, use remote backend for now to avoid network issues
-    // TODO: Switch back to localhost when backend is running locally
-    const prodUrl = process.env.EXPO_PUBLIC_PROD_API_BASE_URL || 'https://api-tiffin-wale.vercel.app';
-    console.log('🏠 Development mode - Using remote backend for stability:', prodUrl);
-    return prodUrl;
+    // Platform-specific API URLs for development
+    if (Platform.OS === 'web') {
+      // Web: Use localhost
+      const localUrl = 'http://localhost:3001';
+      console.log('🌐 Web Development - Using localhost:', localUrl);
+      return localUrl;
+    } else {
+      // Mobile (Android/iOS): Use production backend
+      const prodUrl = process.env.EXPO_PUBLIC_PROD_API_BASE_URL || 'https://api-tiffin-wale.vercel.app';
+      console.log('📱 Mobile Development - Using production backend:', prodUrl);
+      return prodUrl;
+    }
   } else {
-    // For staging/production, use remote backend
+    // For staging/production, always use remote backend
     const prodUrl = process.env.EXPO_PUBLIC_PROD_API_BASE_URL || 'https://api-tiffin-wale.vercel.app';
     console.log('🌐 Production mode - Using remote backend:', prodUrl);
     return prodUrl;

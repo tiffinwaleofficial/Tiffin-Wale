@@ -1,0 +1,57 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "monolith_backend/api/index.ts",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "monolith_backend/src/**",
+          "monolith_backend/package.json",
+          "monolith_backend/tsconfig.json"
+        ],
+        "maxLambdaSize": "50mb"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/monolith_backend/api/index.ts"
+    },
+    {
+      "src": "/api-docs/(.*)",
+      "dest": "/monolith_backend/api/index.ts"
+    },
+    {
+      "src": "/api-docs",
+      "dest": "/monolith_backend/api/index.ts"
+    },
+    {
+      "src": "/health",
+      "dest": "/monolith_backend/api/index.ts"
+    },
+    {
+      "src": "/",
+      "dest": "/monolith_backend/api/index.ts"
+    },
+    {
+      "src": "/native-ws",
+      "dest": "/monolith_backend/api/index.ts"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/monolith_backend/api/index.ts"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "functions": {
+    "monolith_backend/api/index.ts": {
+      "maxDuration": 30
+    }
+  },
+  "installCommand": "cd monolith_backend && bun install",
+  "buildCommand": "echo 'Skipping build for Vercel - using TypeScript source files directly'"
+}

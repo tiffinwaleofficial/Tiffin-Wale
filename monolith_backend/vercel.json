@@ -8,18 +8,8 @@
         "includeFiles": [
           "src/**",
           "package.json",
-          "tsconfig.json"
-        ],
-        "excludeFiles": [
-          "node_modules/@types/**",
-          "node_modules/typescript/**",
-          "node_modules/jest/**",
-          "node_modules/eslint/**",
-          "node_modules/prettier/**",
-          "tests/**",
-          "docs/**",
-          "scripts/**",
-          "dist/**"
+          "tsconfig.json",
+          "node_modules/**"
         ],
         "maxLambdaSize": "50mb"
       }
@@ -58,9 +48,9 @@
   "env": {
     "NODE_ENV": "production"
   },
-  "build": {
-    "env": {
-      "NODE_ENV": "production"
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 30
     }
   }
 }
