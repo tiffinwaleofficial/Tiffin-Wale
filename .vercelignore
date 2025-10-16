@@ -1,0 +1,9 @@
+# Ignore everything except monolith_backend
+interface/
+docs/
+scripts/
+tests/
+*.md
+.gitignore
+.env*
+!monolith_backend/
