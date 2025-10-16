@@ -5,9 +5,12 @@ import { Tag } from 'lucide-react-native';
 import { useMarketingStore } from '@/store/marketingStore';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useNotification } from '@/hooks/useNotification';
+import { BackButton } from '@/components/BackButton';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function PromotionsScreen() {
   const router = useRouter();
+  const { t } = useTranslation('subscription');
   const { promotions, isLoading, error, fetchPromotions, applyPromotion } = useMarketingStore();
   const [promoCode, setPromoCode] = useState('');
   const { warning, success, showError } = useNotification();
@@ -34,7 +37,7 @@ export default function PromotionsScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <BackButton />
-        <Text style={styles.headerTitle}>Promotions</Text>
+        <Text style={styles.headerTitle}>{t('promotions')}</Text>
       </View>
       <ScrollView style={styles.content}>
         <View style={styles.applyPromoSection}>

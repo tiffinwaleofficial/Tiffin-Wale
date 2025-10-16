@@ -15,6 +15,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useChatStore } from '../store/chatStore';
 import { ChatMessage, Conversation } from '../services/chatService';
 import * as ImagePicker from 'expo-image-picker';
@@ -28,6 +29,7 @@ interface ChatRoomProps {
 }
 
 export const ChatRoom: React.FC<ChatRoomProps> = ({ conversation, onBack }) => {
+  const { t } = useTranslation('common');
   const {
     messages,
     isSending,
@@ -67,7 +69,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ conversation, onBack }) => {
 
   useEffect(() => {
     if (error) {
-      Alert.alert('Chat Error', error, [{ text: 'OK', onPress: clearError }]);
+      Alert.alert(t('chatError'), error, [{ text: t('ok'), onPress: clearError }]);
     }
   }, [error, clearError]);
 
@@ -200,11 +202,11 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ conversation, onBack }) => {
 
   const handleDeleteMessage = (messageId: string) => {
     Alert.alert(
-      'Delete Message',
-      'Are you sure you want to delete this message?',
+      t('deleteMessage'),
+      t('areYouSureDeleteMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => deleteMessage(messageId) },
+        { text: t('cancel'), style: 'cancel' },
+        { text: t('delete'), style: 'destructive', onPress: () => deleteMessage(messageId) },
       ]
     );
   };
@@ -344,7 +346,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ conversation, onBack }) => {
           style={styles.textInput}
           value={inputText}
           onChangeText={handleTyping}
-          placeholder="Type a message..."
+          placeholder={t('typeAMessage')}
           multiline
           maxLength={1000}
         />
@@ -366,16 +368,16 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ conversation, onBack }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.mediaPickerContainer}>
             <TouchableOpacity style={styles.mediaOption} onPress={handleImagePicker}>
-              <Text style={styles.mediaOptionText}>📷 Gallery</Text>
+              <Text style={styles.mediaOptionText}>{t('gallery')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.mediaOption} onPress={handleCameraCapture}>
-              <Text style={styles.mediaOptionText}>📸 Camera</Text>
+              <Text style={styles.mediaOptionText}>{t('camera')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.mediaOption} onPress={handleDocumentPicker}>
-              <Text style={styles.mediaOptionText}>📄 Document</Text>
+              <Text style={styles.mediaOptionText}>{t('document')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.cancelButton} onPress={() => setShowMediaPicker(false)}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.cancelButtonText}>{t('cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>

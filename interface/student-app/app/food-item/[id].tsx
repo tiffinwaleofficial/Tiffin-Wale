@@ -22,11 +22,13 @@ import { BackButton } from '@/components/BackButton';
 import { MenuItem, Review } from '@/types';
 import { useAuthStore } from '@/store/authStore';
 import { useNotification } from '@/hooks/useNotification';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const { width } = Dimensions.get('window');
 
 export default function FoodItemDetailScreen() {
   const router = useRouter();
+  const { t } = useTranslation('orders');
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuthStore();
   const { showError, success } = useNotification();
@@ -158,7 +160,7 @@ export default function FoodItemDetailScreen() {
           <View style={styles.starsContainer}>
             {renderStars(Math.round(menuItem.averageRating))}
           </View>
-          <Text style={styles.reviewCount}>{menuItem.totalReviews} reviews</Text>
+          <Text style={styles.reviewCount}>{menuItem.totalReviews} {t('reviews')}</Text>
         </View>
       </View>
     );
@@ -275,7 +277,7 @@ export default function FoodItemDetailScreen() {
     return (
       <View style={styles.reviewsSection}>
         <View style={styles.reviewsHeader}>
-          <Text style={styles.sectionTitle}>Reviews</Text>
+          <Text style={styles.sectionTitle}>{t('reviews')}</Text>
           {hasUserReviewed() ? (
             <View style={styles.reviewActions}>
               <TouchableOpacity
@@ -283,14 +285,14 @@ export default function FoodItemDetailScreen() {
                 onPress={handleEditReview}
               >
                 <Edit size={16} color="#FF9B42" />
-                <Text style={styles.editButtonText}>Edit</Text>
+                <Text style={styles.editButtonText}>{t('edit')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionButton, styles.deleteButton]}
                 onPress={handleDeleteReview}
               >
                 <Trash2 size={16} color="#FF6B6B" />
-                <Text style={styles.deleteButtonText}>Delete</Text>
+                <Text style={styles.deleteButtonText}>{t('delete')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -298,7 +300,7 @@ export default function FoodItemDetailScreen() {
               style={styles.writeReviewButton}
               onPress={handleWriteReview}
             >
-              <Text style={styles.writeReviewText}>Write Review</Text>
+              <Text style={styles.writeReviewText}>{t('writeReview')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -314,7 +316,7 @@ export default function FoodItemDetailScreen() {
             />
           ))
         ) : (
-          <Text style={styles.noReviewsText}>No reviews yet. Be the first to review!</Text>
+          <Text style={styles.noReviewsText}>{t('noReviewsYet')}</Text>
         )}
       </View>
     );
@@ -379,7 +381,7 @@ export default function FoodItemDetailScreen() {
       <View style={styles.orderSection}>
         <TouchableOpacity style={styles.orderButton}>
           <ShoppingCart size={20} color="#FFFFFF" />
-          <Text style={styles.orderButtonText}>Add to Cart</Text>
+          <Text style={styles.orderButtonText}>{t('addToCart')}</Text>
         </TouchableOpacity>
       </View>
 

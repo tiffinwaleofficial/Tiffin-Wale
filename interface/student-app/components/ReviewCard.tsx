@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Star, ThumbsUp, Play } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { Review } from '@/types';
 import { useAuthStore } from '@/store/authStore';
 
@@ -11,6 +12,7 @@ interface ReviewCardProps {
 
 export const ReviewCard: React.FC<ReviewCardProps> = ({ review, onMarkHelpful }) => {
   const { user } = useAuthStore();
+  const { t } = useTranslation('common');
   const [isHelpful, setIsHelpful] = useState(false);
   const [helpfulCount, setHelpfulCount] = useState(review.helpfulCount || 0);
 
@@ -63,7 +65,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({ review, onMarkHelpful })
           <Text style={styles.userName}>
             {review.user?.firstName && review.user?.lastName 
               ? `${review.user.firstName} ${review.user.lastName}`
-              : review.user?.name || 'Anonymous User'
+              : review.user?.name || t('anonymousUser')
             }
           </Text>
           <Text style={styles.reviewDate}>{formatDate(review.createdAt)}</Text>
@@ -115,7 +117,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({ review, onMarkHelpful })
           fill={isHelpful ? "#FF9B42" : "transparent"}
         />
         <Text style={[styles.helpfulText, isHelpful && styles.helpfulTextActive]}>
-          Helpful ({helpfulCount})
+          {t('helpful')} ({helpfulCount})
         </Text>
       </TouchableOpacity>
     </View>

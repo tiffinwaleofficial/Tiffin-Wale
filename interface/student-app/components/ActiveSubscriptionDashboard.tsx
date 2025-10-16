@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'rea
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Bell, ChevronRight, Clock, Coffee, Star, Calendar, ChevronDown, Utensils, Wallet, ThumbsUp } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 import { CustomerProfile } from '@/types/api';
 import { Meal } from '@/types';
@@ -17,6 +18,7 @@ type ActiveSubscriptionDashboardProps = {
 
 export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = [], isLoading }: ActiveSubscriptionDashboardProps) => {
   const router = useRouter();
+  const { t } = useTranslation('common');
   const { currentSubscription } = useSubscriptionStore();
   
   // Use subscription from user profile if available, otherwise from subscription store
@@ -50,7 +52,7 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
         {/* Header with Greeting */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Good {getTimeOfDay()}, {user?.firstName || user?.name || 'there'}</Text>
+            <Text style={styles.greeting}>{t('goodMorning')}, {user?.firstName || user?.name || t('there')}</Text>
             <Text style={styles.date}>{formatDate()}</Text>
           </View>
           <TouchableOpacity style={styles.bellContainer}>
@@ -69,7 +71,7 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
                 Math.max(0, Math.ceil((new Date(activeSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) 
                 : '0'}
             </Text>
-            <Text style={styles.statsLabel}>Days Left</Text>
+            <Text style={styles.statsLabel}>{t('daysLeft')}</Text>
           </View>
           <View style={styles.statsCard}>
             <View style={[styles.statsIconContainer, { backgroundColor: '#FFF5E8' }]}>
@@ -80,7 +82,7 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
                 (activeSubscription.plan?.mealsPerDay || 1) * Math.max(0, Math.ceil((new Date(activeSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
                 : '0'}
             </Text>
-            <Text style={styles.statsLabel}>Meals Left</Text>
+            <Text style={styles.statsLabel}>{t('mealsLeft')}</Text>
           </View>
         </View>
 
@@ -91,32 +93,32 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
               <Star size={24} color="#4CB944" />
             </View>
             <Text style={styles.statsNumber}>4.8</Text>
-            <Text style={styles.statsLabel}>Rating</Text>
+            <Text style={styles.statsLabel}>{t('rating')}</Text>
           </View>
           <View style={styles.statsCard}>
             <View style={[styles.statsIconContainer, { backgroundColor: '#F0EAFF' }]}>
               <Wallet size={24} color="#7C3AED" />
             </View>
             <Text style={styles.statsNumber}>₹349</Text>
-            <Text style={styles.statsLabel}>Savings</Text>
+            <Text style={styles.statsLabel}>{t('savings')}</Text>
           </View>
         </View>
 
         {/* Plan Information */}
         <View style={styles.planCard}>
           <View style={styles.planHeaderRow}>
-            <Text style={styles.planTitle}>Your Plan</Text>
+            <Text style={styles.planTitle}>{t('yourPlan')}</Text>
             <TouchableOpacity style={styles.viewDetailsButton}>
-              <Text style={styles.viewDetailsText}>View Details</Text>
+              <Text style={styles.viewDetailsText}>{t('viewDetails')}</Text>
               <ChevronRight size={16} color="#FF9B42" />
             </TouchableOpacity>
           </View>
           
           <Text style={styles.planName}>
-            {activeSubscription?.plan?.name || 'No Active Plan'}
+            {activeSubscription?.plan?.name || t('noActivePlan')}
           </Text>
           <Text style={styles.planDescription}>
-            {activeSubscription?.plan?.description || 'No active subscription'}
+            {activeSubscription?.plan?.description || t('noActiveSubscription')}
           </Text>
           
           {activeSubscription && (
@@ -145,16 +147,16 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
         {/* Today's Meals */}
         <View style={styles.todaysMealsContainer}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Today's Meals</Text>
+            <Text style={styles.sectionTitle}>{t('todaysMeals')}</Text>
             <TouchableOpacity style={styles.viewAllButton}>
-              <Text style={styles.viewAllText}>View All</Text>
+              <Text style={styles.viewAllText}>{t('viewAll')}</Text>
               <ChevronRight size={16} color="#FF9B42" />
             </TouchableOpacity>
           </View>
 
           {isLoading ? (
             <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Loading today's meals...</Text>
+              <Text style={styles.loadingText}>{t('loadingTodaysMeals')}</Text>
             </View>
           ) : todayMeals && todayMeals.length > 0 ? (
             todayMeals.map((meal, index) => (
@@ -164,7 +166,7 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
                 entering={FadeInDown.duration(400).delay(500 + index * 100)}
               >
                 <View style={styles.mealCardHeader}>
-                  <Text style={styles.mealTypeLabel}>{meal.type || 'Meal'}</Text>
+                  <Text style={styles.mealTypeLabel}>{meal.type || t('meal')}</Text>
                 </View>
                 <View style={styles.mealCardContent}>
                   <View style={styles.mealImageContainer}>
@@ -175,8 +177,8 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
                     />
                   </View>
                   <View style={styles.mealDetails}>
-                    <Text style={styles.mealName}>{meal.menu?.[0]?.name || 'Meal'}</Text>
-                    <Text style={styles.vendorName}>{meal.restaurantName || 'Restaurant'}</Text>
+                    <Text style={styles.mealName}>{meal.menu?.[0]?.name || t('meal')}</Text>
+                    <Text style={styles.vendorName}>{meal.restaurantName || t('restaurant')}</Text>
                     <View style={styles.ratingAndStatus}>
                       <View style={styles.ratingContainer}>
                         <Star size={14} color="#FFB800" fill="#FFB800" />
@@ -189,7 +191,7 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
                     <View style={styles.buttonContainer}>
                       <TouchableOpacity style={styles.rateButton}>
                         <ThumbsUp size={14} color="#FF9B42" />
-                        <Text style={styles.rateButtonText}>Rate</Text>
+                        <Text style={styles.rateButtonText}>{t('rate')}</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -199,15 +201,15 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
           ) : (
             <View style={styles.noMealsContainer}>
               <Utensils size={48} color="#CCCCCC" />
-              <Text style={styles.noMealsTitle}>No meals scheduled for today</Text>
-              <Text style={styles.noMealsText}>Your meals will appear here once they're scheduled</Text>
+              <Text style={styles.noMealsTitle}>{t('noMealsScheduled')}</Text>
+              <Text style={styles.noMealsText}>{t('mealsWillAppearHere')}</Text>
             </View>
           )}
         </View>
 
         {/* Coming Up Next */}
         <View style={styles.comingUpContainer}>
-          <Text style={styles.comingUpTitle}>Coming Up Next</Text>
+          <Text style={styles.comingUpTitle}>{t('comingUpNext')}</Text>
           
           {upcomingMeals && upcomingMeals.length > 0 ? (
             upcomingMeals.slice(0, 3).map((meal, index) => (
@@ -215,7 +217,7 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
                 <View style={styles.mealCardHeader}>
                   <View style={styles.headerWithIcon}>
                     <Utensils size={16} color="#FF9B42" />
-                    <Text style={styles.mealTypeLabel}>{meal.type || 'Meal'}</Text>
+                    <Text style={styles.mealTypeLabel}>{meal.type || t('meal')}</Text>
                   </View>
                 </View>
                 <View style={styles.mealCardContent}>
@@ -227,11 +229,11 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
                     />
                   </View>
                   <View style={styles.mealDetails}>
-                    <Text style={styles.mealName}>{meal.name || 'Delicious Meal'}</Text>
-                    <Text style={styles.vendorName}>From {meal.restaurantName || 'Kitchen'}</Text>
+                    <Text style={styles.mealName}>{meal.name || t('deliciousMeal')}</Text>
+                    <Text style={styles.vendorName}>{t('from')} {meal.restaurantName || t('kitchen')}</Text>
                     <View style={styles.ratingAndStatus}>
                       <View style={styles.preparingBadge}>
-                        <Text style={styles.preparingText}>{meal.status || 'Preparing'}</Text>
+                        <Text style={styles.preparingText}>{meal.status || t('preparing')}</Text>
                       </View>
                     </View>
                   </View>
@@ -241,8 +243,8 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
           ) : (
             <View style={styles.noUpcomingMealsContainer}>
               <Utensils size={48} color="#CCCCCC" />
-              <Text style={styles.noUpcomingMealsTitle}>No upcoming meals scheduled</Text>
-              <Text style={styles.noUpcomingMealsText}>Your upcoming meals will appear here once they're scheduled</Text>
+              <Text style={styles.noUpcomingMealsTitle}>{t('noUpcomingMeals')}</Text>
+              <Text style={styles.noUpcomingMealsText}>{t('upcomingMealsWillAppearHere')}</Text>
             </View>
           )}
         </View>

@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, TextInput,
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Plus, Minus, X, Info, AlertCircle } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { BackButton } from '@/components/BackButton';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // Mock data for addon items
 const ADDON_ITEMS = [
@@ -13,6 +15,7 @@ const ADDON_ITEMS = [
 
 export default function CustomizeMealScreen() {
   const router = useRouter();
+  const { t } = useTranslation('orders');
   const params = useLocalSearchParams();
   const mealName = params.name as string || 'Meal';
   const mealId = params.id as string || 'meal1';
@@ -59,7 +62,7 @@ export default function CustomizeMealScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <BackButton />
-        <Text style={styles.headerTitle}>Customize Meal</Text>
+        <Text style={styles.headerTitle}>{t('customizeMeal')}</Text>
         <View style={styles.placeholder} />
       </View>
       
@@ -109,7 +112,7 @@ export default function CustomizeMealScreen() {
         </Animated.View>
         
         <Animated.View entering={FadeInDown.delay(400).duration(400)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Spice Level</Text>
+          <Text style={styles.sectionTitle}>{t('spiceLevel')}</Text>
           <View style={styles.spiceLevelContainer}>
             {['mild', 'medium', 'spicy'].map(level => (
               <TouchableOpacity 
@@ -136,7 +139,7 @@ export default function CustomizeMealScreen() {
         <Animated.View entering={FadeInDown.delay(500).duration(400)} style={styles.section}>
           <View style={styles.preferenceSetting}>
             <View style={styles.preferenceInfo}>
-              <Text style={styles.preferenceLabel}>Vegetarian Only</Text>
+              <Text style={styles.preferenceLabel}>{t('vegetarianOnly')}</Text>
               <Info size={16} color="#999999" />
             </View>
             <Switch
@@ -149,11 +152,11 @@ export default function CustomizeMealScreen() {
         </Animated.View>
         
         <Animated.View entering={FadeInDown.delay(600).duration(400)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Special Instructions</Text>
+          <Text style={styles.sectionTitle}>{t('specialInstructions')}</Text>
           <View style={styles.instructionsContainer}>
             <TextInput
               style={styles.instructionsInput}
-              placeholder="Any special requests? (e.g., no onions, less oil, etc.)"
+              placeholder={t('specialRequestsPlaceholder')}
               multiline
               numberOfLines={4}
               value={specialInstructions}
@@ -179,7 +182,7 @@ export default function CustomizeMealScreen() {
           style={styles.saveButton}
           onPress={handleSubmit}
         >
-          <Text style={styles.saveButtonText}>Save Preferences</Text>
+          <Text style={styles.saveButtonText}>{t('savePreferences')}</Text>
         </TouchableOpacity>
       </View>
     </View>

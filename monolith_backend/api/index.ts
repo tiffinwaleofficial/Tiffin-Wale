@@ -156,6 +156,10 @@ async function createNestServer(): Promise<NestExpressApplication> {
 
   logger.log('Swagger documentation configured');
 
+  // Note: Vercel Analytics for server-side is handled via middleware
+  // The analytics tracking is implemented in AnalyticsMiddleware
+  logger.log('Analytics middleware configured for API tracking');
+
   // Initialize the app
   await app.init();
   logger.log('NestJS application initialized for Vercel');

@@ -5,9 +5,12 @@ import { useState } from 'react';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { useFeedbackStore } from '@/store/feedbackStore';
+import { BackButton } from '@/components/BackButton';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function HelpSupportScreen() {
   const router = useRouter();
+  const { t } = useTranslation('support');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCategory, setExpandedCategory] = useState<number | null>(null);
   const { submitFeedback, isLoading, error, submitSuccess, clearError, clearSuccess } = useFeedbackStore();
@@ -25,28 +28,28 @@ export default function HelpSupportScreen() {
       });
       
       Alert.alert(
-        'Support Request Sent',
-        'Your support request has been sent. Our team will get back to you soon.',
-        [{ text: 'OK', onPress: () => clearSuccess() }]
+        t('supportRequestSent'),
+        t('supportRequestSentMessage'),
+        [{ text: t('ok'), onPress: () => clearSuccess() }]
       );
     } catch (err) {
       Alert.alert(
-        'Error',
-        'Failed to send support request. Please try again.',
-        [{ text: 'OK', onPress: () => clearError() }]
+        t('error'),
+        t('failedToSendSupportRequest'),
+        [{ text: t('ok'), onPress: () => clearError() }]
       );
     }
   };
 
   const helpCategories = [
     {
-      title: 'Delivery Issues',
-      description: 'Late deliveries, wrong location, etc.',
-      action: () => handleContactSupport('delivery', 'Delivery Issues'),
+      title: t('deliveryIssues'),
+      description: t('deliveryIssuesDescription'),
+      action: () => handleContactSupport('delivery', t('deliveryIssues')),
       faqs: [
-        { question: 'My order is late, what should I do?', answer: 'Contact our support team immediately. We will track your order and provide updates.' },
-        { question: 'Wrong address delivery', answer: 'Please verify your delivery address in the app. Contact support if the address is correct but delivery went to wrong location.' },
-        { question: 'Delivery person not responding', answer: 'Call our support number for immediate assistance with delivery issues.' }
+        { question: t('myOrderIsLate'), answer: t('myOrderIsLateAnswer') },
+        { question: t('wrongAddressDelivery'), answer: t('wrongAddressDeliveryAnswer') },
+        { question: t('deliveryPersonNotResponding'), answer: t('deliveryPersonNotRespondingAnswer') }
       ]
     },
     {
@@ -128,7 +131,7 @@ export default function HelpSupportScreen() {
     <View style={styles.container}>
       <Animated.View entering={FadeIn.delay(100).duration(300)} style={styles.header}>
         <BackButton />
-        <Text style={styles.headerTitle}>Help & Support</Text>
+        <Text style={styles.headerTitle}>{t('helpSupport')}</Text>
         <View style={styles.placeholder} />
       </Animated.View>
 
@@ -141,7 +144,7 @@ export default function HelpSupportScreen() {
           <View style={styles.searchContainer}>
             <TextInput
               style={styles.searchInput}
-              placeholder="Search for help topics..."
+              placeholder={t('searchHelp')}
               placeholderTextColor="#999999"
               value={searchQuery}
               onChangeText={handleSearch}
@@ -150,7 +153,7 @@ export default function HelpSupportScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(300).duration(400)}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={styles.sectionTitle}>{t('contactSupport')}</Text>
           <View style={styles.quickActionsContainer}>
             <TouchableOpacity 
               style={[styles.actionCard, isLoading && styles.disabledCard]}
@@ -160,8 +163,8 @@ export default function HelpSupportScreen() {
               <View style={[styles.iconCircle, { backgroundColor: '#E6F2FF' }]}>
                 <MessageCircle size={24} color="#3B82F6" />
               </View>
-              <Text style={styles.actionTitle}>Chat</Text>
-              <Text style={styles.actionSubtitle}>Support</Text>
+              <Text style={styles.actionTitle}>{t('chatWithUs')}</Text>
+              <Text style={styles.actionSubtitle}>{t('contactSupport')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -171,7 +174,7 @@ export default function HelpSupportScreen() {
               <View style={[styles.iconCircle, { backgroundColor: '#E7F5EF' }]}>
                 <Phone size={24} color="#22C55E" />
               </View>
-              <Text style={styles.actionTitle}>Call Us</Text>
+              <Text style={styles.actionTitle}>{t('callUs')}</Text>
               <Text style={styles.actionSubtitle}></Text>
             </TouchableOpacity>
 
@@ -182,7 +185,7 @@ export default function HelpSupportScreen() {
               <View style={[styles.iconCircle, { backgroundColor: '#FEF3E7' }]}>
                 <HelpCircle size={24} color="#F97316" />
               </View>
-              <Text style={styles.actionTitle}>FAQs</Text>
+              <Text style={styles.actionTitle}>{t('frequentlyAskedQuestions')}</Text>
               <Text style={styles.actionSubtitle}></Text>
             </TouchableOpacity>
           </View>

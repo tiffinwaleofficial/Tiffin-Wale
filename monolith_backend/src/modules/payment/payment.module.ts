@@ -10,6 +10,7 @@ import {
 } from "./schemas/payment-method.schema";
 import { RazorpayService } from "./razorpay.service";
 import { WebhookController } from "./webhook.controller";
+import { EmailModule } from "../email/email.module";
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { WebhookController } from "./webhook.controller";
       { name: PaymentMethod.name, schema: PaymentMethodSchema },
     ]),
     ConfigModule,
+    EmailModule,
   ],
   controllers: [PaymentController, WebhookController],
   providers: [PaymentService, RazorpayService],

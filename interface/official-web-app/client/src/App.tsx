@@ -4,6 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import SEOHead from "@/components/SEOHead";
 import { useEffect } from "react";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import HowItWorksPage from "@/pages/how-it-works";
@@ -109,6 +111,8 @@ function App() {
       <SEOHead />
       <Router />
       <Toaster />
+      <Analytics />
+      <SpeedInsights />
     </QueryClientProvider>
   );
 }

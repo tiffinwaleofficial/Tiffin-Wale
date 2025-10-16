@@ -1,8 +1,11 @@
 import { Link } from 'expo-router';
 import { StyleSheet, Text, View, Image, TouchableOpacity, Dimensions, SafeAreaView, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 export default function NotFoundScreen() {
+  const { t } = useTranslation('common');
+  
   return (
     <SafeAreaView style={styles.container}>
       {/* Header Section */}
@@ -12,8 +15,8 @@ export default function NotFoundScreen() {
           style={styles.gradient}
         />
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Oops!</Text>
-          <Text style={styles.headerSubtitle}>We couldn't find that page</Text>
+          <Text style={styles.headerTitle}>{t('oops')}</Text>
+          <Text style={styles.headerSubtitle}>{t('pageNotFound')}</Text>
         </View>
       </View>
       
@@ -30,21 +33,21 @@ export default function NotFoundScreen() {
           />
         </View>
         
-        <Text style={styles.title}>404 - Page Not Found</Text>
+        <Text style={styles.title}>{t('error404')}</Text>
         <Text style={styles.description}>
-          The page you're looking for might have been removed, had its name changed, or is temporarily unavailable.
+          {t('pageNotFoundDescription')}
         </Text>
         
         <View style={styles.buttonContainer}>
           <Link href="/" asChild>
             <TouchableOpacity style={styles.homeButton}>
-              <Text style={styles.homeButtonText}>Go to Home</Text>
+              <Text style={styles.homeButtonText}>{t('goToHome')}</Text>
             </TouchableOpacity>
           </Link>
           
           <Link href="/help-support" asChild>
             <TouchableOpacity style={styles.supportButton}>
-              <Text style={styles.supportButtonText}>Contact Support</Text>
+              <Text style={styles.supportButtonText}>{t('contactSupport')}</Text>
             </TouchableOpacity>
           </Link>
         </View>

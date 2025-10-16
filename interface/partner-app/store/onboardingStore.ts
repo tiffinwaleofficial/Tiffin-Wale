@@ -127,6 +127,7 @@ interface OnboardingStore {
   
   // Actions
   updateFormData: (step: keyof OnboardingFormData, data: any) => void;
+  setVerifiedPhoneNumber: (phoneNumber: string) => void;
   setCurrentStep: (step: number) => void;
   setError: (field: string, error: string) => void;
   clearError: (field: string) => void;
@@ -156,6 +157,21 @@ export const useOnboardingStore = create<OnboardingStore>()(
           formData: {
             ...state.formData,
             [step]: data,
+          },
+        }));
+      },
+
+      setVerifiedPhoneNumber: (phoneNumber) => {
+        set((state) => ({
+          formData: {
+            ...state.formData,
+            step1: {
+              ...state.formData.step1,
+              firstName: state.formData.step1?.firstName || '',
+              lastName: state.formData.step1?.lastName || '',
+              email: state.formData.step1?.email || '',
+              phoneNumber: phoneNumber,
+            },
           },
         }));
       },

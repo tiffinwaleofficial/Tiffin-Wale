@@ -4,9 +4,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Star,} from 'lucide-react-native';
 import { useOrderStore } from '@/store/orderStore';
 import Animated from 'react-native-reanimated';
+import { BackButton } from '@/components/BackButton';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function RateMealScreen() {
   const router = useRouter();
+  const { t } = useTranslation('orders');
   const { id } = useLocalSearchParams<{ id: string }>();
   const { isLoading, addReview } = useOrderStore();
   const [rating, setRating] = useState(0);
@@ -15,7 +18,7 @@ export default function RateMealScreen() {
   const handleSaveReview = async () => {
     if (!id) return;
     if (rating === 0) {
-      Alert.alert('Rating required', 'Please select a rating');
+      Alert.alert(t('ratingRequired'), t('pleaseSelectRating'));
       return;
     }
     await addReview(id, rating, comment);
@@ -26,10 +29,10 @@ export default function RateMealScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <BackButton />
-        <Text style={styles.headerTitle}>Rate Meal</Text>
+        <Text style={styles.headerTitle}>{t('rateMeal')}</Text>
       </View>
       <View style={styles.content}>
-        <Text style={styles.title}>How was your meal?</Text>
+        <Text style={styles.title}>{t('howWasYourMeal')}</Text>
         <View style={styles.starsContainer}>
           {[1, 2, 3, 4, 5].map((i) => (
             <TouchableOpacity key={i} onPress={() => setRating(i)}>
@@ -39,13 +42,13 @@ export default function RateMealScreen() {
         </View>
         <TextInput
           style={styles.commentInput}
-          placeholder="Add a comment (optional)"
+          placeholder={t('addCommentOptional')}
           multiline
           value={comment}
           onChangeText={setComment}
         />
         <TouchableOpacity style={styles.submitButton} onPress={handleSaveReview} disabled={isLoading}>
-          {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitButtonText}>Submit Review</Text>}
+          {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitButtonText}>{t('submitReview')}</Text>}
         </TouchableOpacity>
       </View>
     </View>

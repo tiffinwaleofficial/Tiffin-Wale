@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { Redirect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useAuthContext } from '@/context/AuthProvider';
 
 interface RouteGuardProps {
@@ -16,6 +17,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({
   fallback,
   permissions = []
 }) => {
+  const { t } = useTranslation('common');
   const { isAuthenticated, isInitialized, isLoading, user } = useAuthContext();
 
   // Show loading while authentication is being initialized
@@ -23,7 +25,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({
     return fallback || (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#FF9B42" />
-        <Text style={styles.loadingText}>Verifying access...</Text>
+        <Text style={styles.loadingText}>{t('verifyingAccess')}</Text>
       </View>
     );
   }
@@ -47,8 +49,8 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({
     if (!hasPermission) {
       return (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>Access Denied</Text>
-          <Text style={styles.errorText}>You don't have permission to access this page.</Text>
+          <Text style={styles.errorTitle}>{t('accessDenied')}</Text>
+          <Text style={styles.errorText}>{t('noPermissionToAccess')}</Text>
         </View>
       );
     }

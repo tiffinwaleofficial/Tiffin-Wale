@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { ChevronRight, Star } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { Meal } from '@/types';
 import { formatDate } from '@/utils/dateUtils';
 import { formatMealStatusText, getMealStatusColor } from '@/utils/mealUtils';
@@ -11,6 +12,7 @@ interface MealHistoryCardProps {
 }
 
 export function MealHistoryCard({ meal, index }: MealHistoryCardProps) {
+  const { t } = useTranslation('common');
   const menuItem = meal.menu.length > 0 ? meal.menu[0] : null;
   
   return (
@@ -54,7 +56,7 @@ export function MealHistoryCard({ meal, index }: MealHistoryCardProps) {
             <View style={styles.ratingContainer}>
               <Star size={14} color="#FFB800" fill="#FFB800" />
               <Text style={styles.ratingText}>{menuItem.rating}</Text>
-              <Text style={styles.reviewCount}>({menuItem.reviewCount} reviews)</Text>
+              <Text style={styles.reviewCount}>({menuItem.reviewCount} {t('reviews')})</Text>
             </View>
           </View>
           <TouchableOpacity style={styles.detailsButton}>
@@ -63,7 +65,7 @@ export function MealHistoryCard({ meal, index }: MealHistoryCardProps) {
         </View>
       ) : (
         <View style={styles.emptyContent}>
-          <Text style={styles.emptyText}>No menu information available</Text>
+          <Text style={styles.emptyText}>{t('noMenuInfo')}</Text>
         </View>
       )}
     </Animated.View>

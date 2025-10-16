@@ -1,9 +1,11 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { ChevronRight, HelpCircle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function ProfileFragment() {
   const router = useRouter();
+  const { t } = useTranslation('profile');
   
   return (
     <View>
@@ -15,7 +17,7 @@ export default function ProfileFragment() {
           <View style={[styles.settingsOptionIcon, { backgroundColor: '#FFF5E6' }]}>
             <HelpCircle size={20} color="#FF9B42" />
           </View>
-          <Text style={styles.settingsOptionText}>Help & Support</Text>
+          <Text style={styles.settingsOptionText}>{t('helpSupport')}</Text>
         </View>
         <ChevronRight size={20} color="#CCCCCC" />
       </TouchableOpacity>

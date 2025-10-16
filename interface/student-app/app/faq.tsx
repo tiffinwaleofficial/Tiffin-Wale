@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { useRouter } from 'expo-router';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { BackButton } from '@/components/BackButton';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const FAQ_ITEMS = [
   {
@@ -49,6 +51,7 @@ const FAQ_ITEMS = [
 
 export default function FAQScreen() {
   const router = useRouter();
+  const { t } = useTranslation('support');
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   const toggleExpand = (index: number) => {
@@ -59,7 +62,7 @@ export default function FAQScreen() {
     <View style={styles.container}>
       <Animated.View entering={FadeIn.delay(100).duration(300)} style={styles.header}>
         <BackButton />
-        <Text style={styles.headerTitle}>Frequently Asked Questions</Text>
+        <Text style={styles.headerTitle}>{t('frequentlyAskedQuestions')}</Text>
         <View style={styles.placeholder} />
       </Animated.View>
 

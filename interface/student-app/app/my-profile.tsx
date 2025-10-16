@@ -33,11 +33,13 @@ import { showNotification } from '@/utils/notificationService';
 import { profileImageService } from '@/services/profileImageService';
 import { BackButton } from '@/components/BackButton';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function MyProfileScreen() {
   const router = useRouter();
   const { user, logout, fetchUserProfile, isLoading } = useAuthStore();
   const { currentSubscription, fetchCurrentSubscription } = useSubscriptionStore();
+  const { t } = useTranslation('profile');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -69,7 +71,7 @@ export default function MyProfileScreen() {
       console.log('✅ MyProfileScreen: Logout successful, redirecting to login...');
       
       // Show success notification
-      showNotification.success('Logged out successfully');
+      showNotification.success(t('loggedOutSuccessfully'));
       
       // Redirect to login page immediately
       router.replace('/(auth)/login');
@@ -78,7 +80,7 @@ export default function MyProfileScreen() {
       console.error('❌ MyProfileScreen: Logout error:', error);
       
       // Show error notification but still redirect
-      showNotification.error('Logout failed, but you have been signed out locally');
+      showNotification.error(t('logoutFailed'));
       
       // Even if API fails, clear local data and redirect
       console.log('🚪 MyProfileScreen: API failed, but clearing local data and redirecting...');
@@ -93,13 +95,13 @@ export default function MyProfileScreen() {
       // Check permissions
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        showNotification.error('Permission to access camera roll is required');
+        showNotification.error(t('permissionRequired'));
         return;
       }
 
       // Check if Cloudinary is configured
       if (!profileImageService.isConfigured()) {
-        showNotification.error('Image upload service is not configured');
+        showNotification.error(t('imageUploadNotConfigured'));
         return;
       }
 
@@ -113,21 +115,21 @@ export default function MyProfileScreen() {
 
       if (!result.canceled && result.assets[0]) {
         setIsUploadingImage(true);
-        showNotification.info('Uploading image...');
+        showNotification.info(t('uploadingImage'));
 
         const uploadResult = await profileImageService.uploadProfileImage(result.assets[0].uri);
 
         if (uploadResult.success && uploadResult.url) {
-          showNotification.success('Profile image updated successfully');
+          showNotification.success(t('profileImageUpdated'));
           // TODO: Update user profile with new image URL
           console.log('📸 New profile image URL:', uploadResult.url);
         } else {
-          showNotification.error(uploadResult.error || 'Failed to upload image');
+          showNotification.error(uploadResult.error || t('imageUploadFailed'));
         }
       }
     } catch (error) {
       console.error('❌ Image upload error:', error);
-      showNotification.error('Failed to upload image');
+      showNotification.error(t('imageUploadFailed'));
     } finally {
       setIsUploadingImage(false);
     }
@@ -137,7 +139,7 @@ export default function MyProfileScreen() {
     console.log('⚠️ MyProfileScreen: No user found, showing loading');
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading profile...</Text>
+        <Text style={styles.loadingText}>{t('loadingProfile')}</Text>
       </View>
     );
   }
@@ -149,7 +151,7 @@ export default function MyProfileScreen() {
       {/* Header */}
       <Animated.View entering={FadeIn.delay(100).duration(300)} style={styles.header}>
         <BackButton />
-        <Text style={styles.headerTitle}>My Profile</Text>
+        <Text style={styles.headerTitle}>{t('myProfile')}</Text>
         <View style={styles.placeholder} />
       </Animated.View>
 
@@ -176,7 +178,7 @@ export default function MyProfileScreen() {
                 <Text style={styles.profileName}>
                   {user?.firstName && user?.lastName 
                     ? `${user.firstName} ${user.lastName}` 
-                    : user?.name || 'User'
+                    : user?.name || t('user')
                   }
                 </Text>
                 <Text style={styles.profileEmail}>{user?.email || 'user@example.com'}</Text>
@@ -189,13 +191,13 @@ export default function MyProfileScreen() {
             {/* Subscription Section */}
             <View style={styles.subscriptionSection}>
               <View style={styles.activePlanHeader}>
-                <Text style={styles.activePlanLabel}>Current Subscription</Text>
+                <Text style={styles.activePlanLabel}>{t('currentSubscription')}</Text>
                 <TouchableOpacity 
                   style={styles.viewPlansButton}
                   onPress={() => router.push('/(tabs)/plans')}
                 >
                   <Text style={styles.viewPlansButtonText}>
-                    {currentSubscription ? 'Change Plan' : 'View Plans'}
+                    {currentSubscription ? t('changePlan') : t('viewPlans')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -207,9 +209,9 @@ export default function MyProfileScreen() {
                       <Package size={20} color="#FF9B42" />
                     </View>
                     <View style={styles.subscriptionInfo}>
-                      <Text style={styles.subscriptionLabel}>Plan</Text>
+                      <Text style={styles.subscriptionLabel}>{t('plan')}</Text>
                       <Text style={styles.subscriptionValue}>
-                        {(currentSubscription as any).plan?.name || 'Subscription Plan'}
+                        {(currentSubscription as any).plan?.name || t('subscriptionPlan')}
                       </Text>
                     </View>
                   </View>
@@ -219,7 +221,7 @@ export default function MyProfileScreen() {
                       <Calendar size={20} color="#4CAF50" />
                     </View>
                     <View style={styles.subscriptionInfo}>
-                      <Text style={styles.subscriptionLabel}>Status</Text>
+                      <Text style={styles.subscriptionLabel}>{t('status')}</Text>
                       <View style={styles.statusBadge}>
                         <Text style={styles.statusText}>
                           {currentSubscription.status.toUpperCase()}
@@ -233,7 +235,7 @@ export default function MyProfileScreen() {
                       <Calendar size={20} color="#2196F3" />
                     </View>
                     <View style={styles.subscriptionInfo}>
-                      <Text style={styles.subscriptionLabel}>Valid Until</Text>
+                      <Text style={styles.subscriptionLabel}>{t('validUntil')}</Text>
                       <Text style={styles.subscriptionValue}>
                         {new Date(currentSubscription.endDate).toLocaleDateString('en-IN', {
                           day: 'numeric',
@@ -249,7 +251,7 @@ export default function MyProfileScreen() {
                       <CreditCard size={20} color="#9C27B0" />
                     </View>
                     <View style={styles.subscriptionInfo}>
-                      <Text style={styles.subscriptionLabel}>Started On</Text>
+                      <Text style={styles.subscriptionLabel}>{t('startedOn')}</Text>
                       <Text style={styles.subscriptionValue}>
                         {new Date(currentSubscription.startDate).toLocaleDateString('en-IN', {
                           day: 'numeric',
@@ -263,15 +265,15 @@ export default function MyProfileScreen() {
               ) : (
                 <View style={styles.noSubscriptionContainer}>
                   <Package size={48} color="#CCCCCC" />
-                  <Text style={styles.noSubscriptionTitle}>No Active Subscription</Text>
+                  <Text style={styles.noSubscriptionTitle}>{t('noActiveSubscription')}</Text>
                   <Text style={styles.noSubscriptionText}>
-                    Subscribe to a meal plan to enjoy daily meals delivered to your doorstep.
+                    {t('subscribeToMealPlan')}
                   </Text>
                   <TouchableOpacity 
                     style={styles.subscribeNowButton}
                     onPress={() => router.push('/(tabs)/plans')}
                   >
-                    <Text style={styles.subscribeNowButtonText}>Subscribe Now</Text>
+                    <Text style={styles.subscribeNowButtonText}>{t('subscribeNow')}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -285,7 +287,7 @@ export default function MyProfileScreen() {
                 <View style={[styles.menuIcon, { backgroundColor: '#E3F2FD' }]}>
                   <User size={20} color="#2196F3" />
                 </View>
-                <Text style={styles.menuItemText}>Account Information</Text>
+                <Text style={styles.menuItemText}>{t('accountInformation')}</Text>
               </View>
               <ChevronRight size={20} color="#CCCCCC" />
             </TouchableOpacity>
@@ -295,7 +297,7 @@ export default function MyProfileScreen() {
                 <View style={[styles.menuIcon, { backgroundColor: '#E8F5E8' }]}>
                   <MapPin size={20} color="#4CAF50" />
                 </View>
-                <Text style={styles.menuItemText}>Delivery Addresses</Text>
+                <Text style={styles.menuItemText}>{t('deliveryAddresses')}</Text>
               </View>
               <ChevronRight size={20} color="#CCCCCC" />
             </TouchableOpacity>
@@ -305,7 +307,7 @@ export default function MyProfileScreen() {
                 <View style={[styles.menuIcon, { backgroundColor: '#FFF3E0' }]}>
                   <CreditCard size={20} color="#FF9800" />
                 </View>
-                <Text style={styles.menuItemText}>Payment Methods</Text>
+                <Text style={styles.menuItemText}>{t('paymentMethods')}</Text>
               </View>
               <ChevronRight size={20} color="#CCCCCC" />
             </TouchableOpacity>
@@ -315,7 +317,7 @@ export default function MyProfileScreen() {
                 <View style={[styles.menuIcon, { backgroundColor: '#F3E5F5' }]}>
                   <Bell size={20} color="#9C27B0" />
                 </View>
-                <Text style={styles.menuItemText}>Push Notifications</Text>
+                <Text style={styles.menuItemText}>{t('pushNotifications')}</Text>
               </View>
               <Switch
                 value={notificationsEnabled}
@@ -328,25 +330,25 @@ export default function MyProfileScreen() {
 
           {/* Support Section */}
           <Animated.View entering={FadeInDown.delay(400).duration(400)} style={styles.supportSection}>
-            <Text style={styles.sectionTitle}>Support</Text>
+            <Text style={styles.sectionTitle}>{t('support')}</Text>
             
             <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/help-support')}>
               <View style={styles.menuItemLeft}>
-                <Text style={styles.menuItemText}>Help & Support</Text>
+                <Text style={styles.menuItemText}>{t('helpSupport')}</Text>
               </View>
               <ChevronRight size={20} color="#CCCCCC" />
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/terms-conditions')}>
               <View style={styles.menuItemLeft}>
-                <Text style={styles.menuItemText}>Terms & Conditions</Text>
+                <Text style={styles.menuItemText}>{t('termsConditions')}</Text>
               </View>
               <ChevronRight size={20} color="#CCCCCC" />
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/privacy-policy')}>
               <View style={styles.menuItemLeft}>
-                <Text style={styles.menuItemText}>Privacy Policy</Text>
+                <Text style={styles.menuItemText}>{t('privacyPolicy')}</Text>
               </View>
               <ChevronRight size={20} color="#CCCCCC" />
             </TouchableOpacity>
@@ -371,7 +373,7 @@ export default function MyProfileScreen() {
                 <LogOut size={20} color="#F44336" />
               )}
               <Text style={styles.logoutButtonText}>
-                {isLoggingOut ? 'Logging out...' : 'Logout'}
+                {isLoggingOut ? t('loggingOut') : t('logout')}
               </Text>
             </TouchableOpacity>
             

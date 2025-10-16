@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Star, X } from 'lucide-react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 interface RatingModalProps {
   visible: boolean;
@@ -12,6 +13,7 @@ interface RatingModalProps {
 }
 
 export const RatingModal = ({ visible, mealName, restaurantName, onClose, onSubmit }: RatingModalProps) => {
+  const { t } = useTranslation('common');
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -55,7 +57,7 @@ export const RatingModal = ({ visible, mealName, restaurantName, onClose, onSubm
             style={styles.modalContent}
           >
             <View style={styles.header}>
-              <Text style={styles.title}>Rate Your Meal</Text>
+              <Text style={styles.title}>{t('rateYourMeal')}</Text>
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                 <X size={24} color="#333333" />
               </TouchableOpacity>
@@ -67,7 +69,7 @@ export const RatingModal = ({ visible, mealName, restaurantName, onClose, onSubm
             </View>
             
             <View style={styles.ratingContainer}>
-              <Text style={styles.ratingPrompt}>How was your meal?</Text>
+              <Text style={styles.ratingPrompt}>{t('howWasYourMeal')}</Text>
               
               <View style={styles.starsContainer}>
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -86,19 +88,19 @@ export const RatingModal = ({ visible, mealName, restaurantName, onClose, onSubm
               </View>
               
               <Text style={styles.ratingLabel}>
-                {rating === 0 ? 'Tap to rate' : 
-                  rating === 1 ? 'Poor' : 
-                  rating === 2 ? 'Fair' :
-                  rating === 3 ? 'Good' :
-                  rating === 4 ? 'Very Good' : 'Excellent'}
+                {rating === 0 ? t('tapToRate') : 
+                  rating === 1 ? t('poor') : 
+                  rating === 2 ? t('fair') :
+                  rating === 3 ? t('good') :
+                  rating === 4 ? t('veryGood') : t('excellent')}
               </Text>
             </View>
             
             <View style={styles.commentContainer}>
-              <Text style={styles.commentLabel}>Add a comment (optional)</Text>
+              <Text style={styles.commentLabel}>{t('addCommentOptional')}</Text>
               <TextInput
                 style={styles.commentInput}
-                placeholder="Tell us what you liked or didn't like..."
+                placeholder={t('tellUsWhatYouLiked')}
                 multiline
                 numberOfLines={4}
                 maxLength={250}
@@ -117,7 +119,7 @@ export const RatingModal = ({ visible, mealName, restaurantName, onClose, onSubm
               disabled={rating === 0 || submitting}
             >
               <Text style={styles.submitButtonText}>
-                {submitting ? 'Submitting...' : 'Submit Rating'}
+                {submitting ? t('submitting') : t('submitRating')}
               </Text>
             </TouchableOpacity>
           </Animated.View>

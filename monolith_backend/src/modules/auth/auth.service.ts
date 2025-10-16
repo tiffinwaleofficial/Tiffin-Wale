@@ -9,13 +9,16 @@ import { JwtService } from "@nestjs/jwt";
 import { UserService } from "../user/user.service";
 import { RegisterDto } from "./dto/register.dto";
 import { RegisterPartnerDto } from "./dto/register-partner.dto";
+import { RegisterCustomerDto } from "./dto/register-customer.dto";
 import { LoginDto } from "./dto/login.dto";
 import { ChangePasswordDto } from "./dto/change-password.dto";
+import { LinkPhoneDto } from "./dto/link-phone.dto";
 import { UserRole } from "../../common/interfaces/user.interface";
 import { SubscriptionService } from "../subscription/subscription.service";
 import { CustomerProfileService } from "../customer-profile/customer-profile.service";
 import { MealService } from "../meal/meal.service";
 import { PartnerService } from "../partner/partner.service";
+import { EmailService } from "../email/email.service";
 
 @Injectable()
 export class AuthService {
@@ -26,6 +29,7 @@ export class AuthService {
     private readonly customerProfileService: CustomerProfileService,
     private readonly mealService: MealService,
     private readonly partnerService: PartnerService,
+    private readonly emailService: EmailService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -92,6 +96,19 @@ export class AuthService {
       }
 
       const user = await this.userService.create(registerDto);
+
+      // Send welcome email (non-blocking)
+      this.emailService
+        .sendWelcomeEmail(user._id.toString(), {
+          name:
+            `${user.firstName || ""} ${user.lastName || ""}`.trim() || "User",
+          email: user.email,
+          role: user.role,
+        })
+        .catch((error) => {
+          console.error("Failed to send welcome email:", error);
+        });
+
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password: _password, ...result } = user.toObject();
       return this.generateToken(result);
@@ -199,6 +216,94 @@ export class AuthService {
           "Partner registration failed. Please check your information and try again.",
       );
     }
+  }
+
+  async registerCustomer(registerCustomerDto: RegisterCustomerDto) {
+    try {
+      // Check if user with email already exists
+      const existingUserByEmail = await this.userService.findByEmailSafe(
+        registerCustomerDto.email,
+      );
+      if (existingUserByEmail) {
+        throw new ConflictException("Email already in use");
+      }
+
+      // Check if user with phone number already exists
+      const existingUserByPhone = await this.userService.findByPhoneNumber(
+        registerCustomerDto.phoneNumber,
+      );
+      if (existingUserByPhone) {
+        throw new ConflictException("Phone number already in use");
+      }
+
+      // Create user with customer role
+      const userData = {
+        email: registerCustomerDto.email,
+        role: UserRole.CUSTOMER,
+        firstName: registerCustomerDto.firstName,
+        lastName: registerCustomerDto.lastName,
+        phoneNumber: registerCustomerDto.phoneNumber,
+        isActive: true,
+        // Note: firebaseUid will be set during phone login
+      };
+
+      const user = await this.userService.create(userData);
+
+      // Create customer profile with onboarding data
+      const customerProfileData = {
+        user: user._id,
+        city: registerCustomerDto.address.city,
+        college: "", // Can be added later
+        branch: "", // Can be added later
+        graduationYear: new Date().getFullYear() + 2, // Default to 2 years from now
+        dietaryPreferences: [registerCustomerDto.dietaryType],
+        favoriteCuisines: registerCustomerDto.cuisinePreferences,
+        preferredPaymentMethods: [],
+        deliveryAddresses: [
+          {
+            name: registerCustomerDto.addressType,
+            street: registerCustomerDto.address.street,
+            city: registerCustomerDto.address.city,
+            state: "Maharashtra", // Default state, can be updated later
+            postalCode: registerCustomerDto.address.pincode,
+            country: "India", // Default country
+            isDefault: true,
+          },
+        ],
+      };
+
+      await this.customerProfileService.create(customerProfileData);
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password: _password, ...result } = user.toObject();
+      return this.generateToken(result);
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+
+      // Prevent leaking database errors
+      if (error.message && error.message.includes("not found")) {
+        throw new BadRequestException(
+          "Registration failed. Please check your information and try again.",
+        );
+      }
+
+      console.error(
+        "❌ AuthService.registerCustomer: Registration error:",
+        error,
+      );
+      throw new BadRequestException(
+        "Registration failed. Please try again later.",
+      );
+    }
+  }
+
+  private generateReferralCode(userId: string): string {
+    // Generate a simple referral code based on user ID and timestamp
+    const timestamp = Date.now().toString(36);
+    const userIdPart = userId.slice(-4);
+    return `TW${userIdPart}${timestamp}`.toUpperCase();
   }
 
   async registerSuperAdmin(registerDto: RegisterDto) {
@@ -478,5 +583,105 @@ export class AuthService {
         },
       },
     };
+  }
+
+  async checkPhoneExists(phoneNumber: string) {
+    try {
+      const user = await this.userService.findByPhoneNumber(phoneNumber);
+      return {
+        exists: !!user,
+        userId: user?._id || null,
+      };
+    } catch (error) {
+      console.error("Error checking phone existence:", error);
+      return {
+        exists: false,
+        userId: null,
+      };
+    }
+  }
+
+  async loginWithPhone(phoneNumber: string, firebaseUid: string) {
+    try {
+      // Find user by phone number
+      const user = await this.userService.findByPhoneNumber(phoneNumber);
+
+      if (!user) {
+        throw new NotFoundException("User not found with this phone number");
+      }
+
+      if (!user.isActive) {
+        throw new UnauthorizedException(
+          "Your account has been deactivated. Please contact support.",
+        );
+      }
+
+      // Store Firebase UID for future reference (optional)
+      if (!user.firebaseUid) {
+        await this.userService.updateFirebaseUid(user._id, firebaseUid);
+      }
+
+      return this.generateToken(user);
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof UnauthorizedException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException("Phone login failed. Please try again.");
+    }
+  }
+
+  async linkPhoneToAccount(linkPhoneDto: LinkPhoneDto) {
+    try {
+      const { email, password, phoneNumber, firebaseUid } = linkPhoneDto;
+
+      // Validate user credentials
+      const user = await this.validateUser(email, password);
+      if (!user) {
+        throw new UnauthorizedException("Invalid email or password");
+      }
+
+      // Check if phone number is already in use by another user
+      const existingPhoneUser =
+        await this.userService.findByPhoneNumber(phoneNumber);
+      if (
+        existingPhoneUser &&
+        existingPhoneUser._id.toString() !== user._id.toString()
+      ) {
+        throw new ConflictException(
+          "Phone number is already linked to another account",
+        );
+      }
+
+      // Update user with phone number and Firebase UID
+      const updatedUser = await this.userService.update(user._id, {
+        phoneNumber,
+        firebaseUid,
+      });
+
+      return {
+        message: "Phone number linked successfully",
+        user: {
+          id: updatedUser._id,
+          email: updatedUser.email,
+          phoneNumber: updatedUser.phoneNumber,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          role: updatedUser.role,
+        },
+      };
+    } catch (error) {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof ConflictException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException(
+        "Failed to link phone number. Please try again.",
+      );
+    }
   }
 }

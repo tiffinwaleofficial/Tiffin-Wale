@@ -8,6 +8,7 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useChatStore } from '../store/chatStore';
 import { Conversation } from '../services/chatService';
 import { useNotification } from '../hooks/useNotification';
@@ -18,6 +19,7 @@ interface ChatListProps {
 }
 
 export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation, onCreateSupportChat }) => {
+  const { t } = useTranslation('common');
   const {
     conversations,
     isLoading,
@@ -55,7 +57,7 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation, onCrea
       onSelectConversation(conversation);
     } catch (error) {
       console.error('Error creating support chat:', error);
-      showError('Failed to create support chat');
+      showError(t('failedToCreateSupportChat'));
     }
   };
 
@@ -65,20 +67,20 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation, onCrea
       onSelectConversation(conversation);
     } catch (error) {
       console.error('Error creating restaurant chat:', error);
-      showError('Failed to create restaurant chat');
+      showError(t('failedToCreateRestaurantChat'));
     }
   };
 
   const getConversationTitle = (conversation: Conversation): string => {
     switch (conversation.type) {
       case 'support':
-        return 'Customer Support';
+        return t('customerSupport');
       case 'restaurant':
-        return conversation.participants.find(p => p.type === 'restaurant')?.name || 'Restaurant';
+        return conversation.participants.find(p => p.type === 'restaurant')?.name || t('restaurant');
       case 'group_order':
-        return `Group Order - ${conversation.metadata?.orderId || 'Unknown'}`;
+        return `${t('groupOrder')} - ${conversation.metadata?.orderId || t('unknown')}`;
       default:
-        return 'Chat';
+        return t('chat');
     }
   };
 
@@ -89,15 +91,15 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation, onCrea
       if (messageType === 'text') {
         return `${senderName}: ${content}`;
       } else if (messageType === 'image') {
-        return `${senderName}: 📷 Image`;
+        return `${senderName}: ${t('image')}`;
       } else if (messageType === 'video') {
-        return `${senderName}: 🎥 Video`;
+        return `${senderName}: ${t('video')}`;
       } else if (messageType === 'file') {
-        return `${senderName}: 📄 File`;
+        return `${senderName}: ${t('file')}`;
       }
     }
     
-    return 'No messages yet';
+    return t('noMessagesYet');
   };
 
   const getConversationIcon = (conversation: Conversation): string => {
@@ -172,19 +174,19 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation, onCrea
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Text style={styles.emptyStateIcon}>💬</Text>
-      <Text style={styles.emptyStateTitle}>No Conversations</Text>
+      <Text style={styles.emptyStateTitle}>{t('noConversations')}</Text>
       <Text style={styles.emptyStateSubtitle}>
-        Start a conversation with support or a restaurant
+        {t('startConversationWithSupport')}
       </Text>
       <TouchableOpacity style={styles.startChatButton} onPress={handleCreateSupportChat}>
-        <Text style={styles.startChatButtonText}>Start Support Chat</Text>
+        <Text style={styles.startChatButtonText}>{t('startSupportChat')}</Text>
       </TouchableOpacity>
     </View>
   );
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <Text style={styles.headerTitle}>Messages</Text>
+      <Text style={styles.headerTitle}>{t('messages')}</Text>
       <TouchableOpacity style={styles.newChatButton} onPress={handleCreateSupportChat}>
         <Text style={styles.newChatButtonText}>+</Text>
       </TouchableOpacity>

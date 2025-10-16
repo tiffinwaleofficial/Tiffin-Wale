@@ -11,6 +11,7 @@ import { SubscriptionModule } from "../subscription/subscription.module";
 import { CustomerProfileModule } from "../customer-profile/customer-profile.module";
 import { MealModule } from "../meal/meal.module";
 import { PartnerModule } from "../partner/partner.module";
+import { EmailModule } from "../email/email.module";
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { PartnerModule } from "../partner/partner.module";
     CustomerProfileModule,
     MealModule,
     PartnerModule,
+    EmailModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({

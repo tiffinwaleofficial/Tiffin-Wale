@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   TextInput,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { usePayment } from '../hooks/usePayment';
 import { UserDetails } from '../hooks/usePayment';
 import { useNotification } from '../hooks/useNotification';
@@ -38,6 +39,7 @@ export const PaymentButton: React.FC<PaymentButtonProps> = ({
   disabled = false,
   style,
 }) => {
+  const { t } = useTranslation('common');
   const {
     isProcessing,
     error,
@@ -69,14 +71,14 @@ export const PaymentButton: React.FC<PaymentButtonProps> = ({
       switch (paymentType) {
         case 'order':
           if (!orderId) {
-            throw new Error('Order ID is required for order payment');
+            throw new Error(t('orderIdRequired'));
           }
           result = await handleOrderPayment(orderId, amount, userDetails);
           break;
 
         case 'subscription':
           if (!planId) {
-            throw new Error('Plan ID is required for subscription payment');
+            throw new Error(t('planIdRequired'));
           }
           result = await handleSubscriptionPayment(planId, amount, userDetails);
           break;
@@ -86,14 +88,14 @@ export const PaymentButton: React.FC<PaymentButtonProps> = ({
           break;
 
         default:
-          throw new Error('Invalid payment type');
+          throw new Error(t('invalidPaymentType'));
       }
 
       onPaymentSuccess?.(result);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Payment failed';
+      const errorMessage = error instanceof Error ? error.message : t('paymentFailed');
       
-      if (errorMessage === 'Payment cancelled by user') {
+      if (errorMessage === t('paymentCancelledByUser')) {
         onPaymentCancelled?.();
       } else {
         onPaymentError?.(errorMessage);
@@ -108,13 +110,13 @@ export const PaymentButton: React.FC<PaymentButtonProps> = ({
     
     switch (paymentType) {
       case 'order':
-        return `Pay ₹${amount}`;
+        return `${t('pay')} ₹${amount}`;
       case 'subscription':
-        return `Subscribe ₹${amount}`;
+        return `${t('subscribe')} ₹${amount}`;
       case 'wallet_topup':
-        return `Top Up ₹${amount}`;
+        return `${t('topUp')} ₹${amount}`;
       default:
-        return `Pay ₹${amount}`;
+        return `${t('pay')} ₹${amount}`;
     }
   };
 
@@ -161,13 +163,13 @@ export const WalletTopUpForm: React.FC<WalletTopUpFormProps> = ({
     if (topUpAmount && topUpAmount > 0) {
       onTopUp(topUpAmount);
     } else {
-      warning('Please enter a valid amount');
+      warning(t('pleaseEnterValidAmount'));
     }
   };
 
   return (
     <View style={styles.walletForm}>
-      <Text style={styles.formTitle}>Top Up Wallet</Text>
+      <Text style={styles.formTitle}>{t('topUpWallet')}</Text>
       
       <View style={styles.predefinedAmounts}>
         {predefinedAmounts.map((predefinedAmount) => (
@@ -194,11 +196,11 @@ export const WalletTopUpForm: React.FC<WalletTopUpFormProps> = ({
         ))}
       </View>
 
-      <Text style={styles.orText}>OR</Text>
+      <Text style={styles.orText}>{t('or')}</Text>
 
       <TextInput
         style={styles.amountInput}
-        placeholder="Enter custom amount"
+        placeholder={t('enterCustomAmount')}
         value={amount}
         onChangeText={setAmount}
         keyboardType="numeric"
@@ -217,7 +219,7 @@ export const WalletTopUpForm: React.FC<WalletTopUpFormProps> = ({
           <ActivityIndicator color="#FFFFFF" size="small" />
         ) : (
           <Text style={styles.topUpButtonText}>
-            Top Up ₹{selectedAmount || amount || '0'}
+            {t('topUp')} ₹{selectedAmount || amount || '0'}
           </Text>
         )}
       </TouchableOpacity>
@@ -260,11 +262,11 @@ export const PaymentStatus: React.FC<PaymentStatusProps> = ({
       case 'failed':
         return 'Payment Failed';
       case 'pending':
-        return 'Payment Pending';
+        return t('paymentPending');
       case 'processing':
-        return 'Processing Payment';
+        return t('processingPayment');
       case 'cancelled':
-        return 'Payment Cancelled';
+        return t('paymentCancelled');
       case 'refunded':
         return 'Payment Refunded';
       default:

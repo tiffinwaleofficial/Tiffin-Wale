@@ -30,10 +30,10 @@ async function bootstrap() {
     exclude: ["/"], // Exclude root path from global prefix
   });
 
-  // Enable CORS
+  // Enable CORS - Allow all origins for development and production
   app.enableCors({
-    origin: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    origin: true, // Allow all origins
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
     credentials: true,
     allowedHeaders: [
       "Origin",
@@ -41,9 +41,19 @@ async function bootstrap() {
       "Content-Type",
       "Accept",
       "Authorization",
+      "Cache-Control",
+      "Pragma",
+      "Expires",
+      "X-Forwarded-For",
+      "X-Real-IP",
+      "User-Agent",
+      "Referer",
     ],
+    exposedHeaders: ["Authorization", "Content-Length", "X-Requested-With"],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
-  logger.log("CORS configured for frontend domains");
+  logger.log("CORS configured to allow all origins and comprehensive headers");
 
   // Serve static files
   app.useStaticAssets(join(__dirname, "..", "public"));
@@ -113,6 +123,10 @@ async function bootstrap() {
   );
 
   logger.log("Swagger documentation configured");
+
+  // Note: Vercel Analytics for server-side is handled via middleware
+  // The analytics tracking is implemented in AnalyticsMiddleware
+  logger.log("Analytics middleware configured for API tracking");
 
   // Start the server - Directly read from process.env.PORT to ensure Cloud Run compatibility
   // Cloud Run injects the PORT environment variable

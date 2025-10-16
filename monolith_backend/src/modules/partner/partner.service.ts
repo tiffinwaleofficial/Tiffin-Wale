@@ -7,6 +7,7 @@ import { Feedback } from "../feedback/schemas/feedback.schema";
 import { Order } from "../order/schemas/order.schema";
 import { CreatePartnerDto } from "./dto/create-partner.dto";
 import { UpdatePartnerDto } from "./dto/update-partner.dto";
+import { EmailService } from "../email/email.service";
 
 interface PartnerFilters {
   cuisineType?: string;
@@ -21,11 +22,19 @@ export class PartnerService {
     @InjectModel(MenuItem.name) private menuItemModel: Model<MenuItem>,
     @InjectModel(Feedback.name) private feedbackModel: Model<Feedback>,
     @InjectModel(Order.name) private orderModel: Model<Order>,
+    private readonly emailService: EmailService,
   ) {}
 
   async create(createPartnerDto: CreatePartnerDto): Promise<Partner> {
     const createdPartner = new this.partnerModel(createPartnerDto);
-    return createdPartner.save();
+    const savedPartner = await createdPartner.save();
+
+    // Send partner welcome email (non-blocking)
+    this.sendPartnerWelcomeEmail(savedPartner).catch((error) => {
+      console.error("Failed to send partner welcome email:", error);
+    });
+
+    return savedPartner;
   }
 
   async findAll(filters: PartnerFilters = {}): Promise<Partner[]> {
@@ -132,5 +141,55 @@ export class PartnerService {
     }
 
     return { deleted: true };
+  }
+
+  // Email helper methods for partner notifications
+  private async sendPartnerWelcomeEmail(partner: any): Promise<void> {
+    try {
+      await this.emailService.sendPartnerWelcomeEmail({
+        name: partner.name || partner.ownerName || "Partner",
+        email: partner.email || partner.contactEmail,
+        businessName: partner.businessName || partner.name,
+        partnerId: partner._id.toString(),
+      });
+    } catch (error) {
+      console.error("Partner welcome email service error:", error);
+    }
+  }
+
+  async sendNewOrderNotification(orderData: {
+    partnerEmail: string;
+    partnerName: string;
+    orderNumber: string;
+    customerName: string;
+    items: Array<{ name: string; quantity: number }>;
+    deliveryTime: string;
+    totalAmount: number;
+  }): Promise<void> {
+    try {
+      await this.emailService.sendPartnerOrderNotification(orderData);
+    } catch (error) {
+      console.error("Failed to send new order notification email:", error);
+    }
+  }
+
+  async sendEarningsSummary(partnerData: {
+    partnerEmail: string;
+    partnerName: string;
+    period: string;
+    totalEarnings: number;
+    totalOrders: number;
+    averageOrderValue: number;
+  }): Promise<void> {
+    try {
+      // This would integrate with your earnings calculation logic
+      console.log(
+        "Earnings summary email would be sent to:",
+        partnerData.partnerEmail,
+      );
+      // await this.emailService.sendEarningsSummary(partnerData);
+    } catch (error) {
+      console.error("Failed to send earnings summary email:", error);
+    }
   }
 }

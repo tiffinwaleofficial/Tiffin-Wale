@@ -5,11 +5,13 @@ import { CheckCircle, Home, FileText, Gift, Star, Clock, Shield, Truck, Heart } 
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useAuthStore } from '@/store/authStore';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function CheckoutSuccessScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { currentSubscription } = useSubscriptionStore();
+  const { t } = useTranslation('subscription');
   const [planDetails, setPlanDetails] = useState<any>(null);
 
   useEffect(() => {
@@ -30,33 +32,33 @@ export default function CheckoutSuccessScreen() {
   const perks = [
     {
       icon: <Star size={24} color="#FFB800" />,
-      title: "Premium Quality Meals",
-      description: "Fresh, healthy meals prepared by top-rated restaurants"
+      title: t('premiumQualityMeals'),
+      description: t('premiumQualityMealsDesc')
     },
     {
       icon: <Truck size={24} color="#4CAF50" />,
-      title: "Free Delivery",
-      description: "No delivery charges on any of your meals"
+      title: t('freeDelivery'),
+      description: t('freeDeliveryDesc')
     },
     {
       icon: <Clock size={24} color="#2196F3" />,
-      title: "Flexible Timing",
-      description: "Choose your preferred delivery time slots"
+      title: t('flexibleTiming'),
+      description: t('flexibleTimingDesc')
     },
     {
       icon: <Shield size={24} color="#9C27B0" />,
-      title: "Hygiene Guaranteed",
-      description: "100% hygienic preparation and packaging"
+      title: t('hygieneGuaranteed'),
+      description: t('hygieneGuaranteedDesc')
     },
     {
       icon: <Heart size={24} color="#E91E63" />,
-      title: "Nutritionist Approved",
-      description: "All meals are balanced and nutritionist approved"
+      title: t('nutritionistApproved'),
+      description: t('nutritionistApprovedDesc')
     },
     {
       icon: <Gift size={24} color="#FF5722" />,
-      title: "Special Rewards",
-      description: "Earn points and get exclusive discounts"
+      title: t('specialRewards'),
+      description: t('specialRewardsDesc')
     }
   ];
 
@@ -76,10 +78,10 @@ export default function CheckoutSuccessScreen() {
           entering={FadeInDown.delay(200).duration(600)}
           style={styles.messageContainer}
         >
-          <Text style={styles.title}>Subscription Activated!</Text>
+          <Text style={styles.title}>{t('subscriptionActivated')}</Text>
           <Text style={styles.subtitle}>
-            Welcome to TiffinWale, {user?.firstName || user?.name || 'Food Lover'}! 🎉{'\n'}
-            Your subscription has been successfully activated and you're all set for delicious meals.
+            {t('welcomeToTiffinWale', { name: user?.firstName || user?.name || t('foodLover') })}{'\n'}
+            {t('subscriptionActivatedSubtitle')}
           </Text>
         </Animated.View>
 
@@ -88,7 +90,7 @@ export default function CheckoutSuccessScreen() {
           entering={FadeInDown.delay(400).duration(600)}
           style={styles.perksContainer}
         >
-          <Text style={styles.perksTitle}>🎁 What You Get With Your Subscription</Text>
+          <Text style={styles.perksTitle}>{t('whatYouGetWithSubscription')}</Text>
           <View style={styles.perksGrid}>
             {perks.map((perk, index) => (
               <Animated.View
@@ -112,22 +114,16 @@ export default function CheckoutSuccessScreen() {
           style={styles.infoContainer}
         >
           <View style={styles.infoCard}>
-            <Text style={styles.infoTitle}>🚀 What's Next?</Text>
+            <Text style={styles.infoTitle}>{t('whatsNext')}</Text>
             <Text style={styles.infoText}>
-              • Check your profile to view detailed subscription information{'\n'}
-              • Browse today's meals on your personalized dashboard{'\n'}
-              • Rate and review meals to help us serve you better{'\n'}
-              • Pause or modify your subscription anytime{'\n'}
-              • Contact support for any assistance 24/7
+              {t('whatsNextText')}
             </Text>
           </View>
 
           <View style={[styles.infoCard, styles.highlightCard]}>
-            <Text style={styles.highlightTitle}>🎉 Welcome to the Family!</Text>
+            <Text style={styles.highlightTitle}>{t('welcomeToFamily')}</Text>
             <Text style={styles.highlightText}>
-              You're now part of the TiffinWale family with over 10,000+ happy customers. 
-              Get ready for an amazing culinary journey with fresh, healthy, and delicious meals 
-              delivered right to your doorstep!
+              {t('welcomeToFamilyText')}
             </Text>
           </View>
         </Animated.View>
@@ -142,7 +138,7 @@ export default function CheckoutSuccessScreen() {
             onPress={() => router.replace('/dashboard')}
           >
             <Home size={20} color="#FFFFFF" />
-            <Text style={styles.primaryButtonText}>Go to Dashboard</Text>
+            <Text style={styles.primaryButtonText}>{t('goToDashboard')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 

@@ -12,7 +12,7 @@ export default function IndexScreen() {
       if (isAuthenticated) {
         router.replace('/(tabs)/dashboard');
       } else {
-        router.replace('/(auth)/login');
+        router.replace('/(auth)/phone-input');
       }
     }
   }, [isAuthenticated, isInitialized]);

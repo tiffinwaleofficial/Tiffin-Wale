@@ -6,12 +6,14 @@ import {
   CreatePaymentMethodDto,
   UpdatePaymentMethodDto,
 } from "./dtos/payment-method.dto";
+import { EmailService } from "../email/email.service";
 
 @Injectable()
 export class PaymentService {
   constructor(
     @InjectModel(PaymentMethod.name)
     private paymentMethodModel: Model<PaymentMethod>,
+    private readonly emailService: EmailService,
   ) {}
 
   async createPaymentMethod(
@@ -85,5 +87,43 @@ export class PaymentService {
 
     // Set this payment method as default
     return this.updatePaymentMethod(id, { isDefault: true });
+  }
+
+  // Email helper methods for payment notifications
+  async sendPaymentSuccessEmail(paymentData: {
+    customerName: string;
+    customerEmail: string;
+    amount: number;
+    paymentId: string;
+    orderNumber?: string;
+    subscriptionId?: string;
+    paymentMethod?: string;
+  }): Promise<void> {
+    try {
+      await this.emailService.sendPaymentConfirmation({
+        customerEmail: paymentData.customerEmail,
+        customerName: paymentData.customerName,
+        amount: paymentData.amount,
+        paymentId: paymentData.paymentId,
+        orderNumber: paymentData.orderNumber,
+        subscriptionId: paymentData.subscriptionId,
+      });
+    } catch (error) {
+      console.error("Failed to send payment success email:", error);
+    }
+  }
+
+  async sendPaymentFailureEmail(paymentData: {
+    customerName: string;
+    customerEmail: string;
+    amount: number;
+    reason: string;
+    retryUrl: string;
+  }): Promise<void> {
+    try {
+      await this.emailService.sendPaymentFailure(paymentData);
+    } catch (error) {
+      console.error("Failed to send payment failure email:", error);
+    }
   }
 }

@@ -15,6 +15,8 @@ import { Plus, Minus, ShoppingCart } from 'lucide-react-native';
 import api from '@/utils/apiClient';
 import { useAuthStore } from '@/store/authStore';
 import { useNotification } from '@/hooks/useNotification';
+import { BackButton } from '@/components/BackButton';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface MenuItem {
   id: string;
@@ -34,6 +36,7 @@ interface CartItem extends MenuItem {
 
 export default function AddOrderScreen() {
   const router = useRouter();
+  const { t } = useTranslation('orders');
   const { user } = useAuthStore();
   const { showError, success, warning } = useNotification();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -221,7 +224,7 @@ export default function AddOrderScreen() {
       {/* Header */}
       <View style={styles.header}>
         <BackButton />
-        <Text style={styles.headerTitle}>Add Order</Text>
+        <Text style={styles.headerTitle}>{t('addOrder')}</Text>
         <View style={styles.cartIconContainer}>
           <TouchableOpacity 
             style={styles.cartButton}
@@ -338,11 +341,11 @@ export default function AddOrderScreen() {
         <View style={styles.cartSummary}>
           <View style={styles.cartSummaryContent}>
             <View>
-              <Text style={styles.cartItemsCount}>{cartItems.length} items</Text>
+              <Text style={styles.cartItemsCount}>{cartItems.length} {t('items')}</Text>
               <Text style={styles.cartTotal}>₹{getTotalAmount()}</Text>
             </View>
             <TouchableOpacity style={styles.placeOrderButton} onPress={handlePlaceOrder}>
-              <Text style={styles.placeOrderText}>Place Order</Text>
+              <Text style={styles.placeOrderText}>{t('placeOrder')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -358,7 +361,7 @@ export default function AddOrderScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.cartModal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Your Cart</Text>
+              <Text style={styles.modalTitle}>{t('yourCart')}</Text>
               <TouchableOpacity onPress={() => setShowCartModal(false)}>
                 <Text style={styles.closeButton}>✕</Text>
               </TouchableOpacity>
@@ -367,7 +370,7 @@ export default function AddOrderScreen() {
             {cartItems.length === 0 ? (
               <View style={styles.emptyCart}>
                 <ShoppingCart size={48} color="#CCCCCC" />
-                <Text style={styles.emptyCartText}>Your cart is empty</Text>
+                <Text style={styles.emptyCartText}>{t('yourCartIsEmpty')}</Text>
               </View>
             ) : (
               <>
@@ -400,7 +403,7 @@ export default function AddOrderScreen() {
                 
                 <View style={styles.cartModalFooter}>
                   <View style={styles.cartModalTotal}>
-                    <Text style={styles.cartModalTotalText}>Total: ₹{getTotalAmount()}</Text>
+                    <Text style={styles.cartModalTotalText}>{t('total')}: ₹{getTotalAmount()}</Text>
                   </View>
                   <TouchableOpacity 
                     style={styles.cartModalPlaceOrder}
@@ -409,7 +412,7 @@ export default function AddOrderScreen() {
                       handlePlaceOrder();
                     }}
                   >
-                    <Text style={styles.cartModalPlaceOrderText}>Place Order</Text>
+                    <Text style={styles.cartModalPlaceOrderText}>{t('placeOrder')}</Text>
                   </TouchableOpacity>
                 </View>
               </>

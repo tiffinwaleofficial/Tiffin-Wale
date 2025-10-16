@@ -20,6 +20,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useAuthStore } from '@/store/authStore';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { useNotification } from '@/hooks/useNotification';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function SubscriptionDetailsScreen() {
   const router = useRouter();

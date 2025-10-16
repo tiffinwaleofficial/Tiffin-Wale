@@ -2,9 +2,11 @@ import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export const NoSubscriptionDashboard = () => {
   const router = useRouter();
+  const { t } = useTranslation('subscription');
 
   return (
     <View style={styles.noSubscriptionContainer}>
@@ -12,15 +14,15 @@ export const NoSubscriptionDashboard = () => {
         source={{ uri: 'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2' }} 
         style={styles.noSubscriptionImage}
       />
-      <Text style={styles.noSubscriptionTitle}>No Active Subscription</Text>
+      <Text style={styles.noSubscriptionTitle}>{t('noActiveSubscription')}</Text>
       <Text style={styles.noSubscriptionText}>
-        Subscribe to a meal plan to enjoy delicious food delivered daily to your doorstep.
+        {t('subscribeToPlan')}
       </Text>
       <TouchableOpacity 
         style={styles.subscribeButton}
         onPress={() => router.push('/plans')}
       >
-        <Text style={styles.subscribeButtonText}>Browse Plans</Text>
+        <Text style={styles.subscribeButtonText}>{t('browsePlans')}</Text>
       </TouchableOpacity>
     </View>
   );

@@ -3,9 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityInd
 import { useRouter } from 'expo-router';
 import { Eye, EyeOff } from 'lucide-react-native';
 import api from '@/utils/apiClient';
+import { BackButton } from '@/components/BackButton';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
+  const { t } = useTranslation('profile');
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -16,21 +19,21 @@ export default function ChangePasswordScreen() {
 
   const handleChangePassword = async () => {
     if (!oldPassword || !newPassword || !confirmPassword) {
-      Alert.alert('All fields required', 'Please fill in all password fields.');
+      Alert.alert(t('allFieldsRequired'), t('pleaseFillAllPasswordFields'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert('Passwords mismatch', 'The new passwords do not match.');
+      Alert.alert(t('passwordsMismatch'), t('newPasswordsDoNotMatch'));
       return;
     }
     setIsLoading(true);
     try {
       await api.auth.changePassword(oldPassword, newPassword);
-      Alert.alert('Success', 'Your password has been changed successfully.');
+      Alert.alert(t('success'), t('passwordChangedSuccessfully'));
       router.back();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
-      Alert.alert('Error', errorMessage);
+      const errorMessage = error instanceof Error ? error.message : t('passwordChangeError');
+      Alert.alert(t('error'), errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -40,11 +43,11 @@ export default function ChangePasswordScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <BackButton />
-        <Text style={styles.headerTitle}>Change Password</Text>
+        <Text style={styles.headerTitle}>{t('changePasswordTitle')}</Text>
       </View>
       <View style={styles.content}>
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Old Password</Text>
+          <Text style={styles.label}>{t('oldPassword')}</Text>
           <View style={styles.passwordContainer}>
             <TextInput
               style={styles.input}
@@ -58,7 +61,7 @@ export default function ChangePasswordScreen() {
           </View>
         </View>
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>New Password</Text>
+          <Text style={styles.label}>{t('newPassword')}</Text>
           <View style={styles.passwordContainer}>
             <TextInput
               style={styles.input}
@@ -72,7 +75,7 @@ export default function ChangePasswordScreen() {
           </View>
         </View>
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Confirm New Password</Text>
+          <Text style={styles.label}>{t('confirmNewPassword')}</Text>
           <View style={styles.passwordContainer}>
             <TextInput
               style={styles.input}
@@ -86,7 +89,7 @@ export default function ChangePasswordScreen() {
           </View>
         </View>
         <TouchableOpacity style={styles.submitButton} onPress={handleChangePassword} disabled={isLoading}>
-          {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitButtonText}>Change Password</Text>}
+          {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitButtonText}>{t('changePassword')}</Text>}
         </TouchableOpacity>
       </View>
     </View>

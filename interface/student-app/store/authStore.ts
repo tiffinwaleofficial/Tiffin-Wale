@@ -5,6 +5,8 @@ import api from '@/utils/apiClient';
 import { getErrorMessage, isNetworkError, isAuthError } from '@/utils/errorHandler';
 import { tokenManager } from '@/utils/tokenManager';
 import { nativeWebSocketService } from '@/services/nativeWebSocketService';
+import { config } from '@/config/environment';
+import i18n from '@/i18n/config';
 
 interface AuthState {
   user: CustomerProfile | null;
@@ -15,7 +17,10 @@ interface AuthState {
   isInitialized: boolean;
   isLoggingOut: boolean; // Add flag to prevent double logout
   login: (email: string, password: string) => Promise<void>;
+  loginWithPhone: (phoneNumber: string, firebaseUid: string) => Promise<void>;
+  checkUserExists: (phoneNumber: string) => Promise<boolean>;
   register: (userData: RegisterRequest) => Promise<void>;
+  registerWithOnboarding: (onboardingData: any) => Promise<void>;
   logout: () => Promise<void>;
   fetchUserProfile: () => Promise<void>;
   updateUserProfile: (data: Partial<CustomerProfile>) => Promise<void>;
@@ -140,6 +145,89 @@ export const useAuthStore = create<AuthState>((set: any, get: any) => ({
     }
   },
 
+  loginWithPhone: async (phoneNumber: string, firebaseUid: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      console.log('📱 AuthStore: Attempting phone login for:', phoneNumber);
+      
+      // Call backend API for phone login
+      const response = await fetch(`${config.apiBaseUrl}/api/auth/login-phone`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phoneNumber, firebaseUid }),
+      });
+
+      if (!response.ok) {
+        throw new Error(i18n.t('auth:phoneLoginFailed'));
+      }
+
+      const data = await response.json();
+      
+      // Handle both token formats and validate tokens exist
+      const accessToken = data.token || data.accessToken;
+      const refreshToken = data.refreshToken;
+      
+      if (!accessToken) {
+        throw new Error(i18n.t('auth:noAccessToken'));
+      }
+      
+      // Store tokens securely using TokenManager
+      await tokenManager.storeTokens(accessToken, refreshToken);
+      await tokenManager.storeUserData(data.user);
+      
+      set({ 
+        user: data.user,
+        token: accessToken,
+        isAuthenticated: true,
+        isLoading: false 
+      });
+      
+      console.log('✅ AuthStore: Phone login successful');
+      
+      // Connect WebSocket after successful login
+      try {
+        await nativeWebSocketService.connect();
+        console.log('✅ AuthStore: Native WebSocket connected after phone login');
+      } catch (wsError) {
+        console.warn('⚠️ AuthStore: Failed to connect native WebSocket after phone login:', wsError);
+      }
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      set({ 
+        error: errorMessage, 
+        isLoading: false 
+      });
+      throw error;
+    }
+  },
+
+  checkUserExists: async (phoneNumber: string): Promise<boolean> => {
+    try {
+      console.log('🔍 AuthStore: Checking if user exists for phone:', phoneNumber);
+      
+      // Call backend API to check user existence
+      const response = await fetch(`${config.apiBaseUrl}/api/auth/check-phone`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phoneNumber }),
+      });
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const data = await response.json();
+      return data.exists || false;
+    } catch (error) {
+      console.error('❌ AuthStore: Error checking user existence:', error);
+      return false;
+    }
+  },
+
   register: async (userData: RegisterRequest) => {
     console.log('🏪 AuthStore: register function called with:', userData);
     set({ isLoading: true, error: null });
@@ -159,6 +247,82 @@ export const useAuthStore = create<AuthState>((set: any, get: any) => ({
         error: errorMessage, 
         isLoading: false 
       });
+    }
+  },
+
+  registerWithOnboarding: async (onboardingData: any) => {
+    console.log('🏪 AuthStore: registerWithOnboarding called with:', onboardingData);
+    set({ isLoading: true, error: null });
+    try {
+      // Map onboarding data to registration format
+      const registrationData = {
+        // Personal info
+        firstName: onboardingData.personalInfo?.firstName,
+        lastName: onboardingData.personalInfo?.lastName,
+        email: onboardingData.personalInfo?.email,
+        phoneNumber: onboardingData.phoneVerification?.phoneNumber,
+        
+        // Food preferences
+        cuisinePreferences: onboardingData.foodPreferences?.cuisinePreferences || [],
+        dietaryType: onboardingData.foodPreferences?.dietaryType,
+        spiceLevel: onboardingData.foodPreferences?.spiceLevel || 3,
+        allergies: onboardingData.foodPreferences?.allergies || [],
+        
+        // Delivery location
+        address: onboardingData.deliveryLocation?.address,
+        addressType: onboardingData.deliveryLocation?.addressType,
+        deliveryInstructions: onboardingData.deliveryLocation?.deliveryInstructions,
+        
+        // Role
+        role: 'customer' as const,
+      };
+
+      console.log('🏪 AuthStore: Mapped registration data:', registrationData);
+      
+      // Call backend API for registration with onboarding data
+      const response = await fetch(`${config.apiBaseUrl}/api/auth/register-customer`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(registrationData),
+      });
+
+      if (!response.ok) {
+        throw new Error(i18n.t('auth:registrationFailed'));
+      }
+
+      const data = await response.json();
+      
+      // Store tokens securely using TokenManager (handle both token formats)
+      const accessToken = data.token || data.accessToken;
+      await tokenManager.storeTokens(accessToken, data.refreshToken);
+      await tokenManager.storeUserData(data.user);
+      
+      set({ 
+        user: data.user,
+        token: accessToken,
+        isAuthenticated: true,
+        isLoading: false 
+      });
+      
+      console.log('✅ AuthStore: Registration with onboarding successful');
+      
+      // Connect WebSocket after successful registration
+      try {
+        await nativeWebSocketService.connect();
+        console.log('✅ AuthStore: Native WebSocket connected after registration');
+      } catch (wsError) {
+        console.warn('⚠️ AuthStore: Failed to connect native WebSocket after registration:', wsError);
+      }
+    } catch (error) {
+      console.error('❌ AuthStore: Registration with onboarding error:', error);
+      const errorMessage = getErrorMessage(error);
+      set({ 
+        error: errorMessage, 
+        isLoading: false 
+      });
+      throw error;
     }
   },
 
@@ -260,7 +424,7 @@ export const useAuthStore = create<AuthState>((set: any, get: any) => ({
         } else {
           console.log('❌ AuthStore: No user found in storage either');
           set({ 
-            error: 'User profile not found', 
+            error: i18n.t('auth:userProfileNotFound'), 
             isLoading: false 
           });
         }
@@ -282,7 +446,7 @@ export const useAuthStore = create<AuthState>((set: any, get: any) => ({
       set({ user: updatedUser, isLoading: false });
     } catch (error) {
       set({ 
-        error: error instanceof Error ? error.message : 'Failed to update profile.', 
+        error: error instanceof Error ? error.message : i18n.t('auth:updateProfileFailed'), 
         isLoading: false 
       });
     }

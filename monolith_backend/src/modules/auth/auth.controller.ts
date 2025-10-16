@@ -16,11 +16,15 @@ import {
 import { AuthService } from "./auth.service";
 import { RegisterDto } from "./dto/register.dto";
 import { RegisterPartnerDto } from "./dto/register-partner.dto";
+import { RegisterCustomerDto } from "./dto/register-customer.dto";
 import { LoginDto } from "./dto/login.dto";
 import { ChangePasswordDto } from "./dto/change-password.dto";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 
 import { RefreshTokenDto } from "./dto/refresh-token.dto";
+import { CheckPhoneDto } from "./dto/check-phone.dto";
+import { LoginPhoneDto } from "./dto/login-phone.dto";
+import { LinkPhoneDto } from "./dto/link-phone.dto";
 
 @ApiTags("auth")
 @Controller("auth")
@@ -43,6 +47,15 @@ export class AuthController {
   @ApiResponse({ status: 409, description: "Email already exists" })
   registerPartner(@Body() registerPartnerDto: RegisterPartnerDto) {
     return this.authService.registerPartner(registerPartnerDto);
+  }
+
+  @Post("register-customer")
+  @ApiOperation({ summary: "Register a new customer with onboarding data" })
+  @ApiResponse({ status: 201, description: "Customer has been registered" })
+  @ApiResponse({ status: 400, description: "Bad request" })
+  @ApiResponse({ status: 409, description: "Email or phone already exists" })
+  registerCustomer(@Body() registerCustomerDto: RegisterCustomerDto) {
+    return this.authService.registerCustomer(registerCustomerDto);
   }
 
   @Post("super-admin/register")
@@ -106,5 +119,37 @@ export class AuthController {
   @ApiResponse({ status: 400, description: "Bad request or invalid token" })
   resetPassword(@Body() body: { token: string; newPassword: string }) {
     return this.authService.resetPassword(body.token, body.newPassword);
+  }
+
+  @Post("check-phone")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Check if user exists by phone number" })
+  @ApiResponse({ status: 200, description: "Phone check completed" })
+  @ApiResponse({ status: 400, description: "Bad request" })
+  checkPhone(@Body() checkPhoneDto: CheckPhoneDto) {
+    return this.authService.checkPhoneExists(checkPhoneDto.phoneNumber);
+  }
+
+  @Post("login-phone")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Login with phone number and Firebase UID" })
+  @ApiResponse({ status: 200, description: "Phone login successful" })
+  @ApiResponse({ status: 401, description: "Unauthorized" })
+  @ApiResponse({ status: 404, description: "User not found" })
+  loginPhone(@Body() loginPhoneDto: LoginPhoneDto) {
+    return this.authService.loginWithPhone(
+      loginPhoneDto.phoneNumber,
+      loginPhoneDto.firebaseUid,
+    );
+  }
+
+  @Post("link-phone")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Link phone number to existing email account" })
+  @ApiResponse({ status: 200, description: "Phone number linked successfully" })
+  @ApiResponse({ status: 401, description: "Invalid credentials" })
+  @ApiResponse({ status: 409, description: "Phone number already in use" })
+  linkPhone(@Body() linkPhoneDto: LinkPhoneDto) {
+    return this.authService.linkPhoneToAccount(linkPhoneDto);
   }
 }

@@ -9,6 +9,7 @@ import { OrderModule } from "../order/order.module";
 import { MenuItem, MenuItemSchema } from "../menu/schemas/menu-item.schema";
 import { Feedback, FeedbackSchema } from "../feedback/schemas/feedback.schema";
 import { Order, OrderSchema } from "../order/schemas/order.schema";
+import { EmailModule } from "../email/email.module";
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { Order, OrderSchema } from "../order/schemas/order.schema";
     MenuModule,
     FeedbackModule,
     OrderModule,
+    EmailModule,
   ],
   controllers: [PartnerController],
   providers: [PartnerService],

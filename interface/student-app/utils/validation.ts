@@ -1,4 +1,6 @@
 // Password validation rules
+import { i18n } from '@/i18n/config';
+
 const PASSWORD_MIN_LENGTH = 8;
 const PASSWORD_REGEX = {
   uppercase: /[A-Z]/,
@@ -28,7 +30,7 @@ export const validatePassword = (password: string): boolean => {
 
 export const getPasswordStrength = (password: string): PasswordStrength => {
   if (!password) {
-    return { score: 0, message: 'Enter a password' };
+    return { score: 0, message: i18n.t('validation:enterPassword') };
   }
 
   let score = 0;
@@ -55,22 +57,22 @@ export const getPasswordStrength = (password: string): PasswordStrength => {
   // Set message based on score
   switch (score) {
     case 0:
-      message = 'Very weak';
+      message = i18n.t('validation:veryWeak');
       break;
     case 1:
-      message = 'Weak';
+      message = i18n.t('validation:weak');
       break;
     case 2:
-      message = 'Fair';
+      message = i18n.t('validation:fair');
       break;
     case 3:
-      message = 'Strong';
+      message = i18n.t('validation:strong');
       break;
     case 4:
-      message = 'Very strong';
+      message = i18n.t('validation:veryStrong');
       break;
     default:
-      message = 'Invalid';
+      message = i18n.t('validation:invalid');
   }
 
   return { score, message };

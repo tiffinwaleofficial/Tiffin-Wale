@@ -12,10 +12,12 @@ import { ActiveSubscriptionDashboard } from '@/components/ActiveSubscriptionDash
 import { NoSubscriptionDashboard } from '@/components/NoSubscriptionDashboard';
 import { useRestaurantStore } from '@/store/restaurantStore';
 import { Restaurant } from '@/types';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { user, isInitialized, isLoading: authLoading } = useAuthStore();
+  const { t } = useTranslation('common');
   const { 
     todayMeals, 
     isLoading: mealsLoading, 
@@ -126,7 +128,7 @@ export default function HomeScreen() {
         hour12: true 
       });
     } catch {
-      return 'Invalid time';
+      return t('invalidTime');
     }
   };
 
@@ -140,7 +142,7 @@ export default function HomeScreen() {
         day: 'numeric'
       });
     } catch {
-      return 'Invalid date';
+      return t('invalidDate');
     }
   };
 
@@ -158,12 +160,12 @@ export default function HomeScreen() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'delivered': return 'Delivered';
-      case 'preparing': return 'Preparing';
-      case 'ready': return 'Ready';
-      case 'scheduled': return 'Scheduled';
-      case 'cancelled': return 'Cancelled';
-      case 'skipped': return 'Skipped';
+      case 'delivered': return t('delivered');
+      case 'preparing': return t('preparing');
+      case 'ready': return t('ready');
+      case 'scheduled': return t('scheduled');
+      case 'cancelled': return t('cancelled');
+      case 'skipped': return t('skipped');
       default: return status;
     }
   };
@@ -174,7 +176,7 @@ export default function HomeScreen() {
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF9B42" />
-          <Text style={styles.loadingText}>Loading...</Text>
+          <Text style={styles.loadingText}>{t('loading')}</Text>
         </View>
       </View>
     );
@@ -187,12 +189,12 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={styles.greeting}>
-              {user?.name ? `Hi, ${user.name.split(' ')[0]}!` : 'Hi there!'}
+              {user?.name ? `Hi, ${user.name.split(' ')[0]}!` : t('hiThere')}
             </Text>
             <View style={styles.locationContainer}>
               <MapPin size={14} color="#666666" />
               <Text style={styles.location}>
-                {user?.address || 'Set your location'}
+                {user?.address || t('setYourLocation')}
               </Text>
             </View>
           </View>
@@ -229,7 +231,7 @@ export default function HomeScreen() {
         <Animated.View entering={FadeInDown.delay(100).duration(400)}>
           {subscriptionLoading ? (
             <View style={styles.loadingCard}>
-              <Text style={styles.loadingText}>Loading subscription...</Text>
+              <Text style={styles.loadingText}>{t('loadingSubscription')}</Text>
             </View>
           ) : currentSubscription ? (
             <>
@@ -255,7 +257,7 @@ export default function HomeScreen() {
         {/* Explore Restaurants - Only show when restaurants exist */}
         {restaurants.length > 0 && (
           <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.section}>
-            <Text style={styles.sectionTitle}>Explore Restaurants</Text>
+            <Text style={styles.sectionTitle}>{t('exploreRestaurants')}</Text>
             {restaurantsLoading ? (
               <ActivityIndicator style={{ marginTop: 20 }} size="large" color="#FF9B42" />
             ) : (
@@ -281,7 +283,7 @@ export default function HomeScreen() {
         {!currentSubscription && (
           <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Today's Meals</Text>
+            <Text style={styles.sectionTitle}>{t('todaysMeals')}</Text>
             <Text style={styles.sectionSubtitle}>
               {formatDate(new Date().toISOString())}
             </Text>
@@ -289,7 +291,7 @@ export default function HomeScreen() {
 
           {mealsLoading ? (
             <View style={styles.loadingCard}>
-              <Text style={styles.loadingText}>Loading today's meals...</Text>
+              <Text style={styles.loadingText}>{t('loadingTodaysMeals')}</Text>
             </View>
           ) : mealsError ? (
             <View style={styles.errorCard}>
@@ -298,21 +300,21 @@ export default function HomeScreen() {
                 onPress={() => fetchTodayMeals()}
                 style={styles.retryButton}
               >
-                <Text style={styles.retryButtonText}>Retry</Text>
+                <Text style={styles.retryButtonText}>{t('retry')}</Text>
               </TouchableOpacity>
             </View>
           ) : todayMeals.length === 0 ? (
             <View style={styles.emptyCard}>
               <Calendar size={48} color="#CCCCCC" />
-              <Text style={styles.emptyTitle}>No meals scheduled</Text>
+              <Text style={styles.emptyTitle}>{t('noMealsScheduled')}</Text>
               <Text style={styles.emptyDescription}>
-                Subscribe to a meal plan to get started
+                {t('subscribeToGetStarted')}
               </Text>
               <TouchableOpacity 
                 onPress={() => router.push('/plans')}
                 style={styles.exploreButton}
               >
-                <Text style={styles.exploreButtonText}>Explore Plans</Text>
+                <Text style={styles.exploreButtonText}>{t('explorePlans')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -344,10 +346,10 @@ export default function HomeScreen() {
                   
                   <View style={styles.mealContent}>
                     <Text style={styles.mealName}>
-                      {meal.menu?.[0]?.name || 'Meal'}
+                      {meal.menu?.[0]?.name || t('meal')}
                     </Text>
                     <Text style={styles.mealDescription}>
-                      {meal.menu?.[0]?.description || 'Delicious meal prepared just for you'}
+                      {meal.menu?.[0]?.description || t('deliciousMealPrepared')}
                     </Text>
                   </View>
                   
@@ -358,7 +360,7 @@ export default function HomeScreen() {
                         {formatTime(meal.date)}
                       </Text>
                     </View>
-                    <Text style={styles.trackText}>Track →</Text>
+                    <Text style={styles.trackText}>{t('track')}</Text>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -369,7 +371,7 @@ export default function HomeScreen() {
 
         {/* Quick Actions */}
         <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={styles.sectionTitle}>{t('quickActions')}</Text>
           
           <View style={styles.quickActionsGrid}>
             <TouchableOpacity 
@@ -379,8 +381,8 @@ export default function HomeScreen() {
               <View style={[styles.quickActionIcon, { backgroundColor: '#E3F2FD' }]}>
                 <Calendar size={24} color="#2196F3" />
               </View>
-              <Text style={styles.quickActionTitle}>Order History</Text>
-              <Text style={styles.quickActionSubtitle}>View past orders</Text>
+              <Text style={styles.quickActionTitle}>{t('orderHistory')}</Text>
+              <Text style={styles.quickActionSubtitle}>{t('viewPastOrders')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -390,8 +392,8 @@ export default function HomeScreen() {
               <View style={[styles.quickActionIcon, { backgroundColor: '#FFF3E0' }]}>
                 <Bell size={24} color="#FF9B42" />
               </View>
-              <Text style={styles.quickActionTitle}>Support</Text>
-              <Text style={styles.quickActionSubtitle}>Get help & FAQ</Text>
+              <Text style={styles.quickActionTitle}>{t('support')}</Text>
+              <Text style={styles.quickActionSubtitle}>{t('getHelpFaq')}</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>

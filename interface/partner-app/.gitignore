@@ -36,3 +36,4 @@ yarn-error.*
 # GCP specific
 .gcloudignore
 *.log
+.vercel

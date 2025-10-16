@@ -13,6 +13,7 @@ import {
   Platform,
 } from 'react-native';
 import { Star, X, Camera, Image as ImageIcon, Trash2, Video, Play } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useReviewStore } from '@/store/reviewStore';
 import { imageUploadService, UploadType } from '@/services/imageUploadService';
 import { cloudinaryDeleteService } from '@/services/cloudinaryDeleteService';
@@ -36,6 +37,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   onReviewSubmitted,
   editingReview,
 }) => {
+  const { t } = useTranslation('common');
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [mediaFiles, setMediaFiles] = useState<Array<{uri: string, type: 'image' | 'video', duration?: number, cloudinaryUrl?: string, uploading?: boolean}>>([]);
@@ -304,14 +306,11 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
       
       // For mobile platforms, use Alert
       console.log('📱 Mobile platform detected, using Alert');
-      Alert.alert(
-        'Add Media',
-        'Choose how you want to add photos or videos',
-        [
-          { text: 'Take Photo', onPress: () => takePicture() },
-          { text: 'Record Video', onPress: () => takeVideo() },
-          { text: 'Choose from Gallery', onPress: () => pickMedia() },
-          { text: 'Cancel', style: 'cancel' },
+        Alert.alert(t('addMedia'), t('chooseHowToAddMedia'), [
+          { text: t('takePhoto'), onPress: () => takePicture() },
+          { text: t('recordVideo'), onPress: () => takeVideo() },
+          { text: t('chooseFromGallery'), onPress: () => pickMedia() },
+          { text: t('cancel'), style: 'cancel' },
         ]
       );
     } catch (error) {
@@ -427,7 +426,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>
-            {editingReview ? 'Edit Review' : 'Write a Review'}
+            {editingReview ? t('editReview') : t('writeReview')}
           </Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <X size={24} color="#666" />
@@ -498,7 +497,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                         {/* Upload Progress Indicator */}
                         {item.uploading && (
                           <View style={styles.uploadingOverlay}>
-                            <Text style={styles.uploadingText}>Uploading...</Text>
+                            <Text style={styles.uploadingText}>{t('uploading')}</Text>
                           </View>
                         )}
                         
@@ -533,7 +532,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
             >
               <Camera size={24} color="#FF9B42" />
               <Text style={styles.addMediaText}>
-                {isUploadingMedia ? 'Uploading...' : 'Add Photos & Videos'}
+                {isUploadingMedia ? t('uploading') : t('addPhotosVideos')}
               </Text>
             </TouchableOpacity>
             
@@ -562,8 +561,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
               rating === 0 && styles.submitButtonTextDisabled,
             ]}>
               {isSubmitting 
-                ? (isUploadingMedia ? 'Uploading Media...' : 'Submitting...') 
-                : (editingReview ? 'Update Review' : 'Submit Review')
+                ? (isUploadingMedia ? t('uploadingMedia') : t('submitting')) 
+                : (editingReview ? t('updateReview') : t('submitReview'))
               }
             </Text>
           </TouchableOpacity>

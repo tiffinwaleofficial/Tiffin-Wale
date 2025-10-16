@@ -8,9 +8,11 @@ import { ActiveSubscriptionDashboard } from '@/components/ActiveSubscriptionDash
 import { Home, ClipboardList, MapPin, User, CreditCard } from 'lucide-react-native';
 import { TouchableOpacity } from 'react-native';
 import { ProtectedRoute } from '@/components/RouteGuard';
+import { useTranslation } from 'react-i18next';
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const { t } = useTranslation('common');
   const { user } = useAuthStore();
   const { 
     todayMeals, 
@@ -115,7 +117,7 @@ export default function DashboardScreen() {
             onPress={() => navigateTo('/dashboard')}
           >
             <Home size={24} color="#FF9B42" />
-            <Text style={[styles.tabLabel, styles.activeTabLabel]}>Home</Text>
+            <Text style={[styles.tabLabel, styles.activeTabLabel]}>{t('home')}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -123,7 +125,7 @@ export default function DashboardScreen() {
             onPress={() => navigateTo('/(tabs)/orders')}
           >
             <ClipboardList size={24} color="#999999" />
-            <Text style={styles.tabLabel}>Orders</Text>
+            <Text style={styles.tabLabel}>{t('orders')}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -131,7 +133,7 @@ export default function DashboardScreen() {
             onPress={() => navigateTo('/(tabs)/track')}
           >
             <MapPin size={24} color="#999999" />
-            <Text style={styles.tabLabel}>Track</Text>
+            <Text style={styles.tabLabel}>{t('track')}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -139,7 +141,7 @@ export default function DashboardScreen() {
             onPress={() => navigateTo('/(tabs)/plans')}
           >
             <CreditCard size={24} color="#999999" />
-            <Text style={styles.tabLabel}>Plans</Text>
+            <Text style={styles.tabLabel}>{t('plans')}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -164,7 +166,7 @@ export default function DashboardScreen() {
             }}
           >
             <User size={24} color="#999999" />
-            <Text style={styles.tabLabel}>Profile</Text>
+            <Text style={styles.tabLabel}>{t('profile')}</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -12,6 +12,7 @@ import {
   SubscriptionPlan,
   SubscriptionPlanSchema,
 } from "./schemas/subscription-plan.schema";
+import { EmailModule } from "../email/email.module";
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import {
       { name: Subscription.name, schema: SubscriptionSchema },
       { name: SubscriptionPlan.name, schema: SubscriptionPlanSchema },
     ]),
+    EmailModule,
   ],
   controllers: [SubscriptionController, SubscriptionPlanController],
   providers: [SubscriptionService, SubscriptionPlanService],

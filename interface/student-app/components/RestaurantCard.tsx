@@ -3,6 +3,7 @@ import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Restaurant } from '@/types';
 import { Star, MapPin, Utensils } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 interface RestaurantCardProps {
   restaurant: Restaurant;
@@ -14,6 +15,7 @@ const RestaurantCard: React.FC<RestaurantCardProps> = ({
   featured = false,
 }) => {
   const router = useRouter();
+  const { t } = useTranslation('common');
   const {
     id,
     name,
@@ -42,7 +44,7 @@ const RestaurantCard: React.FC<RestaurantCardProps> = ({
         />
         {featured && (
           <View style={styles.featuredBadge}>
-            <Text style={styles.featuredText}>Featured</Text>
+            <Text style={styles.featuredText}>{t('featured')}</Text>
           </View>
         )}
         {distance && (
@@ -72,7 +74,7 @@ const RestaurantCard: React.FC<RestaurantCardProps> = ({
         {featuredDish && (
           <View style={styles.featuredDishContainer}>
             <Utensils size={14} color="#666" />
-            <Text style={styles.featuredDishLabel}>Famous for: </Text>
+            <Text style={styles.featuredDishLabel}>{t('famousFor')} </Text>
             <Text style={styles.featuredDish}>{featuredDish}</Text>
           </View>
         )}
@@ -82,7 +84,7 @@ const RestaurantCard: React.FC<RestaurantCardProps> = ({
             <Star size={14} color="#FF9B42" fill="#FF9B42" />
             <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
           </View>
-          <Text style={styles.reviewCount}>({reviewCount} reviews)</Text>
+          <Text style={styles.reviewCount}>({reviewCount} {t('reviews')})</Text>
         </View>
       </View>
     </TouchableOpacity>

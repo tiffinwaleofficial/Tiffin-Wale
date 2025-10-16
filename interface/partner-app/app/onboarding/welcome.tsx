@@ -57,8 +57,7 @@ const Step1Welcome: React.FC = () => {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Please enter a valid email address';
         return '';
       case 'phoneNumber':
-        if (!value.trim()) return 'Phone number is required';
-        if (!/^[0-9]{10}$/.test(value.replace(/\D/g, ''))) return 'Please enter a valid 10-digit phone number';
+        // Phone number is already verified, no validation needed
         return '';
       default:
         return '';
@@ -119,7 +118,7 @@ const Step1Welcome: React.FC = () => {
     localData.firstName.trim() && 
     localData.lastName.trim() && 
     localData.email.trim() && 
-    localData.phoneNumber.trim();
+    localData.phoneNumber.trim(); // Phone number is pre-populated from verification
 
   return (
     <Screen backgroundColor={theme.colors.background}>
@@ -215,16 +214,32 @@ const Step1Welcome: React.FC = () => {
                 style={{ marginBottom: theme.spacing.md }}
               />
 
-              {/* Phone Number */}
-              <Input
-                label="Phone Number"
-                value={localData.phoneNumber}
-                onChangeText={(value) => handleFieldChange('phoneNumber', value.replace(/\D/g, ''))}
-                placeholder="Enter your phone number"
-                type="phone"
-                error={errors.phoneNumber}
-                style={{ marginBottom: theme.spacing.lg }}
-              />
+              {/* Phone Number - Already Verified */}
+              <View style={{ marginBottom: theme.spacing.lg }}>
+                <Text style={{ 
+                  fontFamily: 'Poppins-Medium', 
+                  fontSize: 14, 
+                  color: theme.colors.text,
+                  marginBottom: 8 
+                }}>
+                  Phone Number (Verified)
+                </Text>
+                <View style={{
+                  backgroundColor: '#F0F9FF',
+                  borderRadius: 12,
+                  padding: 16,
+                  borderWidth: 1,
+                  borderColor: '#10B981',
+                }}>
+                  <Text style={{
+                    fontFamily: 'Poppins-Medium',
+                    fontSize: 16,
+                    color: '#10B981',
+                  }}>
+                    +91 {localData.phoneNumber.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')}
+                  </Text>
+                </View>
+              </View>
 
               {/* Continue Button */}
               <Button

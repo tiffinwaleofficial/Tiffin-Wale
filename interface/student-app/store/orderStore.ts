@@ -1,6 +1,7 @@
 import create from 'zustand';
 import { Order, OrderCreateData } from '@/types/api';
 import api from '@/utils/apiClient';
+import { i18n } from '@/i18n/config';
 
 interface OrderState {
   orders: Order[];
@@ -27,7 +28,7 @@ export const useOrderStore = create<OrderState>((set: any) => ({
     } catch (error) {
       console.error('Error fetching orders:', error);
       set({ 
-        error: error instanceof Error ? error.message : 'Failed to fetch orders', 
+        error: error instanceof Error ? error.message : i18n.t('orders:failedToFetchOrders'), 
         isLoading: false 
       });
     }
@@ -45,7 +46,7 @@ export const useOrderStore = create<OrderState>((set: any) => ({
     } catch (error) {
       console.error('Error creating order:', error);
       set({
-        error: error instanceof Error ? error.message : 'Failed to create order',
+        error: error instanceof Error ? error.message : i18n.t('orders:failedToCreateOrder'),
         isLoading: false,
       });
       return null;
@@ -60,7 +61,7 @@ export const useOrderStore = create<OrderState>((set: any) => ({
     } catch (error) {
       console.error('Error adding review:', error);
       set({
-        error: error instanceof Error ? error.message : 'Failed to add review',
+        error: error instanceof Error ? error.message : i18n.t('orders:failedToAddReview'),
         isLoading: false,
       });
     }

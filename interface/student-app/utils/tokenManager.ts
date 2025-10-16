@@ -56,6 +56,11 @@ class TokenManager {
    */
   async storeTokens(accessToken: string, refreshToken?: string): Promise<void> {
     try {
+      // Validate access token
+      if (!accessToken || typeof accessToken !== 'string') {
+        throw new Error('Invalid access token: must be a non-empty string');
+      }
+
       const promises = [
         AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken),
       ];

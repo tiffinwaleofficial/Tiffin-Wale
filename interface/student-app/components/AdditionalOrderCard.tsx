@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Clock, DollarSign } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { OrderAdditional } from '@/types';
 import { formatDate } from '@/utils/dateUtils';
 
@@ -10,6 +11,7 @@ interface AdditionalOrderCardProps {
 }
 
 export function AdditionalOrderCard({ order, index }: AdditionalOrderCardProps) {
+  const { t } = useTranslation('common');
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'confirmed': return '#4CB944';
@@ -30,7 +32,7 @@ export function AdditionalOrderCard({ order, index }: AdditionalOrderCardProps) 
     >
       <View style={styles.header}>
         <View style={styles.orderIdContainer}>
-          <Text style={styles.orderIdLabel}>Order #</Text>
+          <Text style={styles.orderIdLabel}>{t('order')} #</Text>
           <Text style={styles.orderId}>{order.id.slice(-6)}</Text>
         </View>
         <View 
@@ -77,7 +79,7 @@ export function AdditionalOrderCard({ order, index }: AdditionalOrderCardProps) 
       </View>
       
       <View style={styles.itemsContainer}>
-        <Text style={styles.itemsTitle}>Items</Text>
+        <Text style={styles.itemsTitle}>{t('items')}</Text>
         {order.items.map((item, idx) => (
           <View key={item.itemId} style={styles.itemRow}>
             <View style={styles.itemInfo}>
@@ -92,11 +94,11 @@ export function AdditionalOrderCard({ order, index }: AdditionalOrderCardProps) 
       {order.status === 'pending' && (
         <View style={styles.actionsContainer}>
           <TouchableOpacity style={styles.cancelButton}>
-            <Text style={styles.cancelButtonText}>Cancel Order</Text>
+            <Text style={styles.cancelButtonText}>{t('cancelOrder')}</Text>
           </TouchableOpacity>
           {order.paymentStatus === 'pending' && (
             <TouchableOpacity style={styles.payButton}>
-              <Text style={styles.payButtonText}>Pay Now</Text>
+              <Text style={styles.payButtonText}>{t('payNow')}</Text>
             </TouchableOpacity>
           )}
         </View>

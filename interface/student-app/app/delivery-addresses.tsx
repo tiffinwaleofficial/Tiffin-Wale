@@ -6,9 +6,12 @@ import { useCustomerStore } from '@/store/customerStore';
 import { DeliveryAddress } from '@/types/api';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { showNotification } from '@/utils/notificationService';
+import { BackButton } from '@/components/BackButton';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function DeliveryAddressesScreen() {
   const router = useRouter();
+  const { t } = useTranslation('profile');
   const { addresses, isLoading, error, fetchAddresses, addAddress, updateAddress, deleteAddress } = useCustomerStore();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<DeliveryAddress | null>(null);
@@ -115,7 +118,7 @@ export default function DeliveryAddressesScreen() {
           // Read-only view
           <View style={styles.viewContainer}>
             <View style={styles.viewField}>
-              <Text style={styles.viewLabel}>Address Type</Text>
+              <Text style={styles.viewLabel}>{t('addressType')}</Text>
               <View style={styles.viewTypeContainer}>
                 {getTypeIcon(formState.type)}
                 <Text style={styles.viewTypeText}>{formState.type}</Text>
@@ -123,7 +126,7 @@ export default function DeliveryAddressesScreen() {
             </View>
             
             <View style={styles.viewField}>
-              <Text style={styles.viewLabel}>Full Address</Text>
+              <Text style={styles.viewLabel}>{t('fullAddress')}</Text>
               <Text style={styles.viewValue}>{formState.address}</Text>
             </View>
             
@@ -227,19 +230,19 @@ export default function DeliveryAddressesScreen() {
                 }
               }}>
                 <Trash2 size={20} color="#FFFFFF" />
-                <Text style={styles.deleteButtonText}>Delete</Text>
+                <Text style={styles.deleteButtonText}>{t('delete')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.closeButton} onPress={onCancel}>
-                <Text style={styles.closeButtonText}>Close</Text>
+                <Text style={styles.closeButtonText}>{t('cancel')}</Text>
               </TouchableOpacity>
             </>
           ) : (
             <>
               <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>{t('cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                <Text style={styles.saveButtonText}>Save</Text>
+                <Text style={styles.saveButtonText}>{t('save')}</Text>
               </TouchableOpacity>
             </>
           )}
@@ -262,7 +265,7 @@ export default function DeliveryAddressesScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <BackButton />
-        <Text style={styles.headerTitle}>Delivery Addresses</Text>
+        <Text style={styles.headerTitle}>{t('deliveryAddresses')}</Text>
         <TouchableOpacity onPress={() => openModal()} style={styles.addButton}>
           <Plus size={24} color="#FF9B42" />
         </TouchableOpacity>
@@ -274,8 +277,8 @@ export default function DeliveryAddressesScreen() {
       ) : addresses.length === 0 ? (
         <View style={styles.centerContainer}>
             <MapPin size={64} color="#CCCCCC" />
-            <Text style={styles.emptyTitle}>No addresses found</Text>
-            <Text style={styles.emptyDescription}>Add a new address to get started</Text>
+            <Text style={styles.emptyTitle}>{t('noAddressesFound')}</Text>
+            <Text style={styles.emptyDescription}>{t('addYourFirstAddress')}</Text>
         </View>
       ) : (
       <ScrollView style={styles.content}>

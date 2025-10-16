@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Image } from 'react-native';
 import { X, Check, Star, Clock, Utensils, Gift, Shield, Truck } from 'lucide-react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import { SubscriptionPlan } from '@/types/api';
 
 interface PlanDetailModalProps {
@@ -19,6 +20,7 @@ export default function PlanDetailModal({
   onSubscribe, 
   isActive = false 
 }: PlanDetailModalProps) {
+  const { t } = useTranslation('subscription');
   if (!plan) return null;
 
   const formatPrice = (price: number) => {
@@ -64,7 +66,7 @@ export default function PlanDetailModal({
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <X size={24} color="#333333" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Plan Details</Text>
+          <Text style={styles.headerTitle}>{t('planDetails')}</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -78,7 +80,7 @@ export default function PlanDetailModal({
               <Text style={styles.planName}>{plan.name}</Text>
               {isActive && (
                 <View style={styles.activeLabel}>
-                  <Text style={styles.activeLabelText}>Current Plan</Text>
+                  <Text style={styles.activeLabelText}>{t('currentPlan')}</Text>
                 </View>
               )}
             </View>
@@ -98,7 +100,7 @@ export default function PlanDetailModal({
             entering={FadeInDown.delay(200).duration(400)}
             style={styles.section}
           >
-            <Text style={styles.sectionTitle}>🍽️ What's Included</Text>
+            <Text style={styles.sectionTitle}>{t('whatsIncluded')}</Text>
             {mealTypes.map((meal, index) => (
               <View key={index} style={styles.mealTypeCard}>
                 <View style={styles.mealTypeHeader}>
@@ -123,7 +125,7 @@ export default function PlanDetailModal({
               entering={FadeInDown.delay(400).duration(400)}
               style={styles.section}
             >
-              <Text style={styles.sectionTitle}>✨ Plan Features</Text>
+              <Text style={styles.sectionTitle}>{t('planFeatures')}</Text>
               <View style={styles.featuresGrid}>
                 {plan.features.map((feature: string, index: number) => (
                   <View key={index} style={styles.featureItem}>
@@ -140,7 +142,7 @@ export default function PlanDetailModal({
             entering={FadeInDown.delay(600).duration(400)}
             style={styles.section}
           >
-            <Text style={styles.sectionTitle}>🎁 Additional Perks</Text>
+            <Text style={styles.sectionTitle}>{t('additionalPerks')}</Text>
             <View style={styles.perksGrid}>
               {additionalPerks.map((perk, index) => (
                 <View key={index} style={styles.perkItem}>
@@ -158,23 +160,23 @@ export default function PlanDetailModal({
             entering={FadeInDown.delay(800).duration(400)}
             style={styles.section}
           >
-            <Text style={styles.sectionTitle}>📊 Plan Statistics</Text>
+            <Text style={styles.sectionTitle}>{t('planStatistics')}</Text>
             <View style={styles.statsContainer}>
               <View style={styles.statCard}>
                 <Text style={styles.statNumber}>{plan.mealsPerDay || 3}</Text>
-                <Text style={styles.statLabel}>Meals/Day</Text>
+                <Text style={styles.statLabel}>{t('mealsPerDay')}</Text>
               </View>
               <View style={styles.statCard}>
                 <Text style={styles.statNumber}>{plan.durationValue || 30}</Text>
-                <Text style={styles.statLabel}>Days</Text>
+                <Text style={styles.statLabel}>{t('days')}</Text>
               </View>
               <View style={styles.statCard}>
                 <Text style={styles.statNumber}>{plan.maxSkipCount || 5}</Text>
-                <Text style={styles.statLabel}>Skip Allowance</Text>
+                <Text style={styles.statLabel}>{t('skipAllowance')}</Text>
               </View>
               <View style={styles.statCard}>
                 <Text style={styles.statNumber}>{plan.maxPauseCount || 2}</Text>
-                <Text style={styles.statLabel}>Pause Allowance</Text>
+                <Text style={styles.statLabel}>{t('pauseAllowance')}</Text>
               </View>
             </View>
           </Animated.View>
@@ -190,7 +192,7 @@ export default function PlanDetailModal({
               style={styles.subscribeButton}
               onPress={() => onSubscribe(plan.id)}
             >
-              <Text style={styles.subscribeButtonText}>Subscribe to This Plan</Text>
+              <Text style={styles.subscribeButtonText}>{t('subscribeToThisPlan')}</Text>
             </TouchableOpacity>
           )}
           {isActive && (

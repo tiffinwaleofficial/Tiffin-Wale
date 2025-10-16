@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Clock as ClockIcon, Star, ThumbsUp } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Meal } from '@/types';
 import { formatMealStatusText, getMealStatusColor } from '@/utils/mealUtils';
 
@@ -12,6 +13,7 @@ interface MealCardProps {
 
 export function MealCard({ meal, delay = 0 }: MealCardProps) {
   const router = useRouter();
+  const { t } = useTranslation('common');
   const menuItem = meal.menu.length > 0 ? meal.menu[0] : null;
   
   const statusColor = getMealStatusColor(meal.status);
@@ -67,7 +69,7 @@ export function MealCard({ meal, delay = 0 }: MealCardProps) {
                   onPress={handleRatePress}
                 >
                   <ThumbsUp size={14} color="#FF9B42" />
-                  <Text style={styles.rateButtonText}>Rate</Text>
+                  <Text style={styles.rateButtonText}>{t('rate')}</Text>
                 </TouchableOpacity>
               )}
               {(meal.status === 'preparing' || meal.status === 'ready') && (
@@ -76,7 +78,7 @@ export function MealCard({ meal, delay = 0 }: MealCardProps) {
                   onPress={handleTrackPress}
                 >
                   <ClockIcon size={14} color="#FFFFFF" />
-                  <Text style={styles.trackButtonText}>Track</Text>
+                  <Text style={styles.trackButtonText}>{t('track')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -84,7 +86,7 @@ export function MealCard({ meal, delay = 0 }: MealCardProps) {
         </View>
       ) : (
         <View style={styles.emptyMealContent}>
-          <Text style={styles.emptyMealText}>No menu information available</Text>
+          <Text style={styles.emptyMealText}>{t('noMenuInfo')}</Text>
         </View>
       )}
     </Animated.View>

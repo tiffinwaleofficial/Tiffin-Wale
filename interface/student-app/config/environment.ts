@@ -1,48 +1,61 @@
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 // Environment configuration
 interface AppConfig {
   apiBaseUrl: string;
   environment: 'development' | 'staging' | 'production';
+  emailVerification?: {
+    emailableApiKey?: string;
+  };
 }
 
-// Function to read API URL from .env through Expo config
-const getApiBaseUrl = (): string => {
-  // First priority: Read from Expo config (which reads from .env via app.config.ts)
-  const envApiUrl = Constants.expoConfig?.extra?.apiBaseUrl;
-  
-  if (envApiUrl) {
-    console.log('✅ API URL loaded from .env file:', envApiUrl);
-    return envApiUrl;
-  }
-  
-  // If no .env file or variable found, throw an error to force user to set it up
-  console.error('❌ API_BASE_URL not found in .env file!');
-  console.error('Please add API_BASE_URL to your .env file with one of these options:');
-  console.error('  For local development: API_BASE_URL=http://127.0.0.1:3001');
-  console.error('  For production: API_BASE_URL=https://api.tiffin-wale.com');
-  
-  // Don't fall back to localhost - force user to configure .env properly
-  throw new Error('API_BASE_URL must be configured in .env file. Please check your .env file.');
-};
-
+// Function to determine environment
 const getEnvironment = (): 'development' | 'staging' | 'production' => {
-  const apiUrl = getApiBaseUrl();
-  
-  if (apiUrl.includes('127.0.0.1') || apiUrl.includes('localhost')) {
+  // Check if we're in development mode
+  if (__DEV__) {
     return 'development';
   }
   
-  if (apiUrl.includes('staging') || apiUrl.includes('dev')) {
+  // Check environment variables
+  const nodeEnv = process.env.NODE_ENV as string | undefined;
+  const expoEnv = process.env.EXPO_PUBLIC_APP_ENV as string | undefined;
+  
+  if (nodeEnv === 'production' || expoEnv === 'production') {
+    return 'production';
+  }
+  
+  if (nodeEnv === 'staging' || expoEnv === 'staging') {
     return 'staging';
   }
   
-  return 'production';
+  // Default to development
+  return 'development';
+};
+
+// Function to get environment-specific API URL
+const getApiBaseUrl = (): string => {
+  const environment = getEnvironment();
+  
+  if (environment === 'development') {
+    // For development, use local backend
+    const localUrl = 'http://localhost:3001';
+    console.log('🏠 Development mode - Using local backend:', localUrl);
+    return localUrl;
+  } else {
+    // For staging/production, use remote backend
+    const prodUrl = process.env.EXPO_PUBLIC_PROD_API_BASE_URL || 'https://api.tiffin-wale.com';
+    console.log('🌐 Production mode - Using remote backend:', prodUrl);
+    return prodUrl;
+  }
 };
 
 export const config: AppConfig = {
   apiBaseUrl: getApiBaseUrl(),
   environment: getEnvironment(),
+  emailVerification: {
+    emailableApiKey: process.env.EXPO_PUBLIC_EMAILABLE_API_KEY,
+  },
 };
 
 // Log the configuration for debugging

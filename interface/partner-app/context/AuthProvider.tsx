@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import NavigationService from '../services/navigationService';
 import { useLogin, useRegister, useRegisterPartner, useGetProfile } from '../api/hooks/useApi';
+import { ENV, API_ENDPOINTS } from '../config/env';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -11,6 +12,8 @@ interface AuthContextType {
   user: any | null;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
+  loginWithPhone: (phoneNumber: string, firebaseUid: string) => Promise<void>;
+  checkUserExists: (phoneNumber: string) => Promise<boolean>;
   register: (userData: any) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
@@ -235,6 +238,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const checkUserExists = async (phoneNumber: string): Promise<boolean> => {
+    try {
+      // TODO: Create API endpoint to check if user exists by phone number
+      // For now, return false (new user) - will be implemented in backend
+      const response = await fetch(`${ENV.API_BASE_URL}${API_ENDPOINTS.AUTH.CHECK_PHONE}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phoneNumber }),
+      });
+      
+      const data = await response.json();
+      return data.exists || false;
+    } catch (error) {
+      console.error('Error checking user existence:', error);
+      return false; // Default to new user if check fails
+    }
+  };
+
+  const loginWithPhone = async (phoneNumber: string, firebaseUid: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // TODO: Create API endpoint for phone-based login
+      // This will verify the Firebase UID and return user data with tokens
+      const response = await fetch(`${ENV.API_BASE_URL}${API_ENDPOINTS.AUTH.LOGIN_PHONE}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phoneNumber, firebaseUid }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Phone login failed');
+      }
+
+      const data = await response.json();
+      
+      // Store tokens
+      if (data.accessToken) {
+        await AsyncStorage.setItem('partner_auth_token', data.accessToken);
+      }
+      if (data.refreshToken) {
+        await AsyncStorage.setItem('partner_refresh_token', data.refreshToken);
+      }
+      
+      // Store user data
+      if (data.user) {
+        await AsyncStorage.setItem('user_data', JSON.stringify(data.user));
+        setUser(data.user);
+      }
+      
+      setIsAuthenticated(true);
+    } catch (err: any) {
+      console.error('Phone login error:', err);
+      setError(err.message || 'Phone login failed. Please try again.');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const value: AuthContextType = {
     isAuthenticated,
     isInitialized,
@@ -242,6 +309,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     error,
     login,
+    loginWithPhone,
+    checkUserExists,
     register,
     logout,
     clearError,

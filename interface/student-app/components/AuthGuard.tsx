@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { Redirect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/store/authStore';
 
 interface AuthGuardProps {
@@ -14,6 +15,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
   requireAuth = true, 
   fallback
 }) => {
+  const { t } = useTranslation('common');
   const { isAuthenticated, isInitialized, isLoading } = useAuthStore();
 
   // Show loading while authentication is being initialized
@@ -21,14 +23,14 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
     return fallback || (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#FF9B42" />
-        <Text style={styles.loadingText}>Verifying authentication...</Text>
+        <Text style={styles.loadingText}>{t('verifyingAuthentication')}</Text>
       </View>
     );
   }
 
   // If authentication is required and user is not authenticated
   if (requireAuth && !isAuthenticated) {
-    return <Redirect href="/(auth)/login" />;
+    return <Redirect href="/(auth)/welcome" />;
   }
 
   // If user is authenticated but trying to access auth pages (should redirect to main app)
@@ -53,19 +55,20 @@ export const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children 
 );
 
 export const CustomerRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { t } = useTranslation('common');
   const { isAuthenticated, isInitialized } = useAuthStore();
   
   if (!isInitialized) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#FF9B42" />
-        <Text style={styles.loadingText}>Verifying permissions...</Text>
+        <Text style={styles.loadingText}>{t('verifyingPermissions')}</Text>
       </View>
     );
   }
 
   if (!isAuthenticated) {
-    return <Redirect href="/(auth)/login" />;
+    return <Redirect href="/(auth)/welcome" />;
   }
 
   return <>{children}</>;

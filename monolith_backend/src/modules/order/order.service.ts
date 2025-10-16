@@ -13,11 +13,13 @@ import { UpdateOrderDto } from "./dto/update-order.dto";
 import { UpdateOrderStatusDto } from "./dto/update-order-status.dto";
 import { MarkOrderPaidDto } from "./dto/mark-order-paid.dto";
 import { AddOrderReviewDto } from "./dto/add-order-review.dto";
+import { EmailService } from "../email/email.service";
 
 @Injectable()
 export class OrderService {
   constructor(
     @InjectModel(Order.name) private readonly orderModel: Model<Order>,
+    private readonly emailService: EmailService,
   ) {}
 
   async create(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -36,7 +38,14 @@ export class OrderService {
       }
 
       const newOrder = new this.orderModel(createOrderDto);
-      return await newOrder.save();
+      const savedOrder = await newOrder.save();
+
+      // Send order confirmation email (non-blocking)
+      this.sendOrderConfirmationEmail(savedOrder).catch((error) => {
+        console.error("Failed to send order confirmation email:", error);
+      });
+
+      return savedOrder;
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
@@ -293,5 +302,41 @@ export class OrderService {
     };
 
     return validTransitions[currentStatus].includes(newStatus);
+  }
+
+  // Email helper methods
+  private async sendOrderConfirmationEmail(order: any): Promise<void> {
+    try {
+      await this.emailService.sendOrderConfirmation({
+        orderNumber: order.orderNumber || order._id.toString(),
+        customerEmail: order.customerEmail || "customer@example.com",
+        customerName: order.customerName || "Customer",
+        items: order.items || [],
+        totalAmount: order.totalAmount || 0,
+        deliveryAddress: order.deliveryAddress || "Address not provided",
+        estimatedDeliveryTime: order.estimatedDeliveryTime || "30-45 minutes",
+        partnerName: order.partnerName || "Restaurant Partner",
+      });
+    } catch (error) {
+      console.error("Email service error:", error);
+    }
+  }
+
+  private async sendOrderStatusUpdateEmail(
+    order: any,
+    status: "preparing" | "ready" | "delivered",
+  ): Promise<void> {
+    try {
+      await this.emailService.sendOrderStatusUpdate({
+        orderNumber: order.orderNumber || order._id.toString(),
+        customerEmail: order.customerEmail || "customer@example.com",
+        customerName: order.customerName || "Customer",
+        status,
+        estimatedTime: order.estimatedDeliveryTime,
+        partnerName: order.partnerName || "Restaurant Partner",
+      });
+    } catch (error) {
+      console.error("Email service error:", error);
+    }
   }
 }

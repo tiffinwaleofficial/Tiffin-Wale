@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, Touchable
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRestaurantStore } from '@/store/restaurantStore';
 import { BackButton } from '@/components/BackButton';
+import { useTranslation } from '@/hooks/useTranslation';
 import { 
   Star, 
   Clock, 
@@ -29,6 +30,7 @@ const { width } = Dimensions.get('window');
 
 export default function RestaurantDetails() {
   const router = useRouter();
+  const { t } = useTranslation('orders');
   const { id } = useLocalSearchParams<{ id: string }>();
   const { 
     currentRestaurant, 
@@ -184,7 +186,7 @@ export default function RestaurantDetails() {
           <View style={styles.infoSection}>
             <View style={styles.sectionHeader}>
               <MapPin size={22} color="#FF9B42" />
-              <Text style={styles.sectionTitle}>Location</Text>
+              <Text style={styles.sectionTitle}>{t('location')}</Text>
             </View>
             <Text style={styles.sectionContent}>{currentRestaurant.formattedAddress}</Text>
             <Text style={styles.sectionSubContent}>
@@ -196,7 +198,7 @@ export default function RestaurantDetails() {
           <View style={styles.infoSection}>
             <View style={styles.sectionHeader}>
               <Clock size={22} color="#4CAF50" />
-              <Text style={styles.sectionTitle}>Business Hours</Text>
+              <Text style={styles.sectionTitle}>{t('businessHours')}</Text>
             </View>
             <Text style={styles.sectionContent}>
               {currentRestaurant.businessHours?.open} - {currentRestaurant.businessHours?.close}
@@ -238,7 +240,7 @@ export default function RestaurantDetails() {
           <View style={styles.infoSection}>
             <View style={styles.sectionHeader}>
               <Phone size={22} color="#9C27B0" />
-              <Text style={styles.sectionTitle}>Contact Information</Text>
+              <Text style={styles.sectionTitle}>{t('contactInformation')}</Text>
             </View>
             <View style={styles.contactInfo}>
               <Text style={styles.contactDetail}>{currentRestaurant.contactPhone}</Text>
@@ -247,11 +249,11 @@ export default function RestaurantDetails() {
             <View style={styles.contactActions}>
               <TouchableOpacity style={styles.actionButton}>
                 <Phone size={18} color="#FFFFFF" />
-                <Text style={styles.actionButtonText}>Call</Text>
+                <Text style={styles.actionButtonText}>{t('call')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionButton}>
                 <Mail size={18} color="#FFFFFF" />
-                <Text style={styles.actionButtonText}>Email</Text>
+                <Text style={styles.actionButtonText}>{t('email')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -333,11 +335,11 @@ export default function RestaurantDetails() {
 
         {/* Menu Section */}
         <Animated.View entering={FadeInUp.delay(600).duration(600)} style={styles.menuContainer}>
-          <Text style={styles.menuTitle}>Menu</Text>
+          <Text style={styles.menuTitle}>{t('menu')}</Text>
           {isLoading && !currentRestaurantMenu ? (
             <View style={styles.menuLoading}>
               <ActivityIndicator size="small" color="#FF9B42" />
-              <Text style={styles.menuLoadingText}>Loading menu...</Text>
+              <Text style={styles.menuLoadingText}>{t('loadingMenu')}</Text>
             </View>
           ) : currentRestaurantMenu && currentRestaurantMenu.length > 0 ? (
             currentRestaurantMenu.map((item, index) => (
@@ -394,7 +396,7 @@ export default function RestaurantDetails() {
             ))
           ) : (
             <View style={styles.noMenuContainer}>
-              <Text style={styles.noMenuText}>No menu items available</Text>
+              <Text style={styles.noMenuText}>{t('noMenuItemsAvailable')}</Text>
             </View>
           )}
         </Animated.View>

@@ -1,6 +1,7 @@
-import { Module } from "@nestjs/common";
+import { Module, MiddlewareConsumer, NestModule } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { DatabaseModule } from "./database/database.module";
+import { AnalyticsMiddleware } from "./common/middleware/analytics.middleware";
 
 // Module imports
 import { AuthModule } from "./modules/auth/auth.module";
@@ -25,6 +26,7 @@ import { UploadModule } from "./modules/upload/upload.module";
 import { SeederModule } from "./modules/seeder/seeder.module";
 import { ChatModule } from "./modules/chat/chat.module";
 import { ReviewModule } from "./modules/review/review.module";
+import { EmailModule } from "./modules/email/email.module";
 
 @Module({
   imports: [
@@ -60,8 +62,14 @@ import { ReviewModule } from "./modules/review/review.module";
     SeederModule,
     ChatModule,
     ReviewModule,
+    EmailModule,
   ],
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Apply analytics middleware to all API routes
+    consumer.apply(AnalyticsMiddleware).forRoutes("*");
+  }
+}

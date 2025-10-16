@@ -9,10 +9,12 @@ import { useAuthStore } from '@/store/authStore';
 import { useOrderStore } from '@/store/orderStore';
 
 import { AdditionalOrderCard } from '@/components/AdditionalOrderCard';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function OrdersScreen() {
   const router = useRouter();
   useAuthStore();
+  const { t } = useTranslation('orders');
   const { 
     meals, 
     isLoading: mealsLoading, 
@@ -70,11 +72,11 @@ export default function OrdersScreen() {
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
       
       if (diffDays === 0) {
-        return 'Today';
+        return t('today');
       } else if (diffDays === 1) {
-        return 'Yesterday';
+        return t('yesterday');
       } else if (diffDays < 7) {
-        return `${diffDays} days ago`;
+        return t('daysAgo', { count: diffDays });
       } else {
         return date.toLocaleDateString('en-US', { 
           month: 'short', 
@@ -83,7 +85,7 @@ export default function OrdersScreen() {
         });
       }
     } catch {
-      return 'Invalid date';
+      return t('invalidDate');
     }
   };
 
@@ -101,12 +103,12 @@ export default function OrdersScreen() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'delivered': return 'Delivered';
-      case 'preparing': return 'Preparing';
-      case 'ready': return 'Ready';
-      case 'scheduled': return 'Scheduled';
-      case 'cancelled': return 'Cancelled';
-      case 'skipped': return 'Skipped';
+      case 'delivered': return t('delivered');
+      case 'preparing': return t('preparing');
+      case 'ready': return t('ready');
+      case 'scheduled': return t('scheduled');
+      case 'cancelled': return t('cancelled');
+      case 'skipped': return t('skipped');
       default: return status;
     }
   };
@@ -125,7 +127,7 @@ export default function OrdersScreen() {
     if ((mealsLoading || ordersLoading) && !refreshing) {
       return (
         <View style={styles.centerContainer}>
-          <Text style={styles.loadingText}>Loading orders...</Text>
+          <Text style={styles.loadingText}>{t('loadingOrders')}</Text>
         </View>
       );
     }
@@ -138,7 +140,7 @@ export default function OrdersScreen() {
             onPress={activeTab === 'meals' ? fetchMeals : fetchOrders}
             style={styles.retryButton}
           >
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('retry')}</Text>
           </TouchableOpacity>
         </View>
       );
@@ -149,15 +151,15 @@ export default function OrdersScreen() {
         return (
           <View style={styles.emptyContainer}>
             <Calendar size={64} color="#CCCCCC" />
-            <Text style={styles.emptyTitle}>No meals yet</Text>
+            <Text style={styles.emptyTitle}>{t('noMealsYet')}</Text>
             <Text style={styles.emptyDescription}>
-              Your meal history will appear here once you start your subscription
+              {t('mealHistoryDescription')}
             </Text>
             <TouchableOpacity 
               onPress={() => router.push('/plans')}
               style={styles.exploreButton}
             >
-              <Text style={styles.exploreButtonText}>Explore Plans</Text>
+              <Text style={styles.exploreButtonText}>{t('explorePlans')}</Text>
             </TouchableOpacity>
           </View>
         );
@@ -195,7 +197,7 @@ export default function OrdersScreen() {
 
                 <View style={styles.mealContent}>
                   <Text style={styles.mealName}>
-                    {meal.menu?.[0]?.name || 'Meal'}
+                    {meal.menu?.[0]?.name || t('meal')}
                   </Text>
                   <Text style={styles.restaurantName}>
                     {meal.restaurantName}
@@ -219,7 +221,7 @@ export default function OrdersScreen() {
                     >
                       <Star size={16} color="#FF9B42" />
                       <Text style={styles.rateButtonText}>
-                        {meal.userRating ? 'Update Rating' : 'Rate Meal'}
+                        {meal.userRating ? t('updateRating') : t('rateMeal')}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -235,9 +237,9 @@ export default function OrdersScreen() {
         return (
           <View style={styles.emptyContainer}>
             <ShoppingBag size={64} color="#CCCCCC" />
-            <Text style={styles.emptyTitle}>No additional orders</Text>
+            <Text style={styles.emptyTitle}>{t('noAdditionalOrders')}</Text>
             <Text style={styles.emptyDescription}>
-              Extra items you order will appear here
+              {t('additionalOrdersDescription')}
             </Text>
           </View>
         );
@@ -265,7 +267,7 @@ export default function OrdersScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Order History</Text>
+        <Text style={styles.headerTitle}>{t('orderHistory')}</Text>
       </View>
 
       {/* Tab Navigation */}
@@ -281,7 +283,7 @@ export default function OrdersScreen() {
             styles.tabText,
             activeTab === 'meals' && styles.activeTabText
           ]}>
-            Meal History
+            {t('mealHistory')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -295,7 +297,7 @@ export default function OrdersScreen() {
             styles.tabText,
             activeTab === 'additional' && styles.activeTabText
           ]}>
-            Additional Orders
+            {t('additionalOrders')}
           </Text>
         </TouchableOpacity>
       </View>

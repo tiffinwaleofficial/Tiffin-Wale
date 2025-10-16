@@ -23,6 +23,7 @@ import {
   Dimensions,
   StyleSheet
 } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { Ionicons } from '@expo/vector-icons'
 import { NotificationData, NotificationConfig } from '../services/notificationService'
 
@@ -43,6 +44,7 @@ const BannerNotification: React.FC<BannerNotificationProps> = ({
   onPress,
   onActionPress
 }) => {
+  const { t } = useTranslation('common');
   const translateY = useRef(new Animated.Value(-100)).current
   const translateX = useRef(new Animated.Value(0)).current
   const opacity = useRef(new Animated.Value(0)).current
@@ -331,7 +333,7 @@ const BannerNotification: React.FC<BannerNotificationProps> = ({
                 style={styles.closeButton}
                 onPress={handleDismiss}
                 accessibilityRole="button"
-                accessibilityLabel="Dismiss notification"
+                accessibilityLabel={t('dismissNotification')}
               >
                 <Ionicons
                   name="close"

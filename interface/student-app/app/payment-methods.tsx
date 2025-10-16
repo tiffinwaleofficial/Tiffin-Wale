@@ -2,9 +2,12 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { useRouter } from 'expo-router';
 import { Plus, CreditCard } from 'lucide-react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { BackButton } from '@/components/BackButton';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function PaymentMethodsScreen() {
   const router = useRouter();
+  const { t } = useTranslation('profile');
 
   const paymentMethods = [
     {
@@ -27,7 +30,7 @@ export default function PaymentMethodsScreen() {
     <View style={styles.container}>
       <Animated.View entering={FadeIn.delay(100).duration(300)} style={styles.header}>
         <BackButton />
-        <Text style={styles.headerTitle}>Payment Methods</Text>
+        <Text style={styles.headerTitle}>{t('paymentMethods')}</Text>
         <View style={styles.placeholder} />
       </Animated.View>
 
@@ -48,11 +51,11 @@ export default function PaymentMethodsScreen() {
             <View style={styles.cardDetails}>
               <Text style={styles.cardType}>{method.type}</Text>
               <Text style={styles.cardNumber}>{method.number}</Text>
-              <Text style={styles.cardExpiry}>Expires {method.expiryDate}</Text>
+              <Text style={styles.cardExpiry}>{t('expires')} {method.expiryDate}</Text>
             </View>
             {method.isDefault && (
               <View style={styles.defaultBadge}>
-                <Text style={styles.defaultBadgeText}>Default</Text>
+                <Text style={styles.defaultBadgeText}>{t('default')}</Text>
               </View>
             )}
           </Animated.View>
@@ -61,7 +64,7 @@ export default function PaymentMethodsScreen() {
         <Animated.View entering={FadeInDown.delay(400).duration(400)}>
           <TouchableOpacity style={styles.addCardButton}>
             <Plus size={20} color="#FF9B42" />
-            <Text style={styles.addCardButtonText}>Add New Payment Method</Text>
+            <Text style={styles.addCardButtonText}>{t('addPaymentMethod')}</Text>
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>

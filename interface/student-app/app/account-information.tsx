@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert, Modal, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { User, Mail, Phone, Calendar, Edit2 } from 'lucide-react-native';
+import { User, Mail, Phone, Calendar, Edit2, Camera, ArrowLeft } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useAuthStore } from '@/store/authStore';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
@@ -11,12 +11,14 @@ import { profileImageService } from '@/services/profileImageService';
 import { useNotification } from '@/hooks/useNotification';
 import { BackButton } from '@/components/BackButton';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function AccountInformation() {
   const router = useRouter();
   const { user, updateUserProfile, isLoading } = useAuthStore();
   const { currentSubscription } = useSubscriptionStore();
   const { success, showError } = useNotification();
+  const { t } = useTranslation('profile');
   const [isEditing, setIsEditing] = useState(false);
   
   // Form state - initialize with real user data
@@ -71,11 +73,11 @@ export default function AccountInformation() {
       
       await updateUserProfile(updateData);
       
-      success('Your profile has been updated successfully!');
+      success(t('profileUpdatedSuccessfully'));
       setIsEditing(false);
     } catch (error) {
       console.error('Profile update error:', error);
-      showError('Failed to update profile. Please try again.');
+      showError(t('failedToUpdateProfile'));
     }
   };
 
@@ -137,10 +139,10 @@ export default function AccountInformation() {
         profileImage: uploadedImageUrl,
       });
       
-      success('Profile image updated successfully!');
+      success(t('profileImageUpdatedSuccessfully'));
     } catch (error) {
       console.error('Image upload error:', error);
-      showError('Failed to upload image. Please try again.');
+      showError(t('imageUploadFailed'));
     } finally {
       setIsUploadingImage(false);
     }
@@ -171,7 +173,7 @@ export default function AccountInformation() {
     if (user?.name) {
       return user.name;
     }
-    return 'User';
+    return t('user');
   };
 
   // Helper function to check if user has active subscription
@@ -186,12 +188,12 @@ export default function AccountInformation() {
       <View style={styles.container}>
         <View style={styles.header}>
           <BackButton />
-          <Text style={styles.headerTitle}>Account Information</Text>
+          <Text style={styles.headerTitle}>{t('accountInformation')}</Text>
           <View style={styles.editButton} />
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF9B42" />
-          <Text style={styles.loadingText}>Loading your information...</Text>
+          <Text style={styles.loadingText}>{t('loadingYourInformation')}</Text>
         </View>
       </View>
     );
@@ -203,16 +205,16 @@ export default function AccountInformation() {
       <View style={styles.container}>
         <View style={styles.header}>
           <BackButton />
-          <Text style={styles.headerTitle}>Account Information</Text>
+          <Text style={styles.headerTitle}>{t('accountInformation')}</Text>
           <View style={styles.editButton} />
         </View>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Unable to load account information</Text>
+          <Text style={styles.errorText}>{t('unableToLoadAccountInformation')}</Text>
           <TouchableOpacity 
             style={styles.retryButton}
             onPress={() => router.canGoBack() ? router.back() : router.push('/(tabs)/profile')}
           >
-            <Text style={styles.retryButtonText}>Go Back</Text>
+            <Text style={styles.retryButtonText}>{t('goBack')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -223,7 +225,7 @@ export default function AccountInformation() {
     <View style={styles.container}>
       <View style={styles.header}>
         <BackButton />
-        <Text style={styles.headerTitle}>Account Information</Text>
+        <Text style={styles.headerTitle}>{t('accountInformation')}</Text>
         <TouchableOpacity 
           style={styles.editButton}
           onPress={() => setIsEditing(!isEditing)}
@@ -249,7 +251,7 @@ export default function AccountInformation() {
           {hasActiveSubscription() && (
             <View style={styles.subscriptionBadge}>
               <Text style={styles.subscriptionText}>
-                {currentSubscription?.status === 'pending' ? 'Premium Member (Pending)' : 'Premium Member'}
+                {currentSubscription?.status === 'pending' ? t('premiumMemberPending') : t('premiumMember')}
               </Text>
             </View>
           )}
@@ -262,7 +264,7 @@ export default function AccountInformation() {
           <View style={styles.infoRow}>
             <View style={styles.infoLabelContainer}>
               <User size={20} color="#FF9B42" />
-              <Text style={styles.infoLabel}>Full Name</Text>
+              <Text style={styles.infoLabel}>{t('fullName')}</Text>
             </View>
             {isEditing ? (
               <TextInput
@@ -276,7 +278,7 @@ export default function AccountInformation() {
                     lastName: lastNameParts.join(' ') || ''
                   });
                 }}
-                placeholder="Enter full name"
+                placeholder={t('enterFullName')}
               />
             ) : (
               <Text style={styles.infoValue}>{getDisplayName()}</Text>
@@ -288,7 +290,7 @@ export default function AccountInformation() {
           <View style={styles.infoRow}>
             <View style={styles.infoLabelContainer}>
               <Mail size={20} color="#FF9B42" />
-              <Text style={styles.infoLabel}>Email Address</Text>
+              <Text style={styles.infoLabel}>{t('emailAddress')}</Text>
             </View>
             {isEditing ? (
               <TextInput
@@ -299,7 +301,7 @@ export default function AccountInformation() {
                 autoCapitalize="none"
               />
             ) : (
-              <Text style={styles.infoValue}>{user?.email || 'Not provided'}</Text>
+              <Text style={styles.infoValue}>{user?.email || t('notProvided')}</Text>
             )}
           </View>
 
@@ -308,7 +310,7 @@ export default function AccountInformation() {
           <View style={styles.infoRow}>
             <View style={styles.infoLabelContainer}>
               <Phone size={20} color="#FF9B42" />
-              <Text style={styles.infoLabel}>Phone Number</Text>
+              <Text style={styles.infoLabel}>{t('phoneNumber')}</Text>
             </View>
             {isEditing ? (
               <TextInput
@@ -316,10 +318,10 @@ export default function AccountInformation() {
                 value={formData.phone}
                 onChangeText={(text) => setFormData({...formData, phone: text})}
                 keyboardType="phone-pad"
-                placeholder="Enter phone number"
+                placeholder={t('enterPhoneNumber')}
               />
             ) : (
-              <Text style={styles.infoValue}>{user?.phone || 'Not provided'}</Text>
+              <Text style={styles.infoValue}>{user?.phone || t('notProvided')}</Text>
             )}
           </View>
 
@@ -328,7 +330,7 @@ export default function AccountInformation() {
           <View style={styles.infoRow}>
             <View style={styles.infoLabelContainer}>
               <Calendar size={20} color="#FF9B42" />
-              <Text style={styles.infoLabel}>Date of Birth</Text>
+              <Text style={styles.infoLabel}>{t('dateOfBirth')}</Text>
             </View>
             {isEditing ? (
               <TouchableOpacity 
@@ -336,12 +338,12 @@ export default function AccountInformation() {
                 onPress={showDatePickerModal}
               >
                 <Text style={styles.datePickerText}>
-                  {formData.dob ? new Date(formData.dob).toLocaleDateString() : 'Select Date'}
+                  {formData.dob ? new Date(formData.dob).toLocaleDateString() : t('selectDate')}
                 </Text>
               </TouchableOpacity>
             ) : (
               <Text style={styles.infoValue}>
-                {user?.dob ? new Date(user.dob).toLocaleDateString() : 'Not provided'}
+                {user?.dob ? new Date(user.dob).toLocaleDateString() : t('notProvided')}
               </Text>
             )}
           </View>
@@ -368,7 +370,7 @@ export default function AccountInformation() {
                 }
               }}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.cancelButtonText}>{t('cancel')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -379,27 +381,27 @@ export default function AccountInformation() {
               {isLoading ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
-                <Text style={styles.saveButtonText}>Save Changes</Text>
+                <Text style={styles.saveButtonText}>{t('saveChanges')}</Text>
               )}
             </TouchableOpacity>
           </Animated.View>
         )}
 
         <View style={styles.additionalInfoCard}>
-          <Text style={styles.sectionTitle}>Account Security</Text>
+          <Text style={styles.sectionTitle}>{t('accountSecurity')}</Text>
           
           <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/change-password')}>
-            <Text style={styles.actionButtonText}>Change Password</Text>
+            <Text style={styles.actionButtonText}>{t('changePassword')}</Text>
             <ArrowLeft size={20} color="#666666" style={{ transform: [{ rotate: '180deg' }] }} />
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.actionButton}>
-            <Text style={styles.actionButtonText}>Two-Factor Authentication</Text>
+            <Text style={styles.actionButtonText}>{t('twoFactorAuthentication')}</Text>
             <ArrowLeft size={20} color="#666666" style={{ transform: [{ rotate: '180deg' }] }} />
           </TouchableOpacity>
           
           <TouchableOpacity style={[styles.actionButton, styles.dangerButton]}>
-            <Text style={styles.dangerButtonText}>Delete Account</Text>
+            <Text style={styles.dangerButtonText}>{t('deleteAccount')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -413,23 +415,23 @@ export default function AccountInformation() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Image</Text>
+            <Text style={styles.modalTitle}>{t('selectImage')}</Text>
             
             <TouchableOpacity style={styles.modalButton} onPress={takePhoto}>
               <Camera size={24} color="#FF9B42" />
-              <Text style={styles.modalButtonText}>Take Photo</Text>
+              <Text style={styles.modalButtonText}>{t('takePhoto')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.modalButton} onPress={pickImageFromLibrary}>
               <User size={24} color="#FF9B42" />
-              <Text style={styles.modalButtonText}>Choose from Library</Text>
+              <Text style={styles.modalButtonText}>{t('chooseFromLibrary')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={[styles.modalButton, styles.cancelModalButton]} 
               onPress={() => setShowImagePicker(false)}
             >
-              <Text style={styles.cancelModalButtonText}>Cancel</Text>
+              <Text style={styles.cancelModalButtonText}>{t('cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>

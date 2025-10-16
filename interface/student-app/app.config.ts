@@ -3,7 +3,6 @@ import 'dotenv/config';
 // Ensure we can access process.env in TypeScript
 declare const process: {
   env: {
-    API_BASE_URL?: string;
     CLOUDINARY_CLOUD_NAME?: string;
     CLOUDINARY_API_KEY?: string;
     CLOUDINARY_API_SECRET?: string;
@@ -55,8 +54,8 @@ export default {
       ]
     },
     extra: {
-      // Pass the .env variables to the app
-      apiBaseUrl: process.env.API_BASE_URL,
+      // API URL is now platform-detected in environment.ts
+      // Pass other .env variables to the app
       cloudinary: {
         cloudName: process.env.CLOUDINARY_CLOUD_NAME,
         apiKey: process.env.CLOUDINARY_API_KEY,

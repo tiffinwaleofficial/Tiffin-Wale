@@ -8,10 +8,12 @@ import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { useAuthStore } from '@/store/authStore';
 import { SubscriptionPlan } from '@/types/api';
 import PlanDetailModal from '@/components/PlanDetailModal';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function PlansScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { t } = useTranslation('subscription');
   const { 
     availablePlans, 
     currentSubscription, 
@@ -130,7 +132,7 @@ export default function PlansScreen() {
           </View>
           {isActive && (
             <View style={styles.activeLabel}>
-              <Text style={styles.activeLabelText}>Current Plan</Text>
+              <Text style={styles.activeLabelText}>{t('currentPlan')}</Text>
             </View>
           )}
         </View>
@@ -139,12 +141,12 @@ export default function PlansScreen() {
 
         <View style={styles.priceContainer}>
           <Text style={styles.price}>{formatPrice(plan.price)}</Text>
-          <Text style={styles.pricePeriod}>/{plan.duration} days</Text>
+          <Text style={styles.pricePeriod}>/{plan.duration} {t('days')}</Text>
         </View>
 
         {plan.features && plan.features.length > 0 && (
           <View style={styles.featuresContainer}>
-            <Text style={styles.featuresTitle}>Features:</Text>
+            <Text style={styles.featuresTitle}>{t('features')}</Text>
             {plan.features.map((feature: string, idx: number) => (
               <View key={idx} style={styles.featureItem}>
                 <Check size={16} color="#4CAF50" />
@@ -156,9 +158,9 @@ export default function PlansScreen() {
 
         {isActive && currentSubscription && (
           <View style={styles.subscriptionDetails}>
-            <Text style={styles.subscriptionDetailsTitle}>Subscription Details</Text>
+            <Text style={styles.subscriptionDetailsTitle}>{t('subscriptionDetails')}</Text>
             <View style={styles.subscriptionDetailRow}>
-              <Text style={styles.subscriptionDetailLabel}>Status:</Text>
+              <Text style={styles.subscriptionDetailLabel}>{t('status')}</Text>
               <Text style={[styles.subscriptionDetailValue, { 
                 color: currentSubscription.status === 'active' ? '#4CAF50' : '#FF9B42' 
               }]}>
@@ -166,7 +168,7 @@ export default function PlansScreen() {
               </Text>
             </View>
             <View style={styles.subscriptionDetailRow}>
-              <Text style={styles.subscriptionDetailLabel}>Valid Until:</Text>
+              <Text style={styles.subscriptionDetailLabel}>{t('validUntil')}</Text>
               <Text style={styles.subscriptionDetailValue}>
                 {new Date(currentSubscription.endDate).toLocaleDateString('en-IN', {
                   day: 'numeric',
@@ -176,7 +178,7 @@ export default function PlansScreen() {
               </Text>
             </View>
             <View style={styles.subscriptionDetailRow}>
-              <Text style={styles.subscriptionDetailLabel}>Started On:</Text>
+              <Text style={styles.subscriptionDetailLabel}>{t('startedOn')}</Text>
               <Text style={styles.subscriptionDetailValue}>
                 {new Date(currentSubscription.startDate).toLocaleDateString('en-IN', {
                   day: 'numeric',
@@ -194,7 +196,7 @@ export default function PlansScreen() {
             onPress={() => handleViewPlanDetails(plan)}
           >
             <Eye size={16} color="#FF9B42" />
-            <Text style={styles.viewDetailsButtonText}>View Details</Text>
+            <Text style={styles.viewDetailsButtonText}>{t('viewDetails')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -214,10 +216,10 @@ export default function PlansScreen() {
               isActive && styles.activeSubscribeButtonText
             ]}>
               {isSubscribing 
-                ? 'Subscribing...' 
+                ? t('subscribing') 
                 : isActive 
-                  ? 'Active Plan' 
-                  : 'Subscribe Now'
+                  ? t('activePlan') 
+                  : t('subscribeNow')
               }
             </Text>
           </TouchableOpacity>
@@ -230,10 +232,10 @@ export default function PlansScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Subscription Plans</Text>
+          <Text style={styles.headerTitle}>{t('subscriptionPlans')}</Text>
         </View>
         <View style={styles.centerContainer}>
-          <Text style={styles.loadingText}>Loading plans...</Text>
+          <Text style={styles.loadingText}>{t('loadingPlans')}</Text>
         </View>
       </View>
     );
@@ -243,7 +245,7 @@ export default function PlansScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Subscription Plans</Text>
+          <Text style={styles.headerTitle}>{t('subscriptionPlans')}</Text>
         </View>
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>{error}</Text>
@@ -251,7 +253,7 @@ export default function PlansScreen() {
             onPress={() => fetchAvailablePlans(true)}
             style={styles.retryButton}
           >
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('retry')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -262,9 +264,9 @@ export default function PlansScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Subscription Plans</Text>
+        <Text style={styles.headerTitle}>{t('subscriptionPlans')}</Text>
         <Text style={styles.headerSubtitle}>
-          Choose the perfect plan for your meal needs
+          {t('choosePerfectPlan')}
         </Text>
       </View>
 
@@ -283,9 +285,9 @@ export default function PlansScreen() {
         {availablePlans.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Crown size={64} color="#CCCCCC" />
-            <Text style={styles.emptyTitle}>No plans available</Text>
+            <Text style={styles.emptyTitle}>{t('noPlansAvailable')}</Text>
             <Text style={styles.emptyDescription}>
-              Check back later for available subscription plans
+              {t('checkBackLater')}
             </Text>
           </View>
         ) : (
@@ -299,23 +301,23 @@ export default function PlansScreen() {
           entering={FadeInDown.delay(availablePlans.length * 150 + 200).duration(400)}
           style={styles.infoCard}
         >
-          <Text style={styles.infoTitle}>Why Subscribe?</Text>
+          <Text style={styles.infoTitle}>{t('whySubscribe')}</Text>
           <View style={styles.infoList}>
             <View style={styles.infoItem}>
               <Check size={16} color="#4CAF50" />
-              <Text style={styles.infoText}>Regular, healthy meals delivered daily</Text>
+              <Text style={styles.infoText}>{t('regularHealthyMeals')}</Text>
             </View>
             <View style={styles.infoItem}>
               <Check size={16} color="#4CAF50" />
-              <Text style={styles.infoText}>Affordable pricing compared to ordering daily</Text>
+              <Text style={styles.infoText}>{t('affordablePricing')}</Text>
             </View>
             <View style={styles.infoItem}>
               <Check size={16} color="#4CAF50" />
-              <Text style={styles.infoText}>Flexible pause and resume options</Text>
+              <Text style={styles.infoText}>{t('flexibleOptions')}</Text>
             </View>
             <View style={styles.infoItem}>
               <Check size={16} color="#4CAF50" />
-              <Text style={styles.infoText}>No cooking or meal planning required</Text>
+              <Text style={styles.infoText}>{t('noCookingRequired')}</Text>
             </View>
           </View>
         </Animated.View>

@@ -2,16 +2,18 @@ import { Redirect } from 'expo-router';
 import { useAuthContext } from '@/context/AuthProvider';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { RouteGuard } from '@/components/RouteGuard';
+import { useTranslation } from 'react-i18next';
 
 export default function Root() {
   const { isAuthenticated, isInitialized, isLoading } = useAuthContext();
+  const { t } = useTranslation('common');
   
   // Show loading while authentication is being initialized
   if (!isInitialized || isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#FF9B42" />
-        <Text style={styles.loadingText}>Initializing...</Text>
+        <Text style={styles.loadingText}>{t('initializing')}</Text>
       </View>
     );
   }
@@ -22,7 +24,7 @@ export default function Root() {
       {isAuthenticated ? (
         <Redirect href="/(tabs)" />
       ) : (
-        <Redirect href="/(auth)/login" />
+        <Redirect href="/(onboarding)/welcome" />
       )}
     </RouteGuard>
   );

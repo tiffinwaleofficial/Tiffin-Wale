@@ -27,8 +27,11 @@ export class UserService {
       throw new ConflictException("Email already exists");
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Hash password only if provided
+    let hashedPassword = undefined;
+    if (password) {
+      hashedPassword = await bcrypt.hash(password, 10);
+    }
 
     // Create new user
     const newUser = new this.userModel({
@@ -154,5 +157,27 @@ export class UserService {
    */
   async countByRole(role: string): Promise<number> {
     return this.userModel.countDocuments({ role }).exec();
+  }
+
+  /**
+   * Find user by phone number
+   */
+  async findByPhoneNumber(phoneNumber: string): Promise<User | null> {
+    return this.userModel.findOne({ phoneNumber }).exec();
+  }
+
+  /**
+   * Update Firebase UID for a user
+   */
+  async updateFirebaseUid(userId: string, firebaseUid: string): Promise<User> {
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(userId, { firebaseUid }, { new: true })
+      .exec();
+
+    if (!updatedUser) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    return updatedUser;
   }
 }

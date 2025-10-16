@@ -3,26 +3,29 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityInd
 import { useRouter } from 'expo-router';
 import { } from 'lucide-react-native';
 import api from '@/utils/apiClient';
+import { useTranslation } from 'react-i18next';
+import { BackButton } from '@/components/BackButton';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
+  const { t } = useTranslation('auth');
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
 
   const handleResetRequest = async () => {
     if (!email) {
-      Alert.alert('Email required', 'Please enter your email address.');
+      Alert.alert(t('emailRequired'), t('emailRequiredMessage'));
       return;
     }
     setIsLoading(true);
     setMessage('');
     try {
-      const response = await api.auth.forgotPassword(email);
-      setMessage(response.message);
+      await api.auth.forgotPassword(email);
+      setMessage(t('resetLinkSent'));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
-      Alert.alert('Error', errorMessage);
+      const errorMessage = error instanceof Error ? error.message : t('unexpectedError');
+      Alert.alert(t('error'), errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -32,15 +35,15 @@ export default function ForgotPasswordScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <BackButton />
-        <Text style={styles.headerTitle}>Forgot Password</Text>
+        <Text style={styles.headerTitle}>{t('forgotPassword')}</Text>
       </View>
       <View style={styles.content}>
         <Text style={styles.instructions}>
-          Enter the email address associated with your account and we'll send you a link to reset your password.
+          {t('forgotPasswordInstructions')}
         </Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter your email"
+          placeholder={t('enterEmail')}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -50,7 +53,7 @@ export default function ForgotPasswordScreen() {
           <Text style={styles.successMessage}>{message}</Text>
         ) : (
           <TouchableOpacity style={styles.submitButton} onPress={handleResetRequest} disabled={isLoading}>
-            {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitButtonText}>Send Reset Link</Text>}
+            {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitButtonText}>{t('sendResetLink')}</Text>}
           </TouchableOpacity>
         )}
       </View>

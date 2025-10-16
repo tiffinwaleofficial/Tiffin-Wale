@@ -15,11 +15,11 @@ export class CreateUserDto {
   @IsNotEmpty()
   email: string;
 
-  @ApiProperty({ example: "Password123", description: "User password" })
+  @ApiPropertyOptional({ example: "Password123", description: "User password" })
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MinLength(8)
-  password: string;
+  password?: string;
 
   @ApiProperty({
     enum: UserRole,
@@ -52,4 +52,12 @@ export class CreateUserDto {
   @IsString()
   @IsOptional()
   profileImage?: string;
+
+  @ApiPropertyOptional({
+    example: "firebase_uid_123",
+    description: "Firebase UID for phone authentication",
+  })
+  @IsString()
+  @IsOptional()
+  firebaseUid?: string;
 }

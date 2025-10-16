@@ -1,8 +1,10 @@
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { Link } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Welcome() {
+  const { t } = useTranslation('auth');
   return (
     <View style={styles.container}>
       <View style={styles.logoContainer}>
@@ -15,27 +17,27 @@ export default function Welcome() {
           style={styles.gradient}
         />
         <View style={styles.logoTextContainer}>
-          <Text style={styles.logoTitle}>TiffinWale</Text>
-          <Text style={styles.logoSubtitle}>Delicious meals for bachelors</Text>
+          <Text style={styles.logoTitle}>{t('appName')}</Text>
+          <Text style={styles.logoSubtitle}>{t('welcomeSubtitle')}</Text>
         </View>
       </View>
 
       <View style={styles.contentContainer}>
-        <Text style={styles.title}>Fresh & Tasty Food</Text>
+        <Text style={styles.title}>{t('welcomeTitle')}</Text>
         <Text style={styles.subtitle}>
-          Daily meals delivered to your doorstep. No cooking, no hassle, just good food.
+          {t('welcomeSubtitle')}
         </Text>
 
         <View style={styles.buttonContainer}>
-          <Link href="/login" asChild>
+          <Link href="/(onboarding)/phone-verification" asChild>
             <TouchableOpacity style={styles.loginButton}>
-              <Text style={styles.loginButtonText}>Login</Text>
+              <Text style={styles.loginButtonText}>{t('loginButton')}</Text>
             </TouchableOpacity>
           </Link>
           
-          <Link href="/signup" asChild>
+          <Link href="/(onboarding)/phone-verification" asChild>
             <TouchableOpacity style={styles.signupButton}>
-              <Text style={styles.signupButtonText}>Sign Up</Text>
+              <Text style={styles.signupButtonText}>{t('signupButton')}</Text>
             </TouchableOpacity>
           </Link>
         </View>

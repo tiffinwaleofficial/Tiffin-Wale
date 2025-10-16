@@ -7,7 +7,7 @@ export class User extends Document {
   @Prop({ required: true, unique: true })
   email: string;
 
-  @Prop({ required: true })
+  @Prop()
   password: string;
 
   @Prop({ required: true, enum: UserRole, default: UserRole.CUSTOMER })
@@ -21,6 +21,9 @@ export class User extends Document {
 
   @Prop()
   phoneNumber: string;
+
+  @Prop()
+  firebaseUid: string;
 
   @Prop()
   profileImage: string;

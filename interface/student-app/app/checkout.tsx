@@ -6,11 +6,14 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { useAuthStore } from '@/store/authStore';
+import { BackButton } from '@/components/BackButton';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function CheckoutScreen() {
   const router = useRouter();
   const { planId } = useLocalSearchParams<{ planId: string }>();
   const { user } = useAuthStore();
+  const { t } = useTranslation('subscription');
   const { createSubscription } = useSubscriptionStore();
   
   const [plan, setPlan] = useState<any>(null);
@@ -35,7 +38,7 @@ export default function CheckoutScreen() {
 
   const fetchPlanDetails = async () => {
     if (!planId) {
-      setError('No plan selected');
+      setError(t('noPlanSelected'));
       setIsLoading(false);
       return;
     }
@@ -46,7 +49,7 @@ export default function CheckoutScreen() {
       setPlan(planDetails);
     } catch (err) {
       console.error('Error fetching plan:', err);
-      setError('Failed to load plan details');
+      setError(t('failedToLoadPlan'));
     } finally {
       setIsLoading(false);
     }
@@ -77,14 +80,14 @@ export default function CheckoutScreen() {
 
     if (!user) {
       console.error('❌ No user found in checkout');
-      setError('Please login to continue');
+      setError(t('pleaseLoginToContinue'));
       router.push('/(auth)/login');
       return;
     }
 
     if (!planId) {
       console.error('❌ No plan ID found');
-      setError('No plan selected');
+      setError(t('noPlanSelected'));
       return;
     }
 
@@ -123,7 +126,7 @@ export default function CheckoutScreen() {
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF9B42" />
-          <Text style={styles.loadingText}>Loading checkout...</Text>
+          <Text style={styles.loadingText}>{t('loadingCheckout')}</Text>
         </View>
       </View>
     );
@@ -138,7 +141,7 @@ export default function CheckoutScreen() {
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <Text style={styles.backButtonText}>Go Back</Text>
+            <Text style={styles.backButtonText}>{t('goBack')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -153,7 +156,7 @@ export default function CheckoutScreen() {
       {/* Header */}
       <View style={styles.header}>
         <BackButton />
-        <Text style={styles.headerTitle}>Checkout</Text>
+        <Text style={styles.headerTitle}>{t('checkout')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -168,7 +171,7 @@ export default function CheckoutScreen() {
         >
           <View style={styles.planHeader}>
             <Package size={24} color="#FF9B42" />
-            <Text style={styles.planCardTitle}>Selected Plan</Text>
+            <Text style={styles.planCardTitle}>{t('selectedPlan')}</Text>
           </View>
           <Text style={styles.planName}>{plan.name}</Text>
           <Text style={styles.planDescription}>{plan.description}</Text>
@@ -176,12 +179,12 @@ export default function CheckoutScreen() {
           <View style={styles.planDetailsRow}>
             <View style={styles.planDetail}>
               <Calendar size={16} color="#666666" />
-              <Text style={styles.planDetailText}>{plan.duration} days</Text>
+              <Text style={styles.planDetailText}>{plan.duration} {t('days')}</Text>
             </View>
             {plan.features && plan.features.length > 0 && (
               <View style={styles.planDetail}>
                 <Check size={16} color="#4CAF50" />
-                <Text style={styles.planDetailText}>{plan.features.length} features</Text>
+                <Text style={styles.planDetailText}>{plan.features.length} {t('features')}</Text>
               </View>
             )}
           </View>
@@ -193,7 +196,7 @@ export default function CheckoutScreen() {
             entering={FadeInDown.delay(100).duration(400)}
             style={styles.featuresCard}
           >
-            <Text style={styles.sectionTitle}>What's Included</Text>
+            <Text style={styles.sectionTitle}>{t('whatsIncluded')}</Text>
             {plan.features.map((feature: string, index: number) => (
               <View key={index} style={styles.featureItem}>
                 <Check size={18} color="#4CAF50" />
@@ -210,35 +213,35 @@ export default function CheckoutScreen() {
         >
           <View style={styles.pricingHeader}>
             <Receipt size={24} color="#FF9B42" />
-            <Text style={styles.sectionTitle}>Price Breakdown</Text>
+            <Text style={styles.sectionTitle}>{t('priceBreakdown')}</Text>
           </View>
 
           <View style={styles.pricingRow}>
-            <Text style={styles.pricingLabel}>Plan Price</Text>
+            <Text style={styles.pricingLabel}>{t('planPrice')}</Text>
             <Text style={styles.pricingValue}>₹{pricing.basePrice.toFixed(2)}</Text>
           </View>
 
           <View style={styles.pricingRow}>
-            <Text style={styles.pricingLabel}>Platform Fee (2%)</Text>
+            <Text style={styles.pricingLabel}>{t('platformFee')}</Text>
             <Text style={styles.pricingValue}>₹{pricing.platformFee.toFixed(2)}</Text>
           </View>
 
           <View style={styles.divider} />
 
           <View style={styles.pricingRow}>
-            <Text style={styles.pricingLabel}>Subtotal</Text>
+            <Text style={styles.pricingLabel}>{t('subtotal')}</Text>
             <Text style={styles.pricingValue}>₹{pricing.subtotal.toFixed(2)}</Text>
           </View>
 
           <View style={styles.pricingRow}>
-            <Text style={styles.pricingLabel}>GST (18%)</Text>
+            <Text style={styles.pricingLabel}>{t('gst18')}</Text>
             <Text style={styles.pricingValue}>₹{pricing.gst.toFixed(2)}</Text>
           </View>
 
           <View style={styles.divider} />
 
           <View style={styles.pricingRow}>
-            <Text style={styles.totalLabel}>Total Amount</Text>
+            <Text style={styles.totalLabel}>{t('totalAmount')}</Text>
             <Text style={styles.totalValue}>₹{pricing.total.toFixed(2)}</Text>
           </View>
         </Animated.View>
@@ -250,15 +253,15 @@ export default function CheckoutScreen() {
         >
           <View style={styles.paymentHeader}>
             <CreditCard size={24} color="#FF9B42" />
-            <Text style={styles.sectionTitle}>Payment Method</Text>
+            <Text style={styles.sectionTitle}>{t('paymentMethod')}</Text>
           </View>
           
           <View style={styles.paymentMethodItem}>
             <View style={styles.paymentMethodInfo}>
               <CreditCard size={20} color="#666666" />
               <View style={styles.paymentMethodText}>
-                <Text style={styles.paymentMethodName}>Credit/Debit Card</Text>
-                <Text style={styles.paymentMethodDesc}>Secure payment via Razorpay</Text>
+                <Text style={styles.paymentMethodName}>{t('creditDebitCard')}</Text>
+                <Text style={styles.paymentMethodDesc}>{t('securePaymentViaRazorpay')}</Text>
               </View>
             </View>
             <View style={styles.selectedBadge}>
@@ -269,7 +272,7 @@ export default function CheckoutScreen() {
           <View style={styles.securityNote}>
             <Shield size={16} color="#4CAF50" />
             <Text style={styles.securityText}>
-              Your payment information is secure and encrypted
+              {t('paymentInfoSecure')}
             </Text>
           </View>
         </Animated.View>
@@ -290,8 +293,7 @@ export default function CheckoutScreen() {
           style={styles.termsContainer}
         >
           <Text style={styles.termsText}>
-            By subscribing, you agree to our Terms of Service and Privacy Policy. 
-            Your subscription will auto-renew unless cancelled.
+            {t('bySubscribingYouAgree')}
           </Text>
         </Animated.View>
       </ScrollView>
@@ -299,7 +301,7 @@ export default function CheckoutScreen() {
       {/* Bottom Action Button */}
       <View style={styles.bottomContainer}>
         <View style={styles.bottomSummary}>
-          <Text style={styles.bottomTotalLabel}>Total</Text>
+          <Text style={styles.bottomTotalLabel}>{t('total')}</Text>
           <Text style={styles.bottomTotalValue}>₹{pricing.total.toFixed(2)}</Text>
         </View>
         <TouchableOpacity 
@@ -313,12 +315,12 @@ export default function CheckoutScreen() {
           {isProcessing ? (
             <>
               <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
-              <Text style={styles.subscribeButtonText}>Processing...</Text>
+              <Text style={styles.subscribeButtonText}>{t('processing')}</Text>
             </>
           ) : (
             <>
               <CreditCard size={20} color="#FFFFFF" />
-              <Text style={styles.subscribeButtonText}>Confirm & Subscribe</Text>
+              <Text style={styles.subscribeButtonText}>{t('confirmSubscribe')}</Text>
             </>
           )}
         </TouchableOpacity>

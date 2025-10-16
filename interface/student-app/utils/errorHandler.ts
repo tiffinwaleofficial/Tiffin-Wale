@@ -3,6 +3,7 @@
  */
 
 import { AxiosError } from 'axios';
+import { i18n } from '@/i18n/config';
 
 export interface AppError {
   message: string;
@@ -29,37 +30,37 @@ export const getErrorMessage = (error: unknown): string => {
           if (data?.errors && Array.isArray(data.errors)) {
             return data.errors.map((err: any) => err.message || err).join(', ');
           }
-          return 'Invalid request. Please check your input.';
+          return i18n.t('errors:invalidRequest');
 
         case 401:
-          return 'Authentication failed. Please login again.';
+          return i18n.t('errors:authenticationFailed');
 
         case 403:
-          return 'You do not have permission to perform this action.';
+          return i18n.t('errors:noPermission');
 
         case 404:
-          return 'The requested resource was not found.';
+          return i18n.t('errors:resourceNotFound');
 
         case 409:
-          return data?.message || 'A conflict occurred. This resource may already exist.';
+          return data?.message || i18n.t('errors:conflictOccurred');
 
         case 422:
           if (data?.errors && Array.isArray(data.errors)) {
             return data.errors.map((err: any) => err.message || err).join(', ');
           }
-          return data?.message || 'Validation failed. Please check your input.';
+          return data?.message || i18n.t('errors:validationFailed');
 
         case 429:
-          return 'Too many requests. Please try again later.';
+          return i18n.t('errors:tooManyRequests');
 
         case 500:
-          return 'Server error. Please try again later.';
+          return i18n.t('errors:serverError');
 
         case 503:
-          return 'Service temporarily unavailable. Please try again later.';
+          return i18n.t('errors:serviceUnavailable');
 
         default:
-          return data?.message || 'An unexpected error occurred.';
+          return data?.message || i18n.t('errors:unexpectedError');
       }
     }
 
@@ -68,13 +69,13 @@ export const getErrorMessage = (error: unknown): string => {
       const networkError = error as any;
       switch (networkError.code) {
         case 'NETWORK_ERROR':
-          return 'Unable to connect to server. Please check your internet connection and ensure the backend server is running.';
+          return i18n.t('errors:networkError');
         case 'TIMEOUT_ERROR':
-          return 'Request timed out. Please try again.';
+          return i18n.t('errors:timeoutError');
         case 'ECONNREFUSED':
-          return 'Connection refused. Please ensure the backend server is running on the correct port.';
+          return i18n.t('errors:connectionRefused');
         case 'ENOTFOUND':
-          return 'Server not found. Please check the server address.';
+          return i18n.t('errors:serverNotFound');
         default:
           return error.message;
       }
@@ -82,7 +83,7 @@ export const getErrorMessage = (error: unknown): string => {
 
     // Handle Axios network errors without response
     if (error.message && error.message.toLowerCase().includes('network error')) {
-      return 'Unable to connect to server. Please check your internet connection and ensure the backend server is running on port 3001.';
+      return i18n.t('errors:networkError');
     }
 
     return error.message;
@@ -92,7 +93,7 @@ export const getErrorMessage = (error: unknown): string => {
     return error;
   }
 
-  return 'An unexpected error occurred.';
+  return i18n.t('errors:unexpectedError');
 };
 
 /**

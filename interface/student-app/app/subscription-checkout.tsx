@@ -3,11 +3,14 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 
 import { useRouter } from 'expo-router';
 import { Calendar, CreditCard, Utensils, Wallet } from 'lucide-react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { BackButton } from '@/components/BackButton';
+import { useTranslation } from '@/hooks/useTranslation';
 
 type PaymentMethod = 'upi' | 'card' | 'wallet';
 
 export default function SubscriptionCheckoutScreen() {
   const router = useRouter();
+  const { t } = useTranslation('subscription');
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>('upi');
   const [upiId, setUpiId] = useState('');
 
@@ -20,7 +23,7 @@ export default function SubscriptionCheckoutScreen() {
     <View style={styles.container}>
       <Animated.View entering={FadeIn.delay(100).duration(300)} style={styles.header}>
         <BackButton />
-        <Text style={styles.headerTitle}>Checkout</Text>
+        <Text style={styles.headerTitle}>{t('checkout')}</Text>
         <View style={styles.placeholder} />
       </Animated.View>
 
@@ -31,24 +34,24 @@ export default function SubscriptionCheckoutScreen() {
       >
         <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.planSummary}>
           <View style={styles.planHeader}>
-            <Text style={styles.planName}>Premium Plan</Text>
+            <Text style={styles.planName}>{t('premiumPlan')}</Text>
             <Text style={styles.planPrice}>₹3,999/month</Text>
           </View>
 
           <View style={styles.planDetails}>
             <View style={styles.detailRow}>
               <Utensils size={20} color="#666666" />
-              <Text style={styles.detailText}>2 meals per day</Text>
+              <Text style={styles.detailText}>{t('twoMealsPerDay')}</Text>
             </View>
             <View style={styles.detailRow}>
               <Calendar size={20} color="#666666" />
-              <Text style={styles.detailText}>30 days subscription</Text>
+              <Text style={styles.detailText}>{t('thirtyDaysSubscription')}</Text>
             </View>
           </View>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Method</Text>
+          <Text style={styles.sectionTitle}>{t('paymentMethod')}</Text>
           
           <TouchableOpacity 
             style={[styles.paymentOption, selectedPayment === 'upi' && styles.selectedPayment]}
@@ -60,7 +63,7 @@ export default function SubscriptionCheckoutScreen() {
               </View>
               <View>
                 <Text style={styles.paymentTitle}>UPI</Text>
-                <Text style={styles.paymentSubtitle}>Pay using any UPI app</Text>
+                <Text style={styles.paymentSubtitle}>{t('payUsingAnyUpiApp')}</Text>
               </View>
             </View>
             <View style={[styles.radioButton, selectedPayment === 'upi' && styles.radioSelected]} />
@@ -70,7 +73,7 @@ export default function SubscriptionCheckoutScreen() {
             <View style={styles.upiInput}>
               <TextInput
                 style={styles.input}
-                placeholder="Enter UPI ID (e.g., name@upi)"
+                placeholder={t('enterUpiId')}
                 value={upiId}
                 onChangeText={setUpiId}
                 autoCapitalize="none"
@@ -88,7 +91,7 @@ export default function SubscriptionCheckoutScreen() {
               </View>
               <View>
                 <Text style={styles.paymentTitle}>Card</Text>
-                <Text style={styles.paymentSubtitle}>Credit or Debit card</Text>
+                <Text style={styles.paymentSubtitle}>{t('creditOrDebitCard')}</Text>
               </View>
             </View>
             <View style={[styles.radioButton, selectedPayment === 'card' && styles.radioSelected]} />
@@ -104,7 +107,7 @@ export default function SubscriptionCheckoutScreen() {
               </View>
               <View>
                 <Text style={styles.paymentTitle}>Wallet</Text>
-                <Text style={styles.paymentSubtitle}>Pay using digital wallet</Text>
+                <Text style={styles.paymentSubtitle}>{t('payUsingDigitalWallet')}</Text>
               </View>
             </View>
             <View style={[styles.radioButton, selectedPayment === 'wallet' && styles.radioSelected]} />
@@ -112,20 +115,20 @@ export default function SubscriptionCheckoutScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(400).duration(400)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Order Summary</Text>
+          <Text style={styles.sectionTitle}>{t('orderSummary')}</Text>
           
           <View style={styles.summaryCard}>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Plan Price</Text>
+              <Text style={styles.summaryLabel}>{t('planPrice')}</Text>
               <Text style={styles.summaryValue}>₹3,999</Text>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>GST (18%)</Text>
+              <Text style={styles.summaryLabel}>{t('gst')}</Text>
               <Text style={styles.summaryValue}>₹719.82</Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryRow}>
-              <Text style={styles.totalLabel}>Total Amount</Text>
+              <Text style={styles.totalLabel}>{t('totalAmount')}</Text>
               <Text style={styles.totalValue}>₹4,718.82</Text>
             </View>
           </View>
@@ -137,7 +140,7 @@ export default function SubscriptionCheckoutScreen() {
           style={styles.subscribeButton}
           onPress={handleSubscribe}
         >
-          <Text style={styles.subscribeButtonText}>Pay & Subscribe</Text>
+          <Text style={styles.subscribeButtonText}>{t('paySubscribe')}</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -11,19 +11,28 @@ import {
 } from "./schemas/subscription.schema";
 import { CreateSubscriptionDto } from "./dto/create-subscription.dto";
 import { UpdateSubscriptionDto } from "./dto/update-subscription.dto";
+import { EmailService } from "../email/email.service";
 
 @Injectable()
 export class SubscriptionService {
   constructor(
     @InjectModel(Subscription.name)
     private readonly subscriptionModel: Model<Subscription>,
+    private readonly emailService: EmailService,
   ) {}
 
   async create(
     createSubscriptionDto: CreateSubscriptionDto,
   ): Promise<Subscription> {
     const newSubscription = new this.subscriptionModel(createSubscriptionDto);
-    return newSubscription.save();
+    const savedSubscription = await newSubscription.save();
+
+    // Send subscription confirmation email (non-blocking)
+    this.sendSubscriptionConfirmationEmail(savedSubscription).catch((error) => {
+      console.error("Failed to send subscription confirmation email:", error);
+    });
+
+    return savedSubscription;
   }
 
   async findAll(): Promise<Subscription[]> {
@@ -153,5 +162,78 @@ export class SubscriptionService {
     subscription.status = SubscriptionStatus.ACTIVE;
 
     return subscription.save();
+  }
+
+  // Email helper methods for subscription notifications
+  private async sendSubscriptionConfirmationEmail(
+    subscription: any,
+  ): Promise<void> {
+    try {
+      await this.emailService.sendSubscriptionConfirmation({
+        customerEmail: subscription.customerEmail || "customer@example.com",
+        customerName: subscription.customerName || "Customer",
+        planName:
+          subscription.planName || subscription.plan || "Subscription Plan",
+        startDate: subscription.startDate || subscription.createdAt,
+        endDate: subscription.endDate || subscription.expiryDate,
+        amount: subscription.amount || subscription.price || 0,
+        billingCycle:
+          subscription.billingCycle || subscription.frequency || "monthly",
+      });
+    } catch (error) {
+      console.error("Subscription confirmation email service error:", error);
+    }
+  }
+
+  async sendSubscriptionExpiryWarning(subscriptionData: {
+    customerEmail: string;
+    customerName: string;
+    planName: string;
+    expiryDate: string;
+    daysLeft: number;
+  }): Promise<void> {
+    try {
+      await this.emailService.sendSubscriptionExpiryWarning(subscriptionData);
+    } catch (error) {
+      console.error("Failed to send subscription expiry warning email:", error);
+    }
+  }
+
+  async sendSubscriptionRenewalConfirmation(subscriptionData: {
+    customerEmail: string;
+    customerName: string;
+    planName: string;
+    renewalDate: string;
+    amount: number;
+  }): Promise<void> {
+    try {
+      // This would be implemented when you have subscription renewal logic
+      console.log(
+        "Subscription renewal email would be sent to:",
+        subscriptionData.customerEmail,
+      );
+      // await this.emailService.sendSubscriptionRenewal(subscriptionData);
+    } catch (error) {
+      console.error("Failed to send subscription renewal email:", error);
+    }
+  }
+
+  async sendSubscriptionCancellationConfirmation(subscriptionData: {
+    customerEmail: string;
+    customerName: string;
+    planName: string;
+    cancellationDate: string;
+    refundAmount?: number;
+  }): Promise<void> {
+    try {
+      // This would be implemented when you have subscription cancellation logic
+      console.log(
+        "Subscription cancellation email would be sent to:",
+        subscriptionData.customerEmail,
+      );
+      // await this.emailService.sendSubscriptionCancellation(subscriptionData);
+    } catch (error) {
+      console.error("Failed to send subscription cancellation email:", error);
+    }
   }
 }

@@ -12,7 +12,10 @@ interface AuthContextType {
   user: CustomerProfile | null;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
+  loginWithPhone: (phoneNumber: string, firebaseUid: string) => Promise<void>;
+  checkUserExists: (phoneNumber: string) => Promise<boolean>;
   register: (userData: RegisterRequest) => Promise<void>;
+  registerWithOnboarding: (onboardingData: any) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
   checkAuth: () => Promise<void>;
@@ -142,7 +145,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user: authStore.user,
     error: authStore.error,
     login: authStore.login,
+    loginWithPhone: authStore.loginWithPhone,
+    checkUserExists: authStore.checkUserExists,
     register: authStore.register,
+    registerWithOnboarding: authStore.registerWithOnboarding,
     logout: authStore.logout,
     clearError: authStore.clearError,
     checkAuth,
