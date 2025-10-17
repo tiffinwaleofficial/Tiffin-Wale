@@ -64,6 +64,7 @@ class NativeWebSocketService {
 
   /**
    * Initialize WebSocket connection
+   * Note: WebSocket is currently disabled for mobile platforms to prevent 404 errors
    */
   public async initialize(): Promise<void> {
     try {
@@ -71,11 +72,16 @@ class NativeWebSocketService {
       const token = authStore.token;
 
       if (!token) {
-        console.log('⚠️ No auth token available - WebSocket will connect after login');
+        if (__DEV__) console.log('⚠️ No auth token available - WebSocket will connect after login');
         return;
       }
 
-      await this.connect();
+      // Temporarily disable WebSocket auto-connection for mobile platforms
+      // TODO: Enable when backend WebSocket endpoint is ready
+      if (__DEV__) console.log('ℹ️ WebSocket auto-connection disabled for mobile platforms');
+      return;
+
+      // await this.connect();
     } catch (error) {
       console.error('❌ Failed to initialize WebSocket:', error);
     }
@@ -83,6 +89,7 @@ class NativeWebSocketService {
 
   /**
    * Connect to WebSocket server using native WebSocket API
+   * Note: Currently disabled for mobile platforms
    */
   public async connect(): Promise<void> {
     try {
@@ -90,9 +97,13 @@ class NativeWebSocketService {
       const token = authStore.token;
 
       if (!token) {
-        console.log('⚠️ No auth token available for WebSocket connection');
+        if (__DEV__) console.log('⚠️ No auth token available for WebSocket connection');
         return;
       }
+
+      // Temporarily disable WebSocket for mobile platforms to prevent 404 errors
+      if (__DEV__) console.log('ℹ️ WebSocket connection disabled - waiting for backend support');
+      return;
 
       // Disconnect existing connection
       if (this.socket) {
@@ -107,10 +118,10 @@ class NativeWebSocketService {
         wsUrl = wsUrl.replace('https://', 'wss://');
       }
 
-      // Add auth token as query parameter
-      wsUrl += `?token=${encodeURIComponent(token)}`;
+      // Add auth token as query parameter (token is guaranteed to be string here)
+      wsUrl += `?token=${encodeURIComponent(token as string)}`;
       
-      console.log('🔌 Connecting to native WebSocket:', wsUrl);
+      if (__DEV__) console.log('🔌 Connecting to native WebSocket:', wsUrl);
 
       // Create native WebSocket connection
       this.socket = new WebSocket(wsUrl);
@@ -134,7 +145,7 @@ class NativeWebSocketService {
       this.isConnected = true;
       this.reconnectAttempts = 0;
       this.reconnectDelay = 1000;
-      console.log('✅ WebSocket connected');
+      if (__DEV__) console.log('✅ WebSocket connected');
       
       // Process queued messages
       this.processMessageQueue();
@@ -154,7 +165,7 @@ class NativeWebSocketService {
         const message = JSON.parse(event.data);
         this.handleMessage(message);
       } catch (error) {
-        console.error('❌ Failed to parse WebSocket message:', error);
+        if (__DEV__) console.error('❌ Failed to parse WebSocket message:', error);
       }
     };
 
@@ -162,7 +173,13 @@ class NativeWebSocketService {
     this.socket.onclose = (event) => {
       this.isConnected = false;
       this.stopHeartbeat();
-      console.log('🔌 WebSocket disconnected:', event.code, event.reason);
+      if (__DEV__) console.log('🔌 WebSocket disconnected:', event.code, event.reason);
+      
+      // Don't reconnect on 404 errors (endpoint not available)
+      if (event.code === 1006 && event.reason?.includes('404')) {
+        if (__DEV__) console.log('⚠️ WebSocket endpoint not available - skipping reconnection');
+        return;
+      }
       
       // Auto-reconnect unless it was a clean close
       if (event.code !== 1000) {
@@ -172,7 +189,7 @@ class NativeWebSocketService {
 
     // Connection error
     this.socket.onerror = (error) => {
-      console.error('❌ WebSocket error:', error);
+      if (__DEV__) console.error('❌ WebSocket error:', error);
       this.isConnected = false;
       this.stopHeartbeat();
     };
@@ -182,7 +199,7 @@ class NativeWebSocketService {
    * Handle incoming WebSocket messages
    */
   private handleMessage(message: any): void {
-    console.log('📨 WebSocket message received:', message.type);
+    if (__DEV__) console.log('📨 WebSocket message received:', message.type);
 
     switch (message.type) {
       case 'notification':
@@ -198,7 +215,7 @@ class NativeWebSocketService {
         // Heartbeat response - connection is alive
         break;
       default:
-        console.log('📨 Unknown message type:', message.type);
+        if (__DEV__) console.log('📨 Unknown message type:', message.type);
     }
   }
 
@@ -206,7 +223,7 @@ class NativeWebSocketService {
    * Handle notification messages
    */
   private handleNotification(data: WebSocketNotification): void {
-    console.log('🔔 Received notification:', data.title);
+    if (__DEV__) console.log('🔔 Received notification:', data.title);
     
     // Show notification using notification service
     notificationService.show({
@@ -225,7 +242,7 @@ class NativeWebSocketService {
    * Handle order update messages
    */
   private handleOrderUpdate(data: OrderUpdate): void {
-    console.log('📦 Order update received:', data.orderId, data.status);
+    if (__DEV__) console.log('📦 Order update received:', data.orderId, data.status);
     
     // Show order update notification
     const statusMessages = {
@@ -254,7 +271,7 @@ class NativeWebSocketService {
    * Handle chat messages
    */
   private handleChatMessage(data: any): void {
-    console.log('💬 Chat message received:', data);
+    if (__DEV__) console.log('💬 Chat message received:', data);
     // Handle chat messages here
   }
 
@@ -271,15 +288,15 @@ class NativeWebSocketService {
     if (!this.socket || !this.isConnected) {
       // Queue the message for when connected
       this.messageQueue.push(message);
-      console.log('📤 Message queued (not connected):', type);
+      if (__DEV__) console.log('📤 Message queued (not connected):', type);
       return;
     }
 
     try {
       this.socket.send(JSON.stringify(message));
-      console.log('📤 Message sent:', type);
+      if (__DEV__) console.log('📤 Message sent:', type);
     } catch (error) {
-      console.error('❌ Failed to send message:', error);
+      if (__DEV__) console.error('❌ Failed to send message:', error);
       // Queue the message for retry
       this.messageQueue.push(message);
     }
@@ -323,7 +340,7 @@ class NativeWebSocketService {
   private processMessageQueue(): void {
     if (this.messageQueue.length === 0) return;
 
-    console.log(`📤 Processing ${this.messageQueue.length} queued messages`);
+    if (__DEV__) console.log(`📤 Processing ${this.messageQueue.length} queued messages`);
     
     const messages = [...this.messageQueue];
     this.messageQueue = [];
@@ -332,7 +349,7 @@ class NativeWebSocketService {
       try {
         this.socket?.send(JSON.stringify(message));
       } catch (error) {
-        console.error('❌ Failed to send queued message:', error);
+        if (__DEV__) console.error('❌ Failed to send queued message:', error);
         // Re-queue failed messages
         this.messageQueue.push(message);
       }
@@ -367,7 +384,7 @@ class NativeWebSocketService {
    */
   private scheduleReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.log('❌ Max reconnection attempts reached');
+      if (__DEV__) console.log('❌ Max reconnection attempts reached');
       return;
     }
 
@@ -376,7 +393,7 @@ class NativeWebSocketService {
     }
 
     const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts), 30000);
-    console.log(`🔄 Attempting to reconnect in ${delay}ms... (${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
+    if (__DEV__) console.log(`🔄 Attempting to reconnect in ${delay}ms... (${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectAttempts++;
@@ -388,9 +405,9 @@ class NativeWebSocketService {
    * Update user authentication
    */
   public updateAuth(token: string): void {
-    console.log('🔐 Updating WebSocket authentication');
-    // Reconnect with new token
-    this.connect();
+    if (__DEV__) console.log('🔐 Updating WebSocket authentication');
+    // Reconnect with new token (currently disabled)
+    // this.connect();
   }
 
   /**

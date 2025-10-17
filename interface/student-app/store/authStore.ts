@@ -38,14 +38,14 @@ export const useAuthStore = create<AuthState>((set: any, get: any) => ({
   isLoggingOut: false,
 
   initializeAuth: async () => {
-    console.log('🔍 AuthStore: Starting authentication initialization');
+    if (__DEV__) console.log('🔍 AuthStore: Starting authentication initialization');
     set({ isLoading: true, error: null });
     
     try {
       // Debug: Check what's in storage
       const token = await authService.getToken();
       const user = await authService.getCurrentUser();
-      console.log('🔍 AuthStore: Storage check:', { 
+      if (__DEV__) console.log('🔍 AuthStore: Storage check:', { 
         hasToken: !!token, 
         tokenLength: token?.length || 0,
         hasUser: !!user,
@@ -54,21 +54,21 @@ export const useAuthStore = create<AuthState>((set: any, get: any) => ({
       
       // First check if we have a valid token locally
       const isAuthenticated = await authService.isAuthenticated();
-      console.log('🔍 AuthStore: Local auth check result:', isAuthenticated);
+      if (__DEV__) console.log('🔍 AuthStore: Local auth check result:', isAuthenticated);
       
       if (isAuthenticated) {
         // Get user from storage first
         const storedUser = await authService.getCurrentUser();
-        console.log('🔍 AuthStore: Stored user:', storedUser ? 'Found' : 'Not found');
+        if (__DEV__) console.log('🔍 AuthStore: Stored user:', storedUser ? 'Found' : 'Not found');
         
         if (storedUser) {
           // Validate token with backend
-          console.log('🔍 AuthStore: Validating token with backend...');
+          if (__DEV__) console.log('🔍 AuthStore: Validating token with backend...');
           const isValidWithBackend = await authService.validateToken();
-          console.log('🔍 AuthStore: Backend validation result:', isValidWithBackend);
+          if (__DEV__) console.log('🔍 AuthStore: Backend validation result:', isValidWithBackend);
           
           if (isValidWithBackend) {
-            console.log('✅ AuthStore: Auth initialized successfully with valid user');
+            if (__DEV__) console.log('✅ AuthStore: Auth initialized successfully with valid user');
             set({ 
               user: storedUser, 
               isAuthenticated: true, 
@@ -78,17 +78,17 @@ export const useAuthStore = create<AuthState>((set: any, get: any) => ({
             });
             return;
           } else {
-            console.log('⚠️ AuthStore: Token invalid with backend, clearing auth');
+            if (__DEV__) console.log('⚠️ AuthStore: Token invalid with backend, clearing auth');
             await authService.logout();
           }
         } else {
-          console.log('⚠️ AuthStore: No stored user found, clearing auth');
+          if (__DEV__) console.log('⚠️ AuthStore: No stored user found, clearing auth');
           await authService.logout();
         }
       }
       
       // If we reach here, user is not authenticated
-      console.log('🔍 AuthStore: User not authenticated, setting initial state');
+      if (__DEV__) console.log('🔍 AuthStore: User not authenticated, setting initial state');
       set({ 
         user: null,
         isAuthenticated: false, 
@@ -126,14 +126,14 @@ export const useAuthStore = create<AuthState>((set: any, get: any) => ({
         isLoading: false 
       });
       
-      console.log('✅ AuthStore: Login successful, tokens stored securely');
+      if (__DEV__) console.log('✅ AuthStore: Login successful, tokens stored securely');
       
       // Connect WebSocket after successful login
       try {
         await nativeWebSocketService.connect();
-        console.log('✅ AuthStore: Native WebSocket connected after login');
+        if (__DEV__) console.log('✅ AuthStore: Native WebSocket connected after login');
       } catch (wsError) {
-        console.warn('⚠️ AuthStore: Failed to connect native WebSocket after login:', wsError);
+        if (__DEV__) console.warn('⚠️ AuthStore: Failed to connect native WebSocket after login:', wsError);
       }
     } catch (error) {
       const errorMessage = getErrorMessage(error);
@@ -148,7 +148,7 @@ export const useAuthStore = create<AuthState>((set: any, get: any) => ({
   loginWithPhone: async (phoneNumber: string, firebaseUid: string) => {
     set({ isLoading: true, error: null });
     try {
-      console.log('📱 AuthStore: Attempting phone login for:', phoneNumber);
+      if (__DEV__) console.log('📱 AuthStore: Attempting phone login for:', phoneNumber);
       
       // Call backend API for phone login
       const response = await fetch(`${config.apiBaseUrl}/api/auth/login-phone`, {
@@ -184,14 +184,14 @@ export const useAuthStore = create<AuthState>((set: any, get: any) => ({
         isLoading: false 
       });
       
-      console.log('✅ AuthStore: Phone login successful');
+      if (__DEV__) console.log('✅ AuthStore: Phone login successful');
       
       // Connect WebSocket after successful login
       try {
         await nativeWebSocketService.connect();
-        console.log('✅ AuthStore: Native WebSocket connected after phone login');
+        if (__DEV__) console.log('✅ AuthStore: Native WebSocket connected after phone login');
       } catch (wsError) {
-        console.warn('⚠️ AuthStore: Failed to connect native WebSocket after phone login:', wsError);
+        if (__DEV__) console.warn('⚠️ AuthStore: Failed to connect native WebSocket after phone login:', wsError);
       }
     } catch (error) {
       const errorMessage = getErrorMessage(error);
@@ -205,7 +205,7 @@ export const useAuthStore = create<AuthState>((set: any, get: any) => ({
 
   checkUserExists: async (phoneNumber: string): Promise<boolean> => {
     try {
-      console.log('🔍 AuthStore: Checking if user exists for phone:', phoneNumber);
+      if (__DEV__) console.log('🔍 AuthStore: Checking if user exists for phone:', phoneNumber);
       
       // Call backend API to check user existence
       const response = await fetch(`${config.apiBaseUrl}/api/auth/check-phone`, {
@@ -331,16 +331,16 @@ export const useAuthStore = create<AuthState>((set: any, get: any) => ({
     
     // Prevent double logout calls
     if (currentState.isLoggingOut) {
-      console.log('🚪 AuthStore: Logout already in progress, skipping');
+      if (__DEV__) console.log('🚪 AuthStore: Logout already in progress, skipping');
       return;
     }
     
-    console.log('🚪 AuthStore: Starting logout process');
+    if (__DEV__) console.log('🚪 AuthStore: Starting logout process');
     set({ isLoggingOut: true, isLoading: true, error: null });
     
     try {
       await authService.logout();
-      console.log('✅ AuthStore: Logout API call completed');
+      if (__DEV__) console.log('✅ AuthStore: Logout API call completed');
       
       // Disconnect WebSocket
       try {

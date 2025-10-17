@@ -133,15 +133,21 @@ export class TemplateService {
    * Prepare template data with common variables
    */
   private prepareTemplateData(data: TemplateData): TemplateData {
+    // Sanitize data to prevent ObjectId rendering issues
+    const sanitizedData = this.sanitizeTemplateData(data);
+
     return {
-      ...data,
-      appName: data.appName || "Tiffin-Wale",
-      appUrl: data.appUrl || process.env.APP_URL || "https://tiffin-wale.com",
+      ...sanitizedData,
+      appName: sanitizedData.appName || "Tiffin-Wale",
+      appUrl:
+        sanitizedData.appUrl ||
+        process.env.APP_URL ||
+        "https://tiffin-wale.com",
       supportEmail:
-        data.supportEmail ||
+        sanitizedData.supportEmail ||
         process.env.SUPPORT_EMAIL ||
         "support@tiffin-wale.com",
-      currentYear: data.currentYear || new Date().getFullYear(),
+      currentYear: sanitizedData.currentYear || new Date().getFullYear(),
       brandColors: {
         primary: "#FF6B35",
         secondary: "#2E8B57",
@@ -153,6 +159,47 @@ export class TemplateService {
       // Add timestamp for cache busting
       timestamp: Date.now(),
     };
+  }
+
+  /**
+   * Sanitize template data to prevent ObjectId rendering issues
+   */
+  private sanitizeTemplateData(data: any): any {
+    if (data === null || data === undefined) {
+      return data;
+    }
+
+    // Handle arrays
+    if (Array.isArray(data)) {
+      return data.map((item) => this.sanitizeTemplateData(item));
+    }
+
+    // Handle objects
+    if (typeof data === "object") {
+      // Check if it's a MongoDB ObjectId (has toString method and looks like ObjectId)
+      if (
+        data.toString &&
+        typeof data.toString === "function" &&
+        /^[0-9a-fA-F]{24}$/.test(data.toString())
+      ) {
+        return data.toString();
+      }
+
+      // Handle Date objects
+      if (data instanceof Date) {
+        return data.toISOString();
+      }
+
+      // Recursively sanitize object properties
+      const sanitized: any = {};
+      for (const [key, value] of Object.entries(data)) {
+        sanitized[key] = this.sanitizeTemplateData(value);
+      }
+      return sanitized;
+    }
+
+    // Return primitive values as-is
+    return data;
   }
 
   /**

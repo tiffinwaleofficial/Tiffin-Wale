@@ -1,5 +1,5 @@
 // Password validation rules
-import { i18n } from '@/i18n/config';
+import i18n from '@/i18n/config';
 
 const PASSWORD_MIN_LENGTH = 8;
 const PASSWORD_REGEX = {

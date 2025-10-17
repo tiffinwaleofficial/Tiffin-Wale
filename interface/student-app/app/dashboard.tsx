@@ -1,19 +1,19 @@
 import { useState, useEffect } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/auth/AuthProvider';
 import { useMealStore } from '@/store/mealStore';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { ActiveSubscriptionDashboard } from '@/components/ActiveSubscriptionDashboard';
 import { Home, ClipboardList, MapPin, User, CreditCard } from 'lucide-react-native';
 import { TouchableOpacity } from 'react-native';
-import { ProtectedRoute } from '@/components/RouteGuard';
+import { ProtectedRoute } from '@/auth/AuthMiddleware';
 import { useTranslation } from 'react-i18next';
 
 export default function DashboardScreen() {
   const router = useRouter();
   const { t } = useTranslation('common');
-  const { user } = useAuthStore();
+  const { user, isAuthenticated, isInitialized } = useAuth();
   const { 
     todayMeals, 
     upcomingMeals, 
@@ -29,10 +29,16 @@ export default function DashboardScreen() {
     isLoading: subscriptionLoading 
   } = useSubscriptionStore();
 
-  // Initialize data on mount
+  // Initialize data on mount - auth is handled by AuthProvider
   useEffect(() => {
     const initializeDashboard = async () => {
       console.log('🔔 Dashboard: Initializing dashboard data...');
+      
+      // Auth middleware ensures user is authenticated before reaching here
+      if (!user) {
+        console.log('⚠️ Dashboard: No user data available yet');
+        return;
+      }
       
       try {
         // Fetch all data in parallel for better performance
@@ -49,7 +55,7 @@ export default function DashboardScreen() {
     };
     
     initializeDashboard();
-  }, []);
+  }, [user, fetchTodayMeals, fetchUpcomingMeals, fetchCurrentSubscription]);
 
   // Refresh data when user changes (login/logout)
   useEffect(() => {

@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Activi
 import { useRouter } from 'expo-router';
 import { User, Mail, Phone, Calendar, Edit2, Camera, ArrowLeft } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/auth/AuthProvider';
+import { ProtectedRoute } from '@/auth/AuthMiddleware';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
@@ -15,7 +16,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 
 export default function AccountInformation() {
   const router = useRouter();
-  const { user, updateUserProfile, isLoading } = useAuthStore();
+  const { user, isLoading } = useAuth();
   const { currentSubscription } = useSubscriptionStore();
   const { success, showError } = useNotification();
   const { t } = useTranslation('profile');
@@ -222,7 +223,8 @@ export default function AccountInformation() {
   }
 
   return (
-    <View style={styles.container}>
+    <ProtectedRoute>
+      <View style={styles.container}>
       <View style={styles.header}>
         <BackButton />
         <Text style={styles.headerTitle}>{t('accountInformation')}</Text>
@@ -448,6 +450,7 @@ export default function AccountInformation() {
         />
       )}
     </View>
+    </ProtectedRoute>
   );
 }
 

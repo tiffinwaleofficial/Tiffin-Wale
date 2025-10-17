@@ -40,20 +40,20 @@ const getApiBaseUrl = (): string => {
   if (environment === 'development') {
     // Platform-specific API URLs for development
     if (Platform.OS === 'web') {
-      // Web: Use localhost
+      // Web: Use localhost for local development
       const localUrl = 'http://localhost:3001';
-      console.log('🌐 Web Development - Using localhost:', localUrl);
+      if (__DEV__) console.log('🌐 Web Development - Using localhost:', localUrl);
       return localUrl;
     } else {
       // Mobile (Android/iOS): Use production backend
-      const prodUrl = process.env.EXPO_PUBLIC_PROD_API_BASE_URL || 'https://api-tiffin-wale.vercel.app';
-      console.log('📱 Mobile Development - Using production backend:', prodUrl);
+      const prodUrl = 'https://api.tiffin-wale.com';
+      if (__DEV__) console.log('📱 Mobile Development - Using production backend:', prodUrl);
       return prodUrl;
     }
   } else {
     // For staging/production, always use remote backend
-    const prodUrl = process.env.EXPO_PUBLIC_PROD_API_BASE_URL || 'https://api-tiffin-wale.vercel.app';
-    console.log('🌐 Production mode - Using remote backend:', prodUrl);
+    const prodUrl = 'https://api.tiffin-wale.com';
+    if (__DEV__) console.log('🌐 Production mode - Using remote backend:', prodUrl);
     return prodUrl;
   }
 };
@@ -66,10 +66,12 @@ export const config: AppConfig = {
   },
 };
 
-// Log the configuration for debugging
-console.log('🔧 Environment Configuration:');
-console.log('  API Base URL:', config.apiBaseUrl);
-console.log('  Environment:', config.environment);
-console.log('  Source: .env file via Expo config');
+// Log the configuration for debugging (only in development)
+if (__DEV__) {
+  console.log('🔧 Environment Configuration:');
+  console.log('  API Base URL:', config.apiBaseUrl);
+  console.log('  Environment:', config.environment);
+  console.log('  Platform:', Platform.OS);
+}
 
 export default config; 

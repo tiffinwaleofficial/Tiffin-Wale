@@ -157,3 +157,6 @@ export class RegisterCustomerDto {
   @IsEnum(["customer"], { message: "Role must be customer" })
   role: "customer";
 }
+
+
+

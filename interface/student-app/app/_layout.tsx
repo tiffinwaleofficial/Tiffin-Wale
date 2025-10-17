@@ -8,13 +8,15 @@ import { Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700
 import { useEffect } from 'react';
 import { Text, View, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
-import { AuthProvider } from '@/context/AuthProvider';
+import { AuthProvider } from '@/auth/AuthProvider';
 import { ThemeProvider, DefaultTheme } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import NotificationContainer from '@/components/NotificationContainer';
 import { nativeWebSocketService } from '@/services/nativeWebSocketService';
 import KeyboardAvoidingWrapper from '@/components/KeyboardAvoidingWrapper';
+import LanguageService from '@/utils/languageService';
+import { useNavigationTracking } from '@/hooks/useNavigationTracking';
 
 // Import Vercel Analytics for web builds only
 let Analytics: any = null;
@@ -53,9 +55,17 @@ export default function RootLayout() {
     'Poppins-Bold': Poppins_700Bold,
   });
 
+  // Initialize navigation tracking
+  useNavigationTracking();
+
   useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
+      
+      // Initialize language service
+      LanguageService.initializeLanguage().catch((error) => {
+        console.warn('⚠️ Language service initialization failed:', error);
+      });
       
       // Initialize native WebSocket service
       nativeWebSocketService.initialize().catch((error) => {

@@ -5,7 +5,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 
 import { useMealStore } from '@/store/mealStore';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/auth/AuthProvider';
 import { useOrderStore } from '@/store/orderStore';
 
 import { AdditionalOrderCard } from '@/components/AdditionalOrderCard';
@@ -13,7 +13,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 
 export default function OrdersScreen() {
   const router = useRouter();
-  useAuthStore();
+  useAuth();
   const { t } = useTranslation('orders');
   const { 
     meals, 

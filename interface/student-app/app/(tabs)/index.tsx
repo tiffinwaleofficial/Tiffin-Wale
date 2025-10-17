@@ -4,7 +4,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { Bell, Calendar, MapPin, Clock, Star } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/auth/AuthProvider';
 import { useMealStore } from '@/store/mealStore';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { useNotificationStore } from '@/store/notificationStore';
@@ -16,7 +16,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user, isInitialized, isLoading: authLoading } = useAuthStore();
+  const { user, isInitialized, isLoading: authLoading } = useAuth();
   const { t } = useTranslation('common');
   const { 
     todayMeals, 
@@ -58,7 +58,7 @@ export default function HomeScreen() {
         return;
       }
       
-      const userId = user?.id || user?._id;
+      const userId = user?.id || user?.id;
       if (userId) {
         console.log('🔄 Dashboard: Loading fresh data for user:', userId);
         console.log('🔄 Dashboard: About to call APIs...');
@@ -79,23 +79,23 @@ export default function HomeScreen() {
     };
 
     loadInitialData();
-  }, [isInitialized, authLoading, user?.id, user?._id, fetchTodayMeals, fetchCurrentSubscription, fetchRestaurants, fetchNotifications]);
+  }, [isInitialized, authLoading, user?.id, user?.id, fetchTodayMeals, fetchCurrentSubscription, fetchRestaurants, fetchNotifications]);
 
   // Refresh subscription and notification data when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      const userId = user?.id || user?._id;
+      const userId = user?.id || user?.id;
       if (isInitialized && !authLoading && userId) {
         console.log('🔄 Dashboard: Screen focused, refreshing subscription and notification data');
         fetchCurrentSubscription(true); // Force refresh current subscription status
         fetchNotifications(userId, true); // Force refresh notifications
       }
-    }, [isInitialized, authLoading, user?.id, user?._id, fetchCurrentSubscription, fetchNotifications])
+    }, [isInitialized, authLoading, user?.id, user?.id, fetchCurrentSubscription, fetchNotifications])
   );
 
   // Pull to refresh handler
   const onRefresh = async () => {
-    const userId = user?.id || user?._id;
+    const userId = user?.id || user?.id;
     if (!isInitialized || authLoading || !userId) {
       console.log('⚠️ Dashboard: Cannot refresh - auth not ready');
       setRefreshing(false);
@@ -491,10 +491,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#666666',
   },
   errorCard: {
     backgroundColor: '#FFFFFF',

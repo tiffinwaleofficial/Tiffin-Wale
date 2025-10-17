@@ -10,6 +10,8 @@ import {
   Text,
   Link,
   Hr,
+  Row,
+  Column,
 } from '@react-email/components';
 import { Tailwind } from '@react-email/tailwind';
 
@@ -20,6 +22,7 @@ interface EmailLayoutProps {
   appUrl?: string;
   supportEmail?: string;
   currentYear?: number;
+  headerGradient?: string;
 }
 
 export const EmailLayout: React.FC<EmailLayoutProps> = ({
@@ -29,82 +32,209 @@ export const EmailLayout: React.FC<EmailLayoutProps> = ({
   appUrl = 'https://tiffin-wale.com',
   supportEmail = 'support@tiffin-wale.com',
   currentYear = new Date().getFullYear(),
+  headerGradient = 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)',
 }) => {
   return (
     <Html>
-      <Head />
+      <Head>
+        <style>{`
+          @media only screen and (max-width: 600px) {
+            .mobile-padding { padding: 16px !important; }
+            .mobile-text-sm { font-size: 14px !important; }
+            .mobile-hidden { display: none !important; }
+          }
+        `}</style>
+      </Head>
       {preview && <Preview>{preview}</Preview>}
       <Tailwind>
-        <Body className="bg-gray-50 font-sans">
-          <Container className="mx-auto py-8 px-4 max-w-2xl">
-            {/* Header */}
-            <Section className="bg-gradient-to-r from-orange-500 to-orange-400 rounded-t-lg p-8 text-center">
-              <Img
-                src={`${appUrl}/assets/logo-white.png`}
-                alt={`${appName} Logo`}
-                className="mx-auto mb-4"
-                width="120"
-                height="40"
-              />
-              <Text className="text-white text-2xl font-bold m-0">
-                🍱 {appName}
-              </Text>
-              <Text className="text-orange-100 text-sm m-0 mt-2">
-                Delicious meals delivered fresh to your doorstep
-              </Text>
-            </Section>
+        <Body style={{ backgroundColor: '#f9fafb', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif', margin: 0, padding: 0 }}>
+          {/* Full-width wrapper */}
+          <table width="100%" cellPadding="0" cellSpacing="0" style={{ backgroundColor: '#f9fafb' }}>
+            <tr>
+              <td align="center" style={{ padding: '40px 20px' }}>
+                {/* Main container - 600px */}
+                <table width="600" cellPadding="0" cellSpacing="0" style={{ maxWidth: '600px', width: '100%' }}>
+                  
+                  {/* Header with gradient */}
+                  <tr>
+                    <td style={{ 
+                      background: headerGradient,
+                      borderRadius: '16px 16px 0 0',
+                      padding: '40px 32px',
+                      textAlign: 'center'
+                    }}>
+                      <table width="100%" cellPadding="0" cellSpacing="0">
+                        <tr>
+                          <td align="center">
+                            <Img
+                              src={`${appUrl}/assets/logo-white.png`}
+                              alt={`${appName} Logo`}
+                              width="140"
+                              height="45"
+                              style={{ display: 'block', margin: '0 auto 16px' }}
+                            />
+                            <Text style={{ 
+                              color: '#ffffff',
+                              fontSize: '28px',
+                              fontWeight: 'bold',
+                              margin: '0 0 8px',
+                              lineHeight: '1.2'
+                            }}>
+                              🍱 {appName}
+                            </Text>
+                            <Text style={{ 
+                              color: 'rgba(255, 255, 255, 0.9)',
+                              fontSize: '15px',
+                              margin: 0,
+                              lineHeight: '1.5'
+                            }}>
+                              Delicious meals delivered fresh to your doorstep
+                            </Text>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
 
-            {/* Main Content */}
-            <Section className="bg-white px-8 py-6">
-              {children}
-            </Section>
+                  {/* Main Content */}
+                  <tr>
+                    <td style={{ 
+                      backgroundColor: '#ffffff',
+                      padding: '48px 40px',
+                    }} className="mobile-padding">
+                      {children}
+                    </td>
+                  </tr>
 
-            {/* Footer */}
-            <Section className="bg-gray-100 px-8 py-6 rounded-b-lg">
-              <Hr className="border-gray-300 my-4" />
-              
-              <Text className="text-gray-600 text-sm text-center m-0 mb-4">
-                You're receiving this email because you have an account with {appName}.
-              </Text>
-              
-              <Text className="text-gray-600 text-sm text-center m-0 mb-4">
-                Need help? Contact us at{' '}
-                <Link
-                  href={`mailto:${supportEmail}`}
-                  className="text-orange-500 underline"
-                >
-                  {supportEmail}
-                </Link>
-              </Text>
-              
-              <Text className="text-gray-500 text-xs text-center m-0">
-                © {currentYear} {appName}. All rights reserved.
-              </Text>
-              
-              <Text className="text-gray-500 text-xs text-center m-0 mt-2">
-                <Link
-                  href={`${appUrl}/unsubscribe`}
-                  className="text-gray-500 underline"
-                >
-                  Unsubscribe
-                </Link>
-                {' | '}
-                <Link
-                  href={`${appUrl}/privacy`}
-                  className="text-gray-500 underline"
-                >
-                  Privacy Policy
-                </Link>
-                {' | '}
-                <Link
-                  href={`${appUrl}/terms`}
-                  className="text-gray-500 underline"
-                >
-                  Terms of Service
-                </Link>
-              </Text>
-            </Section>
-          </Container>
+                  {/* Footer */}
+                  <tr>
+                    <td style={{ 
+                      backgroundColor: '#f3f4f6',
+                      borderRadius: '0 0 16px 16px',
+                      padding: '40px 40px 32px'
+                    }} className="mobile-padding">
+                      
+                      {/* Social Media Icons */}
+                      <table width="100%" cellPadding="0" cellSpacing="0" style={{ marginBottom: '24px' }}>
+                        <tr>
+                          <td align="center">
+                            <table cellPadding="0" cellSpacing="0">
+                              <tr>
+                                <td style={{ padding: '0 8px' }}>
+                                  <Link href={`${appUrl}/facebook`} style={{ textDecoration: 'none' }}>
+                                    <div style={{ 
+                                      width: '40px', 
+                                      height: '40px', 
+                                      borderRadius: '50%', 
+                                      backgroundColor: '#1877f2',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}>
+                                      <Text style={{ color: '#ffffff', fontSize: '20px', margin: 0 }}>f</Text>
+                                    </div>
+                                  </Link>
+                                </td>
+                                <td style={{ padding: '0 8px' }}>
+                                  <Link href={`${appUrl}/instagram`} style={{ textDecoration: 'none' }}>
+                                    <div style={{ 
+                                      width: '40px', 
+                                      height: '40px', 
+                                      borderRadius: '50%', 
+                                      background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}>
+                                      <Text style={{ color: '#ffffff', fontSize: '20px', margin: 0 }}>📷</Text>
+                                    </div>
+                                  </Link>
+                                </td>
+                                <td style={{ padding: '0 8px' }}>
+                                  <Link href={`${appUrl}/twitter`} style={{ textDecoration: 'none' }}>
+                                    <div style={{ 
+                                      width: '40px', 
+                                      height: '40px', 
+                                      borderRadius: '50%', 
+                                      backgroundColor: '#1da1f2',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}>
+                                      <Text style={{ color: '#ffffff', fontSize: '20px', margin: 0 }}>🐦</Text>
+                                    </div>
+                                  </Link>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <Hr style={{ borderColor: '#d1d5db', margin: '24px 0' }} />
+                      
+                      <Text style={{ 
+                        color: '#6b7280',
+                        fontSize: '14px',
+                        textAlign: 'center',
+                        margin: '0 0 16px',
+                        lineHeight: '1.6'
+                      }}>
+                        You're receiving this email because you have an account with {appName}.
+                      </Text>
+                      
+                      <Text style={{ 
+                        color: '#6b7280',
+                        fontSize: '14px',
+                        textAlign: 'center',
+                        margin: '0 0 24px',
+                        lineHeight: '1.6'
+                      }}>
+                        Need help? Contact us at{' '}
+                        <Link
+                          href={`mailto:${supportEmail}`}
+                          style={{ color: '#f97316', textDecoration: 'underline' }}
+                        >
+                          {supportEmail}
+                        </Link>
+                      </Text>
+                      
+                      <Text style={{ 
+                        color: '#9ca3af',
+                        fontSize: '12px',
+                        textAlign: 'center',
+                        margin: '0 0 12px',
+                        lineHeight: '1.5'
+                      }}>
+                        © {currentYear} {appName}. All rights reserved.
+                      </Text>
+                      
+                      <Text style={{ 
+                        color: '#9ca3af',
+                        fontSize: '12px',
+                        textAlign: 'center',
+                        margin: 0,
+                        lineHeight: '1.5'
+                      }}>
+                        <Link href={`${appUrl}/unsubscribe`} style={{ color: '#9ca3af', textDecoration: 'underline' }}>
+                          Unsubscribe
+                        </Link>
+                        {' | '}
+                        <Link href={`${appUrl}/privacy`} style={{ color: '#9ca3af', textDecoration: 'underline' }}>
+                          Privacy Policy
+                        </Link>
+                        {' | '}
+                        <Link href={`${appUrl}/terms`} style={{ color: '#9ca3af', textDecoration: 'underline' }}>
+                          Terms of Service
+                        </Link>
+                      </Text>
+                    </td>
+                  </tr>
+                  
+                </table>
+              </td>
+            </tr>
+          </table>
         </Body>
       </Tailwind>
     </Html>

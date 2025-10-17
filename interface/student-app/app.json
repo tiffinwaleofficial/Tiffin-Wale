@@ -30,7 +30,12 @@
       "typedRoutes": true
     },
     "android": {
-      "package": "com.tiffinwale_official.tiffinwalemobile"
+      "package": "com.tiffinwale_official.tiffinwalemobile",
+      "softwareKeyboardLayoutMode": "pan",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#FF9B42"
+      }
     }
   }
 }

@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from './apiClient';
 import { LoginRequest, RegisterRequest, LoginResponse, CustomerProfile } from '../types/api';
+import { API_BASE_URL } from './apiConfig';
 
 // Use consistent token keys across the app
 const AUTH_TOKEN_KEY = 'auth_token';
@@ -8,34 +9,7 @@ const REFRESH_TOKEN_KEY = 'refresh_token';
 const USER_DATA_KEY = 'user_data';
 
 export const authService = {
-  /**
-   * Login user and store authentication token
-   */
-  login: async (credentials: LoginRequest): Promise<LoginResponse> => {
-    try {
-      const response = await api.auth.login(credentials.email, credentials.password);
-      
-      // Backend returns 'token' but we expect 'accessToken'
-      const normalizedResponse = {
-        ...response,
-        accessToken: (response as any).token || response.accessToken,
-        refreshToken: response.refreshToken,
-        user: response.user
-      };
-      
-      // Store tokens and user data
-      await AsyncStorage.setItem(AUTH_TOKEN_KEY, normalizedResponse.accessToken);
-      await AsyncStorage.setItem(REFRESH_TOKEN_KEY, normalizedResponse.refreshToken);
-      await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(normalizedResponse.user));
-      
-      console.log('✅ Token stored:', normalizedResponse.accessToken.substring(0, 20) + '...');
-      
-      return normalizedResponse;
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
-    }
-  },
+  // Email/password login removed - using phone OTP only
   
   /**
    * Register a new user
@@ -56,7 +30,7 @@ export const authService = {
       };
       
       console.log('📤 Sending to API:', registrationData);
-      console.log('🌐 API Base URL:', process.env.API_BASE_URL || 'http://10.0.2.2:3001');
+      console.log('🌐 API Base URL:', API_BASE_URL);
       
       const response = await api.auth.register(registrationData);
       
@@ -363,6 +337,129 @@ export const authService = {
       console.log('✅ User data updated in storage');
     } catch (error) {
       console.error('Update stored user error:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Login with phone (Firebase OTP)
+   */
+  loginWithPhone: async (phoneNumber: string, firebaseUid: string): Promise<LoginResponse> => {
+    try {
+      console.log('📱 AuthService: Attempting phone login for:', phoneNumber);
+      
+      const response = await fetch(`${API_BASE_URL}/api/auth/login-phone`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phoneNumber, firebaseUid }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Phone login failed');
+      }
+
+      const data = await response.json();
+      
+      // Normalize response
+      const normalizedResponse = {
+        ...data,
+        accessToken: data.token || data.accessToken,
+        refreshToken: data.refreshToken,
+        user: data.user
+      };
+
+      console.log('✅ AuthService: Phone login successful');
+      return normalizedResponse;
+    } catch (error) {
+      console.error('❌ AuthService: Phone login error:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Check if user exists by phone number
+   */
+  checkUserExists: async (phoneNumber: string): Promise<boolean> => {
+    try {
+      console.log('🔍 AuthService: Checking if user exists for phone:', phoneNumber);
+      
+      const response = await fetch(`${API_BASE_URL}/api/auth/check-phone`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phoneNumber }),
+      });
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const data = await response.json();
+      return data.exists;
+    } catch (error) {
+      console.error('❌ AuthService: Check user exists error:', error);
+      return false;
+    }
+  },
+
+  /**
+   * Register with onboarding data
+   */
+  registerWithOnboarding: async (onboardingData: any): Promise<LoginResponse> => {
+    try {
+      console.log('🏪 AuthService: registerWithOnboarding called with:', onboardingData);
+      
+      // Map onboarding data to registration format
+      const registrationData = {
+        // Personal info
+        firstName: onboardingData.personalInfo?.firstName,
+        lastName: onboardingData.personalInfo?.lastName,
+        email: onboardingData.personalInfo?.email,
+        phoneNumber: onboardingData.phoneVerification?.phoneNumber,
+        
+        // Food preferences
+        cuisinePreferences: onboardingData.foodPreferences?.cuisinePreferences || [],
+        dietaryType: onboardingData.foodPreferences?.dietaryType,
+        spiceLevel: onboardingData.foodPreferences?.spiceLevel || 3,
+        allergies: onboardingData.foodPreferences?.allergies || [],
+        
+        // Address
+        address: onboardingData.address,
+        
+        // Firebase UID
+        firebaseUid: onboardingData.phoneVerification?.firebaseUid,
+      };
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/register-onboarding`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(registrationData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Registration failed');
+      }
+
+      const data = await response.json();
+      
+      // Normalize response
+      const normalizedResponse = {
+        ...data,
+        accessToken: data.token || data.accessToken,
+        refreshToken: data.refreshToken,
+        user: data.user
+      };
+
+      console.log('✅ AuthService: Registration with onboarding successful');
+      return normalizedResponse;
+    } catch (error) {
+      console.error('❌ AuthService: Registration with onboarding error:', error);
       throw error;
     }
   }

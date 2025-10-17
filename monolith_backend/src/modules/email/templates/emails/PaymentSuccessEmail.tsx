@@ -1,8 +1,9 @@
 import React from 'react';
-import { Text, Section, Heading, Row, Column } from '@react-email/components';
+import { Text, Hr } from '@react-email/components';
 import EmailLayout from '../components/EmailLayout';
 import Button from '../components/Button';
-import StatusBadge from '../components/StatusBadge';
+import InfoCard from '../components/InfoCard';
+import { CheckCircleIcon, CreditCardIcon, CalendarIcon } from '../components/Icons';
 
 interface PaymentSuccessEmailProps {
   payment: {
@@ -52,181 +53,262 @@ export const PaymentSuccessEmail: React.FC<PaymentSuccessEmailProps> = ({
       preview={preview}
       appName={appName}
       appUrl={appUrl}
+      headerGradient="linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)"
     >
-      <div className="text-center mb-6">
-        <StatusBadge status="success">Payment Successful</StatusBadge>
-      </div>
-      
-      <Heading className="text-2xl font-bold text-gray-800 mb-2 text-center">
-        Payment Confirmed! ✅
-      </Heading>
-      
-      <Text className="text-gray-600 text-base text-center mb-6">
-        Hi {payment.customerName}, your payment has been successfully processed.
-      </Text>
-      
-      {/* Payment Details */}
-      <Section className="bg-green-50 rounded-lg p-6 mb-6">
-        <Heading className="text-lg font-semibold text-gray-800 mb-4">
-          💳 Payment Details
-        </Heading>
-        
-        <Row className="mb-3">
-          <Column className="w-1/2">
-            <Text className="font-medium text-gray-700 m-0">Amount Paid:</Text>
-          </Column>
-          <Column className="w-1/2 text-right">
-            <Text className="text-xl font-bold text-green-600 m-0">
+      {/* Success Banner */}
+      <table width="100%" cellPadding="0" cellSpacing="0" style={{ 
+        backgroundColor: '#f0fdf4',
+        borderRadius: '12px',
+        padding: '32px 24px',
+        marginBottom: '32px',
+        textAlign: 'center',
+      }}>
+        <tr>
+          <td align="center">
+            <CheckCircleIcon size={72} color="#22c55e" />
+            <Text style={{
+              fontSize: '28px',
+              fontWeight: 'bold',
+              color: '#1f2937',
+              margin: '16px 0 8px 0',
+              lineHeight: '1.2',
+            }}>
+              Payment Successful! ✅
+            </Text>
+            <Text style={{
+              fontSize: '16px',
+              color: '#6b7280',
+              margin: 0,
+              lineHeight: '1.5',
+            }}>
+              Hi {payment.customerName}, your payment has been processed successfully.
+            </Text>
+          </td>
+        </tr>
+      </table>
+
+      {/* Amount Highlight */}
+      <table width="100%" cellPadding="0" cellSpacing="0" style={{
+        background: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
+        borderRadius: '16px',
+        padding: '32px',
+        marginBottom: '32px',
+        textAlign: 'center',
+      }}>
+        <tr>
+          <td align="center">
+            <Text style={{ 
+              fontSize: '14px', 
+              color: 'rgba(255,255,255,0.9)', 
+              margin: '0 0 8px 0',
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+            }}>
+              Amount Paid
+            </Text>
+            <Text style={{ 
+              fontSize: '48px', 
+              fontWeight: 'bold', 
+              color: '#ffffff',
+              margin: 0,
+              lineHeight: '1',
+            }}>
               {formatCurrency(payment.amount)}
             </Text>
-          </Column>
-        </Row>
-        
-        <Row className="mb-3">
-          <Column className="w-1/2">
-            <Text className="font-medium text-gray-700 m-0">Transaction ID:</Text>
-          </Column>
-          <Column className="w-1/2 text-right">
-            <Text className="text-gray-600 font-mono text-sm m-0">
-              {payment.paymentId}
+          </td>
+        </tr>
+      </table>
+
+      {/* Receipt */}
+      <table width="100%" cellPadding="0" cellSpacing="0" style={{
+        backgroundColor: '#ffffff',
+        border: '2px solid #e5e7eb',
+        borderRadius: '12px',
+        padding: '24px',
+        marginBottom: '32px',
+      }}>
+        <tr>
+          <td>
+            <Text style={{
+              fontSize: '18px',
+              fontWeight: 'bold',
+              color: '#1f2937',
+              margin: '0 0 24px 0',
+              textAlign: 'center',
+            }}>
+              📄 Transaction Receipt
             </Text>
-          </Column>
-        </Row>
-        
-        <Row className="mb-3">
-          <Column className="w-1/2">
-            <Text className="font-medium text-gray-700 m-0">Date & Time:</Text>
-          </Column>
-          <Column className="w-1/2 text-right">
-            <Text className="text-gray-600 m-0">
-              {formatDate(payment.transactionDate)}
+
+            {/* Transaction ID */}
+            <table width="100%" cellPadding="0" cellSpacing="0" style={{ marginBottom: '16px' }}>
+              <tr>
+                <td width="40%" style={{ verticalAlign: 'top' }}>
+                  <Text style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+                    Transaction ID:
+                  </Text>
+                </td>
+                <td>
+                  <Text style={{ 
+                    fontSize: '14px', 
+                    color: '#1f2937', 
+                    fontWeight: '600',
+                    fontFamily: 'monospace',
+                    margin: 0,
+                  }}>
+                    {payment.paymentId}
+                  </Text>
+                </td>
+              </tr>
+            </table>
+
+            {/* Date */}
+            <table width="100%" cellPadding="0" cellSpacing="0" style={{ marginBottom: '16px' }}>
+              <tr>
+                <td width="40%" style={{ verticalAlign: 'top' }}>
+                  <Text style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+                    Date & Time:
+                  </Text>
+                </td>
+                <td>
+                  <table cellPadding="0" cellSpacing="0">
+                    <tr>
+                      <td style={{ paddingRight: '8px', verticalAlign: 'middle' }}>
+                        <CalendarIcon size={16} color="#8b5cf6" />
+                      </td>
+                      <td>
+                        <Text style={{ fontSize: '14px', color: '#1f2937', fontWeight: '600', margin: 0 }}>
+                          {formatDate(payment.transactionDate)}
+                        </Text>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            {/* Payment Method */}
+            {payment.paymentMethod && (
+              <table width="100%" cellPadding="0" cellSpacing="0" style={{ marginBottom: '16px' }}>
+                <tr>
+                  <td width="40%" style={{ verticalAlign: 'top' }}>
+                    <Text style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+                      Payment Method:
+                    </Text>
+                  </td>
+                  <td>
+                    <table cellPadding="0" cellSpacing="0">
+                      <tr>
+                        <td style={{ paddingRight: '8px', verticalAlign: 'middle' }}>
+                          <CreditCardIcon size={16} color="#8b5cf6" />
+                        </td>
+                        <td>
+                          <Text style={{ fontSize: '14px', color: '#1f2937', fontWeight: '600', margin: 0 }}>
+                            {payment.paymentMethod}
+                          </Text>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            )}
+
+            {/* Order Number */}
+            {payment.orderNumber && (
+              <table width="100%" cellPadding="0" cellSpacing="0" style={{ marginBottom: '16px' }}>
+                <tr>
+                  <td width="40%" style={{ verticalAlign: 'top' }}>
+                    <Text style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+                      Order Number:
+                    </Text>
+                  </td>
+                  <td>
+                    <Text style={{ fontSize: '14px', color: '#1f2937', fontWeight: '600', margin: 0 }}>
+                      #{payment.orderNumber}
+                    </Text>
+                  </td>
+                </tr>
+              </table>
+            )}
+
+            {/* Subscription ID */}
+            {payment.subscriptionId && (
+              <table width="100%" cellPadding="0" cellSpacing="0">
+                <tr>
+                  <td width="40%" style={{ verticalAlign: 'top' }}>
+                    <Text style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+                      Subscription ID:
+                    </Text>
+                  </td>
+                  <td>
+                    <Text style={{ fontSize: '14px', color: '#1f2937', fontWeight: '600', margin: 0 }}>
+                      {payment.subscriptionId}
+                    </Text>
+                  </td>
+                </tr>
+              </table>
+            )}
+          </td>
+        </tr>
+      </table>
+
+      {/* Download Receipt Button */}
+      <table width="100%" cellPadding="0" cellSpacing="0" style={{ marginBottom: '24px' }}>
+        <tr>
+          <td align="center">
+            <Button href={receiptUrl} variant="primary" size="lg">
+              📥 Download Receipt
+            </Button>
+          </td>
+        </tr>
+      </table>
+
+      {/* Important Info */}
+      <InfoCard 
+        bgColor="#fef3c7"
+        borderColor="#fbbf24"
+      >
+        <Text style={{ fontSize: '14px', color: '#78350f', margin: 0, lineHeight: '1.6', textAlign: 'center' }}>
+          💡 <strong>Keep this receipt</strong> for your records. A copy has also been saved to your account.
+        </Text>
+      </InfoCard>
+
+      <Hr style={{ borderColor: '#e5e7eb', margin: '32px 0' }} />
+
+      {/* Support Section */}
+      <table width="100%" cellPadding="0" cellSpacing="0">
+        <tr>
+          <td align="center">
+            <Text style={{
+              fontSize: '15px',
+              color: '#6b7280',
+              margin: '0 0 16px 0',
+              lineHeight: '1.6',
+            }}>
+              Questions about this transaction?
             </Text>
-          </Column>
-        </Row>
-        
-        {payment.paymentMethod && (
-          <Row className="mb-3">
-            <Column className="w-1/2">
-              <Text className="font-medium text-gray-700 m-0">Payment Method:</Text>
-            </Column>
-            <Column className="w-1/2 text-right">
-              <Text className="text-gray-600 m-0">{payment.paymentMethod}</Text>
-            </Column>
-          </Row>
-        )}
-        
-        {payment.orderNumber && (
-          <Row className="mb-3">
-            <Column className="w-1/2">
-              <Text className="font-medium text-gray-700 m-0">Order Number:</Text>
-            </Column>
-            <Column className="w-1/2 text-right">
-              <Text className="text-gray-600 m-0">#{payment.orderNumber}</Text>
-            </Column>
-          </Row>
-        )}
-        
-        {payment.subscriptionId && (
-          <Row className="mb-0">
-            <Column className="w-1/2">
-              <Text className="font-medium text-gray-700 m-0">Subscription:</Text>
-            </Column>
-            <Column className="w-1/2 text-right">
-              <Text className="text-gray-600 m-0">{payment.subscriptionId}</Text>
-            </Column>
-          </Row>
-        )}
-      </Section>
-      
-      {/* What's Next */}
-      {payment.orderNumber && (
-        <Section className="bg-blue-50 rounded-lg p-6 mb-6">
-          <Heading className="text-lg font-semibold text-gray-800 mb-4">
-            🍽️ What's Next?
-          </Heading>
-          
-          <Text className="text-gray-600 text-sm mb-3">
-            Your payment for order #{payment.orderNumber} has been confirmed. Here's what happens next:
-          </Text>
-          
-          <div className="mb-2">
-            <Text className="font-medium text-gray-800 mb-1">✓ Payment Processed</Text>
-            <Text className="text-gray-600 text-sm">Your payment has been successfully charged and confirmed.</Text>
-          </div>
-          
-          <div className="mb-2">
-            <Text className="font-medium text-gray-800 mb-1">🍳 Order Preparation</Text>
-            <Text className="text-gray-600 text-sm">Your order is now being prepared by our partner restaurant.</Text>
-          </div>
-          
-          <div className="mb-0">
-            <Text className="font-medium text-gray-800 mb-1">🚚 Delivery Updates</Text>
-            <Text className="text-gray-600 text-sm">You'll receive notifications as your order progresses to delivery.</Text>
-          </div>
-        </Section>
-      )}
-      
-      {payment.subscriptionId && (
-        <Section className="bg-purple-50 rounded-lg p-6 mb-6">
-          <Heading className="text-lg font-semibold text-gray-800 mb-4">
-            🔄 Subscription Active
-          </Heading>
-          
-          <Text className="text-gray-600 text-sm mb-3">
-            Your subscription payment has been processed successfully. Your subscription is now active and you can:
-          </Text>
-          
-          <Text className="text-gray-600 text-sm mb-2">
-            • Browse and order from partner restaurants
-          </Text>
-          <Text className="text-gray-600 text-sm mb-2">
-            • Enjoy exclusive subscriber benefits and discounts
-          </Text>
-          <Text className="text-gray-600 text-sm mb-0">
-            • Manage your subscription anytime from your account
-          </Text>
-        </Section>
-      )}
-      
-      {/* Action Buttons */}
-      <div className="text-center mb-4">
-        <Button href={receiptUrl} variant="primary" size="lg">
-          Download Receipt
-        </Button>
-      </div>
-      
-      <div className="text-center mb-6">
-        <Button href={`${appUrl}/orders`} variant="outline" size="md">
-          View My Orders
-        </Button>
-      </div>
-      
-      <Section className="bg-gray-50 rounded-lg p-6 mb-6">
-        <Heading className="text-lg font-semibold text-gray-800 mb-3">
-          📄 Need a Receipt?
-        </Heading>
-        <Text className="text-gray-600 text-sm mb-3">
-          You can download your payment receipt anytime from your account dashboard or by clicking the button above.
-        </Text>
-        <Text className="text-gray-600 text-sm mb-0">
-          For tax purposes, all receipts include your transaction details and can be used for expense reporting.
-        </Text>
-      </Section>
-      
-      <Text className="text-gray-600 text-base leading-relaxed mb-4">
-        Thank you for your payment! If you have any questions about this transaction or need assistance, our support team is here to help.
-      </Text>
-      
-      <div className="text-center mb-6">
-        <Button href={supportUrl} variant="outline" size="md">
-          Contact Support
-        </Button>
-      </div>
-      
-      <Text className="text-gray-800 font-medium">
-        Thank you for choosing {appName}!<br />
-        The {appName} Team
-      </Text>
+            <Button href={supportUrl} variant="outline" size="md">
+              💬 Contact Support
+            </Button>
+          </td>
+        </tr>
+      </table>
+
+      <table width="100%" cellPadding="0" cellSpacing="0" style={{ marginTop: '32px' }}>
+        <tr>
+          <td align="center">
+            <Text style={{
+              fontSize: '16px',
+              color: '#1f2937',
+              margin: 0,
+              lineHeight: '1.6',
+            }}>
+              Thank you for your payment!<br />
+              <strong style={{ color: '#8b5cf6' }}>The {appName} Team</strong>
+            </Text>
+          </td>
+        </tr>
+      </table>
     </EmailLayout>
   );
 };

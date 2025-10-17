@@ -1,10 +1,10 @@
 import { Slot } from 'expo-router';
-import { PublicRoute } from '@/components/RouteGuard';
+import { GuestRoute } from '@/auth/AuthMiddleware';
 
 export default function AuthLayout() {
   return (
-    <PublicRoute>
+    <GuestRoute>
       <Slot />
-    </PublicRoute>
+    </GuestRoute>
   );
 }

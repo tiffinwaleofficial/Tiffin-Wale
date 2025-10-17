@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Animated, Easing } from 'react-native';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/auth/AuthProvider';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Check, MapPin, Phone, Package, ShoppingBag, Search, ClipboardList } from 'lucide-react-native';
@@ -39,7 +39,7 @@ const DELIVERY_STEPS = [
 export default function TrackScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  useAuthStore();
+  useAuth();
   const { subscribeToOrderUpdates, unsubscribeFromOrderUpdates } = useNotificationStore();
   const [meal, setMeal] = useState<Meal | null>(null);
   const [isLoading, setIsLoading] = useState(true);

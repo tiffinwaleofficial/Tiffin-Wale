@@ -1,9 +1,10 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { GuestRoute } from '@/auth/AuthMiddleware';
 
 export default function OnboardingLayout() {
   return (
-    <>
+    <GuestRoute>
       <StatusBar style="dark" backgroundColor="#FFFAF0" />
       <Stack
         screenOptions={{
@@ -49,9 +50,14 @@ export default function OnboardingLayout() {
           }}
         />
       </Stack>
-    </>
+    </GuestRoute>
   );
 }
+
+
+
+
+
 
 
 

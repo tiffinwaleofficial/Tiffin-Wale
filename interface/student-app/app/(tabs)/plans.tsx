@@ -5,14 +5,14 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 
 import { useSubscriptionStore } from '@/store/subscriptionStore';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/auth/AuthProvider';
 import { SubscriptionPlan } from '@/types/api';
 import PlanDetailModal from '@/components/PlanDetailModal';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function PlansScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user } = useAuth();
   const { t } = useTranslation('subscription');
   const { 
     availablePlans, 

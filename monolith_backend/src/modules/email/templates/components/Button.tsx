@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button as EmailButton, Link } from '@react-email/components';
+import { Link } from '@react-email/components';
 
 interface ButtonProps {
   href: string;
@@ -7,6 +7,7 @@ interface ButtonProps {
   variant?: 'primary' | 'secondary' | 'outline' | 'success' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
+  icon?: React.ReactNode;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -15,43 +16,80 @@ export const Button: React.FC<ButtonProps> = ({
   variant = 'primary',
   size = 'md',
   fullWidth = false,
+  icon,
 }) => {
-  const baseClasses = 'inline-block text-center font-semibold rounded-lg no-underline transition-colors';
-  
-  const variantClasses = {
-    primary: 'bg-orange-500 text-white hover:bg-orange-600',
-    secondary: 'bg-green-600 text-white hover:bg-green-700',
-    outline: 'bg-transparent text-orange-500 border-2 border-orange-500 hover:bg-orange-500 hover:text-white',
-    success: 'bg-green-500 text-white hover:bg-green-600',
-    danger: 'bg-red-500 text-white hover:bg-red-600',
+  const variantStyles = {
+    primary: {
+      background: 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)',
+      color: '#ffffff',
+      border: 'none',
+    },
+    secondary: {
+      background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+      color: '#ffffff',
+      border: 'none',
+    },
+    outline: {
+      background: 'transparent',
+      color: '#f97316',
+      border: '2px solid #f97316',
+    },
+    success: {
+      background: 'linear-gradient(135deg, #22c55e 0%, #4ade80 100%)',
+      color: '#ffffff',
+      border: 'none',
+    },
+    danger: {
+      background: 'linear-gradient(135deg, #ef4444 0%, #f87171 100%)',
+      color: '#ffffff',
+      border: 'none',
+    },
   };
   
-  const sizeClasses = {
-    sm: 'px-4 py-2 text-sm',
-    md: 'px-6 py-3 text-base',
-    lg: 'px-8 py-4 text-lg',
+  const sizeStyles = {
+    sm: {
+      padding: '10px 20px',
+      fontSize: '14px',
+    },
+    md: {
+      padding: '14px 28px',
+      fontSize: '16px',
+    },
+    lg: {
+      padding: '18px 36px',
+      fontSize: '18px',
+    },
   };
-  
-  const widthClass = fullWidth ? 'w-full' : '';
-  
-  const className = [
-    baseClasses,
-    variantClasses[variant],
-    sizeClasses[size],
-    widthClass,
-  ].filter(Boolean).join(' ');
+
+  const buttonStyle = {
+    display: 'inline-block',
+    textDecoration: 'none',
+    textAlign: 'center' as const,
+    fontWeight: '600',
+    borderRadius: '12px',
+    cursor: 'pointer',
+    width: fullWidth ? '100%' : 'auto',
+    boxShadow: variant !== 'outline' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' : 'none',
+    transition: 'all 0.2s ease',
+    ...variantStyles[variant],
+    ...sizeStyles[size],
+  };
 
   return (
-    <EmailButton
-      href={href}
-      className={className}
-      style={{
-        display: fullWidth ? 'block' : 'inline-block',
-        textDecoration: 'none',
-      }}
-    >
-      {children}
-    </EmailButton>
+    <Link href={href} style={buttonStyle}>
+      <table cellPadding="0" cellSpacing="0" border={0} style={{ margin: '0 auto' }}>
+        <tr>
+          {icon && (
+            <td style={{ paddingRight: '8px', verticalAlign: 'middle' }}>
+              {icon}
+            </td>
+          )}
+          <td style={{ verticalAlign: 'middle' }}>
+            {children}
+          </td>
+        </tr>
+      </table>
+    </Link>
   );
 };
 

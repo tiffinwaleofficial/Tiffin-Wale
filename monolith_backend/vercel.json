@@ -7,8 +7,10 @@
       "config": {
         "includeFiles": [
           "src/**",
+          "dist/**",
           "package.json",
-          "tsconfig.json"
+          "tsconfig.json",
+          "public/**/*"
         ],
         "maxLambdaSize": "50mb"
       }
@@ -16,42 +18,11 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/index.ts"
-    },
-    {
-      "src": "/api-docs/(.*)",
-      "dest": "/api/index.ts"
-    },
-    {
-      "src": "/api-docs",
-      "dest": "/api/index.ts"
-    },
-    {
-      "src": "/health",
-      "dest": "/api/index.ts"
-    },
-    {
-      "src": "/",
-      "dest": "/api/index.ts"
-    },
-    {
-      "src": "/native-ws",
-      "dest": "/api/index.ts"
-    },
-    {
       "src": "/(.*)",
       "dest": "/api/index.ts"
     }
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "api/index.ts": {
-      "maxDuration": 30
-    }
-  },
-  "installCommand": "bun install",
-  "buildCommand": "echo 'Skipping build - Vercel will handle TypeScript compilation'"
+  }
 }

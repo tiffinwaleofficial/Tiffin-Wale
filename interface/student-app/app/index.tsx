@@ -1,11 +1,10 @@
 import { Redirect } from 'expo-router';
-import { useAuthContext } from '@/context/AuthProvider';
+import { useAuth } from '@/auth/AuthProvider';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
-import { RouteGuard } from '@/components/RouteGuard';
 import { useTranslation } from 'react-i18next';
 
 export default function Root() {
-  const { isAuthenticated, isInitialized, isLoading } = useAuthContext();
+  const { isAuthenticated, isInitialized, isLoading } = useAuth();
   const { t } = useTranslation('common');
   
   // Show loading while authentication is being initialized
@@ -18,16 +17,12 @@ export default function Root() {
     );
   }
   
-  return (
-    <RouteGuard requireAuth={false}>
-      {/* Redirect to proper location based on auth state */}
-      {isAuthenticated ? (
-        <Redirect href="/(tabs)" />
-      ) : (
-        <Redirect href="/(onboarding)/welcome" />
-      )}
-    </RouteGuard>
-  );
+  // Redirect to proper location based on auth state
+  if (isAuthenticated) {
+    return <Redirect href="/(tabs)" />;
+  } else {
+    return <Redirect href="/(onboarding)/welcome" />;
+  }
 }
 
 const styles = StyleSheet.create({

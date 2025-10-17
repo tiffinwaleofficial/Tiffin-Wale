@@ -150,5 +150,9 @@
   "default": "Default",
   "setAsDefault": "Set as Default",
   "remove": "Remove",
-  "expires": "Expires"
+  "expires": "Expires",
+  "selectLanguage": "Select Language",
+  "languageChangedSuccessfully": "Language changed successfully",
+  "languageChangeError": "Failed to change language. Please try again.",
+  "languageChangeNote": "The app will update immediately when you select a language."
 }

@@ -3,7 +3,7 @@
  */
 
 import { AxiosError } from 'axios';
-import { i18n } from '@/i18n/config';
+import i18n from '@/i18n/config';
 
 export interface AppError {
   message: string;

@@ -13,15 +13,26 @@ let app: NestExpressApplication;
 
 async function createNestServer(): Promise<NestExpressApplication> {
   if (app) {
+    console.log('✅ Reusing existing NestJS app instance');
     return app;
   }
 
-  const logger = new Logger('Vercel-Bootstrap');
-  logger.log('Creating NestJS application for Vercel...');
+  console.log('🚀 Starting NestJS app creation for Vercel...');
 
+  // Set Vercel environment flag BEFORE creating the app
+  process.env.VERCEL = '1';
+  process.env.IS_SERVERLESS = 'true';
+  console.log('✅ Environment flags set: VERCEL=1, IS_SERVERLESS=true');
+
+  console.log('📦 Creating NestJS application...');
   app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['error', 'warn', 'log'],
+    abortOnError: false, // Don't crash on module initialization errors
   });
+  console.log('✅ NestJS application created successfully');
+
+  // Don't configure WebSocket adapter in serverless environment
+  console.log('⚠️ Skipping WebSocket adapter for serverless environment');
 
   // Add a root route for health checks - BEFORE setting global prefix
   app.getHttpAdapter().get('/', (req, res: any) => {
@@ -62,19 +73,19 @@ async function createNestServer(): Promise<NestExpressApplication> {
     preflightContinue: false,
     optionsSuccessStatus: 204,
   });
-  logger.log('CORS configured for production domains');
+  console.log('✅ CORS configured for production domains');
 
   // Serve static files (adjusted for Vercel)
   try {
     app.useStaticAssets(join(process.cwd(), 'public'));
-    logger.log('Static file serving configured');
+    console.log('✅ Static file serving configured');
   } catch (error) {
-    logger.warn('Static file serving configuration failed, continuing without it');
+    console.log('⚠️ Static file serving configuration failed, continuing without it');
   }
 
   // Register global exception filter
   app.useGlobalFilters(new AllExceptionsFilter());
-  logger.log('Global exception filter configured');
+  console.log('✅ Global exception filter configured');
 
   // Set up global validation pipe with better error messaging
   app.useGlobalPipes(
@@ -116,7 +127,7 @@ async function createNestServer(): Promise<NestExpressApplication> {
     }),
   );
 
-  logger.log('Global validation pipe configured');
+  console.log('✅ Global validation pipe configured');
 
   // Set up Swagger
   const swaggerConfig = new DocumentBuilder()
@@ -153,15 +164,15 @@ async function createNestServer(): Promise<NestExpressApplication> {
     }
   );
 
-  logger.log('Swagger documentation configured');
+  console.log('✅ Swagger documentation configured');
 
   // Note: Vercel Analytics for server-side is handled via middleware
   // The analytics tracking is implemented in AnalyticsMiddleware
-  logger.log('Analytics middleware configured for API tracking');
+  console.log('✅ Analytics middleware configured for API tracking');
 
   // Initialize the app
   await app.init();
-  logger.log('NestJS application initialized for Vercel');
+  console.log('✅ NestJS application initialized for Vercel');
 
   return app;
 }

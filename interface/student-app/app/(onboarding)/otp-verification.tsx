@@ -14,9 +14,8 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Shield, RotateCcw } from 'lucide-react-native';
 import phoneAuthService from '@/services/phoneAuthService';
-import { secureAuthService } from '@/services/secureAuthService';
 import { useOnboardingStore } from '@/store/onboardingStore';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/auth/AuthProvider';
 import { notificationActions } from '@/store/notificationStore';
 import { useTranslation } from '@/hooks/useTranslation';
 
@@ -30,7 +29,7 @@ export default function OTPVerificationScreen() {
   const router = useRouter();
   const { phoneNumber } = useLocalSearchParams<{ phoneNumber: string }>();
   const { setPhoneVerification, nextStep, setCurrentStep } = useOnboardingStore();
-  const { initializeAuth } = useAuthStore();
+  const { loginWithPhone, checkUserExists } = useAuth();
   const { t } = useTranslation('onboarding');
   
   // Refs for OTP inputs
@@ -95,7 +94,7 @@ export default function OTPVerificationScreen() {
       const result = await phoneAuthService.verifyOTP(otpCode);
       
       if (result.success && result.user) {
-        console.log('🔐 OTP Verification: Firebase OTP verified successfully');
+        if (__DEV__) console.log('🔐 OTP Verification: Firebase OTP verified successfully');
         
         // Mark phone as verified in onboarding store
         setPhoneVerification({
@@ -103,58 +102,55 @@ export default function OTPVerificationScreen() {
           isVerified: true
         });
 
-        // Use secure authentication service to check user existence and handle login
-        const authResult = await secureAuthService.checkUserExistsSecurely(
-          phoneNumber!,
-          result.user.uid
-        );
-
-        if (authResult.success) {
-          if (authResult.userExists && authResult.user && authResult.token) {
-            // User exists and is logged in successfully
-            console.log('✅ OTP Verification: User logged in successfully');
+        // Check if user exists using new auth system
+        const userExists = await checkUserExists(phoneNumber!);
+        
+        if (userExists) {
+          // User exists, log them in
+          try {
+            await loginWithPhone(phoneNumber!, result.user.uid);
+            
+            if (__DEV__) console.log('✅ OTP Verification: User logged in successfully');
             
             // Show success notification
             notificationActions.showNotification({
               id: `login-success-${Date.now()}`,
               type: 'toast',
               variant: 'success',
-              title: `Welcome back, ${authResult.user.firstName}!`,
+              title: `Welcome back!`,
               message: 'You have been successfully logged in.',
               duration: 4000,
             });
             
-            // Initialize auth store with the logged-in user
-            await initializeAuth();
-            
-            // Small delay to ensure notification is shown before navigation
+            // Small delay to ensure auth state is updated before navigation
             setTimeout(() => {
-              // Navigate to main app
+              // Navigate to main app - AuthProvider will handle the redirect
               router.replace('/(tabs)' as any);
             }, 500);
             
-          } else if (authResult.requiresOnboarding) {
-            // User doesn't exist, proceed with onboarding
-            console.log('📝 OTP Verification: User requires onboarding');
-            
-            // Show welcome notification for new user
-            notificationActions.showNotification({
-              id: `welcome-new-user-${Date.now()}`,
-              type: 'toast',
-              variant: 'success',
-              title: 'Welcome to TiffinWale!',
-              message: 'Let\'s set up your account to get started.',
-              duration: 3000,
-            });
-            
-            // Continue to personal info step
-            setCurrentStep(3);
-            router.push('/(onboarding)/personal-info' as any);
-          } else {
-            throw new Error(authResult.error || 'Authentication failed');
+          } catch (loginError) {
+            console.error('❌ OTP Verification: Login failed:', loginError);
+            Alert.alert('Login Failed', 'Please try again.');
+            setIsLoading(false);
+            return;
           }
         } else {
-          throw new Error(authResult.error || 'Security validation failed');
+          // User doesn't exist, proceed with onboarding
+          if (__DEV__) console.log('📝 OTP Verification: User requires onboarding');
+          
+          // Show welcome notification for new user
+          notificationActions.showNotification({
+            id: `welcome-new-user-${Date.now()}`,
+            type: 'toast',
+            variant: 'success',
+            title: 'Welcome to TiffinWale!',
+            message: 'Let\'s set up your account to get started.',
+            duration: 3000,
+          });
+          
+          // Continue to personal info step
+          setCurrentStep(3);
+          router.push('/(onboarding)/personal-info' as any);
         }
       } else {
         Alert.alert(t('verificationFailedTitle'), result.error || t('verificationFailedMessage'));

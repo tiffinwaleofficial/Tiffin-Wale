@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useAuthContext } from '@/context/AuthProvider';
+import { useAuth } from '@/auth/AuthProvider';
 
 interface RouteGuardProps {
   children: React.ReactNode;
@@ -18,7 +18,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({
   permissions = []
 }) => {
   const { t } = useTranslation('common');
-  const { isAuthenticated, isInitialized, isLoading, user } = useAuthContext();
+  const { isAuthenticated, isInitialized, isLoading, user } = useAuth();
 
   // Show loading while authentication is being initialized
   if (!isInitialized || isLoading) {
@@ -32,7 +32,8 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({
 
   // If authentication is required and user is not authenticated
   if (requireAuth && !isAuthenticated) {
-    return <Redirect href="/" />;
+    console.log('🔒 RouteGuard: User not authenticated, redirecting to welcome');
+    return <Redirect href="/(onboarding)/welcome" />;
   }
 
   // If user is authenticated but trying to access auth pages (should redirect to main app)

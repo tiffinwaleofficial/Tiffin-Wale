@@ -38,10 +38,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Initialize authentication on mount
   useEffect(() => {
     if (!authStore.isInitialized) {
-      console.log('🔍 AuthProvider: Initializing authentication');
+      if (__DEV__) console.log('🔍 AuthProvider: Initializing authentication');
       authStore.initializeAuth();
     }
-  }, [authStore.isInitialized]);
+  }, [authStore.isInitialized, authStore.initializeAuth]);
 
   // Listen for token expiration events
   useEffect(() => {
@@ -50,11 +50,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const handleTokenExpired = async () => {
       // Prevent multiple simultaneous token expiration handling
       if (isHandlingTokenExpired) {
-        console.log('🚨 AuthProvider: Token expiration already being handled, skipping');
+        if (__DEV__) console.log('🚨 AuthProvider: Token expiration already being handled, skipping');
         return;
       }
       
-      console.log('🚨 AuthProvider: Token expired event received');
+      if (__DEV__) console.log('🚨 AuthProvider: Token expired event received');
       isHandlingTokenExpired = true;
       
       try {
@@ -62,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (authStore.isAuthenticated && !authStore.isLoggingOut) {
           await authStore.logout();
         } else {
-          console.log('🚨 AuthProvider: User already logged out or logout in progress');
+          if (__DEV__) console.log('🚨 AuthProvider: User already logged out or logout in progress');
         }
       } catch (error) {
         console.error('❌ AuthProvider: Error handling token expiration:', error);
@@ -78,17 +78,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subscription.remove();
       isHandlingTokenExpired = false;
     };
-  }, [authStore]);
+  }, [authStore.isAuthenticated, authStore.isLoggingOut, authStore.logout]);
 
   // Periodically check authentication status (reduced frequency)
   useEffect(() => {
+    // Disable periodic auth checks to prevent infinite loops
+    // TODO: Re-enable with proper dependency management if needed
+    return;
+    
     if (authStore.isAuthenticated && !isCheckingAuth && !authStore.isLoggingOut) {
       const checkAuthInterval = setInterval(async () => {
-        console.log('🔍 AuthProvider: Periodic auth check');
+        if (__DEV__) console.log('🔍 AuthProvider: Periodic auth check');
         
         // Skip if logout is in progress
         if (authStore.isLoggingOut) {
-          console.log('🔍 AuthProvider: Logout in progress, skipping auth check');
+          if (__DEV__) console.log('🔍 AuthProvider: Logout in progress, skipping auth check');
           return;
         }
         
@@ -97,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Only check with backend if local token seems valid
           const isLocallyValid = await authService.isAuthenticated();
           if (!isLocallyValid) {
-            console.log('🔍 AuthProvider: Local token invalid, logging out');
+            if (__DEV__) console.log('🔍 AuthProvider: Local token invalid, logging out');
             if (!authStore.isLoggingOut) {
               await authStore.logout();
             }
@@ -127,7 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return () => clearInterval(checkAuthInterval);
     }
-  }, [authStore.isAuthenticated, isCheckingAuth, authStore.isLoggingOut, authStore]);
+  }, []);
 
   const checkAuth = async () => {
     if (authStore.isAuthenticated) {

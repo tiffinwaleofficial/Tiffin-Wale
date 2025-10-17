@@ -150,5 +150,9 @@
   "profileImageUpdated": "प्रोफ़ाइल छवि सफलतापूर्वक अपडेट हुई",
   "imageUploadFailed": "छवि अपलोड करने में विफल",
   "loggedOutSuccessfully": "सफलतापूर्वक लॉगआउट हुए",
-  "logoutFailed": "लॉगआउट विफल, लेकिन आप स्थानीय रूप से साइन आउट हो गए हैं"
+  "logoutFailed": "लॉगआउट विफल, लेकिन आप स्थानीय रूप से साइन आउट हो गए हैं",
+  "selectLanguage": "भाषा चुनें",
+  "languageChangedSuccessfully": "भाषा सफलतापूर्वक बदल गई",
+  "languageChangeError": "भाषा बदलने में विफल। कृपया पुनः प्रयास करें।",
+  "languageChangeNote": "जब आप कोई भाषा चुनेंगे तो ऐप तुरंत अपडेट हो जाएगा।"
 }

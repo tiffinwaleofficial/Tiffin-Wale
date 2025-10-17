@@ -302,8 +302,23 @@ export class EmailService {
     amount: number;
     billingCycle: string;
   }): Promise<EmailResult> {
+    // Ensure all data is properly serialized (convert ObjectIds to strings)
+    const sanitizedSubscriptionData = {
+      customerEmail: String(subscriptionData.customerEmail),
+      customerName: String(subscriptionData.customerName),
+      planName: String(subscriptionData.planName),
+      startDate: String(subscriptionData.startDate),
+      endDate: String(subscriptionData.endDate),
+      amount: Number(subscriptionData.amount),
+      billingCycle: String(subscriptionData.billingCycle),
+      // Add nextBillingDate for template compatibility
+      nextBillingDate: String(subscriptionData.endDate),
+      // Add price alias for template compatibility
+      price: Number(subscriptionData.amount),
+    };
+
     const templateData: TemplateData = {
-      subscription: subscriptionData,
+      subscription: sanitizedSubscriptionData,
       manageUrl: `${this.appUrl}/subscription`,
       supportUrl: `${this.appUrl}/support`,
     };

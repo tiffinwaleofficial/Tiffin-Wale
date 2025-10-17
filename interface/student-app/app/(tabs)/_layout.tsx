@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { Home, ClipboardList, MapPin, User, CreditCard } from 'lucide-react-native';
-import { ProtectedRoute } from '@/components/RouteGuard';
+import { ProtectedRoute } from '@/auth/AuthMiddleware';
 
 export default function TabLayout() {
   return (

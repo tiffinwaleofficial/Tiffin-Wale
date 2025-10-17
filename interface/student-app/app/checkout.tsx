@@ -5,14 +5,15 @@ import { Check, CreditCard, Calendar, Package, Receipt, Shield } from 'lucide-re
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useSubscriptionStore } from '@/store/subscriptionStore';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/auth/AuthProvider';
+import { ProtectedRoute } from '@/auth/AuthMiddleware';
 import { BackButton } from '@/components/BackButton';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function CheckoutScreen() {
   const router = useRouter();
   const { planId } = useLocalSearchParams<{ planId: string }>();
-  const { user } = useAuthStore();
+  const { user } = useAuth();
   const { t } = useTranslation('subscription');
   const { createSubscription } = useSubscriptionStore();
   
@@ -152,7 +153,8 @@ export default function CheckoutScreen() {
   if (!pricing) return null;
 
   return (
-    <View style={styles.container}>
+    <ProtectedRoute>
+      <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <BackButton />
@@ -326,6 +328,7 @@ export default function CheckoutScreen() {
         </TouchableOpacity>
       </View>
     </View>
+    </ProtectedRoute>
   );
 }
 

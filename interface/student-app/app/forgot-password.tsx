@@ -5,6 +5,7 @@ import { } from 'lucide-react-native';
 import api from '@/utils/apiClient';
 import { useTranslation } from 'react-i18next';
 import { BackButton } from '@/components/BackButton';
+import { GuestRoute } from '@/auth/AuthMiddleware';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -32,7 +33,8 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <GuestRoute>
+      <View style={styles.container}>
       <View style={styles.header}>
         <BackButton />
         <Text style={styles.headerTitle}>{t('forgotPassword')}</Text>
@@ -58,6 +60,7 @@ export default function ForgotPasswordScreen() {
         )}
       </View>
     </View>
+    </GuestRoute>
   );
 }
 

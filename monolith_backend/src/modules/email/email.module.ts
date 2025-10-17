@@ -4,6 +4,7 @@ import { ConfigModule } from "@nestjs/config";
 import { EmailService } from "./email.service";
 import { TemplateService } from "./template.service";
 import { EmailController } from "./email.controller";
+import { EmailTestController } from "./email-test.controller";
 import { EmailLog, EmailLogSchema } from "./schemas/email-log.schema";
 import {
   EmailPreference,
@@ -18,7 +19,7 @@ import {
       { name: EmailPreference.name, schema: EmailPreferenceSchema },
     ]),
   ],
-  controllers: [EmailController],
+  controllers: [EmailController, EmailTestController],
   providers: [EmailService, TemplateService],
   exports: [EmailService, TemplateService],
 })

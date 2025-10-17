@@ -1,9 +1,11 @@
 import React from 'react';
-import { Text, Section, Heading, Row, Column } from '@react-email/components';
+import { Text, Hr } from '@react-email/components';
 import EmailLayout from '../components/EmailLayout';
 import Button from '../components/Button';
 import OrderSummary from '../components/OrderSummary';
-import StatusBadge from '../components/StatusBadge';
+import InfoCard from '../components/InfoCard';
+import ProgressTracker from '../components/ProgressTracker';
+import { CheckCircleIcon, LocationIcon, ClockIcon, TiffinIcon, PhoneIcon } from '../components/Icons';
 
 interface OrderConfirmationEmailProps {
   order: {
@@ -39,23 +41,93 @@ export const OrderConfirmationEmail: React.FC<OrderConfirmationEmailProps> = ({
 }) => {
   const preview = `Order confirmed! Your delicious meal from ${order.partnerName} is on its way.`;
 
+  const orderSteps = [
+    {
+      label: 'Order Confirmed',
+      description: 'We received your order successfully',
+      completed: true,
+    },
+    {
+      label: 'Preparing Your Meal',
+      description: `${order.partnerName} is cooking your food with care`,
+      completed: false,
+    },
+    {
+      label: 'Quality Check',
+      description: 'Ensuring everything meets our standards',
+      completed: false,
+    },
+    {
+      label: 'Out for Delivery',
+      description: 'Your meal is on its way to you',
+      completed: false,
+    },
+  ];
+
   return (
     <EmailLayout
       preview={preview}
       appName={appName}
       appUrl={appUrl}
+      headerGradient="linear-gradient(135deg, #22c55e 0%, #10b981 100%)"
     >
-      <div className="text-center mb-6">
-        <StatusBadge status="confirmed" />
-      </div>
-      
-      <Heading className="text-2xl font-bold text-gray-800 mb-2 text-center">
+      {/* Success Banner */}
+      <table width="100%" cellPadding="0" cellSpacing="0" style={{ 
+        backgroundColor: '#ecfdf5',
+        borderRadius: '12px',
+        padding: '24px',
+        marginBottom: '32px',
+        textAlign: 'center',
+      }}>
+        <tr>
+          <td align="center">
+            <CheckCircleIcon size={64} color="#22c55e" />
+            <Text style={{
+              fontSize: '28px',
+              fontWeight: 'bold',
+              color: '#1f2937',
+              margin: '16px 0 8px 0',
+              lineHeight: '1.2',
+            }}>
         Order Confirmed! 🎉
-      </Heading>
-      
-      <Text className="text-gray-600 text-base text-center mb-6">
-        Hi {order.customerName}, your order has been confirmed and is being prepared by {order.partnerName}.
+            </Text>
+            <Text style={{
+              fontSize: '16px',
+              color: '#6b7280',
+              margin: 0,
+              lineHeight: '1.5',
+            }}>
+              Hi {order.customerName}, your delicious meal is being prepared!
+            </Text>
+          </td>
+        </tr>
+      </table>
+
+      {/* Order Number */}
+      <table width="100%" cellPadding="0" cellSpacing="0" style={{ marginBottom: '32px' }}>
+        <tr>
+          <td align="center">
+            <Text style={{ fontSize: '14px', color: '#9ca3af', margin: '0 0 4px 0' }}>
+              Order Number
+            </Text>
+            <Text style={{ 
+              fontSize: '24px', 
+              fontWeight: 'bold', 
+              color: '#f97316',
+              fontFamily: 'monospace',
+              margin: 0,
+              letterSpacing: '1px',
+            }}>
+              #{order.orderNumber}
       </Text>
+          </td>
+        </tr>
+      </table>
+
+      {/* Order Progress */}
+      <ProgressTracker steps={orderSteps} currentStep={0} />
+
+      <Hr style={{ borderColor: '#e5e7eb', margin: '32px 0' }} />
       
       {/* Order Details */}
       <OrderSummary
@@ -68,100 +140,163 @@ export const OrderConfirmationEmail: React.FC<OrderConfirmationEmailProps> = ({
       />
       
       {/* Delivery Information */}
-      <Section className="bg-blue-50 rounded-lg p-6 mb-6">
-        <Heading className="text-lg font-semibold text-gray-800 mb-4">
-          📍 Delivery Information
-        </Heading>
-        
-        <Row className="mb-3">
-          <Column className="w-1/3">
-            <Text className="font-medium text-gray-700 m-0">Delivery Address:</Text>
-          </Column>
-          <Column className="w-2/3">
-            <Text className="text-gray-600 m-0">{order.deliveryAddress}</Text>
-          </Column>
-        </Row>
-        
-        <Row className="mb-3">
-          <Column className="w-1/3">
-            <Text className="font-medium text-gray-700 m-0">Estimated Time:</Text>
-          </Column>
-          <Column className="w-2/3">
-            <Text className="text-gray-600 m-0">{order.estimatedDeliveryTime}</Text>
-          </Column>
-        </Row>
-        
-        <Row className="mb-0">
-          <Column className="w-1/3">
-            <Text className="font-medium text-gray-700 m-0">Partner:</Text>
-          </Column>
-          <Column className="w-2/3">
-            <Text className="text-gray-600 m-0">
+      <InfoCard 
+        title="📍 Delivery Information"
+        icon={<LocationIcon size={28} color="#3b82f6" />}
+        bgColor="#eff6ff"
+        borderColor="#3b82f6"
+      >
+        <table width="100%" cellPadding="0" cellSpacing="0">
+          <tr>
+            <td style={{ paddingBottom: '12px' }}>
+              <table width="100%" cellPadding="0" cellSpacing="0">
+                <tr>
+                  <td width="30%" style={{ verticalAlign: 'top' }}>
+                    <Text style={{ fontSize: '14px', fontWeight: '600', color: '#374151', margin: 0 }}>
+                      Address:
+                    </Text>
+                  </td>
+                  <td>
+                    <Text style={{ fontSize: '14px', color: '#6b7280', margin: 0, lineHeight: '1.5' }}>
+                      {order.deliveryAddress}
+                    </Text>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style={{ paddingBottom: '12px' }}>
+              <table width="100%" cellPadding="0" cellSpacing="0">
+                <tr>
+                  <td width="30%" style={{ verticalAlign: 'top' }}>
+                    <Text style={{ fontSize: '14px', fontWeight: '600', color: '#374151', margin: 0 }}>
+                      Estimated Time:
+                    </Text>
+                  </td>
+                  <td>
+                    <table cellPadding="0" cellSpacing="0">
+                      <tr>
+                        <td style={{ paddingRight: '8px' }}>
+                          <ClockIcon size={16} color="#f97316" />
+                        </td>
+                        <td>
+                          <Text style={{ fontSize: '14px', color: '#f97316', fontWeight: '600', margin: 0 }}>
+                            {order.estimatedDeliveryTime}
+                          </Text>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <table width="100%" cellPadding="0" cellSpacing="0">
+                <tr>
+                  <td width="30%" style={{ verticalAlign: 'top' }}>
+                    <Text style={{ fontSize: '14px', fontWeight: '600', color: '#374151', margin: 0 }}>
+                      Partner:
+                    </Text>
+                  </td>
+                  <td>
+                    <table cellPadding="0" cellSpacing="0">
+                      <tr>
+                        <td style={{ paddingRight: '8px', verticalAlign: 'middle' }}>
+                          <TiffinIcon size={16} color="#22c55e" />
+                        </td>
+                        <td>
+                          <Text style={{ fontSize: '14px', color: '#1f2937', fontWeight: '600', margin: 0 }}>
               {order.partnerName}
+                          </Text>
+                        </td>
+                      </tr>
+                    </table>
               {order.partnerPhone && (
-                <span className="block text-sm">📞 {order.partnerPhone}</span>
-              )}
-            </Text>
-          </Column>
-        </Row>
-      </Section>
-      
-      {/* What's Next */}
-      <Section className="bg-green-50 rounded-lg p-6 mb-6">
-        <Heading className="text-lg font-semibold text-gray-800 mb-4">
-          ⏰ What Happens Next?
-        </Heading>
-        
-        <div className="mb-3">
-          <Text className="font-medium text-gray-800 mb-1">1. Order Preparation</Text>
-          <Text className="text-gray-600 text-sm">
-            {order.partnerName} is now preparing your fresh meal with care.
+                      <table cellPadding="0" cellSpacing="0" style={{ marginTop: '4px' }}>
+                        <tr>
+                          <td style={{ paddingRight: '8px', verticalAlign: 'middle' }}>
+                            <PhoneIcon size={14} color="#10b981" />
+                          </td>
+                          <td>
+                            <Text style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
+                              {order.partnerPhone}
+                            </Text>
+                          </td>
+                        </tr>
+                      </table>
+                    )}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </InfoCard>
+
+      {/* Track Order CTA */}
+      <table width="100%" cellPadding="0" cellSpacing="0" style={{ marginBottom: '24px' }}>
+        <tr>
+          <td align="center">
+            <Button 
+              href={trackingUrl} 
+              variant="primary" 
+              size="lg" 
+              fullWidth
+            >
+              📦 Track Your Order in Real-Time
+            </Button>
+          </td>
+        </tr>
+      </table>
+
+      {/* Updates Notice */}
+      <InfoCard 
+        bgColor="#fef3c7"
+        borderColor="#fbbf24"
+      >
+        <Text style={{ fontSize: '14px', color: '#78350f', margin: 0, lineHeight: '1.6', textAlign: 'center' }}>
+          📱 <strong>Stay Updated:</strong> We'll send you notifications as your order progresses through each stage.
           </Text>
-        </div>
-        
-        <div className="mb-3">
-          <Text className="font-medium text-gray-800 mb-1">2. Quality Check</Text>
-          <Text className="text-gray-600 text-sm">
-            We ensure your meal meets our quality standards before dispatch.
+      </InfoCard>
+
+      <Hr style={{ borderColor: '#e5e7eb', margin: '32px 0' }} />
+
+      {/* Support */}
+      <table width="100%" cellPadding="0" cellSpacing="0">
+        <tr>
+          <td align="center">
+            <Text style={{
+              fontSize: '15px',
+              color: '#6b7280',
+              margin: '0 0 16px 0',
+              lineHeight: '1.6',
+            }}>
+              Questions about your order?
           </Text>
-        </div>
-        
-        <div className="mb-3">
-          <Text className="font-medium text-gray-800 mb-1">3. On the Way</Text>
-          <Text className="text-gray-600 text-sm">
-            You'll receive a notification when your order is out for delivery.
-          </Text>
-        </div>
-        
-        <div className="mb-0">
-          <Text className="font-medium text-gray-800 mb-1">4. Enjoy!</Text>
-          <Text className="text-gray-600 text-sm">
-            Receive your delicious meal and don't forget to rate your experience.
-          </Text>
-        </div>
-      </Section>
-      
-      {/* Action Buttons */}
-      <div className="text-center mb-6">
-        <Button href={trackingUrl} variant="primary" size="lg" fullWidth>
-          Track Your Order
-        </Button>
-      </div>
-      
-      <div className="text-center mb-6">
         <Button href={supportUrl} variant="outline" size="md">
-          Need Help?
+              💬 Contact Support
         </Button>
-      </div>
-      
-      <Text className="text-gray-600 text-sm text-center mb-4">
-        We'll send you updates as your order progresses. You can also track your order anytime using the button above.
+          </td>
+        </tr>
+      </table>
+
+      <table width="100%" cellPadding="0" cellSpacing="0" style={{ marginTop: '32px' }}>
+        <tr>
+          <td align="center">
+            <Text style={{
+              fontSize: '16px',
+              color: '#1f2937',
+              margin: 0,
+              lineHeight: '1.6',
+            }}>
+              Thank you for choosing <strong style={{ color: '#f97316' }}>{appName}</strong>!
       </Text>
-      
-      <Text className="text-gray-800 font-medium">
-        Thank you for choosing {appName}!<br />
-        The {appName} Team
-      </Text>
+          </td>
+        </tr>
+      </table>
     </EmailLayout>
   );
 };

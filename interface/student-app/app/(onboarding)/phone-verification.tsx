@@ -9,6 +9,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Phone, ArrowRight } from 'lucide-react-native';
@@ -49,9 +50,6 @@ export default function PhoneVerificationScreen() {
   const handleSendOTP = async () => {
     const cleanedPhone = phoneNumber.replace(/\D/g, '');
     
-    console.log('Cleaned phone number:', cleanedPhone);
-    console.log('Phone number length:', cleanedPhone.length);
-    
     if (!validatePhoneNumber(cleanedPhone)) {
       Alert.alert(
         t('invalidPhoneTitle'),
@@ -83,7 +81,7 @@ export default function PhoneVerificationScreen() {
         Alert.alert(t('error'), result.error || t('otpSendFailed'));
       }
     } catch (error: any) {
-      console.error('Error sending OTP:', error);
+      if (__DEV__) console.error('Error sending OTP:', error);
       Alert.alert(t('error'), t('somethingWentWrong'));
     } finally {
       setIsLoading(false);
@@ -102,8 +100,16 @@ export default function PhoneVerificationScreen() {
   const isValidPhone = validatePhoneNumber(phoneNumber.replace(/\D/g, ''));
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#FEF6E9' }}>
-      <ScrollView contentContainerStyle={styles.container}>
+    <KeyboardAvoidingView 
+      style={{ flex: 1, backgroundColor: '#FFFAF0' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={0}
+    >
+      <ScrollView 
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -184,7 +190,7 @@ export default function PhoneVerificationScreen() {
         {/* reCAPTCHA container for Firebase */}
         <RecaptchaContainer />
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

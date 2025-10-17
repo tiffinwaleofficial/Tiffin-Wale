@@ -5,6 +5,7 @@ import { Eye, EyeOff } from 'lucide-react-native';
 import api from '@/utils/apiClient';
 import { BackButton } from '@/components/BackButton';
 import { useTranslation } from '@/hooks/useTranslation';
+import { ProtectedRoute } from '@/auth/AuthMiddleware';
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
@@ -40,7 +41,8 @@ export default function ChangePasswordScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ProtectedRoute>
+      <View style={styles.container}>
       <View style={styles.header}>
         <BackButton />
         <Text style={styles.headerTitle}>{t('changePasswordTitle')}</Text>
@@ -93,6 +95,7 @@ export default function ChangePasswordScreen() {
         </TouchableOpacity>
       </View>
     </View>
+    </ProtectedRoute>
   );
 }
 
