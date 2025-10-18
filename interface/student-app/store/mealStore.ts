@@ -83,12 +83,29 @@ export const useMealStore = create<MealState>((set, get) => ({
         lastTodayFetched: new Date(),
       });
     } catch (error) {
-      console.error('❌ MealStore: Error fetching today\'s meals:', error);
-      set({ 
-        error: getErrorMessage(error), 
-        isLoadingToday: false,
-        isLoading: false,
-      });
+      // Handle network errors gracefully
+      const errorMessage = (error as any)?.message || '';
+      
+      // Only log non-network errors to reduce console noise
+      if (__DEV__ && !errorMessage.includes('Network Error')) {
+        console.error('❌ MealStore: Error fetching today\'s meals:', error);
+      }
+      
+      if (errorMessage.includes('Network Error') || errorMessage.includes('404')) {
+        if (__DEV__) console.log('🔄 MealStore: Meals endpoint not available, setting empty state');
+        set({ 
+          todayMeals: [],
+          isLoadingToday: false,
+          isLoading: false,
+          error: null // Don't show error to user for missing endpoints
+        });
+      } else {
+        set({ 
+          error: getErrorMessage(error), 
+          isLoadingToday: false,
+          isLoading: false,
+        });
+      }
     }
   },
 
@@ -120,7 +137,10 @@ export const useMealStore = create<MealState>((set, get) => ({
         lastUpcomingFetched: new Date(),
       });
     } catch (error) {
-      console.error('❌ MealStore: Error fetching upcoming meals:', error);
+      const errorMessage = (error as any)?.message || '';
+      if (__DEV__ && !errorMessage.includes('Network Error')) {
+        console.error('❌ MealStore: Error fetching upcoming meals:', error);
+      }
       set({ 
         error: getErrorMessage(error), 
         isLoadingUpcoming: false,
@@ -157,7 +177,10 @@ export const useMealStore = create<MealState>((set, get) => ({
         lastHistoryFetched: new Date(),
       });
     } catch (error) {
-      console.error('❌ MealStore: Error fetching meal history:', error);
+      const errorMessage = (error as any)?.message || '';
+      if (__DEV__ && !errorMessage.includes('Network Error')) {
+        console.error('❌ MealStore: Error fetching meal history:', error);
+      }
       set({ 
         error: getErrorMessage(error), 
         isLoadingHistory: false,

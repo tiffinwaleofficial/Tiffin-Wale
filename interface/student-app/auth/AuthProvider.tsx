@@ -6,6 +6,7 @@ import { authInterceptor } from './AuthInterceptor';
 import axios from 'axios';
 import { authService } from '@/utils/authService';
 import { RegisterRequest } from '@/types/api';
+import api from '@/utils/apiClient';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -204,6 +205,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthState(prev => ({ ...prev, isLoading: true }));
     
     try {
+      // Call logout API first to invalidate tokens on backend
+      try {
+        await api.auth.logout();
+        if (__DEV__) console.log('✅ AuthProvider: Logout API call successful');
+      } catch (apiError) {
+        if (__DEV__) console.warn('⚠️ AuthProvider: Logout API call failed, but continuing with local cleanup:', apiError);
+        // Continue with local cleanup even if API fails
+      }
+      
       // Clear all stored data
       await secureTokenManager.clearAll();
       
@@ -216,7 +226,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         error: null,
       });
       
-      console.log('✅ AuthProvider: Logout successful');
+      if (__DEV__) console.log('✅ AuthProvider: Logout successful');
     } catch (error) {
       console.error('❌ AuthProvider: Logout failed:', error);
       // Still clear state even if logout fails

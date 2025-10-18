@@ -56,6 +56,9 @@ export default {
     extra: {
       // API URL is now platform-detected in environment.ts
       // Pass other .env variables to the app
+      eas: {
+        projectId: "13eb86a1-d692-4ef4-8535-0da1c97bea88"
+      },
       cloudinary: {
         cloudName: process.env.CLOUDINARY_CLOUD_NAME,
         apiKey: process.env.CLOUDINARY_API_KEY,

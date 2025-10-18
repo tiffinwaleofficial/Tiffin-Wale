@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Animated, Easing } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Animated, Easing, RefreshControl } from 'react-native';
 import { useAuth } from '@/auth/AuthProvider';
 import { useNotificationStore } from '@/store/notificationStore';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { ArrowLeft, Check, MapPin, Phone, Package, ShoppingBag, Search, ClipboardList } from 'lucide-react-native';
 import api from '@/utils/apiClient';
 
@@ -42,8 +42,9 @@ export default function TrackScreen() {
   useAuth();
   const { subscribeToOrderUpdates, unsubscribeFromOrderUpdates } = useNotificationStore();
   const [meal, setMeal] = useState<Meal | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Animation values for the pulsating effect (using standard Animated API)
   const activeBulletScale = useRef(new Animated.Value(1)).current;
@@ -96,18 +97,23 @@ export default function TrackScreen() {
     ).start();
   }, []);
   
-  // Fetch meal data and set up real-time tracking
-  useEffect(() => {
-    const fetchMealData = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        if (params.id) {
-          // Fetch specific meal data from API
-          console.log('Fetching specific meal data for ID:', params.id);
-          const mealData = await api.meals.getById(params.id as string);
-          setMeal(mealData);
+  // Enterprise caching: Fetch meal data and set up real-time tracking
+  const fetchMealData = useCallback(async (forceRefresh = false) => {
+    if (!forceRefresh && meal && !refreshing) {
+      // Use cached data if available and not force refreshing
+      if (__DEV__) console.log('🍽️ Track: Using cached meal data');
+      return;
+    }
+
+    if (!refreshing) setIsLoading(true);
+    setError(null);
+    
+    try {
+      if (params.id) {
+        // Fetch specific meal data from API
+        if (__DEV__) console.log('🔄 Track: Fetching meal data for ID:', params.id);
+        const mealData = await api.meals.getById(params.id as string);
+        setMeal(mealData);
           
           // Subscribe to real-time order updates if this is an active order
           if (mealData.status !== 'delivered' && mealData.status !== 'cancelled') {
@@ -225,13 +231,39 @@ export default function TrackScreen() {
         console.error('Error fetching meal data:', error);
         setError(error instanceof Error ? error.message : 'Failed to load meal data');
       } finally {
-        setIsLoading(false);
+        if (!refreshing) setIsLoading(false);
       }
-    };
-    
-    fetchMealData();
-    
-    // Cleanup: unsubscribe from updates when component unmounts
+    }, [params.id, meal, refreshing, subscribeToOrderUpdates]);
+
+  // Initial data load
+  useEffect(() => {
+    fetchMealData(false); // Load cached data first
+  }, [fetchMealData]);
+
+  // Smart focus refresh: Background refresh when page comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (__DEV__) console.log('👁️ Track: Page focused - background refresh');
+      // Background refresh without loading states
+      setTimeout(() => {
+        fetchMealData(false); // Background refresh
+      }, 100);
+    }, [fetchMealData])
+  );
+
+  // Pull to refresh handler
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      if (__DEV__) console.log('🔄 Track: Pull-to-refresh triggered');
+      await fetchMealData(true); // Force refresh
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchMealData]);
+
+  // Cleanup: unsubscribe from updates when component unmounts
+  useEffect(() => {
     return () => {
       if (params.id) {
         unsubscribeFromOrderUpdates(params.id as string);
@@ -239,7 +271,7 @@ export default function TrackScreen() {
         unsubscribeFromOrderUpdates(meal.id);
       }
     };
-  }, [params.id, subscribeToOrderUpdates, unsubscribeFromOrderUpdates]);
+  }, [params.id, meal?.id, unsubscribeFromOrderUpdates]);
   
   // Animated styles for the active status bullet
   const animatedBulletStyle = {
@@ -271,34 +303,7 @@ export default function TrackScreen() {
     return 'pending';
   };
 
-  if (isLoading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity 
-            onPress={() => router.replace("/(tabs)")} 
-            style={styles.backButton}
-          >
-            <ArrowLeft size={24} color="#333333" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Order Tracking</Text>
-          <View style={styles.placeholder} />
-        </View>
-        
-        <View style={styles.centeredContent}>
-          <Animated.View style={[styles.emptyStateCard, { opacity: fadeAnim }]}>
-            <View style={styles.emptyIconContainer}>
-              <Package size={64} color="#FF9B42" />
-            </View>
-            <Text style={styles.emptyStateTitle}>Loading...</Text>
-            <Text style={styles.emptyStateMessage}>
-              Fetching your order tracking information
-            </Text>
-          </Animated.View>
-        </View>
-      </View>
-    );
-  }
+  // Removed loading state - show content immediately
 
   if (error || !meal) {
     return (
@@ -364,7 +369,18 @@ export default function TrackScreen() {
         <View style={styles.placeholder} />
       </View>
       
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#FF9B42']}
+            tintColor="#FF9B42"
+          />
+        }
+      >
         {/* Meal Card */}
         <Animated.View style={[styles.mealCard, { opacity: fadeAnim, transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }]}>
           <Image 

@@ -99,5 +99,6 @@
   "noMenuItemsAvailable": "No menu items available",
   "failedToFetchOrders": "Failed to fetch orders",
   "failedToCreateOrder": "Failed to create order",
-  "failedToAddReview": "Failed to add review"
+  "failedToAddReview": "Failed to add review",
+  "retry": "Retry"
 }

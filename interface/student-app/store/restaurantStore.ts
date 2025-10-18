@@ -50,11 +50,27 @@ export const useRestaurantStore = create<RestaurantState>((set) => ({
         isLoading: false 
       });
     } catch (error) {
-      console.error('Error fetching restaurants:', error);
-      set({ 
-        error: error instanceof Error ? error.message : 'Failed to fetch restaurants', 
-        isLoading: false 
-      });
+      // Handle network errors gracefully
+      const errorMessage = (error as any)?.message || '';
+      
+      // Only log non-network errors to reduce console noise
+      if (__DEV__ && !errorMessage.includes('Network Error')) {
+        console.error('Error fetching restaurants:', error);
+      }
+      
+      if (errorMessage.includes('Network Error') || errorMessage.includes('404')) {
+        if (__DEV__) console.log('🔄 RestaurantStore: Partners endpoint not available, setting empty state');
+        set({ 
+          restaurants: [],
+          isLoading: false,
+          error: null // Don't show error to user for missing endpoints
+        });
+      } else {
+        set({ 
+          error: error instanceof Error ? error.message : 'Failed to fetch restaurants', 
+          isLoading: false 
+        });
+      }
     }
   },
   
@@ -84,11 +100,23 @@ export const useRestaurantStore = create<RestaurantState>((set) => ({
         isLoading: false 
       });
     } catch (error) {
-      console.error('Error fetching featured restaurants:', error);
-      set({ 
-        error: error instanceof Error ? error.message : 'Failed to fetch featured restaurants', 
-        isLoading: false 
-      });
+      if (__DEV__) console.error('Error fetching featured restaurants:', error);
+      
+      // Handle network errors gracefully
+      const errorMessage = (error as any)?.message || '';
+      if (errorMessage.includes('Network Error') || errorMessage.includes('404')) {
+        if (__DEV__) console.log('🔄 RestaurantStore: Featured partners endpoint not available, setting empty state');
+        set({ 
+          featuredRestaurants: [],
+          isLoading: false,
+          error: null
+        });
+      } else {
+        set({ 
+          error: error instanceof Error ? error.message : 'Failed to fetch featured restaurants', 
+          isLoading: false 
+        });
+      }
     }
   },
   

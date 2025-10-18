@@ -6,6 +6,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useAuth } from '@/auth/AuthProvider';
 import { ProtectedRoute } from '@/auth/AuthMiddleware';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
+import api from '@/utils/apiClient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { profileImageService } from '@/services/profileImageService';
@@ -42,7 +43,7 @@ export default function AccountInformation() {
   // Update form data when user data changes
   useEffect(() => {
     if (user) {
-      console.log('🔍 AccountInformation: Updating form data with user:', user);
+      if (__DEV__) console.log('🔍 AccountInformation: Updating form data with user:', user);
       setFormData({
         firstName: user.firstName || '',
         lastName: user.lastName || '',
@@ -54,7 +55,7 @@ export default function AccountInformation() {
   }, [user]);
 
   const handleSaveChanges = async () => {
-    console.log('🔍 AccountInformation: Saving changes with data:', formData);
+    if (__DEV__) console.log('🔍 AccountInformation: Saving changes with data:', formData);
     try {
       // Prepare data according to backend DTO
       const updateData: any = {
@@ -72,12 +73,12 @@ export default function AccountInformation() {
 
       // Note: Email updates should be handled separately as backend doesn't accept email in profile update
       
-      await updateUserProfile(updateData);
+      await api.customer.updateProfile(updateData);
       
       success(t('profileUpdatedSuccessfully'));
       setIsEditing(false);
     } catch (error) {
-      console.error('Profile update error:', error);
+      if (__DEV__) console.error('Profile update error:', error);
       showError(t('failedToUpdateProfile'));
     }
   };
@@ -136,7 +137,7 @@ export default function AccountInformation() {
       const uploadedImageUrl = typeof uploadResult === 'string' ? uploadResult : uploadResult.url;
       
       // Update user profile with new image URL
-      await updateUserProfile({
+      await api.customer.updateProfile({
         profileImage: uploadedImageUrl,
       });
       

@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { Check, Crown, Zap, Shield, RefreshCw, Eye } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { useAuth } from '@/auth/AuthProvider';
@@ -30,30 +30,44 @@ export default function PlansScreen() {
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  // Fetch plans and current subscription on component mount
+  // Enterprise caching: Load cached data immediately on mount
   useEffect(() => {
     const initializePlans = async () => {
-      console.log('🔔 Plans: Initializing plans data...');
+      if (__DEV__) console.log('🔔 Plans: Showing cached data instantly');
       
       try {
+        // Load cached data first (no force refresh) - INSTANT UI
         await Promise.all([
-          fetchAvailablePlans(),
-          fetchCurrentSubscription(),
+          fetchAvailablePlans(false),
+          fetchCurrentSubscription(false),
         ]);
         
-        console.log('✅ Plans: Data initialized successfully');
+        if (__DEV__) console.log('✅ Plans: Cached data loaded instantly');
       } catch (error) {
-        console.error('❌ Plans: Error initializing data:', error);
+        if (__DEV__) console.error('❌ Plans: Error loading cached data:', error);
       }
     };
     
     initializePlans();
   }, []);
 
-  // Pull to refresh handler
+  // Smart focus refresh: Background refresh when page comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (__DEV__) console.log('👁️ Plans: Page focused - background refresh');
+      // Background refresh without loading states
+      setTimeout(() => {
+        fetchAvailablePlans(false); // Background refresh
+        fetchCurrentSubscription(false); // Background refresh
+      }, 100);
+    }, [fetchAvailablePlans, fetchCurrentSubscription])
+  );
+
+  // Pull to refresh handler - Force fresh data
   const onRefresh = async () => {
     setRefreshing(true);
     try {
+      if (__DEV__) console.log('🔄 Plans: Pull-to-refresh triggered');
       await Promise.all([
         fetchAvailablePlans(true), // Force refresh
         fetchCurrentSubscription(true), // Force refresh
@@ -228,18 +242,7 @@ export default function PlansScreen() {
     );
   };
 
-  if (isLoading && !refreshing) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>{t('subscriptionPlans')}</Text>
-        </View>
-        <View style={styles.centerContainer}>
-          <Text style={styles.loadingText}>{t('loadingPlans')}</Text>
-        </View>
-      </View>
-    );
-  }
+  // Removed loading state - show content immediately
 
   if (error) {
     return (

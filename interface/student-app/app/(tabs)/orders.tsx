@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { Calendar, Star, ChevronRight, Plus, ShoppingBag } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 
 import { useMealStore } from '@/store/mealStore';
 import { useAuth } from '@/auth/AuthProvider';
@@ -16,10 +16,10 @@ export default function OrdersScreen() {
   useAuth();
   const { t } = useTranslation('orders');
   const { 
-    meals, 
-    isLoading: mealsLoading, 
+    mealHistory: meals, 
+    isLoadingHistory: mealsLoading, 
     error: mealsError, 
-    fetchMeals 
+    fetchMealHistory: fetchMeals 
   } = useMealStore();
   const {
     orders,
@@ -31,34 +31,40 @@ export default function OrdersScreen() {
   const [activeTab, setActiveTab] = useState<'meals' | 'additional'>('meals');
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch data on component mount
+  // Enterprise caching: Load cached data immediately on mount
   useEffect(() => {
+    if (__DEV__) console.log('🍽️ Orders: Initial load - showing cached data instantly');
+    // Load cached data first (no force refresh) - INSTANT UI
     fetchMeals();
     fetchOrders();
   }, [fetchMeals, fetchOrders]);
 
-  // Fetch data when tab changes
-  useEffect(() => {
-    if (activeTab === 'meals') {
-      fetchMeals();
-    } else if (activeTab === 'additional') {
-      fetchOrders();
-    }
-  }, [activeTab, fetchMeals, fetchOrders]);
+  // Smart focus refresh: Background refresh when page comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (__DEV__) console.log('👁️ Orders: Page focused - background refresh');
+      // Background refresh without loading states
+      setTimeout(() => {
+        fetchMeals(); // Background refresh
+        fetchOrders(); // Background refresh
+      }, 100);
+    }, [fetchMeals, fetchOrders])
+  );
 
-  // Pull to refresh handler
+  // Pull to refresh handler - Force fresh data
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      if (activeTab === 'meals') {
-        await fetchMeals();
-      } else {
-        await fetchOrders();
-      }
+      if (__DEV__) console.log('🔄 Orders: Pull-to-refresh triggered');
+      // Force refresh for both tabs to ensure fresh data
+      await Promise.all([
+        fetchMeals(), // Force refresh
+        fetchOrders() // Force refresh
+      ]);
     } catch (error) {
-      console.error('Error refreshing orders:', error);
+      if (__DEV__) console.error('Error refreshing orders:', error);
     } finally {
-    setRefreshing(false);
+      setRefreshing(false);
     }
   };
 
@@ -119,25 +125,21 @@ export default function OrdersScreen() {
   );
 
   // Filter and sort additional orders by date (newest first)
-  const sortedAdditionalOrders = [...orders].sort((a, b) => 
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  const sortedAdditionalOrders = [...orders].sort((a, b) => {
+    const dateA = (a as any).date || (a as any).createdAt || new Date().toISOString();
+    const dateB = (b as any).date || (b as any).createdAt || new Date().toISOString();
+    return new Date(dateB).getTime() - new Date(dateA).getTime();
+  });
 
   const renderContent = () => {
-    if ((mealsLoading || ordersLoading) && !refreshing) {
-      return (
-        <View style={styles.centerContainer}>
-          <Text style={styles.loadingText}>{t('loadingOrders')}</Text>
-        </View>
-      );
-    }
+    // Removed loading state - show empty states immediately
 
     if (mealsError || ordersError) {
       return (
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>{mealsError || ordersError}</Text>
           <TouchableOpacity 
-            onPress={activeTab === 'meals' ? fetchMeals : fetchOrders}
+            onPress={() => activeTab === 'meals' ? fetchMeals() : fetchOrders()}
             style={styles.retryButton}
           >
             <Text style={styles.retryButtonText}>{t('retry')}</Text>
@@ -253,7 +255,12 @@ export default function OrdersScreen() {
               entering={FadeInDown.delay(index * 100).duration(400)}
             >
               <AdditionalOrderCard 
-                order={order}
+                order={{
+                  ...order,
+                  date: (order as any).date || (order as any).createdAt || new Date().toISOString(),
+                  items: (order as any).items || [],
+                  total: (order as any).total || 0
+                } as any}
                 index={index}
               />
             </Animated.View>

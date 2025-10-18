@@ -22,7 +22,7 @@ class SecureTokenManager {
       await AsyncStorage.setItem(key, value);
     } else {
       // Use SecureStore for mobile (more secure)
-      await this.setSecureItem(key, value);
+      await SecureStore.setItemAsync(key, value);
     }
   }
 
@@ -32,7 +32,7 @@ class SecureTokenManager {
       return await AsyncStorage.getItem(key);
     } else {
       // Use SecureStore for mobile
-      return await this.getSecureItem(key);
+      return await SecureStore.getItemAsync(key);
     }
   }
 
@@ -42,7 +42,7 @@ class SecureTokenManager {
       await AsyncStorage.removeItem(key);
     } else {
       // Use SecureStore for mobile
-      await this.deleteSecureItem(key);
+      await SecureStore.deleteItemAsync(key);
     }
   }
 
@@ -56,7 +56,7 @@ class SecureTokenManager {
       // Load access token into memory (if exists)
       this.accessToken = await this.getSecureItem(ACCESS_TOKEN_KEY);
       this.isInitialized = true;
-      console.log('🔐 SecureTokenManager: Initialized successfully', Platform.OS === 'web' ? '(using AsyncStorage for web)' : '(using SecureStore)');
+      if (__DEV__) console.log('🔐 SecureTokenManager: Initialized successfully', Platform.OS === 'web' ? '(using AsyncStorage for web)' : '(using SecureStore)');
     } catch (error) {
       console.error('❌ SecureTokenManager: Initialization failed:', error);
       this.isInitialized = true; // Mark as initialized even if failed
@@ -75,7 +75,7 @@ class SecureTokenManager {
       // Store refresh token in secure storage only
       await this.setSecureItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
       
-      console.log('🔐 SecureTokenManager: Tokens stored successfully');
+      if (__DEV__) console.log('🔐 SecureTokenManager: Tokens stored successfully');
     } catch (error) {
       console.error('❌ SecureTokenManager: Failed to store tokens:', error);
       throw new Error('Failed to store authentication tokens');
@@ -124,7 +124,7 @@ class SecureTokenManager {
     try {
       this.accessToken = accessToken;
       await this.setSecureItem(ACCESS_TOKEN_KEY, accessToken);
-      console.log('🔐 SecureTokenManager: Access token updated');
+      if (__DEV__) console.log('🔐 SecureTokenManager: Access token updated');
     } catch (error) {
       console.error('❌ SecureTokenManager: Failed to update access token:', error);
       throw error;
@@ -137,7 +137,7 @@ class SecureTokenManager {
   async storeUser(user: AuthUser): Promise<void> {
     try {
       await this.setSecureItem(USER_DATA_KEY, JSON.stringify(user));
-      console.log('🔐 SecureTokenManager: User data stored successfully');
+      if (__DEV__) console.log('🔐 SecureTokenManager: User data stored successfully');
     } catch (error) {
       console.error('❌ SecureTokenManager: Failed to store user data:', error);
       throw error;
@@ -206,7 +206,7 @@ class SecureTokenManager {
         this.deleteSecureItem(AUTH_STATE_KEY).catch(() => {}),
       ]);
       
-      console.log('🔐 SecureTokenManager: All data cleared');
+      if (__DEV__) console.log('🔐 SecureTokenManager: All data cleared');
     } catch (error) {
       console.error('❌ SecureTokenManager: Failed to clear data:', error);
     }

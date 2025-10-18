@@ -5,7 +5,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold } from '@expo-google-fonts/poppins';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Text, View, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from '@/auth/AuthProvider';

@@ -69,9 +69,7 @@ export default function WelcomeScreen() {
       {/* Hero Section */}
       <View style={styles.heroSection}>
         <Image
-          source={{ 
-            uri: 'https://images.pexels.com/photos/3184183/pexels-photo-3184183.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
-          }}
+          source={require('@/assets/images/banner.png')}
           style={styles.heroImage}
         />
         <LinearGradient

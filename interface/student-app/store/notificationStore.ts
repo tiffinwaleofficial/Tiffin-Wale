@@ -376,7 +376,7 @@ export const useNotificationStore = create<NotificationStore>()(
 
       // Fetch notifications from API with caching
       fetchNotifications: async (userId: string, forceRefresh = false) => {
-        console.log('🔔 NotificationStore: fetchNotifications called with userId:', userId, 'forceRefresh:', forceRefresh);
+        if (__DEV__) console.log('🔔 NotificationStore: fetchNotifications called with userId:', userId, 'forceRefresh:', forceRefresh);
         const { lastFetched, isLoading } = get();
         
         // Check cache validity
@@ -392,14 +392,14 @@ export const useNotificationStore = create<NotificationStore>()(
 
         set({ isLoading: true, error: null });
         try {
-          console.log('🔔 NotificationStore: Fetching notifications for user:', userId);
+          if (__DEV__) console.log('🔔 NotificationStore: Fetching notifications for user:', userId);
           
           // Import API client dynamically to avoid circular dependency
           const api = await import('../utils/apiClient');
           
           // Fetch notifications from backend with pagination
           const notifications = await api.default.notifications.getUserNotifications(userId, 1, 50);
-          console.log('✅ NotificationStore: Notifications fetched:', notifications.length);
+          if (__DEV__) console.log('✅ NotificationStore: Notifications fetched:', notifications.length);
           
           // Convert API response to NotificationData format
           const formattedNotifications: NotificationData[] = notifications.map((notification: any) => ({
@@ -424,13 +424,29 @@ export const useNotificationStore = create<NotificationStore>()(
             lastFetched: new Date(),
           });
           
-          console.log('✅ NotificationStore: Notifications stored successfully');
+          if (__DEV__) console.log('✅ NotificationStore: Notifications stored successfully');
       } catch (error) {
-          console.error('❌ NotificationStore: Failed to fetch notifications:', error);
-        set({ 
-            error: error instanceof Error ? error.message : 'Failed to fetch notifications',
-            isLoading: false
-          });
+          // Handle network errors gracefully
+          const errorMessage = (error as any)?.message || '';
+          
+          // Only log non-network errors to reduce console noise
+          if (__DEV__ && !errorMessage.includes('Network Error')) {
+            console.error('❌ NotificationStore: Failed to fetch notifications:', error);
+          }
+          
+          if (errorMessage.includes('Network Error') || errorMessage.includes('404')) {
+            if (__DEV__) console.log('🔄 NotificationStore: Notifications endpoint not available, setting empty state');
+            set({ 
+              notifications: [],
+              isLoading: false,
+              error: null // Don't show error to user for missing endpoints
+            });
+          } else {
+            set({ 
+              error: error instanceof Error ? error.message : 'Failed to fetch notifications',
+              isLoading: false
+            });
+          }
         }
       }
     }),

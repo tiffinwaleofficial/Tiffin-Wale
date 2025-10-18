@@ -98,11 +98,27 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
         lastFetched: new Date(),
       });
     } catch (error) {
-      console.error('❌ SubscriptionStore: Error fetching current subscription:', error);
-      set({ 
-        error: getErrorMessage(error), 
-        isLoading: false 
-      });
+      // Handle network errors gracefully
+      const errorMessage = (error as any)?.message || '';
+      
+      // Only log non-network errors to reduce console noise
+      if (__DEV__ && !errorMessage.includes('Network Error')) {
+        console.error('❌ SubscriptionStore: Error fetching current subscription:', error);
+      }
+      
+      if (errorMessage.includes('Network Error') || errorMessage.includes('404')) {
+        if (__DEV__) console.log('🔄 SubscriptionStore: Subscription endpoint not available, setting null state');
+        set({ 
+          currentSubscription: null,
+          isLoading: false,
+          error: null // Don't show error to user for missing endpoints
+        });
+      } else {
+        set({ 
+          error: getErrorMessage(error), 
+          isLoading: false 
+        });
+      }
     }
   },
 

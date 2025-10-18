@@ -3,6 +3,7 @@ import { View, ScrollView, StyleSheet, Text, TouchableOpacity, RefreshControl, A
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Bell, Calendar, MapPin, Clock, Star } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import SplashScreen from '@/components/SplashScreen';
 
 import { useAuth } from '@/auth/AuthProvider';
 import { useMealStore } from '@/store/mealStore';
@@ -41,56 +42,78 @@ export default function HomeScreen() {
   } = useRestaurantStore();
   
   const [refreshing, setRefreshing] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
-  // Fetch initial data with fresh subscription status
+  // Load initial data ONLY once when component mounts
   useEffect(() => {
     const loadInitialData = async () => {
-      console.log('🔍 Dashboard: Auth state check:', { 
+      if (__DEV__) console.log('🔍 Dashboard: Initial load check:', { 
         isInitialized, 
         authLoading, 
         userId: user?.id,
-        isAuthenticated: !!user,
-        userObject: user
+        isAuthenticated: !!user
       });
       
       if (!isInitialized || authLoading) {
-        console.log('⏳ Dashboard: Waiting for auth initialization...', { isInitialized, authLoading });
+        if (__DEV__) console.log('⏳ Dashboard: Waiting for auth initialization...');
         return;
       }
       
       const userId = user?.id || user?.id;
       if (userId) {
-        console.log('🔄 Dashboard: Loading fresh data for user:', userId);
-        console.log('🔄 Dashboard: About to call APIs...');
+        if (__DEV__) console.log('🚀 Dashboard: Loading cached data with background refresh for user:', userId);
         try {
-          const results = await Promise.all([
-            fetchTodayMeals(true), // Force refresh meals
-            fetchCurrentSubscription(true), // Force refresh current subscription
-            fetchRestaurants(), // Fetch restaurants
-            fetchNotifications(userId, true), // Force refresh notifications
+          // Load cached data first (no force refresh) - INSTANT UI
+          await Promise.all([
+            fetchTodayMeals(false), // Use cache if available
+            fetchCurrentSubscription(false), // Use cache if available
+            fetchRestaurants(), // Use cache if available
+            fetchNotifications(userId, false), // Use cache if available
           ]);
-          console.log('✅ Dashboard: Fresh data loaded successfully', results);
+          if (__DEV__) console.log('✅ Dashboard: Cached data loaded instantly');
         } catch (error) {
-          console.error('❌ Dashboard: Error loading initial data:', error);
+          if (__DEV__) console.error('❌ Dashboard: Error loading initial data:', error);
         }
-      } else {
-        console.log('⚠️ Dashboard: No authenticated user found - user object:', user);
       }
     };
 
     loadInitialData();
-  }, [isInitialized, authLoading, user?.id, user?.id, fetchTodayMeals, fetchCurrentSubscription, fetchRestaurants, fetchNotifications]);
+  }, [isInitialized, authLoading, user?.id]); // Removed excessive dependencies
 
-  // Refresh subscription and notification data when screen comes into focus
+  // Hide splash screen when dashboard is ready AND subscription status is determined
+  useEffect(() => {
+    // Wait for auth to be initialized and subscription loading to complete
+    const isAuthReady = isInitialized && !authLoading;
+    const isSubscriptionReady = !subscriptionLoading;
+    
+    if (isAuthReady && isSubscriptionReady) {
+      if (__DEV__) console.log('🎬 Splash: Auth and subscription ready, hiding splash screen', {
+        currentSubscription: !!currentSubscription,
+        subscriptionLoading
+      });
+      
+      // Dashboard is ready with definitive subscription status, hide splash
+      const timer = setTimeout(() => {
+        setShowSplash(false);
+      }, 1000); // Give enough time for smooth transition
+      return () => clearTimeout(timer);
+    }
+  }, [isInitialized, authLoading, subscriptionLoading, currentSubscription]);
+
+  // Smart focus refresh - only refresh if data is stale (older than 5 minutes)
   useFocusEffect(
     React.useCallback(() => {
       const userId = user?.id || user?.id;
       if (isInitialized && !authLoading && userId) {
-        console.log('🔄 Dashboard: Screen focused, refreshing subscription and notification data');
-        fetchCurrentSubscription(true); // Force refresh current subscription status
-        fetchNotifications(userId, true); // Force refresh notifications
+        if (__DEV__) console.log('👁️ Dashboard: Screen focused, checking if refresh needed');
+        
+        // Only refresh if data is stale - background refresh without loading states
+        setTimeout(() => {
+          fetchCurrentSubscription(false); // Background refresh - no loading state
+          fetchNotifications(userId, false); // Background refresh - no loading state
+        }, 100); // Small delay to avoid blocking UI
       }
-    }, [isInitialized, authLoading, user?.id, user?.id, fetchCurrentSubscription, fetchNotifications])
+    }, [isInitialized, authLoading, user?.id, fetchCurrentSubscription, fetchNotifications])
   );
 
   // Pull to refresh handler
@@ -184,6 +207,12 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Splash Screen Overlay */}
+      {showSplash && (
+        <SplashScreen 
+          onComplete={() => setShowSplash(false)}
+        />
+      )}
       {/* Header - Only show when no active subscription */}
       {!currentSubscription && (
         <View style={styles.header}>
@@ -229,11 +258,7 @@ export default function HomeScreen() {
       >
         {/* Subscription Status */}
         <Animated.View entering={FadeInDown.delay(100).duration(400)}>
-          {subscriptionLoading ? (
-            <View style={styles.loadingCard}>
-              <Text style={styles.loadingText}>{t('loadingSubscription')}</Text>
-            </View>
-          ) : currentSubscription ? (
+          {currentSubscription ? (
             <>
               {console.log('🔍 Dashboard: Rendering ActiveSubscriptionDashboard with subscription:', {
                 id: currentSubscription.id,
@@ -243,7 +268,7 @@ export default function HomeScreen() {
               <ActiveSubscriptionDashboard 
                 user={user} 
                 todayMeals={todayMeals} 
-                isLoading={mealsLoading}
+                isLoading={mealsLoading && todayMeals.length === 0}
               />
             </>
           ) : (
@@ -258,7 +283,7 @@ export default function HomeScreen() {
         {restaurants.length > 0 && (
           <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.section}>
             <Text style={styles.sectionTitle}>{t('exploreRestaurants')}</Text>
-            {restaurantsLoading ? (
+            {restaurantsLoading && restaurants.length === 0 ? (
               <ActivityIndicator style={{ marginTop: 20 }} size="large" color="#FF9B42" />
             ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.restaurantList}>
@@ -289,11 +314,7 @@ export default function HomeScreen() {
             </Text>
           </View>
 
-          {mealsLoading ? (
-            <View style={styles.loadingCard}>
-              <Text style={styles.loadingText}>{t('loadingTodaysMeals')}</Text>
-            </View>
-          ) : mealsError ? (
+          {mealsError ? (
             <View style={styles.errorCard}>
               <Text style={styles.errorText}>{mealsError}</Text>
               <TouchableOpacity 

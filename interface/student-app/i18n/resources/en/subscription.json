@@ -119,5 +119,6 @@
   "mealsPerDay": "Meals/Day",
   "skipAllowance": "Skip Allowance",
   "pauseAllowance": "Pause Allowance",
-  "subscribeToThisPlan": "Subscribe to This Plan"
+  "subscribeToThisPlan": "Subscribe to This Plan",
+  "subscriptionDetails": "Subscription Details"
 }

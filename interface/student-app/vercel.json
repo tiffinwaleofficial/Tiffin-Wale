@@ -5,8 +5,7 @@
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "web-build",
-        "buildCommand": "bun run build:vercel"
+        "distDir": "web-build"
       }
     }
   ],
@@ -63,7 +62,11 @@
       "PROD_API_BASE_URL": "https://api.tiffin-wale.com",
       "CLOUDINARY_CLOUD_NAME": "dols3w27e",
       "CLOUDINARY_API_KEY": "921455847536819",
-      "CLOUDINARY_UPLOAD_PRESET": "tiffin-wale"
+      "CLOUDINARY_UPLOAD_PRESET": "tiffin-wale",
+      "CI": "true",
+      "EXPO_NO_TELEMETRY": "1",
+      "EXPO_NO_DOCTOR": "1",
+      "NODE_OPTIONS": "--max-old-space-size=4096"
     }
   }
 }

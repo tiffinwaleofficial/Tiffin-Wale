@@ -45,18 +45,19 @@ export default function ProfileScreen() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
-  console.log('🔍 MyProfileScreen: Component rendered');
-  console.log('👤 MyProfileScreen: User state:', user);
-  console.log('🔔 MyProfileScreen: Current subscription:', currentSubscription);
+  if (__DEV__) console.log('🔍 MyProfileScreen: Component rendered');
+  if (__DEV__) console.log('👤 MyProfileScreen: User state:', user);
+  if (__DEV__) console.log('🔔 MyProfileScreen: Current subscription:', currentSubscription);
 
   useEffect(() => {
-    console.log('🔍 ProfileScreen: useEffect triggered');
-    console.log('📊 ProfileScreen: Fetching subscription data...');
+    if (__DEV__) console.log('🔍 ProfileScreen: useEffect triggered');
+    if (__DEV__) console.log('📊 ProfileScreen: Fetching subscription data...');
     
     // User data is automatically managed by AuthProvider
-    fetchCurrentSubscription();
+    // Use cached data first, refresh in background
+    fetchCurrentSubscription(false);
     
-    console.log('✅ ProfileScreen: Subscription fetch call made');
+    if (__DEV__) console.log('✅ ProfileScreen: Subscription fetch call made');
   }, [fetchCurrentSubscription]);
 
   const handleLogout = async () => {

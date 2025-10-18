@@ -216,6 +216,9 @@ export class NotificationService {
       // Set up notification handlers
       this.setupNotificationHandlers()
       
+      // Register default providers
+      this.registerDefaultProviders()
+      
       this.isInitialized = true
       DeviceEventEmitter.emit('notification_service_initialized')
       
@@ -390,6 +393,30 @@ export class NotificationService {
     this.providers.set(name, provider)
     provider.configure(this.config)
     console.log(`📱 Registered notification provider: ${name}`)
+  }
+
+  /**
+   * Register default notification providers
+   */
+  private registerDefaultProviders(): void {
+    try {
+      // Import providers dynamically to avoid circular dependencies
+      const { ToastProvider } = require('./providers/ToastProvider')
+      const { ModalProvider } = require('./providers/ModalProvider')
+      
+      // Register toast provider
+      this.registerProvider('toast', new ToastProvider())
+      
+      // Register modal provider  
+      this.registerProvider('modal', new ModalProvider())
+      
+      // Set toast as default provider
+      this.registerProvider('default', new ToastProvider())
+      
+      console.log('✅ Default notification providers registered')
+    } catch (error) {
+      console.error('❌ Failed to register default providers:', error)
+    }
   }
 
   /**

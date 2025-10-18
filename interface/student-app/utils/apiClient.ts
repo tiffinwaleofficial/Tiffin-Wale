@@ -2,8 +2,7 @@ import axios, { AxiosInstance, AxiosResponse, AxiosError, InternalAxiosRequestCo
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DeviceEventEmitter } from 'react-native';
 import { getWebSocketManager } from './websocketManager';
-import { tokenValidator } from './tokenValidator';
-import { tokenManager } from './tokenManager';
+import { secureTokenManager } from '../auth/SecureTokenManager';
 import { useAuthStore } from '@/store/authStore';
 import {
   CustomerProfile,
@@ -59,27 +58,27 @@ apiClient.interceptors.request.use(
     try {
       // Skip auth for login/register endpoints
       if (config.url?.includes('/auth/login') || config.url?.includes('/auth/register')) {
-        console.log('🔓 Skipping auth for public endpoint:', config.url);
+        if (__DEV__) console.log('🔓 Skipping auth for public endpoint:', config.url);
         return config;
       }
 
-      // Use TokenManager for secure token management (handles refresh automatically)
-      const token = await tokenManager.getAccessToken();
+      // Use SecureTokenManager for secure token management (handles refresh automatically)
+      const token = await secureTokenManager.getAccessToken();
       
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
-        console.log('🔐 TokenManager: Adding auth token to request:', config.url);
+        if (__DEV__) console.log('🔐 SecureTokenManager: Adding auth token to request:', config.url);
       } else {
-        console.warn('⚠️ TokenManager: No valid token available for request:', config.url);
+        if (__DEV__) console.warn('⚠️ SecureTokenManager: No valid token available for request:', config.url);
         
         // Check if user should be authenticated
-        const isAuthenticated = await tokenManager.isAuthenticated();
-        if (!isAuthenticated) {
-          console.log('🚨 TokenManager: User not authenticated, request may fail');
+        const hasTokens = await secureTokenManager.hasTokens();
+        if (!hasTokens) {
+          if (__DEV__) console.log('🚨 SecureTokenManager: User not authenticated, request may fail');
         }
       }
     } catch (error) {
-      console.error('❌ TokenManager: Error in request interceptor:', error);
+      console.error('❌ SecureTokenManager: Error in request interceptor:', error);
     }
     
     return config;
@@ -98,34 +97,50 @@ apiClient.interceptors.response.use(
     
     // Skip interceptor for logout calls to prevent infinite loops
     if (originalRequest.url?.includes('/api/auth/logout')) {
-      console.log('🚪 Skipping interceptor for logout call');
+      if (__DEV__) console.log('🚪 Skipping interceptor for logout call');
       return Promise.reject(error);
     }
     
     // Handle 401 Unauthorized (token expired) using TokenManager
     if (error.response?.status === 401 && !originalRequest._retry) {
-      console.log('🚨 401 Unauthorized error for:', originalRequest.url);
-      console.log('🔍 Error response:', error.response.data);
+      if (__DEV__) console.log('🚨 401 Unauthorized error for:', originalRequest.url);
+      if (__DEV__) console.log('🔍 Error response:', error.response.data);
       
       originalRequest._retry = true;
       
       try {
-        console.log('🔄 TokenManager: Attempting to refresh token...');
+        if (__DEV__) console.log('🔄 SecureTokenManager: Attempting to refresh token...');
         
-        // Use TokenManager to handle token refresh
-        const newToken = await tokenManager.refreshAccessToken();
+        // Use SecureTokenManager to handle token refresh
+        const refreshToken = await secureTokenManager.getRefreshToken();
+        if (!refreshToken) {
+          if (__DEV__) console.log('🔐 No refresh token available');
+          throw new Error('No refresh token available');
+        }
+
+        // Call refresh endpoint directly
+        const refreshResponse = await apiClient.post('/api/auth/refresh', { refreshToken });
+        const { accessToken, refreshToken: newRefreshToken } = refreshResponse.data;
+        
+        // Store new tokens
+        await secureTokenManager.storeTokens({
+          accessToken,
+          refreshToken: newRefreshToken || refreshToken
+        });
+        
+        const newToken = accessToken;
         
         if (newToken) {
-          console.log('✅ TokenManager: Token refreshed successfully');
+          if (__DEV__) console.log('✅ SecureTokenManager: Token refreshed successfully');
           
           // Retry the original request with new token
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return apiClient(originalRequest);
         } else {
-          console.log('❌ TokenManager: Token refresh failed');
+          if (__DEV__) console.log('❌ SecureTokenManager: Token refresh failed');
           
           // Clear all tokens and emit auth error
-          await tokenManager.clearTokens();
+          await secureTokenManager.clearAll();
           
           // Emit logout event for the app to handle
           DeviceEventEmitter.emit('auth_error', {

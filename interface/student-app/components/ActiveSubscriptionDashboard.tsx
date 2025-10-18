@@ -154,11 +154,7 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
             </TouchableOpacity>
           </View>
 
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>{t('loadingTodaysMeals')}</Text>
-            </View>
-          ) : todayMeals && todayMeals.length > 0 ? (
+          {todayMeals && todayMeals.length > 0 ? (
             todayMeals.map((meal, index) => (
               <Animated.View 
                 key={meal.id}
@@ -171,7 +167,7 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
                 <View style={styles.mealCardContent}>
                   <View style={styles.mealImageContainer}>
                     <Image 
-                      source={{ uri: meal.menu?.[0]?.image || 'https://images.pexels.com/photos/14705131/pexels-photo-14705131.jpeg' }} 
+                      source={{ uri: meal.menu?.[0]?.images?.[0] || 'https://images.pexels.com/photos/14705131/pexels-photo-14705131.jpeg' }} 
                       style={styles.mealImage}
                       resizeMode="cover"
                     />
@@ -182,7 +178,7 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
                     <View style={styles.ratingAndStatus}>
                       <View style={styles.ratingContainer}>
                         <Star size={14} color="#FFB800" fill="#FFB800" />
-                        <Text style={styles.ratingText}>{meal.userRating || meal.menu?.[0]?.rating || '4.5'}</Text>
+                        <Text style={styles.ratingText}>{meal.userRating || '4.5'}</Text>
                       </View>
                       <View style={styles.deliveredBadge}>
                         <Text style={styles.deliveredText}>{meal.status || 'Scheduled'}</Text>
