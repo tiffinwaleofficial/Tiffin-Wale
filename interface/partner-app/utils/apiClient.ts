@@ -1,6 +1,8 @@
 import axios, { InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DeviceEventEmitter } from 'react-native';
 import { config } from '../config/environment';
+import { tokenManager } from './tokenManager';
 
 // Import types
 import { LoginResponse, PartnerProfile, CreatePartnerData } from '../types/auth';
@@ -23,34 +25,111 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig): Promise<InternalAxiosRequestConfig> => {
     try {
-      const token = await AsyncStorage.getItem('partner_auth_token');
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
+      // Skip auth for login/register endpoints
+      if (config.url?.includes('/auth/login') || 
+          config.url?.includes('/auth/register') || 
+          config.url?.includes('/auth/check-phone')) {
+        if (__DEV__) console.log('🔓 Partner API: Skipping auth for public endpoint:', config.url);
+        return config;
       }
-      return config;
+
+      // Use TokenManager for secure token management (handles refresh automatically)
+      const token = await tokenManager.getAccessToken();
+      
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+        if (__DEV__) console.log('🔐 Partner API: Adding auth token to request:', config.url);
+      } else {
+        if (__DEV__) console.warn('⚠️ Partner API: No valid token available for request:', config.url);
+        
+        // Check if user should be authenticated
+        const hasTokens = await tokenManager.hasTokens();
+        if (!hasTokens) {
+          if (__DEV__) console.log('🚨 Partner API: User not authenticated, request may fail');
+        }
+      }
     } catch (error) {
-      console.error('Error adding auth token to request:', error);
-      return config;
+      console.error('❌ Partner API: Error in request interceptor:', error);
     }
+    
+    return config;
   },
-  (error: AxiosError): Promise<never> => Promise.reject(error)
+  (error: AxiosError): Promise<never> => {
+    console.error('❌ Partner API: Request interceptor error:', error);
+    return Promise.reject(error);
+  }
 );
 
-// Response interceptor for handling common errors
+// Response interceptor for handling token refresh
 apiClient.interceptors.response.use(
   (response: AxiosResponse): AxiosResponse => response,
   async (error: AxiosError): Promise<never> => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
     
-    // Handle 401 Unauthorized (token expired)
+    // Skip interceptor for logout calls to prevent infinite loops
+    if (originalRequest.url?.includes('/api/auth/logout')) {
+      if (__DEV__) console.log('🚪 Partner API: Skipping interceptor for logout call');
+      return Promise.reject(error);
+    }
+    
+    // Handle 401 Unauthorized (token expired) using TokenManager
     if (error.response?.status === 401 && !originalRequest._retry) {
+      if (__DEV__) console.log('🚨 Partner API: 401 Unauthorized error for:', originalRequest.url);
+      if (__DEV__) console.log('🔍 Partner API: Error response:', error.response.data);
+      
       originalRequest._retry = true;
       
-      // Clear token and redirect to login
-      await AsyncStorage.removeItem('partner_auth_token');
-      await AsyncStorage.removeItem('partner_refresh_token');
+      try {
+        if (__DEV__) console.log('🔄 Partner API: Attempting to refresh token...');
+        
+        // Use TokenManager to handle token refresh
+        const refreshToken = await tokenManager.getRefreshToken();
+        if (!refreshToken) {
+          if (__DEV__) console.log('🔐 Partner API: No refresh token available');
+          throw new Error('No refresh token available');
+        }
+
+        // Call refresh endpoint directly
+        const refreshResponse = await apiClient.post('/api/auth/refresh', { refreshToken });
+        const { accessToken, refreshToken: newRefreshToken } = refreshResponse.data;
+        
+        // Store new tokens
+        await tokenManager.storeTokens(accessToken, newRefreshToken || refreshToken);
+        
+        if (accessToken) {
+          if (__DEV__) console.log('✅ Partner API: Token refreshed successfully');
+          
+          // Retry the original request with new token
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          return apiClient(originalRequest);
+        } else {
+          if (__DEV__) console.log('❌ Partner API: Token refresh failed');
+          
+          // Clear all tokens and emit auth error
+          await tokenManager.clearTokens();
+          
+          // Emit logout event for the app to handle
+          DeviceEventEmitter.emit('partner_auth_error', {
+            type: 'token_refresh_failed',
+            message: 'Session expired. Please login again.'
+          });
+        }
+        
+        console.log('❌ Partner API: No refresh token available or refresh failed');
+      } catch (refreshError) {
+        console.error('❌ Partner API: Token refresh failed:', refreshError);
+      }
       
-      // This would need to be handled in the component using the API client
+      // If refresh failed, clear all tokens and user data
+      console.log('🧹 Partner API: Clearing all auth tokens due to failed refresh');
+      try {
+        await AsyncStorage.multiRemove(['partner_auth_token', 'partner_refresh_token', 'partner_user_data']);
+        
+        // Emit a custom event to notify the app about auth failure
+        DeviceEventEmitter.emit('partner_auth:token-expired');
+      } catch (clearError) {
+        console.error('❌ Partner API: Error clearing tokens:', clearError);
+      }
     }
     
     return Promise.reject(error);

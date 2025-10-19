@@ -4,7 +4,7 @@ import { getAnalytics } from "firebase/analytics";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// Your web app's Firebase configuration
+// Your web app's Firebase configuration (same as Student App)
 const firebaseConfig = {
   apiKey: "AIzaSyCgfF7twAURbSUCcwWYSmu6i1jqEPdn91E",
   authDomain: "tiffin-wale-15d70.firebaseapp.com",
@@ -18,18 +18,19 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Auth with persistence for React Native
+// Initialize Firebase Auth with proper persistence for React Native
 let auth;
 try {
   if (Platform.OS === 'web') {
     auth = getAuth(app);
   } else {
-    // For React Native, we'll use the default persistence
-    // AsyncStorage persistence is handled automatically by Firebase v9+
+    // For React Native, initialize auth normally
+    // Note: AsyncStorage persistence is handled automatically in newer versions
     auth = initializeAuth(app);
   }
 } catch (error) {
   // If auth is already initialized, get the existing instance
+  console.log('Firebase Auth already initialized, using existing instance');
   auth = getAuth(app);
 }
 

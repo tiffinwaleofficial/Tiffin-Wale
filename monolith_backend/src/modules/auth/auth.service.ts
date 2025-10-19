@@ -585,29 +585,66 @@ export class AuthService {
     };
   }
 
-  async checkPhoneExists(phoneNumber: string) {
+  async checkPhoneExists(phoneNumber: string, role?: "customer" | "business") {
     try {
       const user = await this.userService.findByPhoneNumber(phoneNumber);
+
+      if (!user) {
+        return {
+          exists: false,
+          userId: null,
+          role: null,
+        };
+      }
+
+      // If role is specified, check if user has the specified role
+      if (role) {
+        const hasRole = user.role === role;
+        return {
+          exists: hasRole,
+          userId: hasRole ? user._id : null,
+          role: user.role,
+          message: hasRole
+            ? null
+            : `User exists but has role '${user.role}', not '${role}'`,
+        };
+      }
+
+      // If no role specified, return general existence
       return {
-        exists: !!user,
-        userId: user?._id || null,
+        exists: true,
+        userId: user._id,
+        role: user.role,
       };
     } catch (error) {
       console.error("Error checking phone existence:", error);
       return {
         exists: false,
         userId: null,
+        role: null,
+        error: "Failed to check phone existence",
       };
     }
   }
 
-  async loginWithPhone(phoneNumber: string, firebaseUid: string) {
+  async loginWithPhone(
+    phoneNumber: string,
+    firebaseUid: string,
+    role?: "customer" | "business",
+  ) {
     try {
       // Find user by phone number
       const user = await this.userService.findByPhoneNumber(phoneNumber);
 
       if (!user) {
         throw new NotFoundException("User not found with this phone number");
+      }
+
+      // If role is specified, check if user has the specified role
+      if (role && user.role !== role) {
+        throw new UnauthorizedException(
+          `User exists but has role '${user.role}', not '${role}'`,
+        );
       }
 
       if (!user.isActive) {

@@ -34,7 +34,10 @@ export class EmailTestController {
   async sendTestEmail(@Body() request: TestEmailRequest) {
     try {
       // Get subject for the template
-      const subject = await this.getTemplateSubject(request.template, request.data);
+      const subject = await this.getTemplateSubject(
+        request.template,
+        request.data,
+      );
 
       // Get appropriate sender email based on template type
       const fromEmail = this.getSenderEmailForTemplate(request.template);
@@ -130,49 +133,64 @@ export class EmailTestController {
     // Map templates to appropriate sender email types
     const templateToEmailType = {
       // Welcome and auth emails - info@
-      "welcome": "info",
-      "email-verification": "info", 
+      welcome: "info",
+      "email-verification": "info",
       "password-reset": "info",
-      
+
       // Order related emails - orders@
       "order-confirmation": "orders",
       "order-preparing": "orders",
-      "order-ready": "orders", 
+      "order-ready": "orders",
       "order-delivered": "orders",
       "new-order-notification": "orders",
-      
+
       // Payment and billing emails - billing@
       "payment-success": "billing",
       "payment-failed": "billing",
       "refund-processed": "billing",
       "subscription-created": "billing",
       "subscription-renewed": "billing",
-      "subscription-expiring": "billing", 
+      "subscription-expiring": "billing",
       "subscription-cancelled": "billing",
-      
+
       // Partner emails - sales@
       "partner-welcome": "sales",
       "earnings-summary": "sales",
     };
 
     const emailType = templateToEmailType[templateName] || "info";
-    
+
     // Get the appropriate email address from environment variables
     const emailAddresses = {
       info: process.env.INFO_EMAIL || "Tiffin-Wale <info@tiffin-wale.com>",
-      sales: process.env.SALES_EMAIL || "Tiffin-Wale Sales <sales@tiffin-wale.com>",
-      orders: process.env.ORDERS_EMAIL || "Tiffin-Wale Orders <orders@tiffin-wale.com>",
-      billing: process.env.BILLING_EMAIL || "Tiffin-Wale Billing <billing@tiffin-wale.com>",
-      feedback: process.env.FEEDBACK_EMAIL || "Tiffin-Wale Feedback <feedback@tiffin-wale.com>",
-      careers: process.env.CAREERS_EMAIL || "Tiffin-Wale Careers <careers@tiffin-wale.com>",
-      marketing: process.env.MARKETING_EMAIL || "Tiffin-Wale Marketing <marketing@tiffin-wale.com>",
-      admin: process.env.ADMIN_EMAIL || "Tiffin-Wale Admin <admin@tiffin-wale.com>",
+      sales:
+        process.env.SALES_EMAIL || "Tiffin-Wale Sales <sales@tiffin-wale.com>",
+      orders:
+        process.env.ORDERS_EMAIL ||
+        "Tiffin-Wale Orders <orders@tiffin-wale.com>",
+      billing:
+        process.env.BILLING_EMAIL ||
+        "Tiffin-Wale Billing <billing@tiffin-wale.com>",
+      feedback:
+        process.env.FEEDBACK_EMAIL ||
+        "Tiffin-Wale Feedback <feedback@tiffin-wale.com>",
+      careers:
+        process.env.CAREERS_EMAIL ||
+        "Tiffin-Wale Careers <careers@tiffin-wale.com>",
+      marketing:
+        process.env.MARKETING_EMAIL ||
+        "Tiffin-Wale Marketing <marketing@tiffin-wale.com>",
+      admin:
+        process.env.ADMIN_EMAIL || "Tiffin-Wale Admin <admin@tiffin-wale.com>",
     };
 
     return emailAddresses[emailType] || emailAddresses.info;
   }
 
-  private async getTemplateSubject(templateName: string, data: any): Promise<string> {
+  private async getTemplateSubject(
+    templateName: string,
+    data: any,
+  ): Promise<string> {
     const defaultSubjects = {
       welcome: `Welcome to ${data.appName || "Tiffin-Wale"}!`,
       "password-reset": `Reset Your Password - ${data.appName || "Tiffin-Wale"}`,

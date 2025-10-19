@@ -158,12 +158,3 @@ export class RegisterCustomerDto {
   role: "customer";
 }
 
-
-
-
-
-
-
-
-
-

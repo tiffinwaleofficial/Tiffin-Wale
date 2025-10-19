@@ -1,5 +1,11 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsString, IsNotEmpty, Matches } from "class-validator";
+import {
+  IsString,
+  IsNotEmpty,
+  Matches,
+  IsOptional,
+  IsEnum,
+} from "class-validator";
 
 export class CheckPhoneDto {
   @ApiProperty({
@@ -12,14 +18,16 @@ export class CheckPhoneDto {
     message: "Phone number must be exactly 10 digits",
   })
   phoneNumber: string;
+
+  @ApiProperty({
+    example: "customer",
+    description: "Role to check for (customer or business)",
+    enum: ["customer", "business"],
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(["customer", "business"], {
+    message: "Role must be either 'customer' or 'business'",
+  })
+  role?: "customer" | "business";
 }
-
-
-
-
-
-
-
-
-
-

@@ -25,9 +25,9 @@ class PhoneAuthService {
   private recaptchaVerifier: RecaptchaVerifier | null = null;
   private confirmationResult: ConfirmationResult | null = null;
   
-  // Test phone numbers for development
+  // Test phone numbers for development (same as Student App)
   private testPhoneNumbers = [
-    '+919131114837', // Your test number
+    '+919131114837', // Test number
     '+911234567890', // Another test number
   ];
 
@@ -89,7 +89,7 @@ class PhoneAuthService {
    */
   async sendOTP(phoneNumber: string): Promise<PhoneAuthResult> {
     try {
-      console.log('Original phone number:', phoneNumber);
+      if (__DEV__) console.log('📱 Partner PhoneAuth: Original phone number:', phoneNumber);
       
       // Validate phone number
       if (!this.validateIndianPhoneNumber(phoneNumber)) {
@@ -100,31 +100,66 @@ class PhoneAuthService {
       }
 
       const formattedNumber = this.formatPhoneNumber(phoneNumber);
-      console.log('Formatted phone number for Firebase:', formattedNumber);
+      if (__DEV__) console.log('📱 Partner PhoneAuth: Formatted phone number for Firebase:', formattedNumber);
       
+      // DEVELOPMENT BYPASS: Skip Firebase for test numbers
+      if (this.testPhoneNumbers.includes(formattedNumber)) {
+        if (__DEV__) console.log('🧪 Partner PhoneAuth: Development mode - Bypassing Firebase for test number');
+        
+        // Create a mock confirmation result for development
+        this.confirmationResult = {
+          verificationId: 'partner-dev-verification-id',
+          confirm: async (code: string) => {
+            if (code === '123456') {
+              // Return a mock user for development
+              return {
+                user: {
+                  uid: 'partner-dev-user-' + Date.now(),
+                  phoneNumber: formattedNumber,
+                  displayName: null,
+                  email: null,
+                  photoURL: null,
+                  providerId: 'phone',
+                  // Add other required User properties
+                } as any
+              };
+            } else {
+              throw new Error('Invalid verification code');
+            }
+          }
+        } as any;
+
+        return {
+          success: true
+        };
+      }
+      
+      // For production numbers, use Firebase
       // Initialize reCAPTCHA for web
       if (Platform.OS === 'web') {
         this.initializeRecaptcha();
+        if (!this.recaptchaVerifier) {
+          throw new Error('reCAPTCHA verifier not initialized');
+        }
+        this.confirmationResult = await signInWithPhoneNumber(
+          auth, 
+          formattedNumber, 
+          this.recaptchaVerifier
+        );
+      } else {
+        // For React Native with real numbers, this requires Firebase Console setup
+        throw new Error('For production use, please add this number as a test number in Firebase Console or upgrade to Blaze plan');
       }
 
-      // Send verification code
-      console.log('Attempting to send OTP to:', formattedNumber);
-      
-      this.confirmationResult = await signInWithPhoneNumber(
-        auth, 
-        formattedNumber, 
-        this.recaptchaVerifier!
-      );
-
-      console.log('OTP sent successfully, confirmation result:', this.confirmationResult);
+      if (__DEV__) console.log('📱 Partner PhoneAuth: OTP sent successfully, confirmation result:', this.confirmationResult);
 
       return {
         success: true
       };
     } catch (error: any) {
-      console.error('Error sending OTP:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
+      console.error('❌ Partner PhoneAuth: Error sending OTP:', error);
+      console.error('❌ Partner PhoneAuth: Error code:', error.code);
+      console.error('❌ Partner PhoneAuth: Error message:', error.message);
       
       let errorMessage = 'Failed to send OTP. Please try again.';
       
@@ -163,7 +198,7 @@ class PhoneAuthService {
         user: result.user
       };
     } catch (error: any) {
-      console.error('Error verifying OTP:', error);
+      console.error('❌ Partner PhoneAuth: Error verifying OTP:', error);
       
       let errorMessage = 'Invalid OTP. Please try again.';
       
@@ -199,7 +234,7 @@ class PhoneAuthService {
       await auth.signOut();
       this.confirmationResult = null;
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('❌ Partner PhoneAuth: Error signing out:', error);
       throw error;
     }
   }

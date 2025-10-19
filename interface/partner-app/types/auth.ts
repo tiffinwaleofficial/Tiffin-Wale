@@ -1,5 +1,6 @@
 export interface LoginResponse {
   token: string;
+  accessToken?: string; // Alternative token field name
   refreshToken?: string;
   expiresIn: number;
   user: {
@@ -12,11 +13,8 @@ export interface LoginResponse {
   partner?: PartnerProfile;
 }
 
-export interface PartnerProfile {
-  id: string;
+export interface PartnerProfile extends AuthUser {
   businessName: string;
-  email: string;
-  phoneNumber: string;
   description: string;
   cuisineTypes: string[];
   address: Address;
@@ -81,4 +79,6 @@ export interface AuthState {
   refreshToken: string | null;
   isLoading: boolean;
   error: string | null;
+  isInitialized: boolean;
+  isLoggingOut: boolean;
 } 

@@ -38,12 +38,3 @@ export class LinkPhoneDto {
   firebaseUid: string;
 }
 
-
-
-
-
-
-
-
-
-

@@ -18,14 +18,16 @@ export class AnalyticsMiddleware implements NestMiddleware {
 
       // Log API metrics (can be ingested by Vercel automatically)
       if (process.env.NODE_ENV === "production") {
-        console.log(JSON.stringify({
-          type: 'api_request',
-          endpoint: req.path,
-          method: req.method,
-          status_code: statusCode,
-          duration_ms: duration,
-          timestamp: new Date().toISOString(),
-        }));
+        console.log(
+          JSON.stringify({
+            type: "api_request",
+            endpoint: req.path,
+            method: req.method,
+            status_code: statusCode,
+            duration_ms: duration,
+            timestamp: new Date().toISOString(),
+          }),
+        );
       }
 
       return originalSend.call(this, body);

@@ -7,6 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from '@/context/AuthProvider';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import NotificationContainer from '@/components/NotificationContainer';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { Slot } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -81,7 +82,9 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <NotificationContainer>
-            <Slot />
+            <ProtectedRoute>
+              <Slot />
+            </ProtectedRoute>
           </NotificationContainer>
           <StatusBar style="dark" />
           {/* Vercel Analytics - Web only */}

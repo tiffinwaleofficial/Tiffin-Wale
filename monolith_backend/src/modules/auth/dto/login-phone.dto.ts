@@ -1,5 +1,11 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsString, IsNotEmpty, Matches } from "class-validator";
+import {
+  IsString,
+  IsNotEmpty,
+  Matches,
+  IsOptional,
+  IsEnum,
+} from "class-validator";
 
 export class LoginPhoneDto {
   @ApiProperty({
@@ -20,14 +26,16 @@ export class LoginPhoneDto {
   @IsString({ message: "Firebase UID must be a string" })
   @IsNotEmpty({ message: "Firebase UID is required" })
   firebaseUid: string;
+
+  @ApiProperty({
+    example: "customer",
+    description: "Role to login as (customer or business)",
+    enum: ["customer", "business"],
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(["customer", "business"], {
+    message: "Role must be either 'customer' or 'business'",
+  })
+  role?: "customer" | "business";
 }
-
-
-
-
-
-
-
-
-
-

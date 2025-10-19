@@ -123,16 +123,24 @@ export class AuthController {
 
   @Post("check-phone")
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Check if user exists by phone number" })
+  @ApiOperation({
+    summary: "Check if user exists by phone number with optional role filter",
+  })
   @ApiResponse({ status: 200, description: "Phone check completed" })
   @ApiResponse({ status: 400, description: "Bad request" })
   checkPhone(@Body() checkPhoneDto: CheckPhoneDto) {
-    return this.authService.checkPhoneExists(checkPhoneDto.phoneNumber);
+    return this.authService.checkPhoneExists(
+      checkPhoneDto.phoneNumber,
+      checkPhoneDto.role,
+    );
   }
 
   @Post("login-phone")
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Login with phone number and Firebase UID" })
+  @ApiOperation({
+    summary:
+      "Login with phone number and Firebase UID with optional role filter",
+  })
   @ApiResponse({ status: 200, description: "Phone login successful" })
   @ApiResponse({ status: 401, description: "Unauthorized" })
   @ApiResponse({ status: 404, description: "User not found" })
@@ -140,6 +148,7 @@ export class AuthController {
     return this.authService.loginWithPhone(
       loginPhoneDto.phoneNumber,
       loginPhoneDto.firebaseUid,
+      loginPhoneDto.role,
     );
   }
 
