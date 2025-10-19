@@ -263,4 +263,76 @@ export class NotificationsController {
 
     return { message: "Promotional notification sent successfully" };
   }
+
+  @Post("send-enhanced")
+  @ApiOperation({
+    summary: "Send enhanced notification with dual Expo + Firebase delivery",
+  })
+  @ApiResponse({
+    status: 201,
+    description: "Enhanced notification sent successfully",
+    schema: {
+      type: "object",
+      properties: {
+        success: { type: "boolean" },
+        notificationId: { type: "string" },
+        deliveryStats: {
+          type: "object",
+          properties: {
+            expo: {
+              type: "object",
+              properties: {
+                sent: { type: "number" },
+                failed: { type: "number" },
+              },
+            },
+            firebase: {
+              type: "object",
+              properties: {
+                sent: { type: "number" },
+                failed: { type: "number" },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  async sendEnhancedNotification(@Body() dto: CreateNotificationDto) {
+    const result =
+      await this.notificationsService.sendEnhancedNotification(dto);
+    return {
+      success: result.success,
+      notificationId:
+        result.expoResult?.id || result.firebaseResult?.name || "unknown",
+      deliveryStats: result.deliveryStats,
+      expoResult: result.expoResult,
+      firebaseResult: result.firebaseResult,
+    };
+  }
+
+  @Post("send-topic")
+  @ApiOperation({ summary: "Send notification to Firebase topic" })
+  @ApiResponse({
+    status: 201,
+    description: "Topic notification sent successfully",
+  })
+  async sendTopicNotification(
+    @Body()
+    body: {
+      topic: string;
+      notification: {
+        title: string;
+        body: string;
+        data?: Record<string, any>;
+        imageUrl?: string;
+      };
+    },
+  ) {
+    const result = await this.notificationsService.sendTopicNotification(
+      body.topic,
+      body.notification,
+    );
+    return { success: true, messageId: result };
+  }
 }

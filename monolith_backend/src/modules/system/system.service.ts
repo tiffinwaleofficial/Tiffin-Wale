@@ -1,12 +1,16 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { HealthCheckDto, VersionDto } from "./dto";
+import { RedisService } from "../redis/redis.service";
 
 @Injectable()
 export class SystemService {
   private startTime: number;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
+  ) {
     this.startTime = Date.now();
   }
 
@@ -18,13 +22,34 @@ export class SystemService {
     const environment =
       this.configService.get<string>("NODE_ENV") || "development";
 
+    // Check Redis health
+    const redisHealth = await this.redisService.healthCheck();
+
     return {
-      status: "ok",
+      status: redisHealth.status === "healthy" ? "ok" : "degraded",
       timestamp: new Date(),
       uptime,
       environment,
-      message: "Server is healthy",
+      message:
+        redisHealth.status === "healthy"
+          ? "Server is healthy"
+          : "Server is running but Redis is unhealthy",
+      redis: redisHealth,
     };
+  }
+
+  /**
+   * Get Redis health status
+   */
+  async getRedisHealth() {
+    return this.redisService.healthCheck();
+  }
+
+  /**
+   * Get Redis statistics
+   */
+  async getRedisStats() {
+    return this.redisService.getStats();
   }
 
   /**

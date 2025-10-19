@@ -30,4 +30,15 @@ export class HealthCheckDto {
     example: "Server is healthy",
   })
   message: string;
+
+  @ApiProperty({
+    description: "Redis health status",
+    example: { status: "healthy", latency: 5 },
+    required: false,
+  })
+  redis?: {
+    status: string;
+    latency?: number;
+    error?: string;
+  };
 }

@@ -20,10 +20,13 @@ import {
   NotificationTemplateSchema,
 } from "./schemas/notification-template.schema";
 import { PushNotificationService } from "./push-notification.service";
+import { FirebaseNotificationService } from "./firebase-notification.service";
+import { RedisModule } from "../redis/redis.module";
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
+    RedisModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
@@ -43,12 +46,14 @@ import { PushNotificationService } from "./push-notification.service";
     NotificationsGateway,
     NativeWebSocketGateway,
     PushNotificationService,
+    FirebaseNotificationService,
   ],
   exports: [
     NotificationsService,
     NotificationsGateway,
     NativeWebSocketGateway,
     PushNotificationService,
+    FirebaseNotificationService,
   ],
 })
 export class NotificationsModule {}

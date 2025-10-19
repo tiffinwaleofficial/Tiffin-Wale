@@ -8,15 +8,30 @@
         "includeFiles": [
           "src/**",
           "dist/**",
+          "steps/**",
+          "python_modules/**",
           "package.json",
           "tsconfig.json",
-          "public/**/*"
+          "public/**/*",
+          "requirements.txt",
+          "motia.json"
         ],
+        "maxLambdaSize": "50mb"
+      }
+    },
+    {
+      "src": "api/motia.ts",
+      "use": "@vercel/node",
+      "config": {
         "maxLambdaSize": "50mb"
       }
     }
   ],
   "routes": [
+    {
+      "src": "/motia/(.*)",
+      "dest": "/api/motia"
+    },
     {
       "src": "/(.*)",
       "dest": "/api/index.ts"

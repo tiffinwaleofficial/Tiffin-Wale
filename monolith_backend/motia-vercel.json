@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "name": "tiffin-wale-motia",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "steps/**",
+          "src/services/**",
+          "python_modules/**",
+          "requirements.txt",
+          "motia.json",
+          ".env"
+        ],
+        "maxLambdaSize": "50mb"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "installCommand": "npm install && pip install -r requirements.txt",
+  "buildCommand": "echo 'Motia build complete'",
+  "startCommand": "npx motia dev --port $PORT"
+}

@@ -18,6 +18,7 @@ import { SubscriptionService } from "../subscription/subscription.service";
 import { CustomerProfileService } from "../customer-profile/customer-profile.service";
 import { MealService } from "../meal/meal.service";
 import { PartnerService } from "../partner/partner.service";
+import { RedisService } from "../redis/redis.service";
 import { EmailService } from "../email/email.service";
 
 @Injectable()
@@ -30,6 +31,7 @@ export class AuthService {
     private readonly mealService: MealService,
     private readonly partnerService: PartnerService,
     private readonly emailService: EmailService,
+    private readonly redisService: RedisService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -64,9 +66,24 @@ export class AuthService {
     const { email, password } = loginDto;
 
     try {
+      // Check Redis cache for recent failed login attempts (rate limiting)
+      const failedAttemptsKey = `failed_login:${email}`;
+      const failedAttempts =
+        (await this.redisService.get<number>(failedAttemptsKey)) || 0;
+
+      if (failedAttempts >= 5) {
+        throw new UnauthorizedException(
+          "Too many failed login attempts. Please try again later.",
+        );
+      }
+
       const user = await this.validateUser(email, password);
 
       if (!user) {
+        // Increment failed login attempts
+        await this.redisService.set(failedAttemptsKey, failedAttempts + 1, {
+          ttl: 900,
+        }); // 15 minutes
         throw new UnauthorizedException("Invalid email or password");
       }
 
@@ -76,7 +93,26 @@ export class AuthService {
         );
       }
 
-      return this.generateToken(user);
+      // Clear failed login attempts on successful login
+      await this.redisService.del(failedAttemptsKey);
+
+      const tokens = await this.generateToken(user);
+
+      // Cache user session in Redis
+      const sessionData = {
+        userId: user._id.toString(),
+        email: user.email,
+        role: user.role,
+        loginAt: new Date().toISOString(),
+        ...tokens,
+      };
+
+      await this.redisService.cacheUserSession(
+        user._id.toString(),
+        sessionData,
+      );
+
+      return tokens;
     } catch (error) {
       if (error instanceof UnauthorizedException) {
         throw error;

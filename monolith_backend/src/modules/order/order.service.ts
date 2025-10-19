@@ -14,12 +14,14 @@ import { UpdateOrderStatusDto } from "./dto/update-order-status.dto";
 import { MarkOrderPaidDto } from "./dto/mark-order-paid.dto";
 import { AddOrderReviewDto } from "./dto/add-order-review.dto";
 import { EmailService } from "../email/email.service";
+import { RedisService } from "../redis/redis.service";
 
 @Injectable()
 export class OrderService {
   constructor(
     @InjectModel(Order.name) private readonly orderModel: Model<Order>,
     private readonly emailService: EmailService,
+    private readonly redisService: RedisService,
   ) {}
 
   async create(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -60,10 +62,20 @@ export class OrderService {
 
   async findById(id: string): Promise<Order> {
     try {
+      // Check Redis cache first
+      const cachedOrder = await this.redisService.getOrder(id);
+      if (cachedOrder) {
+        return cachedOrder;
+      }
+
       const order = await this.orderModel.findById(id).exec();
       if (!order) {
         throw new NotFoundException(`Order with ID ${id} not found`);
       }
+
+      // Cache the order in Redis
+      await this.redisService.cacheOrder(id, order.toObject());
+
       return order;
     } catch (error) {
       if (error instanceof NotFoundException) {

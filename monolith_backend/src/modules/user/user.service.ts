@@ -11,11 +11,13 @@ import * as bcrypt from "bcrypt";
 import { User } from "./schemas/user.schema";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
+import { RedisService } from "../redis/redis.service";
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<User>,
+    private readonly redisService: RedisService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -48,10 +50,20 @@ export class UserService {
 
   async findById(id: string): Promise<User> {
     try {
+      // Check Redis cache first
+      const cachedUser = await this.redisService.getUserProfile(id);
+      if (cachedUser) {
+        return cachedUser;
+      }
+
       const user = await this.userModel.findById(id).exec();
       if (!user) {
         throw new NotFoundException(`User with ID ${id} not found`);
       }
+
+      // Cache user profile in Redis
+      await this.redisService.cacheUserProfile(id, user.toObject());
+
       return user;
     } catch (error) {
       if (error instanceof NotFoundException) {

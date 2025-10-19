@@ -33,4 +33,39 @@ export class SystemController {
   async getVersion(): Promise<VersionDto> {
     return this.systemService.getVersion();
   }
+
+  @Get("redis/health")
+  @ApiOperation({ summary: "Redis health check" })
+  @ApiResponse({
+    status: 200,
+    description: "Redis health status",
+    schema: {
+      type: "object",
+      properties: {
+        status: { type: "string", example: "healthy" },
+        latency: { type: "number", example: 5 },
+        error: { type: "string", example: null },
+      },
+    },
+  })
+  async getRedisHealth() {
+    return this.systemService.getRedisHealth();
+  }
+
+  @Get("redis/stats")
+  @ApiOperation({ summary: "Redis cache statistics" })
+  @ApiResponse({
+    status: 200,
+    description: "Redis cache statistics",
+    schema: {
+      type: "object",
+      properties: {
+        status: { type: "string", example: "connected" },
+        timestamp: { type: "string", example: "2023-12-01T10:00:00.000Z" },
+      },
+    },
+  })
+  async getRedisStats() {
+    return this.systemService.getRedisStats();
+  }
 }

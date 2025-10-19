@@ -11,12 +11,14 @@ import { CreateMenuItemDto } from "./dto/create-menu-item.dto";
 import { UpdateMenuItemDto } from "./dto/update-menu-item.dto";
 import { CreateCategoryDto } from "./dto/create-category.dto";
 import { UpdateCategoryDto } from "./dto/update-category.dto";
+import { RedisService } from "../redis/redis.service";
 
 @Injectable()
 export class MenuService {
   constructor(
     @InjectModel(MenuItem.name) private readonly menuItemModel: Model<MenuItem>,
     @InjectModel(Category.name) private readonly categoryModel: Model<Category>,
+    private readonly redisService: RedisService,
   ) {}
 
   async findAllMenuItems(): Promise<MenuItem[]> {
@@ -69,17 +71,33 @@ export class MenuService {
 
   async findMenuItemsByPartner(partnerId: string): Promise<MenuItem[]> {
     try {
+      // Check Redis cache first
+      const cachedMenu = await this.redisService.getPartnerMenu(partnerId);
+      if (cachedMenu) {
+        return cachedMenu;
+      }
+
       // Try to convert partnerId to ObjectId, if it's already a valid ObjectId
       const partnerObjectId = Types.ObjectId.isValid(partnerId)
         ? new Types.ObjectId(partnerId)
         : partnerId;
 
       // Use $in operator to match either string or ObjectId version
-      return this.menuItemModel
+      const menuItems = await this.menuItemModel
         .find({
           businessPartner: { $in: [partnerObjectId, partnerId] },
         })
         .exec();
+
+      // Cache the menu items in Redis
+      if (menuItems.length > 0) {
+        await this.redisService.cachePartnerMenu(
+          partnerId,
+          menuItems.map((item) => item.toObject()),
+        );
+      }
+
+      return menuItems;
     } catch (error) {
       console.error(
         `Error finding menu items for partner ${partnerId}:`,

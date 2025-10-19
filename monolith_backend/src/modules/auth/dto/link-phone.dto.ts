@@ -37,4 +37,3 @@ export class LinkPhoneDto {
   @IsNotEmpty({ message: "Firebase UID is required" })
   firebaseUid: string;
 }
-

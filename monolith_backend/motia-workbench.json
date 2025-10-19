@@ -1,0 +1,100 @@
+[
+  {
+    "id": "basic-tutorial",
+    "config": {
+      "steps\\petstore\\state_audit_cron_step.py": {
+        "x": 104,
+        "y": -120
+      },
+      "steps\\petstore\\process_food_order_step.py": {
+        "x": 260,
+        "y": 262
+      },
+      "steps\\petstore\\notification_step.py": {
+        "x": 699,
+        "y": 137
+      },
+      "steps\\petstore\\api_step.py": {
+        "x": -211,
+        "y": 105
+      }
+    }
+  },
+  {
+    "id": "tiffinwale-auth",
+    "config": {
+      "steps\\auth\\user_login_step.py": {
+        "x": 0,
+        "y": 34
+      },
+      "steps\\auth\\auth_success_handler_step.py": {
+        "x": 314,
+        "y": 0
+      },
+      "steps\\auth\\auth_failure_handler_step.py": {
+        "x": 331,
+        "y": 135
+      }
+    }
+  },
+  {
+    "id": "tiffinwale-users",
+    "config": {
+      "steps\\users\\get_user_profile_step.py": {
+        "x": -457,
+        "y": 92
+      },
+      "steps\\users\\update_user_profile_step.py": {
+        "x": 0,
+        "y": 243
+      },
+      "steps\\users\\get_user_by_id_step.py": {
+        "x": -542,
+        "y": 501
+      },
+      "steps\\users\\user_activity_handler_step.py": {
+        "x": 350,
+        "y": 277
+      }
+    }
+  },
+  {
+    "id": "tiffinwale-email",
+    "config": {
+      "steps\\email\\email_event_handler_step.py": {
+        "x": 0,
+        "y": 0
+      }
+    }
+  },
+  {
+    "id": "tiffinwale-analytics",
+    "config": {
+      "steps\\analytics\\analytics_event_handler_step.py": {
+        "x": 0,
+        "y": 0
+      }
+    }
+  },
+  {
+    "id": "tiffinwale-subscriptions",
+    "config": {
+      "steps\\subscriptions\\create_subscription_step.py": {
+        "x": 0,
+        "y": 0
+      },
+      "steps\\subscriptions\\get_user_subscription_step.py": {
+        "x": 0,
+        "y": 223
+      },
+      "steps\\subscriptions\\update_subscription_step.py": {
+        "x": 0,
+        "y": 466
+      },
+      "steps\\subscriptions\\subscription_event_handler_step.py": {
+        "x": 350,
+        "y": 272
+      }
+    }
+  }
+]

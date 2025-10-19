@@ -27,6 +27,8 @@ import { SeederModule } from "./modules/seeder/seeder.module";
 import { ChatModule } from "./modules/chat/chat.module";
 import { ReviewModule } from "./modules/review/review.module";
 import { EmailModule } from "./modules/email/email.module";
+import { RedisModule } from "./modules/redis/redis.module";
+import { AIModule } from "./modules/ai/ai.module";
 
 @Module({
   imports: [
@@ -38,6 +40,12 @@ import { EmailModule } from "./modules/email/email.module";
 
     // Database
     DatabaseModule.forRoot(),
+
+    // Redis Cache
+    RedisModule,
+
+    // AI & Machine Learning
+    AIModule,
 
     // Application modules
     AuthModule,

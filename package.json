@@ -96,6 +96,8 @@
   },
   "packageManager": "bun@1.0.0",
   "dependencies": {
-    "expo-document-picker": "^14.0.7"
+    "@google/generative-ai": "^0.24.1",
+    "expo-document-picker": "^14.0.7",
+    "firebase": "^12.4.0"
   }
 }
