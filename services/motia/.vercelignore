@@ -1,0 +1,8 @@
+# Keep only essential files for Motia workbench
+.motia/
+.mermaid/
+__pycache__/
+
+# Development files
+*.log
+*.tmp
