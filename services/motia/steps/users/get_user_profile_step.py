@@ -1,14 +1,7 @@
 from datetime import datetime
 import httpx
 
-# Simple Redis mock to avoid Python 3.13 import conflicts
-class SimpleRedisService:
-    async def get_cache(self, key):
-        return None
-    async def set_cache(self, key, value, category=None):
-        return True
-
-redis_service = SimpleRedisService()
+# Using Motia's built-in state management - no external Redis imports needed
 
 config = {
     "type": "api",
@@ -70,10 +63,10 @@ async def handler(req, context):
                 }
             }
 
-        # Step 1: Check Redis cache first (performance optimization)
+        # Step 1: Check cache first using Motia's built-in state management
         # Note: We can't cache by user ID since we don't have it yet, but we could cache by token hash
-        profile_cache_key = f"motia:profile:token:{hash(auth_token) % 10000}"  # Simple hash for caching
-        cached_profile = await redis_service.get_cache(profile_cache_key)
+        profile_cache_key = f"profile:token:{hash(auth_token) % 10000}"  # Simple hash for caching
+        cached_profile = await context.state.get("user_cache", profile_cache_key)
         
         if cached_profile:
             context.logger.info("User profile found in Redis cache", {
@@ -131,13 +124,13 @@ async def handler(req, context):
                 # Step 3: Extract real user profile data from NestJS
                 user_profile = response.json()
                 
-                # Step 4: Cache user profile in Redis (performance layer)
-                await redis_service.set_cache(profile_cache_key, user_profile, category="user")
+                # Step 4: Cache user profile using Motia's built-in state management
+                await context.state.set("user_cache", profile_cache_key, user_profile)
                 
                 # Also cache by user ID for other operations
                 if user_profile.get("_id"):
-                    user_id_cache_key = f"motia:user:{user_profile['_id']}"
-                    await redis_service.set_cache(user_id_cache_key, user_profile, category="user")
+                    user_id_cache_key = f"user:{user_profile['_id']}"
+                    await context.state.set("user_cache", user_id_cache_key, user_profile)
                 
                 # Step 5: Emit workflow events
                 await context.emit({

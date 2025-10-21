@@ -3,22 +3,18 @@ from typing import Optional, List
 from datetime import datetime
 import httpx
 
-# Simple Redis mock to avoid Python 3.13 import conflicts
-class SimpleRedisService:
-    async def set_cache(self, key, value, category=None):
-        return True
-
-redis_service = SimpleRedisService()
+# Using Motia's built-in state management - no external Redis imports needed
 
 class CreateSubscriptionRequest(BaseModel):
     customer: str
     plan: str
-    startDate: str
-    endDate: str
+    startDate: str  # ISO date string
+    endDate: str    # ISO date string
+    status: Optional[str] = "PENDING"
     autoRenew: Optional[bool] = False
     paymentFrequency: Optional[str] = "MONTHLY"
     totalAmount: float
-    discountAmount: Optional[float] = 0
+    discountAmount: Optional[float] = 0.0
     paymentId: Optional[str] = None
     isPaid: Optional[bool] = False
     customizations: Optional[List[str]] = []
@@ -128,12 +124,12 @@ async def handler(req, context):
                 
                 # Step 3: Cache subscription data in Redis (performance layer)
                 if subscription_data.get("_id"):
-                    subscription_cache_key = f"motia:subscription:{subscription_data['_id']}"
-                    await redis_service.set_cache(subscription_cache_key, subscription_data, category="subscription")
+                    subscription_cache_key = f"subscription:{subscription_data['_id']}"
+                    await context.state.set("subscription_cache", subscription_cache_key, subscription_data)
                     
                     # Cache user's active subscription
-                    user_subscription_key = f"motia:user_subscription:{customer_id}"
-                    await redis_service.set_cache(user_subscription_key, subscription_data, category="subscription")
+                    user_subscription_key = f"user_subscription:{customer_id}"
+                    await context.state.set("subscription_cache", user_subscription_key, subscription_data)
                 
                 # Step 4: Emit workflow events for downstream processing
                 await context.emit({

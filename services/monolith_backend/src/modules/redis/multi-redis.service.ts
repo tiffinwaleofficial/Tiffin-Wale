@@ -58,13 +58,14 @@ export interface MigrationProgress {
 }
 
 @Injectable()
-export class MultiRedisService implements OnModuleInit {
+export class MultiRedisService {
   private readonly logger = new Logger(MultiRedisService.name);
   private readonly inMemoryFallback = new Map<
     string,
     { value: any; expiry: number }
   >();
   private fallbackCleanupInterval: NodeJS.Timeout | null = null;
+  private isInitialized = false;
 
   constructor(
     private readonly redisConfig: RedisConfigService,
@@ -72,7 +73,9 @@ export class MultiRedisService implements OnModuleInit {
     private readonly loadBalancer: RedisLoadBalancerService,
   ) {}
 
-  async onModuleInit() {
+  private initialize() {
+    if (this.isInitialized) return;
+    
     this.logger.log("🚀 Initializing Multi-Redis Service Layer...");
 
     const globalConfig = this.redisConfig.getGlobalConfig();
@@ -80,9 +83,8 @@ export class MultiRedisService implements OnModuleInit {
 
     this.logger.log(`🔧 Configuration Summary:`);
     this.logger.log(`   📊 Total Instances: ${instances.length}`);
-    this.logger.log(
-      `   💾 Total Capacity: ${instances.reduce((sum, i) => sum + i.maxMemory, 0)}MB`,
-    );
+    const totalCapacity = instances.reduce((sum, i) => sum + i.maxMemory, 0);
+    this.logger.log(`   💾 Total Capacity: ${totalCapacity}MB`);
     this.logger.log(
       `   🎯 Load Balancing: ${globalConfig.loadBalancing.strategy}`,
     );
@@ -94,6 +96,7 @@ export class MultiRedisService implements OnModuleInit {
     );
 
     this.startFallbackCleanup();
+    this.isInitialized = true;
     this.logger.log("✅ Multi-Redis Service Layer initialized successfully");
   }
 
@@ -117,6 +120,7 @@ export class MultiRedisService implements OnModuleInit {
     value: T,
     options: CacheOptions = {},
   ): Promise<CacheResult<boolean>> {
+    this.initialize(); // Lazy initialization
     const startTime = Date.now();
     const category = options.category || "default";
 
@@ -212,6 +216,7 @@ export class MultiRedisService implements OnModuleInit {
     key: string,
     options: CacheOptions = {},
   ): Promise<CacheResult<T>> {
+    this.initialize(); // Lazy initialization
     const startTime = Date.now();
     const category = options.category || "default";
 

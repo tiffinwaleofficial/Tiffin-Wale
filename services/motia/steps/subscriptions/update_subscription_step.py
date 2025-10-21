@@ -3,14 +3,7 @@ from typing import Optional, List
 from datetime import datetime
 import httpx
 
-# Simple Redis mock to avoid Python 3.13 import conflicts
-class SimpleRedisService:
-    async def delete_cache(self, key):
-        return True
-    async def set_cache(self, key, value, category=None):
-        return True
-
-redis_service = SimpleRedisService()
+# Using Motia's built-in state management - no external Redis imports needed
 
 class UpdateSubscriptionRequest(BaseModel):
     status: Optional[str] = None
@@ -124,19 +117,19 @@ async def handler(req, context):
                 updated_subscription = response.json()
                 
                 # Step 3: Invalidate subscription caches
-                subscription_cache_key = f"motia:subscription:{subscription_id}"
-                await redis_service.delete_cache(subscription_cache_key)
+                subscription_cache_key = f"subscription:{subscription_id}"
+                await context.state.delete("subscription_cache", subscription_cache_key)
                 
                 # Invalidate user's subscription cache
                 customer_id = updated_subscription.get("customer")
                 if customer_id:
-                    user_subscription_key = f"motia:user_subscription:{customer_id}"
-                    await redis_service.delete_cache(user_subscription_key)
+                    user_subscription_key = f"user_subscription:{customer_id}"
+                    await context.state.delete("subscription_cache", user_subscription_key)
                 
                 # Step 4: Cache updated subscription
-                await redis_service.set_cache(subscription_cache_key, updated_subscription, category="subscription")
+                await context.state.set("subscription_cache", subscription_cache_key, updated_subscription)
                 if customer_id:
-                    await redis_service.set_cache(user_subscription_key, updated_subscription, category="subscription")
+                    await context.state.set("subscription_cache", user_subscription_key, updated_subscription)
                 
                 # Step 5: Emit workflow events for downstream processing
                 await context.emit({

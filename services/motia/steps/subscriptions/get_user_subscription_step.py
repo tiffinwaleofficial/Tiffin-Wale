@@ -1,14 +1,7 @@
 from datetime import datetime
 import httpx
 
-# Simple Redis mock to avoid Python 3.13 import conflicts
-class SimpleRedisService:
-    async def get_cache(self, key):
-        return None
-    async def set_cache(self, key, value, category=None):
-        return True
-
-redis_service = SimpleRedisService()
+# Using Motia's built-in state management - no external Redis imports needed
 
 config = {
     "type": "api",
@@ -96,16 +89,16 @@ async def handler(req, context):
                 # Step 3: Extract real subscription data from NestJS
                 subscription_data = response.json()
                 
-                # Step 4: Cache subscription data in Redis (performance layer)
+                # Step 4: Cache subscription data using Motia's built-in state management
                 if subscription_data.get("_id"):
-                    subscription_cache_key = f"motia:subscription:{subscription_data['_id']}"
-                    await redis_service.set_cache(subscription_cache_key, subscription_data, category="subscription")
+                    subscription_cache_key = f"subscription:{subscription_data['_id']}"
+                    await context.state.set("subscription_cache", subscription_cache_key, subscription_data)
                     
                     # Cache user's active subscription
                     customer_id = subscription_data.get("customer")
                     if customer_id:
-                        user_subscription_key = f"motia:user_subscription:{customer_id}"
-                        await redis_service.set_cache(user_subscription_key, subscription_data, category="subscription")
+                        user_subscription_key = f"user_subscription:{customer_id}"
+                        await context.state.set("subscription_cache", user_subscription_key, subscription_data)
                 
                 # Step 5: Emit workflow events
                 await context.emit({

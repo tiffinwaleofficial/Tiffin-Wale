@@ -1,14 +1,7 @@
 from datetime import datetime
 import httpx
 
-# Simple Redis mock to avoid Python 3.13 import conflicts
-class SimpleRedisService:
-    async def get_cache(self, key):
-        return None
-    async def set_cache(self, key, value, category=None):
-        return True
-
-redis_service = SimpleRedisService()
+# Using Motia's built-in state management - no external Redis imports needed
 
 config = {
     "type": "api",
@@ -72,9 +65,9 @@ async def handler(req, context):
                 }
             }
 
-        # Step 1: Check Redis cache first (performance optimization)
-        menu_cache_key = f"motia:menu:partner:{partner_id}"
-        cached_menu = await redis_service.get_cache(menu_cache_key)
+        # Step 1: Check cache first using Motia's built-in state management
+        menu_cache_key = f"menu:partner:{partner_id}"
+        cached_menu = await context.state.get("menu_cache", menu_cache_key)
         
         if cached_menu:
             context.logger.info("Partner menu found in Redis cache", {
@@ -135,8 +128,8 @@ async def handler(req, context):
                 # Step 3: Extract real menu data from NestJS (menu items returned directly as array)
                 menu_items = response.json()
                 
-                # Step 4: Cache menu data in Redis (performance layer)
-                await redis_service.set_cache(menu_cache_key, menu_items, category="menu")
+                # Step 4: Cache menu data using Motia's built-in state management
+                await context.state.set("menu_cache", menu_cache_key, menu_items)
                 
                 # Step 5: Emit workflow events
                 await context.emit({

@@ -3,16 +3,7 @@ from typing import Optional, Dict, Any
 from datetime import datetime
 import httpx
 
-# Simple Redis mock to avoid Python 3.13 import conflicts
-class SimpleRedisService:
-    async def set_cache(self, key, value, category=None):
-        return True
-    async def increment(self, key, amount=1, ttl=None):
-        return amount
-    async def add_to_list(self, key, value, max_length=None):
-        return True
-
-redis_service = SimpleRedisService()
+# Using Motia's built-in state management - no external Redis imports needed
 
 class NotificationEvent(BaseModel):
     notificationId: Optional[str] = None
@@ -400,17 +391,26 @@ async def handle_notification_sent_analytics(event_data, context):
     delivery_stats = event_data.get("deliveryStats", {})
     
     # Track notification success metrics
-    await redis_service.increment(f"notifications:success:daily:{datetime.now().strftime('%Y-%m-%d')}", total_sent)
-    await redis_service.increment(f"notifications:success:category:{category}", total_sent)
+    success_daily_key = f"notifications:success:daily:{datetime.now().strftime('%Y-%m-%d')}"
+    current_daily_count = await context.state.get("notification_cache", success_daily_key) or 0
+    await context.state.set("notification_cache", success_daily_key, current_daily_count + total_sent)
+    
+    success_category_key = f"notifications:success:category:{category}"
+    current_category_count = await context.state.get("notification_cache", success_category_key) or 0
+    await context.state.set("notification_cache", success_category_key, current_category_count + total_sent)
     
     # Track platform-specific metrics
     expo_sent = delivery_stats.get("expo", {}).get("sent", 0)
     firebase_sent = delivery_stats.get("firebase", {}).get("sent", 0)
     
     if expo_sent > 0:
-        await redis_service.increment("notifications:platform:expo:success", expo_sent)
+        expo_success_key = "notifications:platform:expo:success"
+        current_expo_count = await context.state.get("notification_cache", expo_success_key) or 0
+        await context.state.set("notification_cache", expo_success_key, current_expo_count + expo_sent)
     if firebase_sent > 0:
-        await redis_service.increment("notifications:platform:firebase:success", firebase_sent)
+        firebase_success_key = "notifications:platform:firebase:success"
+        current_firebase_count = await context.state.get("notification_cache", firebase_success_key) or 0
+        await context.state.set("notification_cache", firebase_success_key, current_firebase_count + firebase_sent)
     
     context.logger.info("Notification success analytics tracked", {
         "category": category,
@@ -426,9 +426,17 @@ async def handle_notification_failure_analytics(event_data, context):
     reason = event_data.get("reason", "unknown")
     
     # Track notification failure metrics
-    await redis_service.increment(f"notifications:failure:daily:{datetime.now().strftime('%Y-%m-%d')}", 1)
-    await redis_service.increment(f"notifications:failure:category:{category}", 1)
-    await redis_service.increment(f"notifications:failure:reason:{reason}", 1)
+    failure_daily_key = f"notifications:failure:daily:{datetime.now().strftime('%Y-%m-%d')}"
+    current_failure_daily_count = await context.state.get("notification_cache", failure_daily_key) or 0
+    await context.state.set("notification_cache", failure_daily_key, current_failure_daily_count + 1)
+    
+    failure_category_key = f"notifications:failure:category:{category}"
+    current_failure_category_count = await context.state.get("notification_cache", failure_category_key) or 0
+    await context.state.set("notification_cache", failure_category_key, current_failure_category_count + 1)
+    
+    failure_reason_key = f"notifications:failure:reason:{reason}"
+    current_failure_reason_count = await context.state.get("notification_cache", failure_reason_key) or 0
+    await context.state.set("notification_cache", failure_reason_key, current_failure_reason_count + 1)
     
     context.logger.info("Notification failure analytics tracked", {
         "category": category,
@@ -503,19 +511,21 @@ async def send_topic_notification_via_nestjs(topic, payload, context):
 async def update_global_notification_metrics(event_topic, event_data, context):
     """Update global notification metrics"""
     # Track notification activity
-    notification_activity_key = "motia:analytics:notification_activity"
-    await redis_service.increment(notification_activity_key, 1, ttl=86400)
+    notification_activity_key = "analytics:notification_activity"
+    current_activity_count = await context.state.get("notification_cache", notification_activity_key) or 0
+    await context.state.set("notification_cache", notification_activity_key, current_activity_count + 1)
     
     # Track event types
-    event_type_key = f"motia:analytics:notification_events:{event_topic}"
-    await redis_service.increment(event_type_key, 1, ttl=86400)
+    event_type_key = f"analytics:notification_events:{event_topic}"
+    current_event_type_count = await context.state.get("notification_cache", event_type_key) or 0
+    await context.state.set("notification_cache", event_type_key, current_event_type_count + 1)
 
 async def check_notification_alerts(event_topic, event_data, context):
     """Check for notification performance alerts"""
     # Example: Check for high failure rates
     if event_topic == "notification.delivery.failed":
         failure_count_key = f"notifications:failure:daily:{datetime.now().strftime('%Y-%m-%d')}"
-        failure_count = await redis_service.increment(failure_count_key, 0)  # Get current count
+        failure_count = await context.state.get("notification_cache", failure_count_key) or 0
         
         # Alert if failure rate is high (example: >100 failures per day)
         if failure_count > 100:

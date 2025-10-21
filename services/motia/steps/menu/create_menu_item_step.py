@@ -3,14 +3,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 import httpx
 
-# Simple Redis mock to avoid Python 3.13 import conflicts
-class SimpleRedisService:
-    async def set_cache(self, key, value, category=None):
-        return True
-    async def delete_cache(self, key):
-        return True
-
-redis_service = SimpleRedisService()
+# Using Motia's built-in state management - no external Redis imports needed
 
 class NutritionalInfo(BaseModel):
     calories: Optional[float] = None
@@ -116,8 +109,8 @@ async def handler(req, context):
                 # Step 3: Invalidate partner menu cache (since new item added)
                 partner_id = menu_item.get("businessPartner")
                 if partner_id:
-                    partner_menu_cache_key = f"motia:menu:partner:{partner_id}"
-                    await redis_service.delete_cache(partner_menu_cache_key)
+                    partner_menu_cache_key = f"menu:partner:{partner_id}"
+                    await context.state.delete("menu_cache", partner_menu_cache_key)
                 
                 # Step 4: Emit workflow events for downstream processing
                 await context.emit({

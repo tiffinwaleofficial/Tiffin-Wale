@@ -1,14 +1,7 @@
 from datetime import datetime
 import httpx
 
-# Simple Redis mock to avoid Python 3.13 import conflicts
-class SimpleRedisService:
-    async def get_cache(self, key):
-        return None
-    async def set_cache(self, key, value, category=None):
-        return True
-
-redis_service = SimpleRedisService()
+# Using Motia's built-in state management - no external Redis imports needed
 
 config = {
     "type": "api",
@@ -68,9 +61,9 @@ async def handler(req, context):
                 }
             }
 
-        # Step 1: Check Redis cache first (performance optimization)
-        order_cache_key = f"motia:order:{order_id}"
-        cached_order = await redis_service.get_cache(order_cache_key)
+        # Step 1: Check cache first using Motia's built-in state management
+        order_cache_key = f"order:{order_id}"
+        cached_order = await context.state.get("order_cache", order_cache_key)
         
         if cached_order:
             context.logger.info("Order found in Redis cache", {
@@ -135,8 +128,8 @@ async def handler(req, context):
                 # Step 3: Extract real order data from NestJS (order is returned directly)
                 order_data = response.json()
                 
-                # Step 4: Cache order data in Redis (performance layer)
-                await redis_service.set_cache(order_cache_key, order_data, category="order")
+                # Step 4: Cache order data using Motia's built-in state management
+                await context.state.set("order_cache", order_cache_key, order_data)
                 
                 # Step 5: Emit workflow events
                 await context.emit({

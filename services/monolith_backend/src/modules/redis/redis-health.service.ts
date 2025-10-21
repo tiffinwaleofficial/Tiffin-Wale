@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { RedisConfigService } from "../../config/redis-config";
 import {
@@ -70,13 +70,14 @@ export interface AlertRule {
 }
 
 @Injectable()
-export class RedisHealthService implements OnModuleInit {
+export class RedisHealthService {
   private readonly logger = new Logger(RedisHealthService.name);
   private readonly healthHistory = new Map<string, HealthCheckResult[]>();
   private readonly failoverEvents: FailoverEvent[] = [];
   private readonly alertRules: AlertRule[] = [];
   private readonly activeAlerts = new Map<string, Date>();
   private readonly recoveryAttempts = new Map<string, number>();
+  private isInitialized = false;
 
   constructor(
     private readonly redisConfig: RedisConfigService,
@@ -84,9 +85,12 @@ export class RedisHealthService implements OnModuleInit {
     private readonly loadBalancer: RedisLoadBalancerService,
   ) {}
 
-  async onModuleInit() {
+  private initialize() {
+    if (this.isInitialized) return;
+    
     this.logger.log("Initializing Redis Health Service...");
     this.initializeDefaultAlertRules();
+    this.isInitialized = true;
     this.logger.log("Redis Health Service initialized successfully");
   }
 
@@ -167,6 +171,7 @@ export class RedisHealthService implements OnModuleInit {
    */
   @Cron(CronExpression.EVERY_30_SECONDS)
   async performHealthChecks(): Promise<SystemHealthStatus> {
+    this.initialize(); // Lazy initialization
     const timestamp = new Date();
     const instanceStatuses = this.redisRegistry.getAllInstanceStatuses();
     const healthResults: HealthCheckResult[] = [];

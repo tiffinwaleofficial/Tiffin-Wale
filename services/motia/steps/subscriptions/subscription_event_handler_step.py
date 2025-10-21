@@ -3,16 +3,7 @@ from typing import Optional, Dict, Any
 from datetime import datetime
 import httpx
 
-# Simple Redis mock to avoid Python 3.13 import conflicts
-class SimpleRedisService:
-    async def set_cache(self, key, value, category=None):
-        return True
-    async def increment(self, key, amount=1, ttl=None):
-        return amount
-    async def add_to_list(self, key, value, max_length=None):
-        return True
-
-redis_service = SimpleRedisService()
+# Using Motia's built-in state management - no external Redis imports needed
 
 class SubscriptionEvent(BaseModel):
     subscriptionId: Optional[str] = None
@@ -113,16 +104,19 @@ async def handle_subscription_created(event_data, context):
     auto_renew = event_data.get("autoRenew", False)
     
     # Track subscription creation analytics
-    subscription_created_key = "motia:analytics:subscriptions_created"
-    await redis_service.increment(subscription_created_key, 1, ttl=86400)
+    subscription_created_key = "analytics:subscriptions_created"
+    current_created_count = await context.state.get("subscription_cache", subscription_created_key) or 0
+    await context.state.set("subscription_cache", subscription_created_key, current_created_count + 1)
     
     # Track by plan
-    plan_subscriptions_key = f"motia:analytics:plan_subscriptions:{plan_id}"
-    await redis_service.increment(plan_subscriptions_key, 1, ttl=2592000)  # 30 days
+    plan_subscriptions_key = f"analytics:plan_subscriptions:{plan_id}"
+    current_plan_count = await context.state.get("subscription_cache", plan_subscriptions_key) or 0
+    await context.state.set("subscription_cache", plan_subscriptions_key, current_plan_count + 1)
     
     # Track revenue
-    daily_revenue_key = f"motia:analytics:subscription_revenue:{datetime.now().strftime('%Y-%m-%d')}"
-    await redis_service.increment(daily_revenue_key, total_amount, ttl=86400)
+    daily_revenue_key = f"analytics:subscription_revenue:{datetime.now().strftime('%Y-%m-%d')}"
+    current_revenue = await context.state.get("subscription_cache", daily_revenue_key) or 0
+    await context.state.set("subscription_cache", daily_revenue_key, current_revenue + total_amount)
     
     # Trigger subscription confirmation email
     await context.emit({
@@ -165,13 +159,15 @@ async def handle_subscription_updated(event_data, context):
     updated_fields = event_data.get("updatedFields", [])
     
     # Track subscription updates
-    subscription_updates_key = f"motia:analytics:subscription_updates:{subscription_id}"
-    await redis_service.increment(subscription_updates_key, 1, ttl=604800)  # 7 days
+    subscription_updates_key = f"analytics:subscription_updates:{subscription_id}"
+    current_update_count = await context.state.get("subscription_cache", subscription_updates_key) or 0
+    await context.state.set("subscription_cache", subscription_updates_key, current_update_count + 1)
     
     # Track which fields are most commonly updated
     for field in updated_fields:
-        field_update_key = f"motia:analytics:subscription_field_updates:{field}"
-        await redis_service.increment(field_update_key, 1, ttl=2592000)  # 30 days
+        field_update_key = f"analytics:subscription_field_updates:{field}"
+        current_field_count = await context.state.get("subscription_cache", field_update_key) or 0
+        await context.state.set("subscription_cache", field_update_key, current_field_count + 1)
     
     await context.emit({
         "topic": "subscription.analytics.updated",
@@ -198,8 +194,9 @@ async def handle_status_changed(event_data, context):
     new_status = event_data.get("newStatus")
     
     # Track status changes
-    status_change_key = f"motia:analytics:status_changes:{old_status}_to_{new_status}"
-    await redis_service.increment(status_change_key, 1, ttl=2592000)  # 30 days
+    status_change_key = f"analytics:status_changes:{old_status}_to_{new_status}"
+    current_status_change_count = await context.state.get("subscription_cache", status_change_key) or 0
+    await context.state.set("subscription_cache", status_change_key, current_status_change_count + 1)
     
     # Handle specific status changes
     if new_status == "active":
@@ -250,8 +247,9 @@ async def handle_renewal_changed(event_data, context):
     auto_renew = event_data.get("autoRenew", False)
     
     # Track renewal setting changes
-    renewal_setting_key = f"motia:analytics:renewal_settings:{'enabled' if auto_renew else 'disabled'}"
-    await redis_service.increment(renewal_setting_key, 1, ttl=2592000)  # 30 days
+    renewal_setting_key = f"analytics:renewal_settings:{'enabled' if auto_renew else 'disabled'}"
+    current_renewal_count = await context.state.get("subscription_cache", renewal_setting_key) or 0
+    await context.state.set("subscription_cache", renewal_setting_key, current_renewal_count + 1)
     
     # Send confirmation email for renewal setting change
     await context.emit({
@@ -279,8 +277,9 @@ async def handle_payment_required(event_data, context):
     due_date = event_data.get("dueDate")
     
     # Track payment requirements
-    payment_required_key = "motia:analytics:subscription_payments_required"
-    await redis_service.increment(payment_required_key, 1, ttl=86400)
+    payment_required_key = "analytics:subscription_payments_required"
+    current_payment_count = await context.state.get("subscription_cache", payment_required_key) or 0
+    await context.state.set("subscription_cache", payment_required_key, current_payment_count + 1)
     
     # Send payment reminder email
     await context.emit({
@@ -378,8 +377,9 @@ async def handle_cache_invalidated(event_data, context):
     reason = event_data.get("reason")
     
     # Track cache invalidations
-    cache_invalidation_key = f"motia:analytics:subscription_cache_invalidations:{reason}"
-    await redis_service.increment(cache_invalidation_key, 1, ttl=86400)
+    cache_invalidation_key = f"analytics:subscription_cache_invalidations:{reason}"
+    current_invalidation_count = await context.state.get("subscription_cache", cache_invalidation_key) or 0
+    await context.state.set("subscription_cache", cache_invalidation_key, current_invalidation_count + 1)
     
     context.logger.info("Subscription cache invalidation handled", {
         "subscriptionId": subscription_id,
@@ -391,12 +391,14 @@ async def handle_cache_invalidated(event_data, context):
 async def update_subscription_metrics(event_topic, event_data, context):
     """Update global subscription metrics"""
     # Track subscription activity
-    subscription_activity_key = "motia:analytics:subscription_activity"
-    await redis_service.increment(subscription_activity_key, 1, ttl=86400)
+    subscription_activity_key = "analytics:subscription_activity"
+    current_activity_count = await context.state.get("subscription_cache", subscription_activity_key) or 0
+    await context.state.set("subscription_cache", subscription_activity_key, current_activity_count + 1)
     
     # Track event types
-    event_type_key = f"motia:analytics:subscription_events:{event_topic}"
-    await redis_service.increment(event_type_key, 1, ttl=86400)
+    event_type_key = f"analytics:subscription_events:{event_topic}"
+    current_event_count = await context.state.get("subscription_cache", event_type_key) or 0
+    await context.state.set("subscription_cache", event_type_key, current_event_count + 1)
     
     # Emit metrics update
     await context.emit({

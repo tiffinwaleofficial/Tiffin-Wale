@@ -1,14 +1,7 @@
 from datetime import datetime
 import httpx
 
-# Simple Redis mock to avoid Python 3.13 import conflicts
-class SimpleRedisService:
-    async def get_cache(self, key):
-        return None
-    async def set_cache(self, key, value, category=None):
-        return True
-
-redis_service = SimpleRedisService()
+# Using Motia's built-in state management - no external Redis imports needed
 
 config = {
     "type": "api",
@@ -106,9 +99,9 @@ async def handler(req, context):
                 }
             }
 
-        # Step 2: Check Redis cache first (performance optimization)
-        user_analytics_cache_key = f"motia:analytics:user:{user_id}:{period}"
-        cached_analytics = await redis_service.get_cache(user_analytics_cache_key)
+        # Step 2: Check cache first (performance optimization)
+        user_analytics_cache_key = f"analytics:user:{user_id}:{period}"
+        cached_analytics = await context.state.get("analytics_cache", user_analytics_cache_key)
         
         if cached_analytics:
             context.logger.info("User analytics found in Redis cache", {
@@ -187,8 +180,8 @@ async def handler(req, context):
                 "source": "nestjs_backend"
             }
             
-            # Step 5: Cache user analytics in Redis
-            await redis_service.set_cache(user_analytics_cache_key, user_analytics, category="analytics")
+            # Step 5: Cache user analytics
+            await context.state.set("analytics_cache", user_analytics_cache_key, user_analytics)
             
             # Step 6: Emit workflow events
             await context.emit({

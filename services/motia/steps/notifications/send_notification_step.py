@@ -3,16 +3,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 import httpx
 
-# Simple Redis mock to avoid Python 3.13 import conflicts
-class SimpleRedisService:
-    async def get_cache(self, key):
-        return None
-    async def set_cache(self, key, value, category=None):
-        return True
-    async def increment(self, key, amount=1, ttl=None):
-        return amount
-
-redis_service = SimpleRedisService()
+# Using Motia's built-in state management - no external Redis imports needed
 
 class SendNotificationRequest(BaseModel):
     title: str
@@ -178,14 +169,15 @@ async def handler(req, context):
                 
                 notification_id = notification_result.get("notificationId", "unknown")
                 
-                # Step 3: Cache notification delivery stats in Redis (performance layer)
-                notification_cache_key = f"motia:notification:{notification_id}"
-                await redis_service.set_cache(notification_cache_key, notification_result, category="notification")
+                # Step 3: Cache notification delivery stats (performance layer)
+                notification_cache_key = f"notification:{notification_id}"
+                await context.state.set("notification_cache", notification_cache_key, notification_result)
                 
                 # Cache user notification count
                 if user_id:
-                    user_notification_count_key = f"motia:user_notifications_count:{user_id}"
-                    await redis_service.increment(user_notification_count_key, 1, ttl=86400)
+                    user_notification_count_key = f"user_notifications_count:{user_id}"
+                    current_count = await context.state.get("notification_cache", user_notification_count_key) or 0
+                    await context.state.set("notification_cache", user_notification_count_key, current_count + 1)
                 
                 # Step 4: Emit workflow events for downstream processing
                 total_sent = delivery_stats["expo"]["sent"] + delivery_stats["firebase"]["sent"]

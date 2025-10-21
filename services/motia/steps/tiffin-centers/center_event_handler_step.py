@@ -1,313 +1,341 @@
-"""
-Tiffin Center Event Handler Step
-Handles events related to tiffin center operations
-"""
-
-import httpx
-import json
-from typing import Dict, Any
+from pydantic import BaseModel
+from typing import Optional, List, Dict, Any
 from datetime import datetime
+import httpx
 
-def handler(inputs: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Handle tiffin center related events
-    
-    Subscribes to events:
-    - center.registered
-    - center.inventory.updated
-    - center.status.changed
-    - order.assigned_to_center
-    """
-    
-    try:
-        event_name = inputs.get("eventName")
-        event_data = inputs.get("eventData", {})
-        
-        if event_name == "center.registered":
-            return handle_center_registered(inputs, event_data)
-        elif event_name == "center.inventory.updated":
-            return handle_inventory_updated(inputs, event_data)
-        elif event_name == "center.status.changed":
-            return handle_status_changed(inputs, event_data)
-        elif event_name == "order.assigned_to_center":
-            return handle_order_assigned(inputs, event_data)
-        else:
-            return {
-                "success": False,
-                "error": f"Unknown event: {event_name}"
-            }
-            
-    except Exception as e:
-        return {
-            "success": False,
-            "error": f"Event handling failed: {str(e)}"
-        }
+# Using Motia's built-in state management - no external Redis imports needed
 
-def handle_center_registered(inputs: Dict[str, Any], event_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Handle new center registration"""
-    try:
-        center_id = event_data.get("centerId")
-        center_name = event_data.get("centerName")
-        owner_email = event_data.get("ownerEmail")
-        
-        # Send welcome email to center owner
-        backend_url = inputs.get("BACKEND_URL", "http://localhost:3000")
-        
-        email_data = {
-            "to": owner_email,
-            "template": "center_welcome",
-            "data": {
-                "centerName": center_name,
-                "centerId": center_id,
-                "verificationRequired": True
-            },
-            "sender": "partnerships@tiffinwale.com"
-        }
-        
-        with httpx.Client() as client:
-            client.post(
-                f"{backend_url}/api/email/send",
-                json=email_data,
-                timeout=10.0
-            )
-        
-        # Log analytics event
-        analytics_data = {
-            "event": "center_registered",
-            "centerId": center_id,
-            "timestamp": datetime.now().isoformat(),
-            "metadata": {
-                "centerName": center_name,
-                "status": "pending_verification"
-            }
-        }
-        
-        try:
-            client.post(
-                f"{backend_url}/api/analytics/events",
-                json=analytics_data,
-                timeout=5.0
-            )
-        except:
-            pass  # Analytics failure shouldn't break the flow
-        
-        return {
-            "success": True,
-            "action": "center_registered_processed",
-            "centerId": center_id,
-            "emailSent": True,
-            "events": [
-                {
-                    "name": "center.welcome_email.sent",
-                    "data": {
-                        "centerId": center_id,
-                        "email": owner_email
-                    }
-                }
-            ]
-        }
-        
-    except Exception as e:
-        return {
-            "success": False,
-            "error": f"Failed to handle center registration: {str(e)}"
-        }
+class CenterEvent(BaseModel):
+    partnerId: Optional[str] = None
+    businessName: Optional[str] = None
+    businessType: Optional[List[str]] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    cuisineTypes: Optional[List[str]] = None
+    operationalStatus: Optional[str] = None
+    inventoryItemCount: Optional[int] = None
+    orderId: Optional[str] = None
+    orderStatus: Optional[str] = None
+    action: Optional[str] = None
+    timestamp: Optional[str] = None
+    source: Optional[str] = None
 
-def handle_inventory_updated(inputs: Dict[str, Any], event_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Handle inventory updates"""
-    try:
-        center_id = event_data.get("centerId")
-        total_available = event_data.get("totalAvailable", 0)
-        operational_status = event_data.get("operationalStatus")
-        
-        # Update Redis cache for quick availability checks
-        try:
-            import redis
-            redis_client = redis.Redis(
-                host=inputs.get("REDIS_HOST", "localhost"),
-                port=int(inputs.get("REDIS_PORT", 6379)),
-                decode_responses=True
-            )
-            
-            # Update center availability in cache
-            availability_data = {
-                "centerId": center_id,
-                "totalAvailable": total_available,
-                "status": operational_status,
-                "lastUpdated": datetime.now().isoformat()
-            }
-            
-            redis_client.setex(
-                f"center_quick_availability:{center_id}",
-                1800,  # 30 minutes
-                json.dumps(availability_data)
-            )
-            
-            # If inventory is low, trigger alert
-            if total_available < 10 and operational_status == "open":
-                redis_client.lpush(
-                    "center_low_inventory_alerts",
-                    json.dumps({
-                        "centerId": center_id,
-                        "totalAvailable": total_available,
-                        "timestamp": datetime.now().isoformat()
-                    })
-                )
-                
-        except:
-            pass  # Redis failure shouldn't break the flow
-        
-        # Notify nearby customers if inventory is updated
-        events_to_emit = []
-        
-        if total_available > 0 and operational_status == "open":
-            events_to_emit.append({
-                "name": "center.inventory.available",
-                "data": {
-                    "centerId": center_id,
-                    "totalAvailable": total_available
-                }
-            })
-        elif total_available == 0:
-            events_to_emit.append({
-                "name": "center.inventory.depleted",
-                "data": {
-                    "centerId": center_id,
-                    "status": operational_status
-                }
-            })
-        
-        return {
-            "success": True,
-            "action": "inventory_updated_processed",
-            "centerId": center_id,
-            "totalAvailable": total_available,
-            "events": events_to_emit
-        }
-        
-    except Exception as e:
-        return {
-            "success": False,
-            "error": f"Failed to handle inventory update: {str(e)}"
-        }
-
-def handle_status_changed(inputs: Dict[str, Any], event_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Handle center status changes"""
-    try:
-        center_id = event_data.get("centerId")
-        new_status = event_data.get("newStatus")
-        old_status = event_data.get("oldStatus")
-        
-        # Log status change for analytics
-        backend_url = inputs.get("BACKEND_URL", "http://localhost:3000")
-        
-        analytics_data = {
-            "event": "center_status_changed",
-            "centerId": center_id,
-            "timestamp": datetime.now().isoformat(),
-            "metadata": {
-                "newStatus": new_status,
-                "oldStatus": old_status
-            }
-        }
-        
-        try:
-            with httpx.Client() as client:
-                client.post(
-                    f"{backend_url}/api/analytics/events",
-                    json=analytics_data,
-                    timeout=5.0
-                )
-        except:
-            pass
-        
-        return {
-            "success": True,
-            "action": "status_change_processed",
-            "centerId": center_id,
-            "newStatus": new_status
-        }
-        
-    except Exception as e:
-        return {
-            "success": False,
-            "error": f"Failed to handle status change: {str(e)}"
-        }
-
-def handle_order_assigned(inputs: Dict[str, Any], event_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Handle order assignment to center"""
-    try:
-        center_id = event_data.get("centerId")
-        order_id = event_data.get("orderId")
-        estimated_prep_time = event_data.get("estimatedPrepTime", 30)
-        
-        # Update center workload in cache
-        try:
-            import redis
-            redis_client = redis.Redis(
-                host=inputs.get("REDIS_HOST", "localhost"),
-                port=int(inputs.get("REDIS_PORT", 6379)),
-                decode_responses=True
-            )
-            
-            # Increment active orders count
-            redis_client.incr(f"center_active_orders:{center_id}")
-            redis_client.expire(f"center_active_orders:{center_id}", 3600)
-            
-            # Add to preparation queue
-            queue_item = {
-                "orderId": order_id,
-                "centerId": center_id,
-                "assignedAt": datetime.now().isoformat(),
-                "estimatedPrepTime": estimated_prep_time
-            }
-            
-            redis_client.lpush(
-                f"center_prep_queue:{center_id}",
-                json.dumps(queue_item)
-            )
-            
-        except:
-            pass
-        
-        return {
-            "success": True,
-            "action": "order_assignment_processed",
-            "centerId": center_id,
-            "orderId": order_id,
-            "events": [
-                {
-                    "name": "center.order.queued",
-                    "data": {
-                        "centerId": center_id,
-                        "orderId": order_id,
-                        "estimatedPrepTime": estimated_prep_time
-                    }
-                }
-            ]
-        }
-        
-    except Exception as e:
-        return {
-            "success": False,
-            "error": f"Failed to handle order assignment: {str(e)}"
-        }
-
-# Step configuration
 config = {
-    "name": "Center Event Handler",
-    "description": "Handle events related to tiffin center operations",
     "type": "event",
+    "name": "CenterEventHandler",
+    "description": "TiffinWale tiffin center event handler - processes center-related events for analytics and notifications",
+    "flows": ["tiffinwale-tiffin-centers"],
     "subscribes": [
         "partner.registered",
-        "center.inventory.updated", 
-        "center.status.changed",
-        "order.assigned_to_center"
+        "tiffin.center.created",
+        "partner.status.changed",
+        "inventory.updated",
+        "order.assigned.to.partner",
+        "analytics.partner.registered",
+        "analytics.partner.accessed",
+        "analytics.inventory.tracked",
+        "partner.performance.tracked"
     ],
     "emits": [
-        "center.welcome_email.sent",
-        "center.inventory.available",
-        "center.inventory.depleted",
-        "center.order.queued"
-    ]
+        "notification.partner.registered",
+        "email.partner.welcome",
+        "analytics.center.processed",
+        "partner.metrics.updated"
+    ],
+    "input": CenterEvent.model_json_schema()
 }
+
+async def handler(input_data, context):
+    """
+    Motia Tiffin Center Event Handler - Processes center events for analytics and notifications
+    """
+    try:
+        event = CenterEvent(**input_data)
+        
+        context.logger.info("Center Event Handler Started", {
+            "eventType": context.topic if hasattr(context, 'topic') else "unknown",
+            "partnerId": event.partnerId,
+            "businessName": event.businessName,
+            "city": event.city,
+            "timestamp": datetime.now().isoformat(),
+            "traceId": context.trace_id
+        })
+
+        # Handle different event types
+        if hasattr(context, 'topic'):
+            topic = context.topic
+            
+            if topic == "partner.registered":
+                await handle_partner_registered(event, context)
+            elif topic == "tiffin.center.created":
+                await handle_center_created(event, context)
+            elif topic == "partner.status.changed":
+                await handle_status_changed(event, context)
+            elif topic == "inventory.updated":
+                await handle_inventory_updated(event, context)
+            elif topic == "order.assigned.to.partner":
+                await handle_order_assigned(event, context)
+            elif topic in ["analytics.partner.registered", "analytics.partner.accessed", "analytics.inventory.tracked"]:
+                await handle_analytics_tracking(event, context)
+            elif topic == "partner.performance.tracked":
+                await handle_performance_tracking(event, context)
+
+        context.logger.info("Center Event Handler Completed Successfully", {
+            "eventType": context.topic if hasattr(context, 'topic') else "unknown",
+            "partnerId": event.partnerId,
+            "traceId": context.trace_id
+        })
+
+    except Exception as error:
+        context.logger.error("Center Event Handler Error", {
+            "error": str(error),
+            "eventData": input_data,
+            "traceId": context.trace_id
+        })
+
+async def handle_partner_registered(event: CenterEvent, context):
+    """Handle new partner registration events"""
+    try:
+        # Track partner registration analytics
+        registration_key = f"analytics:partners:registrations:daily:{datetime.now().strftime('%Y-%m-%d')}"
+        current_count = await context.state.get("analytics_cache", registration_key) or 0
+        await context.state.set("analytics_cache", registration_key, current_count + 1)
+        
+        # Track by city
+        if event.city:
+            city_key = f"analytics:partners:city:{event.city.lower()}:daily:{datetime.now().strftime('%Y-%m-%d')}"
+            current_city_count = await context.state.get("analytics_cache", city_key) or 0
+            await context.state.set("analytics_cache", city_key, current_city_count + 1)
+        
+        # Track by business type
+        if event.businessType:
+            for business_type in event.businessType:
+                type_key = f"analytics:partners:type:{business_type.lower()}:daily:{datetime.now().strftime('%Y-%m-%d')}"
+                current_type_count = await context.state.get("analytics_cache", type_key) or 0
+                await context.state.set("analytics_cache", type_key, current_type_count + 1)
+        
+        # Emit notification event
+        await context.emit({
+            "topic": "notification.partner.registered",
+            "data": {
+                "partnerId": event.partnerId,
+                "businessName": event.businessName,
+                "city": event.city,
+                "businessType": event.businessType,
+                "timestamp": datetime.now().isoformat()
+            }
+        })
+        
+        # Emit welcome email event
+        await context.emit({
+            "topic": "email.partner.welcome",
+            "data": {
+                "partnerId": event.partnerId,
+                "businessName": event.businessName,
+                "emailType": "partner_welcome",
+                "timestamp": datetime.now().isoformat()
+            }
+        })
+        
+        context.logger.info("Partner Registered Event Processed", {
+            "partnerId": event.partnerId,
+            "businessName": event.businessName,
+            "city": event.city
+        })
+        
+    except Exception as error:
+        context.logger.error("Handle Partner Registered Error", {
+            "error": str(error),
+            "partnerId": event.partnerId
+        })
+
+async def handle_center_created(event: CenterEvent, context):
+    """Handle tiffin center creation events"""
+    try:
+        # Cache center creation data
+        center_data = {
+            "partnerId": event.partnerId,
+            "businessName": event.businessName,
+            "city": event.city,
+            "state": event.state,
+            "cuisineTypes": event.cuisineTypes,
+            "createdAt": datetime.now().isoformat()
+        }
+        
+        center_cache_key = f"center:created:{event.partnerId}"
+        await context.state.set("tiffin_center_cache", center_cache_key, center_data)
+        
+        # Emit analytics event
+        await context.emit({
+            "topic": "analytics.center.processed",
+            "data": {
+                "partnerId": event.partnerId,
+                "action": "center_created",
+                "city": event.city,
+                "cuisineTypes": event.cuisineTypes,
+                "timestamp": datetime.now().isoformat()
+            }
+        })
+        
+        context.logger.info("Center Created Event Processed", {
+            "partnerId": event.partnerId,
+            "businessName": event.businessName,
+            "city": event.city
+        })
+        
+    except Exception as error:
+        context.logger.error("Handle Center Created Error", {
+            "error": str(error),
+            "partnerId": event.partnerId
+        })
+
+async def handle_status_changed(event: CenterEvent, context):
+    """Handle partner status change events"""
+    try:
+        # Track status changes
+        status_key = f"analytics:partners:status:changes:daily:{datetime.now().strftime('%Y-%m-%d')}"
+        current_status_count = await context.state.get("analytics_cache", status_key) or 0
+        await context.state.set("analytics_cache", status_key, current_status_count + 1)
+        
+        # Track by status type
+        if event.operationalStatus:
+            status_type_key = f"analytics:partners:status:{event.operationalStatus}:daily:{datetime.now().strftime('%Y-%m-%d')}"
+            current_status_type_count = await context.state.get("analytics_cache", status_type_key) or 0
+            await context.state.set("analytics_cache", status_type_key, current_status_type_count + 1)
+        
+        context.logger.info("Partner Status Changed Event Processed", {
+            "partnerId": event.partnerId,
+            "operationalStatus": event.operationalStatus
+        })
+        
+    except Exception as error:
+        context.logger.error("Handle Status Changed Error", {
+            "error": str(error),
+            "partnerId": event.partnerId
+        })
+
+async def handle_inventory_updated(event: CenterEvent, context):
+    """Handle inventory update events"""
+    try:
+        # Track inventory updates
+        inventory_key = f"analytics:inventory:updates:daily:{datetime.now().strftime('%Y-%m-%d')}"
+        current_inventory_count = await context.state.get("analytics_cache", inventory_key) or 0
+        await context.state.set("analytics_cache", inventory_key, current_inventory_count + 1)
+        
+        # Track by partner
+        partner_inventory_key = f"analytics:partner:{event.partnerId}:inventory:updates:daily:{datetime.now().strftime('%Y-%m-%d')}"
+        current_partner_inventory_count = await context.state.get("analytics_cache", partner_inventory_key) or 0
+        await context.state.set("analytics_cache", partner_inventory_key, current_partner_inventory_count + 1)
+        
+        # Emit metrics update
+        await context.emit({
+            "topic": "partner.metrics.updated",
+            "data": {
+                "partnerId": event.partnerId,
+                "metricType": "inventory_update",
+                "itemCount": event.inventoryItemCount,
+                "timestamp": datetime.now().isoformat()
+            }
+        })
+        
+        context.logger.info("Inventory Updated Event Processed", {
+            "partnerId": event.partnerId,
+            "inventoryItemCount": event.inventoryItemCount
+        })
+        
+    except Exception as error:
+        context.logger.error("Handle Inventory Updated Error", {
+            "error": str(error),
+            "partnerId": event.partnerId
+        })
+
+async def handle_order_assigned(event: CenterEvent, context):
+    """Handle order assignment events"""
+    try:
+        # Track order assignments
+        assignment_key = f"analytics:orders:assignments:daily:{datetime.now().strftime('%Y-%m-%d')}"
+        current_assignment_count = await context.state.get("analytics_cache", assignment_key) or 0
+        await context.state.set("analytics_cache", assignment_key, current_assignment_count + 1)
+        
+        # Track by partner
+        partner_assignment_key = f"analytics:partner:{event.partnerId}:orders:daily:{datetime.now().strftime('%Y-%m-%d')}"
+        current_partner_assignment_count = await context.state.get("analytics_cache", partner_assignment_key) or 0
+        await context.state.set("analytics_cache", partner_assignment_key, current_partner_assignment_count + 1)
+        
+        context.logger.info("Order Assigned Event Processed", {
+            "partnerId": event.partnerId,
+            "orderId": event.orderId
+        })
+        
+    except Exception as error:
+        context.logger.error("Handle Order Assigned Error", {
+            "error": str(error),
+            "partnerId": event.partnerId,
+            "orderId": event.orderId
+        })
+
+async def handle_analytics_tracking(event: CenterEvent, context):
+    """Handle analytics tracking events"""
+    try:
+        # Store analytics data for reporting
+        analytics_data = {
+            "partnerId": event.partnerId,
+            "action": event.action,
+            "city": event.city,
+            "businessType": event.businessType,
+            "timestamp": event.timestamp or datetime.now().isoformat(),
+            "source": event.source
+        }
+        
+        analytics_key = f"analytics:centers:events:{event.partnerId}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        await context.state.set("analytics_cache", analytics_key, analytics_data)
+        
+        # Emit processed analytics event
+        await context.emit({
+            "topic": "analytics.center.processed",
+            "data": analytics_data
+        })
+        
+        context.logger.info("Analytics Tracking Event Processed", {
+            "partnerId": event.partnerId,
+            "action": event.action
+        })
+        
+    except Exception as error:
+        context.logger.error("Handle Analytics Tracking Error", {
+            "error": str(error),
+            "partnerId": event.partnerId
+        })
+
+async def handle_performance_tracking(event: CenterEvent, context):
+    """Handle performance tracking events"""
+    try:
+        # Cache performance metrics
+        performance_data = {
+            "partnerId": event.partnerId,
+            "timestamp": event.timestamp or datetime.now().isoformat(),
+            "source": event.source
+        }
+        
+        performance_key = f"partner:performance:{event.partnerId}:latest"
+        await context.state.set("analytics_cache", performance_key, performance_data)
+        
+        # Emit metrics update
+        await context.emit({
+            "topic": "partner.metrics.updated",
+            "data": {
+                "partnerId": event.partnerId,
+                "metricType": "performance_tracking",
+                "timestamp": datetime.now().isoformat()
+            }
+        })
+        
+        context.logger.info("Performance Tracking Event Processed", {
+            "partnerId": event.partnerId
+        })
+        
+    except Exception as error:
+        context.logger.error("Handle Performance Tracking Error", {
+            "error": str(error),
+            "partnerId": event.partnerId
+        })

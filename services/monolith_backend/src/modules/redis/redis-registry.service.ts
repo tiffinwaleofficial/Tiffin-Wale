@@ -124,8 +124,14 @@ export class RedisRegistryService implements OnModuleInit, OnModuleDestroy {
         this.logger.log(
           `🔄 Connecting to Redis instance: ${instanceConfig.name}...`,
         );
-        await this.createInstance(instanceConfig);
+        
+        // Create the main instance first
+        const mainInstance = await this.createInstance(instanceConfig);
+        await mainInstance.connect();
+        
+        // Then initialize the connection pool (which will create additional connections)
         await this.initializeConnectionPool(instanceConfig);
+        
         this.logger.log(
           `✅ Redis instance '${instanceConfig.id}' connected and ready (${instanceConfig.host}:${instanceConfig.port})`,
         );
@@ -248,20 +254,65 @@ export class RedisRegistryService implements OnModuleInit, OnModuleDestroy {
     return redis;
   }
 
+  private async createPoolConnection(config: RedisInstanceConfig): Promise<Redis> {
+    const connectionString = this.redisConfig.getConnectionString(config);
+
+    const redisOptions = {
+      host: config.host,
+      port: config.port,
+      password: config.password,
+      username: config.username,
+      db: config.database || 0,
+      connectTimeout: config.connectionTimeout,
+      commandTimeout: config.commandTimeout,
+      retryDelayOnFailover: config.retryDelayOnFailover,
+      maxRetriesPerRequest: config.maxRetriesPerRequest,
+      lazyConnect: true,
+      keepAlive: 30000,
+      enableReadyCheck: true,
+      maxLoadingTimeout: 5000,
+      family: 4,
+      retryDelayOnClusterDown: 300,
+      retryDelayOnClusterFailover: 100,
+    };
+
+    // Create pool connection without extensive event listeners
+    const redis = config.url
+      ? new Redis(connectionString)
+      : new Redis(redisOptions);
+
+    // Only add basic error handling for pool connections
+    redis.on("error", (error) => {
+      this.logger.warn(
+        `🟡 Redis pool connection for '${config.id}' error: ${error.message}`,
+      );
+    });
+
+    return redis;
+  }
+
   private async initializeConnectionPool(
     config: RedisInstanceConfig,
   ): Promise<void> {
     const pool: Redis[] = [];
 
-    // Create minimum connections
-    for (let i = 0; i < this.poolConfig.minConnections; i++) {
+    // Get the main instance that was already created
+    const mainInstance = this.instances.get(config.id);
+    if (mainInstance) {
+      pool.push(mainInstance);
+    }
+
+    // Create additional connections for the pool (minConnections - 1, since we already have the main instance)
+    const additionalConnections = Math.max(0, this.poolConfig.minConnections - 1);
+    
+    for (let i = 0; i < additionalConnections; i++) {
       try {
-        const connection = await this.createInstance(config);
+        const connection = await this.createPoolConnection(config);
         await connection.connect();
         pool.push(connection);
       } catch (error) {
         this.logger.error(
-          `Failed to create pool connection ${i} for instance '${config.id}':`,
+          `Failed to create pool connection ${i + 1} for instance '${config.id}':`,
           error,
         );
       }

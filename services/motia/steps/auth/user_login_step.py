@@ -6,16 +6,7 @@ import base64
 import httpx
 from datetime import datetime, timedelta
 
-# Simple Redis mock to avoid Python 3.13 import conflicts
-class SimpleRedisService:
-    async def get_cache(self, key):
-        return None  # Always cache miss for now
-    async def set_cache(self, key, value, category=None):
-        return True
-    async def cache_user_session(self, user_id, session_data):
-        return True
-
-redis_service = SimpleRedisService()
+# Using Motia's built-in state management - no external Redis imports needed
 
 class LoginRequest(BaseModel):
     email: str
@@ -91,9 +82,9 @@ async def handler(req, context):
                 # Step 2: Extract real authentication data from NestJS
                 auth_response = response.json()
                 
-                # Step 3: Cache successful authentication in Redis (performance layer)
-                user_cache_key = f"motia:user:{email}"
-                await redis_service.set_cache(user_cache_key, auth_response, category="auth")
+                # Step 3: Cache successful authentication using Motia's built-in state management
+                user_cache_key = f"auth:user:{email}"
+                await context.state.set("auth_cache", user_cache_key, auth_response)
                 
                 # Step 4: Emit workflow events for downstream processing
                 await context.emit({

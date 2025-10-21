@@ -1,141 +1,214 @@
-"""
-Get Tiffin Centers by Location Step
-Retrieves tiffin centers within delivery range of a given location
-"""
-
+from datetime import datetime
 import httpx
-import json
-import math
-from typing import Dict, Any, List
 
-def handler(inputs: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Get tiffin centers within delivery range of a location
-    
-    Expected inputs:
-    - latitude: float
-    - longitude: float
-    - radius: float (optional, default 10km)
-    - cuisineType: string (optional filter)
-    - minRating: float (optional filter)
-    """
-    
-    try:
-        latitude = float(inputs.get("latitude"))
-        longitude = float(inputs.get("longitude"))
-        radius = float(inputs.get("radius", 10))  # Default 10km
-        cuisine_type = inputs.get("cuisineType")
-        min_rating = inputs.get("minRating")
-        
-        # Try Redis cache first
-        cache_key = f"centers_location:{latitude}:{longitude}:{radius}:{cuisine_type or 'all'}:{min_rating or 'any'}"
-        cached_centers = None
-        
-        try:
-            import redis
-            redis_client = redis.Redis(
-                host=inputs.get("REDIS_HOST", "localhost"),
-                port=int(inputs.get("REDIS_PORT", 6379)),
-                decode_responses=True
-            )
-            cached_data = redis_client.get(cache_key)
-            if cached_data:
-                cached_centers = json.loads(cached_data)
-        except:
-            # Redis not available, continue without cache
-            pass
-        
-        if cached_centers:
-            return {
-                "success": True,
-                "centers": cached_centers,
-                "source": "cache",
-                "location": {"latitude": latitude, "longitude": longitude},
-                "searchRadius": radius
+# Using Motia's built-in state management - no external Redis imports needed
+
+config = {
+    "type": "api",
+    "name": "GetCentersByLocation",
+    "description": "TiffinWale get tiffin centers by location workflow - connects to NestJS backend with Redis caching",
+    "flows": ["tiffinwale-tiffin-centers"],
+    "method": "GET",
+    "path": "/partners/location",
+    "queryParams": [
+        {"name": "city", "description": "Filter by city"},
+        {"name": "cuisineType", "description": "Filter by cuisine type"},
+        {"name": "rating", "description": "Filter by minimum rating"}
+    ],
+    "responseSchema": {
+        200: {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "_id": {"type": "string"},
+                    "businessName": {"type": "string"},
+                    "cuisineTypes": {"type": "array", "items": {"type": "string"}},
+                    "address": {"type": "object"},
+                    "averageRating": {"type": "number"},
+                    "totalReviews": {"type": "number"},
+                    "isAcceptingOrders": {"type": "boolean"}
+                }
             }
+        },
+        400: {
+            "type": "object",
+            "properties": {
+                "statusCode": {"type": "number"},
+                "message": {"type": "string"},
+                "error": {"type": "string"}
+            }
+        }
+    },
+    "emits": [
+        "partners.location.searched",
+        "analytics.location.query"
+    ]
+}
+
+async def handler(req, context):
+    """
+    Motia Get Tiffin Centers by Location Workflow - Connects to NestJS Backend
+    """
+    try:
+        query_params = req.get("queryParams", {})
         
-        # Call NestJS backend
-        backend_url = inputs.get("BACKEND_URL", "http://localhost:3000")
+        city = query_params.get("city")
+        cuisine_type = query_params.get("cuisineType")
+        rating = query_params.get("rating")
+        
+        context.logger.info("Motia Get Centers by Location Workflow Started", {
+            "city": city,
+            "cuisineType": cuisine_type,
+            "rating": rating,
+            "timestamp": datetime.now().isoformat(),
+            "traceId": context.trace_id
+        })
+
+        # Build cache key based on filters
+        cache_key_parts = ["partners:location"]
+        if city:
+            cache_key_parts.append(f"city:{city.lower()}")
+        if cuisine_type:
+            cache_key_parts.append(f"cuisine:{cuisine_type.lower()}")
+        if rating:
+            cache_key_parts.append(f"rating:{rating}")
+        
+        partners_cache_key = ":".join(cache_key_parts)
+        
+        # Try to get from cache first
+        cached_partners = await context.state.get("tiffin_center_cache", partners_cache_key)
+        
+        if cached_partners:
+            context.logger.info("Partners Location Cache Hit", {
+                "city": city,
+                "partnerCount": len(cached_partners) if isinstance(cached_partners, list) else 0,
+                "traceId": context.trace_id
+            })
+            
+            # Emit analytics event for cache hit
+            await context.emit({
+                "topic": "partners.location.searched",
+                "data": {
+                    "city": city,
+                    "cuisineType": cuisine_type,
+                    "rating": rating,
+                    "resultCount": len(cached_partners) if isinstance(cached_partners, list) else 0,
+                    "source": "cache",
+                    "timestamp": datetime.now().isoformat()
+                }
+            })
+            
+            return {
+                "status": 200,
+                "body": cached_partners
+            }
+
+        # Cache miss - Forward request to NestJS backend
+        nestjs_partners_url = "http://localhost:3001/api/partners"
         
         # Build query parameters
-        params = {
-            "latitude": latitude,
-            "longitude": longitude,
-            "radius": radius
-        }
-        
+        params = {}
+        if city:
+            params["city"] = city
         if cuisine_type:
             params["cuisineType"] = cuisine_type
-        if min_rating:
-            params["minRating"] = min_rating
+        if rating:
+            params["rating"] = rating
         
-        with httpx.Client() as client:
-            response = client.get(
-                f"{backend_url}/api/tiffin-centers/nearby",
-                params=params,
-                timeout=30.0
-            )
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(nestjs_partners_url, params=params)
+            
+            context.logger.info("NestJS Get Partners Backend Response", {
+                "status_code": response.status_code,
+                "city": city,
+                "traceId": context.trace_id
+            })
             
             if response.status_code == 200:
-                centers_data = response.json()
-                centers = centers_data.get("centers", [])
+                partners_data = response.json()
                 
-                # Cache the results
-                try:
-                    redis_client.setex(
-                        cache_key,
-                        300,  # 5 minutes TTL for location-based searches
-                        json.dumps(centers)
-                    )
-                except:
-                    pass
+                # Cache the partners data
+                await context.state.set("tiffin_center_cache", partners_cache_key, partners_data)
                 
+                # Emit workflow events
+                await context.emit({
+                    "topic": "partners.location.searched",
+                    "data": {
+                        "city": city,
+                        "cuisineType": cuisine_type,
+                        "rating": rating,
+                        "resultCount": len(partners_data) if isinstance(partners_data, list) else 0,
+                        "source": "nestjs_backend",
+                        "timestamp": datetime.now().isoformat()
+                    }
+                })
+
+                await context.emit({
+                    "topic": "analytics.location.query",
+                    "data": {
+                        "city": city,
+                        "cuisineType": cuisine_type,
+                        "rating": rating,
+                        "resultCount": len(partners_data) if isinstance(partners_data, list) else 0,
+                        "queryType": "location_search",
+                        "timestamp": datetime.now().isoformat()
+                    }
+                })
+
+                context.logger.info("Motia Get Centers by Location Workflow Completed Successfully", {
+                    "city": city,
+                    "resultCount": len(partners_data) if isinstance(partners_data, list) else 0,
+                    "traceId": context.trace_id
+                })
+
                 return {
-                    "success": True,
-                    "centers": centers,
-                    "source": "database",
-                    "location": {"latitude": latitude, "longitude": longitude},
-                    "searchRadius": radius,
-                    "totalFound": len(centers),
-                    "events": [
-                        {
-                            "name": "centers.location_searched",
-                            "data": {
-                                "location": {"latitude": latitude, "longitude": longitude},
-                                "radius": radius,
-                                "resultsCount": len(centers),
-                                "filters": {
-                                    "cuisineType": cuisine_type,
-                                    "minRating": min_rating
-                                }
-                            }
-                        }
-                    ]
+                    "status": 200,
+                    "body": partners_data
                 }
+                
             else:
-                return {
-                    "success": False,
-                    "error": f"Failed to fetch centers: {response.text}",
-                    "statusCode": response.status_code
-                }
+                error_response = response.json() if response.content else {"message": "Failed to get partners"}
                 
-    except ValueError as e:
+                context.logger.error("NestJS Get Partners Backend Error", {
+                    "city": city,
+                    "status_code": response.status_code,
+                    "error": error_response.get("message"),
+                    "traceId": context.trace_id
+                })
+
+                return {
+                    "status": response.status_code,
+                    "body": error_response
+                }
+
+    except httpx.TimeoutException:
+        context.logger.error("NestJS Get Partners Backend Timeout", {
+            "city": city,
+            "traceId": context.trace_id
+        })
+
         return {
-            "success": False,
-            "error": f"Invalid location coordinates: {str(e)}"
-        }
-    except Exception as e:
-        return {
-            "success": False,
-            "error": f"Location search failed: {str(e)}"
+            "status": 503,
+            "body": {
+                "statusCode": 503,
+                "message": "Partners service temporarily unavailable",
+                "error": "Service Timeout"
+            }
         }
 
-# Step configuration
-config = {
-    "name": "Get Centers by Location",
-    "description": "Retrieve tiffin centers within delivery range of a given location",
-    "type": "api",
-    "method": "GET",
-    "path": "/partners/nearby",
-    "emits": ["centers.location_searched"]
-}
+    except Exception as error:
+        context.logger.error("Motia Get Centers by Location Workflow Error", {
+            "error": str(error),
+            "city": city,
+            "traceId": context.trace_id
+        })
+
+        return {
+            "status": 500,
+            "body": {
+                "statusCode": 500,
+                "message": "Get centers by location workflow failed",
+                "error": "Internal server error"
+            }
+        }

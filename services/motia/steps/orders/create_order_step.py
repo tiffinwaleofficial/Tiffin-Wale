@@ -4,14 +4,7 @@ from datetime import datetime
 import httpx
 import os
 
-# Simple Redis mock to avoid Python 3.13 import conflicts
-class SimpleRedisService:
-    async def get_cache(self, key):
-        return None
-    async def set_cache(self, key, value, category=None):
-        return True
-
-redis_service = SimpleRedisService()
+# Using Motia's built-in state management - no external Redis imports needed
 
 class OrderItemRequest(BaseModel):
     mealId: str
@@ -114,8 +107,8 @@ async def handler(req, context):
                 
                 # Step 3: Cache successful order in Redis (performance layer)
                 if order_data.get("_id"):
-                    order_cache_key = f"motia:order:{order_data['_id']}"
-                    await redis_service.set_cache(order_cache_key, order_data, category="order")
+                    order_cache_key = f"order:{order_data['_id']}"
+                    await context.state.set("order_cache", order_cache_key, order_data)
                 
                 # Step 4: Emit workflow events for downstream processing
                 await context.emit({

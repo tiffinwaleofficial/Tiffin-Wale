@@ -22,8 +22,7 @@
     "test:menu": "node scripts/test-menu-api.js",
     "test:api": "jest --config ./tests/jest.config.js",
     "test:emails": "node scripts/test-all-email-templates.js",
-    "vercel-build": "nest build",
-    "dev": "motia dev"
+    "vercel-build": "nest build"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -60,7 +59,6 @@
     "ioredis": "^5.8.1",
     "mongodb": "^5.9.2",
     "mongoose": "^7.0.0",
-    "motia": "^0.8.2-beta.139",
     "passport": "^0.6.0",
     "passport-jwt": "^4.0.0",
     "passport-local": "^1.0.0",
