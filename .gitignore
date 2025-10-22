@@ -102,3 +102,6 @@
 **/*.icloud
 **/._*
 .vercel
+
+# Motia Python modules (auto-generated)
+**/python_modules/
