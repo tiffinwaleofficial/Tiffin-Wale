@@ -12,6 +12,7 @@ import { User } from "./schemas/user.schema";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { RedisService } from "../redis/redis.service";
+import { UserRole } from "../../common/interfaces/user.interface";
 
 @Injectable()
 export class UserService {
@@ -79,11 +80,6 @@ export class UserService {
       throw new NotFoundException(`User with email ${email} not found`);
     }
     return user;
-  }
-
-  // Add a method that doesn't throw when user is not found
-  async findByEmailSafe(email: string): Promise<User | null> {
-    return this.userModel.findOne({ email }).exec();
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
@@ -191,5 +187,53 @@ export class UserService {
     }
 
     return updatedUser;
+  }
+
+  /**
+   * Find user by email (safe method that doesn't throw if not found)
+   */
+  async findByEmailSafe(email: string): Promise<User | null> {
+    return this.userModel.findOne({ email }).exec();
+  }
+
+  /**
+   * Find user by username (firstName + lastName) and role
+   */
+  async findByUsername(
+    firstName: string,
+    lastName: string,
+    role: UserRole,
+  ): Promise<User | null> {
+    return this.userModel
+      .findOne({
+        firstName: { $regex: new RegExp(`^${firstName}$`, "i") },
+        lastName: { $regex: new RegExp(`^${lastName}$`, "i") },
+        role,
+      })
+      .exec();
+  }
+
+  /**
+   * Find user by password reset token
+   */
+  async findByPasswordResetToken(token: string): Promise<User | null> {
+    const users = await this.userModel
+      .find({
+        passwordResetToken: { $exists: true },
+        passwordResetExpires: { $gt: new Date() },
+      })
+      .exec();
+
+    // Check each user's hashed token
+    for (const user of users) {
+      if (
+        user.passwordResetToken &&
+        (await bcrypt.compare(token, user.passwordResetToken))
+      ) {
+        return user;
+      }
+    }
+
+    return null;
   }
 }

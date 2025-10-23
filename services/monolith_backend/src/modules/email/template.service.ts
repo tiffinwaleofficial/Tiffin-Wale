@@ -1,11 +1,41 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { render } from "@react-email/render";
 import { TemplateData } from "./interfaces/email.interface";
+import React from "react";
 
 @Injectable()
 export class TemplateService {
   private readonly logger = new Logger(TemplateService.name);
-  private templateCache = new Map<string, any>();
+  private templateCache = new Map<string, React.ComponentType<any>>();
+
+  /**
+   * Get React component for template and pass props
+   */
+  async getTemplateComponent(
+    templateName: string,
+    data: TemplateData,
+  ): Promise<React.ReactElement> {
+    try {
+      // Get the React component for the template
+      const TemplateComponent = await this.loadTemplateComponent(templateName);
+
+      // Prepare template data with common variables
+      const templateData = this.prepareTemplateData(data);
+
+      this.logger.debug(
+        `React Email template component ${templateName} retrieved successfully`,
+      );
+      
+      // Return the component with props
+      return React.createElement(TemplateComponent, templateData);
+    } catch (error) {
+      this.logger.error(
+        `Failed to get React Email template component ${templateName}:`,
+        error,
+      );
+      throw new Error(`Template component retrieval failed: ${error.message}`);
+    }
+  }
 
   /**
    * Build complete HTML email from React Email template
@@ -15,14 +45,10 @@ export class TemplateService {
     data: TemplateData,
   ): Promise<string> {
     try {
-      // Get the React component for the template
-      const TemplateComponent = await this.getTemplateComponent(templateName);
-
-      // Prepare template data with common variables
-      const templateData = this.prepareTemplateData(data);
-
+      const emailComponent = await this.getTemplateComponent(templateName, data);
+      
       // Render React component to HTML
-      const html = render(TemplateComponent(templateData));
+      const html = render(emailComponent);
 
       this.logger.debug(
         `React Email template ${templateName} rendered successfully`,
@@ -53,11 +79,11 @@ export class TemplateService {
   }
 
   /**
-   * Get React component for template
+   * Load React component for template
    */
-  private async getTemplateComponent(templateName: string): Promise<any> {
+  private async loadTemplateComponent(templateName: string): Promise<React.ComponentType<any>> {
     if (this.templateCache.has(templateName)) {
-      return this.templateCache.get(templateName);
+      return this.templateCache.get(templateName)!;
     }
 
     try {
@@ -96,6 +122,8 @@ export class TemplateService {
       // Auth templates
       welcome: "./templates/emails/WelcomeEmail",
       "password-reset": "./templates/emails/PasswordResetEmail",
+      "password-change-confirmation":
+        "./templates/emails/PasswordChangeConfirmationEmail",
       "email-verification": "./templates/emails/EmailVerificationEmail",
 
       // Order templates
@@ -128,7 +156,7 @@ export class TemplateService {
 
     return templatePath;
   }
-
+  
   /**
    * Prepare template data with common variables
    */
@@ -286,11 +314,11 @@ export class TemplateService {
     data: TemplateData,
   ): Promise<string> {
     try {
-      const TemplateComponent = await this.getTemplateComponent(templateName);
+      const TemplateComponent = await this.loadTemplateComponent(templateName);
       const templateData = this.prepareTemplateData(data);
 
       // Render to plain text
-      const text = render(TemplateComponent(templateData), { plainText: true });
+      const text = render(React.createElement(TemplateComponent, templateData), { plainText: true });
 
       return text;
     } catch (error) {

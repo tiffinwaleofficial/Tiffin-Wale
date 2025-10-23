@@ -21,13 +21,13 @@ interface PaymentSuccessEmailProps {
   appUrl?: string;
 }
 
-export const PaymentSuccessEmail: React.FC<PaymentSuccessEmailProps> = ({
+export const PaymentSuccessEmail = ({
   payment,
   receiptUrl = '#',
   supportUrl = 'https://tiffin-wale.com/support',
   appName = 'Tiffin-Wale',
   appUrl = 'https://tiffin-wale.com',
-}) => {
+}: PaymentSuccessEmailProps) => {
   const preview = `Payment successful! Your transaction of ₹${payment.amount} has been processed.`;
 
   const formatCurrency = (amount: number) => {
@@ -311,6 +311,19 @@ export const PaymentSuccessEmail: React.FC<PaymentSuccessEmailProps> = ({
       </table>
     </EmailLayout>
   );
+};
+
+PaymentSuccessEmail.PreviewProps = {
+  payment: {
+    customerName: 'John Doe',
+    amount: 550,
+    paymentId: 'payment-123',
+    orderNumber: '12345',
+    paymentMethod: 'Credit Card ending in 1234',
+    transactionDate: new Date().toISOString(),
+  },
+  receiptUrl: 'http://localhost:3000/receipt/payment-123',
+  supportUrl: 'http://localhost:3000/support',
 };
 
 export default PaymentSuccessEmail;

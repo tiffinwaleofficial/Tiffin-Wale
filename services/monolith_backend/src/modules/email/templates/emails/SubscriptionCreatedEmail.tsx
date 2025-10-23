@@ -20,13 +20,13 @@ interface SubscriptionCreatedEmailProps {
   supportUrl?: string;
 }
 
-export const SubscriptionCreatedEmail: React.FC<SubscriptionCreatedEmailProps> = ({
+export const SubscriptionCreatedEmail = ({
   subscription, 
   manageUrl = '#', 
   appName = 'Tiffin-Wale', 
   appUrl = 'https://tiffin-wale.com',
   supportUrl = 'https://tiffin-wale.com/support'
-}) => {
+}: SubscriptionCreatedEmailProps) => {
   const preview = `Your ${subscription.planName} subscription is now active!`;
 
   const formatCurrency = (amount: number) => {
@@ -287,6 +287,19 @@ export const SubscriptionCreatedEmail: React.FC<SubscriptionCreatedEmailProps> =
       </table>
     </EmailLayout>
   );
+};
+
+SubscriptionCreatedEmail.PreviewProps = {
+  subscription: {
+    customerName: 'John Doe',
+    planName: 'Monthly Plan',
+    price: 5000,
+    billingCycle: 'month',
+    startDate: new Date().toISOString(),
+    nextBillingDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
+  },
+  manageUrl: 'http://localhost:3000/manage-subscription',
+  supportUrl: 'http://localhost:3000/support',
 };
 
 export default SubscriptionCreatedEmail;

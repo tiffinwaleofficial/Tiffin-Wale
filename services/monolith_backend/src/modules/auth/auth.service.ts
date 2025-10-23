@@ -20,6 +20,12 @@ import { MealService } from "../meal/meal.service";
 import { PartnerService } from "../partner/partner.service";
 import { RedisService } from "../redis/redis.service";
 import { EmailService } from "../email/email.service";
+import { RequestPasswordResetDto } from "./dto/request-password-reset.dto";
+import { VerifyPasswordResetDto } from "./dto/verify-password-reset.dto";
+import { passwordResetConfig } from "../../config/password-reset.config";
+import * as crypto from "crypto";
+import * as bcrypt from "bcrypt";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class AuthService {
@@ -32,6 +38,7 @@ export class AuthService {
     private readonly partnerService: PartnerService,
     private readonly emailService: EmailService,
     private readonly redisService: RedisService,
+    private readonly configService: ConfigService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -495,43 +502,6 @@ export class AuthService {
     }
   }
 
-  async resetPassword(token: string, newPassword: string) {
-    try {
-      // In a real implementation, you would:
-      // 1. Validate the reset token
-      // 2. Check if it's expired
-      // 3. Update the user's password
-      // 4. Invalidate the token
-      // 5. Log the password change
-
-      // Validate token format (basic check)
-      if (!token || token.length < 8) {
-        throw new BadRequestException("Invalid reset token");
-      }
-
-      // Validate new password (basic check)
-      if (!newPassword || newPassword.length < 6) {
-        throw new BadRequestException(
-          "New password must be at least 6 characters long",
-        );
-      }
-
-      // Log the password reset attempt for security monitoring
-      console.log(
-        `Password reset attempted with token: ${token.substring(0, 8)}... at ${new Date().toISOString()}`,
-      );
-
-      // For now, return a mock response
-      return {
-        success: true,
-        message:
-          "Password has been reset successfully. You can now login with your new password.",
-      };
-    } catch (error) {
-      throw new BadRequestException("Failed to reset password");
-    }
-  }
-
   private async generateToken(user: any) {
     const payload = { email: user.email, sub: user._id, role: user.role };
 
@@ -754,6 +724,209 @@ export class AuthService {
       }
       throw new BadRequestException(
         "Failed to link phone number. Please try again.",
+      );
+    }
+  }
+
+  async requestPasswordReset(dto: RequestPasswordResetDto) {
+    try {
+      const { identifier, role } = dto;
+
+      // Find user by email, phone, or username with matching role
+      let user = null;
+
+      // Try to find by email first
+      if (identifier.includes("@")) {
+        user = await this.userService.findByEmailSafe(identifier);
+      } else {
+        // Try phone number
+        user = await this.userService.findByPhoneNumber(identifier);
+      }
+
+      // If no user found by email/phone, try username (firstName + lastName)
+      if (!user) {
+        const nameParts = identifier.split(" ");
+        if (nameParts.length >= 2) {
+          user = await this.userService.findByUsername(
+            nameParts[0],
+            nameParts.slice(1).join(" "),
+            role as UserRole,
+          );
+        }
+      }
+
+      // Check if user exists and role matches
+      if (user && user.role === role) {
+        const now = new Date();
+        const lastRequest = user.lastPasswordResetRequest;
+
+        // Check rate limiting
+        if (lastRequest) {
+          const timeSinceLastRequest = now.getTime() - lastRequest.getTime();
+          const isWithinWindow =
+            timeSinceLastRequest < passwordResetConfig.rateLimitWindowMs;
+
+          if (
+            isWithinWindow &&
+            user.passwordResetAttempts >= passwordResetConfig.maxAttemptsPerHour
+          ) {
+            const nextResetAvailableIn =
+              passwordResetConfig.rateLimitWindowMs - timeSinceLastRequest;
+            const nextResetAvailableAt = new Date(
+              now.getTime() + nextResetAvailableIn,
+            );
+
+            throw new BadRequestException({
+              success: false,
+              message:
+                "Too many password reset attempts. Please try again later.",
+              rateLimit: {
+                attemptsRemaining: 0,
+                maxAttempts: passwordResetConfig.maxAttemptsPerHour,
+                nextResetAvailableIn,
+                nextResetAvailableAt: nextResetAvailableAt.toISOString(),
+              },
+            });
+          }
+        }
+
+        // Generate secure reset token
+        const resetToken = crypto
+          .randomBytes(passwordResetConfig.tokenLength)
+          .toString("hex");
+        const hashedToken = await bcrypt.hash(resetToken, 10);
+
+        // Set expiry time
+        const expiresAt = new Date(
+          now.getTime() + passwordResetConfig.tokenExpiryMs,
+        );
+
+        // Update user with reset token and increment attempts
+        const attempts =
+          lastRequest &&
+          now.getTime() - lastRequest.getTime() <
+            passwordResetConfig.rateLimitWindowMs
+            ? (user.passwordResetAttempts || 0) + 1
+            : 1;
+
+        await this.userService.update(user._id, {
+          passwordResetToken: hashedToken,
+          passwordResetExpires: expiresAt,
+          passwordResetAttempts: attempts,
+          lastPasswordResetRequest: now,
+        });
+
+        // Determine frontend URL based on role
+        const frontendUrl =
+          role === "customer"
+            ? this.configService.get<string>("STUDENT_APP_URL")
+            : this.configService.get<string>("PARTNER_APP_URL");
+
+        const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+
+        // Send password reset email
+        await this.emailService.sendPasswordResetEmail(user.email, {
+          name: `${user.firstName} ${user.lastName}`.trim() || user.email,
+          resetToken,
+          role,
+          resetUrl,
+        });
+
+        // Calculate remaining attempts
+        const attemptsRemaining =
+          passwordResetConfig.maxAttemptsPerHour - attempts;
+
+        return {
+          success: true,
+          message: `If your account exists, a password reset link will be sent to ${passwordResetConfig.maskEmail(user.email)}`,
+          rateLimit: {
+            attemptsRemaining,
+            maxAttempts: passwordResetConfig.maxAttemptsPerHour,
+            resetWindowMinutes:
+              passwordResetConfig.rateLimitWindowMs / (60 * 1000),
+          },
+        };
+      }
+
+      // If no user found, return success anyway (security: don't reveal if account exists)
+      return {
+        success: true,
+        message: `If your account exists, a password reset link will be sent to ${passwordResetConfig.maskEmail(
+          identifier.includes("@") ? identifier : "***@*****.com",
+        )}`,
+        rateLimit: {
+          attemptsRemaining: passwordResetConfig.maxAttemptsPerHour,
+          maxAttempts: passwordResetConfig.maxAttemptsPerHour,
+          resetWindowMinutes:
+            passwordResetConfig.rateLimitWindowMs / (60 * 1000),
+        },
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        "Failed to process password reset request. Please try again.",
+      );
+    }
+  }
+
+  async verifyPasswordReset(dto: VerifyPasswordResetDto) {
+    try {
+      const { token, newPassword, confirmPassword } = dto;
+
+      // Validate password confirmation
+      if (newPassword !== confirmPassword) {
+        throw new BadRequestException("Passwords do not match.");
+      }
+
+      // Find user with valid reset token
+      const user = await this.userService.findByPasswordResetToken(token);
+      if (!user) {
+        throw new BadRequestException(
+          "Invalid or expired reset token. Please request a new password reset.",
+        );
+      }
+
+      // Check if token has expired
+      if (
+        !user.passwordResetExpires ||
+        user.passwordResetExpires < new Date()
+      ) {
+        throw new BadRequestException(
+          "Reset token has expired. Please request a new password reset.",
+        );
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update user password and clear reset fields
+      await this.userService.update(user._id, {
+        password: hashedPassword,
+        passwordResetToken: undefined,
+        passwordResetExpires: undefined,
+        passwordResetAttempts: 0,
+        lastPasswordResetRequest: undefined,
+      });
+
+      // Send password change confirmation email
+      await this.emailService.sendPasswordChangeConfirmation(user.email, {
+        name: `${user.firstName} ${user.lastName}`.trim() || user.email,
+        timestamp: new Date().toISOString(),
+      });
+
+      return {
+        success: true,
+        message:
+          "Password has been reset successfully. You can now login with your new password.",
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        "Failed to reset password. Please try again.",
       );
     }
   }

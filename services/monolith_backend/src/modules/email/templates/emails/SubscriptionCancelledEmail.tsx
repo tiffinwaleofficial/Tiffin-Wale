@@ -20,14 +20,14 @@ interface SubscriptionCancelledEmailProps {
   supportUrl?: string;
 }
 
-export const SubscriptionCancelledEmail: React.FC<SubscriptionCancelledEmailProps> = ({
+export const SubscriptionCancelledEmail = ({
   subscription,
   reactivateUrl = '#',
   feedbackUrl = '#',
   appName = 'Tiffin-Wale',
   appUrl = 'https://tiffin-wale.com',
   supportUrl = 'https://tiffin-wale.com/support'
-}) => {
+}: SubscriptionCancelledEmailProps) => {
   const preview = `Your ${subscription.planName} subscription has been cancelled - We'll miss you!`;
 
   const formatDate = (dateString: string) => {
@@ -281,6 +281,19 @@ export const SubscriptionCancelledEmail: React.FC<SubscriptionCancelledEmailProp
       </table>
     </EmailLayout>
   );
+};
+
+SubscriptionCancelledEmail.PreviewProps = {
+  subscription: {
+    customerName: 'John Doe',
+    planName: 'Monthly Plan',
+    cancellationDate: new Date().toISOString(),
+    endDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
+    reason: 'No longer needed',
+  },
+  reactivateUrl: 'http://localhost:3000/reactivate',
+  feedbackUrl: 'http://localhost:3000/feedback',
+  supportUrl: 'http://localhost:3000/support',
 };
 
 export default SubscriptionCancelledEmail;

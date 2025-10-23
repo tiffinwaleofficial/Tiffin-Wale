@@ -11,6 +11,7 @@ import { Server, Socket } from "socket.io";
 import { Logger } from "@nestjs/common";
 import { NotificationsService } from "./notifications.service";
 import { JwtService } from "@nestjs/jwt";
+import { MotiaStreamService } from "../motia/motia-stream.service";
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -36,6 +37,7 @@ export class NotificationsGateway
   constructor(
     private readonly notificationsService: NotificationsService,
     private readonly jwtService: JwtService,
+    private readonly motiaStreamService: MotiaStreamService,
   ) {}
 
   async handleConnection(client: AuthenticatedSocket) {
@@ -197,27 +199,98 @@ export class NotificationsGateway
     await this.sendToUser(studentId, notification);
   }
 
-  async notifyPartnerFromStudent(
-    partnerId: string,
-    studentId: string,
-    message: any,
-  ) {
-    const notification = {
-      id: `student_msg_${Date.now()}`,
-      type: "toast",
-      variant: "info",
-      category: "chat",
-      title: "Message from Customer",
-      message: message.text,
-      data: {
-        studentId,
-        messageId: message.id,
-        orderId: message.orderId,
-      },
-      timestamp: new Date(),
-    };
+  /**
+   * Send notification through Motia stream and broadcast via WebSocket
+   */
+  async sendNotificationViaMotia(notificationData: {
+    userId: string;
+    userType: "student" | "partner" | "admin";
+    type: "order_status" | "general" | "promotion" | "system";
+    title: string;
+    message: string;
+    data?: any;
+    expiresAt?: string;
+  }) {
+    try {
+      // Send through Motia stream
+      const motiaNotification =
+        await this.motiaStreamService.sendNotification(notificationData);
 
-    await this.sendToPartner(partnerId, notification);
+      // Also broadcast via WebSocket for immediate delivery
+      const client = this.connectedUsers.get(notificationData.userId);
+      if (client) {
+        client.emit("notification", {
+          id: motiaNotification.id,
+          type: notificationData.type,
+          title: notificationData.title,
+          message: notificationData.message,
+          data: notificationData.data,
+          timestamp: motiaNotification.timestamp,
+        });
+      }
+
+      this.logger.log(
+        `Notification sent via Motia stream and WebSocket: ${motiaNotification.id}`,
+      );
+      return motiaNotification;
+    } catch (error) {
+      this.logger.error("Failed to send notification via Motia:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update order status through Motia stream and broadcast via WebSocket
+   */
+  async updateOrderStatusViaMotia(orderData: {
+    orderId: string;
+    status:
+      | "pending"
+      | "confirmed"
+      | "preparing"
+      | "ready"
+      | "delivered"
+      | "cancelled";
+    userId: string;
+    partnerId: string;
+    message?: string;
+    estimatedTime?: number;
+    location?: { latitude: number; longitude: number };
+  }) {
+    try {
+      // Update through Motia stream
+      const motiaOrderStatus =
+        await this.motiaStreamService.updateOrderStatus(orderData);
+
+      // Broadcast to both user and partner via WebSocket
+      const userClient = this.connectedUsers.get(orderData.userId);
+      const partnerClient = this.connectedUsers.get(orderData.partnerId);
+
+      const orderStatusUpdate = {
+        orderId: orderData.orderId,
+        status: orderData.status,
+        message: orderData.message,
+        estimatedTime: orderData.estimatedTime,
+        location: orderData.location,
+        timestamp: new Date().toISOString(),
+      };
+
+      if (userClient) {
+        userClient.emit("orderStatusUpdate", orderStatusUpdate);
+      }
+
+      if (partnerClient) {
+        partnerClient.emit("orderStatusUpdate", orderStatusUpdate);
+      }
+
+      this.logger.log(
+        `Order status updated via Motia stream and WebSocket: ${orderData.orderId}`,
+      );
+      return motiaOrderStatus;
+    } catch (error) {
+      this.logger.error("Failed to update order status via Motia:", error);
+      throw error;
+    }
   }
 
   private async validateToken(token: string): Promise<{

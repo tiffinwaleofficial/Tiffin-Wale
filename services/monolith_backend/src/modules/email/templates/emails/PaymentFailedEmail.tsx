@@ -3,7 +3,7 @@ import { Text, Hr } from '@react-email/components';
 import EmailLayout from '../components/EmailLayout';
 import Button from '../components/Button';
 import InfoCard from '../components/InfoCard';
-import { AlertIcon, CreditCardIcon, ClockIcon, PhoneIcon } from '../components/Icons';
+import { AlertIcon, CreditCardIcon, ClockIcon } from '../components/Icons';
 
 interface PaymentFailedEmailProps {
   payment: { 
@@ -19,12 +19,12 @@ interface PaymentFailedEmailProps {
   supportUrl?: string;
 }
 
-export const PaymentFailedEmail: React.FC<PaymentFailedEmailProps> = ({
+export const PaymentFailedEmail = ({
   payment, 
   appName = 'Tiffin-Wale', 
   appUrl = 'https://tiffin-wale.com',
   supportUrl = 'https://tiffin-wale.com/support'
-}) => {
+}: PaymentFailedEmailProps) => {
   const preview = `Payment failed - action required for your ${appName} order`;
 
   const formatCurrency = (amount: number) => {
@@ -277,6 +277,18 @@ export const PaymentFailedEmail: React.FC<PaymentFailedEmailProps> = ({
       </table>
     </EmailLayout>
   );
+};
+
+PaymentFailedEmail.PreviewProps = {
+  payment: {
+    customerName: 'John Doe',
+    amount: 550,
+    reason: 'Insufficient funds',
+    retryUrl: 'http://localhost:3000/retry-payment',
+    orderNumber: '12345',
+    paymentMethod: 'Credit Card ending in 1234',
+  },
+  supportUrl: 'http://localhost:3000/support',
 };
 
 export default PaymentFailedEmail;

@@ -20,14 +20,14 @@ interface OrderDeliveredEmailProps {
   supportUrl?: string;
 }
 
-export const OrderDeliveredEmail: React.FC<OrderDeliveredEmailProps> = ({
+export const OrderDeliveredEmail = ({
   order, 
   ratingUrl = '#', 
   reorderUrl = '#',
   appName = 'Tiffin-Wale', 
   appUrl = 'https://tiffin-wale.com',
   supportUrl = 'https://tiffin-wale.com/support'
-}) => {
+}: OrderDeliveredEmailProps) => {
   const preview = `Order #${order.orderNumber} delivered! Rate your experience`;
 
   const orderSteps = [
@@ -238,6 +238,18 @@ export const OrderDeliveredEmail: React.FC<OrderDeliveredEmailProps> = ({
       </table>
     </EmailLayout>
   );
+};
+
+OrderDeliveredEmail.PreviewProps = {
+  order: {
+    orderNumber: '12345',
+    customerName: 'John Doe',
+    partnerName: 'Tiffin Partner',
+    deliveryTime: new Date().toLocaleDateString(),
+  },
+  ratingUrl: 'http://localhost:3000/rate/12345',
+  reorderUrl: 'http://localhost:3000/reorder/12345',
+  supportUrl: 'http://localhost:3000/support',
 };
 
 export default OrderDeliveredEmail;

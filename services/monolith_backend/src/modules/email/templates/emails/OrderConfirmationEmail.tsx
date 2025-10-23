@@ -32,14 +32,14 @@ interface OrderConfirmationEmailProps {
   appUrl?: string;
 }
 
-export const OrderConfirmationEmail: React.FC<OrderConfirmationEmailProps> = ({
+export const OrderConfirmationEmail = ({
   order,
   trackingUrl = '#',
   supportUrl = 'https://tiffin-wale.com/support',
   appName = 'Tiffin-Wale',
   appUrl = 'https://tiffin-wale.com',
-}) => {
-  const preview = `Order confirmed! Your delicious meal from ${order.partnerName} is on its way.`;
+}: OrderConfirmationEmailProps) => {
+  const preview = `Your ${appName} order #${order.orderNumber} has been confirmed!`;
 
   const orderSteps = [
     {
@@ -243,8 +243,7 @@ export const OrderConfirmationEmail: React.FC<OrderConfirmationEmailProps> = ({
             <Button 
               href={trackingUrl} 
               variant="primary" 
-              size="lg" 
-              fullWidth
+              size="lg"
             >
               📦 Track Your Order in Real-Time
             </Button>
@@ -299,6 +298,27 @@ export const OrderConfirmationEmail: React.FC<OrderConfirmationEmailProps> = ({
       </table>
     </EmailLayout>
   );
+};
+
+OrderConfirmationEmail.PreviewProps = {
+  order: {
+    orderNumber: '12345',
+    customerName: 'John Doe',
+    items: [
+      { name: 'Meal 1', quantity: 1, price: 200, description: 'A delicious meal' },
+      { name: 'Meal 2', quantity: 2, price: 150, description: 'Another tasty dish' },
+    ],
+    totalAmount: 550,
+    subtotal: 500,
+    deliveryFee: 50,
+    tax: 0,
+    deliveryAddress: '123 Main St, Anytown, USA',
+    estimatedDeliveryTime: '30-45 minutes',
+    partnerName: 'Tiffin Partner',
+    partnerPhone: '098-765-4321',
+  },
+  trackingUrl: 'http://localhost:3000/track/12345',
+  supportUrl: 'http://localhost:3000/support',
 };
 
 export default OrderConfirmationEmail;

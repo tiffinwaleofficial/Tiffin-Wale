@@ -20,12 +20,12 @@ interface RefundProcessedEmailProps {
   supportUrl?: string;
 }
 
-export const RefundProcessedEmail: React.FC<RefundProcessedEmailProps> = ({
+export const RefundProcessedEmail = ({
   refund,
   appName = 'Tiffin-Wale',
   appUrl = 'https://tiffin-wale.com',
   supportUrl = 'https://tiffin-wale.com/support'
-}) => {
+}: RefundProcessedEmailProps) => {
   const preview = `Refund of ${formatCurrency(refund.amount)} has been processed for order #${refund.orderNumber}`;
 
   function formatCurrency(amount: number) {
@@ -286,6 +286,19 @@ export const RefundProcessedEmail: React.FC<RefundProcessedEmailProps> = ({
       </table>
     </EmailLayout>
   );
+};
+
+RefundProcessedEmail.PreviewProps = {
+  refund: {
+    customerName: 'John Doe',
+    amount: 550,
+    orderNumber: '12345',
+    refundId: 'refund-123',
+    reason: 'Order cancelled by customer',
+    processingTime: '3-5 business days',
+    paymentMethod: 'Credit Card ending in 1234',
+  },
+  supportUrl: 'http://localhost:3000/support',
 };
 
 export default RefundProcessedEmail;

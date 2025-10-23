@@ -36,6 +36,19 @@ export class User extends Document {
 
   @Prop()
   updatedAt: Date;
+
+  // Password reset fields
+  @Prop()
+  passwordResetToken?: string;
+
+  @Prop()
+  passwordResetExpires?: Date;
+
+  @Prop({ default: 0 })
+  passwordResetAttempts?: number;
+
+  @Prop()
+  lastPasswordResetRequest?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

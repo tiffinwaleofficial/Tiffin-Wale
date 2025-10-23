@@ -19,12 +19,12 @@ interface SubscriptionRenewedEmailProps {
   appUrl?: string;
 }
 
-export const SubscriptionRenewedEmail: React.FC<SubscriptionRenewedEmailProps> = ({
+export const SubscriptionRenewedEmail = ({
   subscription,
   manageUrl = '#',
   appName = 'Tiffin-Wale',
   appUrl = 'https://tiffin-wale.com'
-}) => {
+}: SubscriptionRenewedEmailProps) => {
   const preview = `Your ${subscription.planName} subscription has been renewed successfully!`;
 
   const formatCurrency = (amount: number) => {
@@ -252,6 +252,18 @@ export const SubscriptionRenewedEmail: React.FC<SubscriptionRenewedEmailProps> =
       </table>
     </EmailLayout>
   );
+};
+
+SubscriptionRenewedEmail.PreviewProps = {
+  subscription: {
+    customerName: 'John Doe',
+    planName: 'Monthly Plan',
+    renewalDate: new Date().toISOString(),
+    nextBillingDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
+    amount: 5000,
+    loyaltyYears: 2,
+  },
+  manageUrl: 'http://localhost:3000/manage-subscription',
 };
 
 export default SubscriptionRenewedEmail;

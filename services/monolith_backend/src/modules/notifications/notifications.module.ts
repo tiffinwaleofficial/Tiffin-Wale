@@ -22,11 +22,13 @@ import {
 import { PushNotificationService } from "./push-notification.service";
 import { FirebaseNotificationService } from "./firebase-notification.service";
 import { RedisModule } from "../redis/redis.module";
+import { MotiaStreamModule } from "../motia/motia-stream.module";
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
     RedisModule,
+    MotiaStreamModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({

@@ -15,6 +15,7 @@ import { MarkOrderPaidDto } from "./dto/mark-order-paid.dto";
 import { AddOrderReviewDto } from "./dto/add-order-review.dto";
 import { EmailService } from "../email/email.service";
 import { RedisService } from "../redis/redis.service";
+import { NotificationsGateway } from "../notifications/notifications.gateway";
 
 @Injectable()
 export class OrderService {
@@ -22,6 +23,7 @@ export class OrderService {
     @InjectModel(Order.name) private readonly orderModel: Model<Order>,
     private readonly emailService: EmailService,
     private readonly redisService: RedisService,
+    private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
   async create(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -192,6 +194,15 @@ export class OrderService {
       const updatedOrder = await this.orderModel
         .findByIdAndUpdate(id, { status }, { new: true })
         .exec();
+
+      // Update order status via Motia stream and WebSocket
+      await this.notificationsGateway.updateOrderStatusViaMotia({
+        orderId: id,
+        status: status as any,
+        userId: updatedOrder.customer.toString(),
+        partnerId: updatedOrder.businessPartner.toString(),
+        message: `Order status updated to ${status}`,
+      });
 
       return updatedOrder;
     } catch (error) {

@@ -17,14 +17,14 @@ interface PasswordResetEmailProps {
   supportUrl?: string;
 }
 
-export const PasswordResetEmail: React.FC<PasswordResetEmailProps> = ({
+export const PasswordResetEmail = ({
   user,
   resetLink,
   expiryTime = '1 hour',
   appName = 'Tiffin-Wale',
   appUrl = 'https://tiffin-wale.com',
   supportUrl = 'https://tiffin-wale.com/support',
-}) => {
+}: PasswordResetEmailProps) => {
   const preview = `Reset your ${appName} password - Secure link inside`;
 
   return (
@@ -187,6 +187,16 @@ export const PasswordResetEmail: React.FC<PasswordResetEmailProps> = ({
       </table>
     </EmailLayout>
   );
+};
+
+PasswordResetEmail.PreviewProps = {
+  user: {
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+  },
+  resetLink: 'http://localhost:3000/reset-password?token=test-token',
+  expiryTime: '1 hour',
+  supportUrl: 'http://localhost:3000/support',
 };
 
 export default PasswordResetEmail;

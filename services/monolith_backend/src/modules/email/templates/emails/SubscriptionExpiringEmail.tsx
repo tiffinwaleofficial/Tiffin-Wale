@@ -17,12 +17,12 @@ interface SubscriptionExpiringEmailProps {
   appUrl?: string;
 }
 
-export const SubscriptionExpiringEmail: React.FC<SubscriptionExpiringEmailProps> = ({
+export const SubscriptionExpiringEmail = ({
   subscription,
   renewUrl = '#',
   appName = 'Tiffin-Wale',
   appUrl = 'https://tiffin-wale.com'
-}) => {
+}: SubscriptionExpiringEmailProps) => {
   const preview = `Your ${subscription.planName} expires in ${subscription.daysLeft} days - Renew now!`;
 
   const formatDate = (dateString: string) => {
@@ -218,6 +218,16 @@ export const SubscriptionExpiringEmail: React.FC<SubscriptionExpiringEmailProps>
       </table>
     </EmailLayout>
   );
+};
+
+SubscriptionExpiringEmail.PreviewProps = {
+  subscription: {
+    customerName: 'John Doe',
+    planName: 'Monthly Plan',
+    expiryDate: new Date(new Date().setDate(new Date().getDate() + 7)).toISOString(),
+    daysLeft: 7,
+  },
+  renewUrl: 'http://localhost:3000/renew',
 };
 
 export default SubscriptionExpiringEmail;

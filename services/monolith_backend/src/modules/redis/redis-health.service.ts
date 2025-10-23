@@ -87,7 +87,7 @@ export class RedisHealthService {
 
   private initialize() {
     if (this.isInitialized) return;
-    
+
     this.logger.log("Initializing Redis Health Service...");
     this.initializeDefaultAlertRules();
     this.isInitialized = true;
@@ -703,4 +703,3 @@ export class RedisHealthService {
     }
   }
 }
-

@@ -17,14 +17,14 @@ interface WelcomeEmailProps {
   supportUrl?: string;
 }
 
-export const WelcomeEmail: React.FC<WelcomeEmailProps> = ({
+export const WelcomeEmail = ({
   user,
   appName = 'Tiffin-Wale',
   appUrl = 'https://tiffin-wale.com',
   loginUrl = 'https://tiffin-wale.com/login',
   dashboardUrl = 'https://tiffin-wale.com/dashboard',
   supportUrl = 'https://tiffin-wale.com/support',
-}) => {
+}: WelcomeEmailProps) => {
   const preview = `Welcome to ${appName}, ${user.name}! Start your delicious journey today.`;
 
   return (
@@ -293,6 +293,18 @@ export const WelcomeEmail: React.FC<WelcomeEmailProps> = ({
       </table>
     </EmailLayout>
   );
+};
+
+WelcomeEmail.PreviewProps = {
+  user: {
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+  },
+  appName: 'Tiffin-Wale',
+  appUrl: 'http://localhost:3000',
+  loginUrl: 'http://localhost:3000/login',
+  dashboardUrl: 'http://localhost:3000/dashboard',
+  supportUrl: 'http://localhost:3000/support',
 };
 
 export default WelcomeEmail;

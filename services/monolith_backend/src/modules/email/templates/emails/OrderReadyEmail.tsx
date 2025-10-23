@@ -20,13 +20,13 @@ interface OrderReadyEmailProps {
   supportUrl?: string;
 }
 
-export const OrderReadyEmail: React.FC<OrderReadyEmailProps> = ({
+export const OrderReadyEmail = ({
   order,
   trackingUrl = '#',
   appName = 'Tiffin-Wale',
   appUrl = 'https://tiffin-wale.com',
   supportUrl = 'https://tiffin-wale.com/support'
-}) => {
+}: OrderReadyEmailProps) => {
   const preview = `Your order #${order.orderNumber} is ready and on its way!`;
 
   const orderSteps = [
@@ -213,6 +213,18 @@ export const OrderReadyEmail: React.FC<OrderReadyEmailProps> = ({
       </table>
     </EmailLayout>
   );
+};
+
+OrderReadyEmail.PreviewProps = {
+  order: {
+    orderNumber: '12345',
+    customerName: 'John Doe',
+    partnerName: 'Tiffin Partner',
+    deliveryAddress: '123 Main St, Anytown, USA',
+    estimatedDeliveryTime: '15-20 minutes',
+  },
+  trackingUrl: 'http://localhost:3000/track/12345',
+  supportUrl: 'http://localhost:3000/support',
 };
 
 export default OrderReadyEmail;

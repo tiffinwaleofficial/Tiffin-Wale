@@ -3,7 +3,7 @@ import { Text, Hr } from '@react-email/components';
 import EmailLayout from '../components/EmailLayout';
 import Button from '../components/Button';
 import InfoCard from '../components/InfoCard';
-import { BellIcon, TiffinIcon, LocationIcon, ClockIcon, UserIcon } from '../components/Icons';
+import { BellIcon, TiffinIcon, LocationIcon, UserIcon } from '../components/Icons';
 
 interface NewOrderNotificationEmailProps {
   order: {
@@ -25,13 +25,13 @@ interface NewOrderNotificationEmailProps {
   appUrl?: string;
 }
 
-export const NewOrderNotificationEmail: React.FC<NewOrderNotificationEmailProps> = ({
+export const NewOrderNotificationEmail = ({
   order,
   partner,
   dashboardUrl = '#',
   appName = 'Tiffin-Wale',
   appUrl = 'https://tiffin-wale.com'
-}) => {
+}: NewOrderNotificationEmailProps) => {
   const preview = `New order #${order.orderNumber} from ${order.customerName} - ${formatCurrency(order.totalAmount)}`;
 
   function formatCurrency(amount: number) {
@@ -212,20 +212,6 @@ export const NewOrderNotificationEmail: React.FC<NewOrderNotificationEmailProps>
         </InfoCard>
       )}
 
-      {/* Preparation Time */}
-      {order.estimatedPrepTime && (
-        <InfoCard 
-          title="⏰ Estimated Prep Time"
-          icon={<ClockIcon size={28} color="#8b5cf6" />}
-          bgColor="#f3f4f6"
-          borderColor="#8b5cf6"
-        >
-          <Text style={{ fontSize: '16px', color: '#581c87', margin: 0, lineHeight: '1.6', textAlign: 'center' }}>
-            Please prepare this order within <strong>{order.estimatedPrepTime}</strong>
-          </Text>
-        </InfoCard>
-      )}
-
       {/* Action Required */}
       <table width="100%" cellPadding="0" cellSpacing="0" style={{
         backgroundColor: '#fef2f2',
@@ -279,6 +265,24 @@ export const NewOrderNotificationEmail: React.FC<NewOrderNotificationEmailProps>
       </table>
     </EmailLayout>
   );
+};
+
+NewOrderNotificationEmail.PreviewProps = {
+  order: {
+    orderNumber: '12345',
+    customerName: 'John Doe',
+    items: ['Meal 1', 'Meal 2'],
+    totalAmount: 500,
+    deliveryAddress: '123 Main St, Anytown, USA',
+    customerPhone: '123-456-7890',
+    specialInstructions: 'No onions please.',
+    estimatedPrepTime: '20 minutes',
+  },
+  partner: {
+    name: 'Partner Name',
+    email: 'partner@example.com',
+  },
+  dashboardUrl: 'http://localhost:3000/partner/dashboard',
 };
 
 export default NewOrderNotificationEmail;

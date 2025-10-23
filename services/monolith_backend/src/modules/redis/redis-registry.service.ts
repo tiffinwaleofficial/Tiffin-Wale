@@ -124,14 +124,14 @@ export class RedisRegistryService implements OnModuleInit, OnModuleDestroy {
         this.logger.log(
           `🔄 Connecting to Redis instance: ${instanceConfig.name}...`,
         );
-        
+
         // Create the main instance first
         const mainInstance = await this.createInstance(instanceConfig);
         await mainInstance.connect();
-        
+
         // Then initialize the connection pool (which will create additional connections)
         await this.initializeConnectionPool(instanceConfig);
-        
+
         this.logger.log(
           `✅ Redis instance '${instanceConfig.id}' connected and ready (${instanceConfig.host}:${instanceConfig.port})`,
         );
@@ -254,7 +254,9 @@ export class RedisRegistryService implements OnModuleInit, OnModuleDestroy {
     return redis;
   }
 
-  private async createPoolConnection(config: RedisInstanceConfig): Promise<Redis> {
+  private async createPoolConnection(
+    config: RedisInstanceConfig,
+  ): Promise<Redis> {
     const connectionString = this.redisConfig.getConnectionString(config);
 
     const redisOptions = {
@@ -303,8 +305,11 @@ export class RedisRegistryService implements OnModuleInit, OnModuleDestroy {
     }
 
     // Create additional connections for the pool (minConnections - 1, since we already have the main instance)
-    const additionalConnections = Math.max(0, this.poolConfig.minConnections - 1);
-    
+    const additionalConnections = Math.max(
+      0,
+      this.poolConfig.minConnections - 1,
+    );
+
     for (let i = 0; i < additionalConnections; i++) {
       try {
         const connection = await this.createPoolConnection(config);

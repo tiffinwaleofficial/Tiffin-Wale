@@ -3,7 +3,7 @@ import { Text, Hr } from '@react-email/components';
 import EmailLayout from '../components/EmailLayout';
 import Button from '../components/Button';
 import InfoCard from '../components/InfoCard';
-import { MailIcon, CheckCircleIcon, AlertIcon, ClockIcon } from '../components/Icons';
+import { MailIcon, CheckCircleIcon, ClockIcon } from '../components/Icons';
 
 interface EmailVerificationEmailProps {
   user: { name: string; email: string };
@@ -13,13 +13,13 @@ interface EmailVerificationEmailProps {
   supportUrl?: string;
 }
 
-export const EmailVerificationEmail: React.FC<EmailVerificationEmailProps> = ({
+export const EmailVerificationEmail = ({
   user,
   verificationUrl,
   appName = 'Tiffin-Wale',
   appUrl = 'https://tiffin-wale.com',
   supportUrl = 'https://tiffin-wale.com/support',
-}) => {
+}: EmailVerificationEmailProps) => {
   const preview = `Verify your email address for ${appName}`;
 
   return (
@@ -205,6 +205,14 @@ export const EmailVerificationEmail: React.FC<EmailVerificationEmailProps> = ({
       </table>
     </EmailLayout>
   );
+};
+
+EmailVerificationEmail.PreviewProps = {
+  user: {
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+  },
+  verificationUrl: 'http://localhost:3000/verify-email?token=test-token',
 };
 
 export default EmailVerificationEmail;

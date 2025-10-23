@@ -1,22 +1,21 @@
 import React from 'react';
-import { Link } from '@react-email/components';
+import { Button as ReactEmailButton, ButtonProps } from '@react-email/components';
 
-interface ButtonProps {
-  href: string;
-  children: React.ReactNode;
+interface CustomButtonProps extends Omit<ButtonProps, 'style'> {
   variant?: 'primary' | 'secondary' | 'outline' | 'success' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
   icon?: React.ReactNode;
 }
 
-export const Button: React.FC<ButtonProps> = ({
+export const Button: React.FC<CustomButtonProps> = ({
   href,
   children,
   variant = 'primary',
   size = 'md',
   fullWidth = false,
   icon,
+  ...props
 }) => {
   const variantStyles = {
     primary: {
@@ -76,20 +75,22 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   return (
-    <Link href={href} style={buttonStyle}>
-      <table cellPadding="0" cellSpacing="0" border={0} style={{ margin: '0 auto' }}>
-        <tr>
-          {icon && (
+    <ReactEmailButton href={href} style={buttonStyle} {...props}>
+      {icon ? (
+        <table cellPadding="0" cellSpacing="0" border={0} style={{ margin: '0 auto' }}>
+          <tr>
             <td style={{ paddingRight: '8px', verticalAlign: 'middle' }}>
               {icon}
             </td>
-          )}
-          <td style={{ verticalAlign: 'middle' }}>
-            {children}
-          </td>
-        </tr>
-      </table>
-    </Link>
+            <td style={{ verticalAlign: 'middle' }}>
+              {children}
+            </td>
+          </tr>
+        </table>
+      ) : (
+        children
+      )}
+    </ReactEmailButton>
   );
 };
 

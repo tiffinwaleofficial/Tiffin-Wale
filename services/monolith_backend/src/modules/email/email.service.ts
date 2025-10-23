@@ -171,10 +171,17 @@ export class EmailService {
     resetData: {
       name: string;
       resetToken: string;
+      role: "customer" | "business_partner";
+      resetUrl?: string;
       expiresIn?: string;
     },
   ): Promise<EmailResult> {
-    const resetUrl = `${this.appUrl}/reset-password?token=${resetData.resetToken}`;
+    // Use provided resetUrl or generate based on role
+    const resetUrl =
+      resetData.resetUrl ||
+      (resetData.role === "customer"
+        ? `${this.configService.get<string>("STUDENT_APP_URL")}/reset-password?token=${resetData.resetToken}`
+        : `${this.configService.get<string>("PARTNER_APP_URL")}/reset-password?token=${resetData.resetToken}`);
 
     const templateData: TemplateData = {
       user: { name: resetData.name, email, id: "" },
@@ -188,6 +195,31 @@ export class EmailService {
       template: "password-reset",
       data: templateData,
       subject: "Reset Your Password - Tiffin-Wale",
+      from: this.getSenderEmail("password-reset"),
+    });
+  }
+
+  /**
+   * Send password change confirmation email
+   */
+  async sendPasswordChangeConfirmation(
+    email: string,
+    confirmationData: {
+      name: string;
+      timestamp: string;
+    },
+  ): Promise<EmailResult> {
+    const templateData: TemplateData = {
+      user: { name: confirmationData.name, email, id: "" },
+      timestamp: confirmationData.timestamp,
+      supportUrl: `${this.appUrl}/support`,
+    };
+
+    return this.sendTemplateEmail({
+      to: email,
+      template: "password-change-confirmation",
+      data: templateData,
+      subject: "Password Changed Successfully - Tiffin-Wale",
       from: this.getSenderEmail("password-reset"),
     });
   }
@@ -529,7 +561,7 @@ export class EmailService {
       }
 
       // Build HTML content from template
-      const htmlContent = await this.templateService.buildTemplate(
+      const emailComponent = await this.templateService.getTemplateComponent(
         emailData.template,
         emailData.data,
       );
@@ -555,7 +587,7 @@ export class EmailService {
         from: emailData.from || this.fromEmail,
         to: emailData.to,
         subject: emailData.subject,
-        html: htmlContent,
+        react: emailComponent,
         cc: emailData.cc,
         bcc: emailData.bcc,
         replyTo: emailData.replyTo,

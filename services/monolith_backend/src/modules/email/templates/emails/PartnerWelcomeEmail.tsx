@@ -3,7 +3,7 @@ import { Text, Hr } from '@react-email/components';
 import EmailLayout from '../components/EmailLayout';
 import Button from '../components/Button';
 import InfoCard from '../components/InfoCard';
-import { TiffinIcon, TrophyIcon, StarIcon, GiftIcon, UserIcon } from '../components/Icons';
+import { TiffinIcon, TrophyIcon, StarIcon, UserIcon } from '../components/Icons';
 
 interface PartnerWelcomeEmailProps {
   partner: {
@@ -19,14 +19,14 @@ interface PartnerWelcomeEmailProps {
   appUrl?: string;
 }
 
-export const PartnerWelcomeEmail: React.FC<PartnerWelcomeEmailProps> = ({
+export const PartnerWelcomeEmail = ({
   partner,
   dashboardUrl = 'https://tiffin-wale.com/partner/dashboard',
   onboardingUrl = 'https://tiffin-wale.com/partner/onboarding',
   supportUrl = 'https://tiffin-wale.com/partner/support',
   appName = 'Tiffin-Wale',
   appUrl = 'https://tiffin-wale.com',
-}) => {
+}: PartnerWelcomeEmailProps) => {
   const preview = `Welcome to ${appName} Partner Program! Start growing your food business today.`;
 
   return (
@@ -386,6 +386,18 @@ export const PartnerWelcomeEmail: React.FC<PartnerWelcomeEmailProps> = ({
       </table>
     </EmailLayout>
   );
+};
+
+PartnerWelcomeEmail.PreviewProps = {
+  partner: {
+    name: 'Partner Name',
+    email: 'partner@example.com',
+    businessName: 'Tiffin Partner',
+    partnerId: 'partner-123',
+  },
+  dashboardUrl: 'http://localhost:3000/partner/dashboard',
+  onboardingUrl: 'http://localhost:3000/partner/onboarding',
+  supportUrl: 'http://localhost:3000/partner/support',
 };
 
 export default PartnerWelcomeEmail;
