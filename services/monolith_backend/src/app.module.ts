@@ -1,6 +1,7 @@
 import { Module, MiddlewareConsumer, NestModule } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { DatabaseModule } from "./database/database.module";
+import { emailConfig } from "./config/email.config";
 import { AnalyticsMiddleware } from "./common/middleware/analytics.middleware";
 
 // Module imports
@@ -36,6 +37,7 @@ import { AIModule } from "./modules/ai/ai.module";
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ".env",
+      load: [emailConfig],
     }),
 
     // Database

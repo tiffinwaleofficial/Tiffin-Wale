@@ -81,6 +81,18 @@ export class PartnerController {
     return this.partnerService.getMenu(id);
   }
 
+  @Get(":id/plans")
+  @ApiOperation({ summary: "Get subscription plans for a specific partner" })
+  @ApiResponse({
+    status: 200,
+    description: "Return partner subscription plans",
+  })
+  @ApiResponse({ status: 404, description: "Partner not found" })
+  @ApiParam({ name: "id", description: "Partner ID" })
+  async getSubscriptionPlans(@Param("id") id: string) {
+    return this.partnerService.getSubscriptionPlans(id);
+  }
+
   @Get(":id/reviews")
   @ApiOperation({ summary: "Get reviews for a specific partner" })
   @ApiResponse({ status: 200, description: "Return partner reviews" })

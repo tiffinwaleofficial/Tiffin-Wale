@@ -25,7 +25,7 @@ export class TemplateService {
       this.logger.debug(
         `React Email template component ${templateName} retrieved successfully`,
       );
-      
+
       // Return the component with props
       return React.createElement(TemplateComponent, templateData);
     } catch (error) {
@@ -45,8 +45,11 @@ export class TemplateService {
     data: TemplateData,
   ): Promise<string> {
     try {
-      const emailComponent = await this.getTemplateComponent(templateName, data);
-      
+      const emailComponent = await this.getTemplateComponent(
+        templateName,
+        data,
+      );
+
       // Render React component to HTML
       const html = render(emailComponent);
 
@@ -81,7 +84,9 @@ export class TemplateService {
   /**
    * Load React component for template
    */
-  private async loadTemplateComponent(templateName: string): Promise<React.ComponentType<any>> {
+  private async loadTemplateComponent(
+    templateName: string,
+  ): Promise<React.ComponentType<any>> {
     if (this.templateCache.has(templateName)) {
       return this.templateCache.get(templateName)!;
     }
@@ -156,7 +161,7 @@ export class TemplateService {
 
     return templatePath;
   }
-  
+
   /**
    * Prepare template data with common variables
    */
@@ -318,7 +323,10 @@ export class TemplateService {
       const templateData = this.prepareTemplateData(data);
 
       // Render to plain text
-      const text = render(React.createElement(TemplateComponent, templateData), { plainText: true });
+      const text = render(
+        React.createElement(TemplateComponent, templateData),
+        { plainText: true },
+      );
 
       return text;
     } catch (error) {

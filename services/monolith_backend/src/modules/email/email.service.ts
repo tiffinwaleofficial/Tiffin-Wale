@@ -1,7 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
-import { Resend } from "resend";
 import { TemplateService } from "./template.service";
 import { EmailLog, EmailLogDocument } from "./schemas/email-log.schema";
 import {
@@ -15,11 +14,15 @@ import {
   BulkEmailData,
 } from "./interfaces/email.interface";
 import { ConfigService } from "@nestjs/config";
+import { Resend } from "resend";
+import { MailjetService } from "./mailjet.service";
+import { EmailConfig } from "../../config/email.config";
 
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private readonly resend: Resend;
+  private readonly emailConfig: EmailConfig;
   private readonly fromEmail: string;
   private readonly appUrl: string;
   private readonly supportEmail: string;
@@ -43,52 +46,142 @@ export class EmailService {
     private emailPreferenceModel: Model<EmailPreferenceDocument>,
     private templateService: TemplateService,
     private configService: ConfigService,
+    private mailjetService: MailjetService,
   ) {
-    const apiKey = this.configService.get<string>("RESEND_API_KEY");
-    if (!apiKey) {
-      this.logger.warn(
-        "RESEND_API_KEY not found. Email service will be disabled.",
+    // Load centralized email configuration
+    this.emailConfig = this.configService.get<EmailConfig>("email")!;
+
+    if (!this.emailConfig) {
+      this.logger.error(
+        "Email configuration not found. Using fallback values.",
       );
     }
 
-    this.resend = new Resend(apiKey);
-    this.fromEmail =
-      this.configService.get<string>("FROM_EMAIL") ||
-      "Tiffin-Wale <noreply@tiffin-wale.com>";
-    this.appUrl =
-      this.configService.get<string>("APP_URL") || "https://tiffin-wale.com";
-    this.supportEmail =
-      this.configService.get<string>("SUPPORT_EMAIL") ||
-      "support@tiffin-wale.com";
-    this.emailEnabled = this.configService.get<boolean>("EMAIL_ENABLED", true);
+    // Initialize Resend if enabled
+    const resendConfig = this.emailConfig?.resend;
+    if (resendConfig?.enabled && resendConfig?.apiKey) {
+      this.resend = new Resend(resendConfig.apiKey);
+      this.logger.log("Resend email service initialized");
+    } else {
+      this.logger.warn("Resend service disabled or API key missing");
+    }
 
-    // Initialize multiple sender email addresses
-    this.emailAddresses = {
-      info:
-        this.configService.get<string>("INFO_EMAIL") ||
-        "Tiffin-Wale <info@tiffin-wale.com>",
-      sales:
-        this.configService.get<string>("SALES_EMAIL") ||
-        "Tiffin-Wale Sales <sales@tiffin-wale.com>",
-      orders:
-        this.configService.get<string>("ORDERS_EMAIL") ||
-        "Tiffin-Wale Orders <orders@tiffin-wale.com>",
-      billing:
-        this.configService.get<string>("BILLING_EMAIL") ||
-        "Tiffin-Wale Billing <billing@tiffin-wale.com>",
-      feedback:
-        this.configService.get<string>("FEEDBACK_EMAIL") ||
-        "Tiffin-Wale Feedback <feedback@tiffin-wale.com>",
-      careers:
-        this.configService.get<string>("CAREERS_EMAIL") ||
-        "Tiffin-Wale Careers <careers@tiffin-wale.com>",
-      marketing:
-        this.configService.get<string>("MARKETING_EMAIL") ||
-        "Tiffin-Wale Marketing <marketing@tiffin-wale.com>",
-      admin:
-        this.configService.get<string>("ADMIN_EMAIL") ||
-        "Tiffin-Wale Admin <admin@tiffin-wale.com>",
+    // Use centralized configuration
+    this.fromEmail =
+      this.emailConfig?.fromEmail || "Tiffin-Wale <noreply@tiffin-wale.com>";
+    this.appUrl = this.emailConfig?.appUrl || "https://tiffin-wale.com";
+    this.supportEmail =
+      this.emailConfig?.supportEmail || "support@tiffin-wale.com";
+    this.emailEnabled = this.emailConfig?.enabled ?? true;
+
+    // Use centralized email addresses configuration
+    this.emailAddresses = this.emailConfig?.emailAddresses || {
+      info: "Tiffin-Wale <info@tiffin-wale.com>",
+      sales: "Tiffin-Wale Sales <sales@tiffin-wale.com>",
+      orders: "Tiffin-Wale Orders <orders@tiffin-wale.com>",
+      billing: "Tiffin-Wale Billing <billing@tiffin-wale.com>",
+      feedback: "Tiffin-Wale Feedback <feedback@tiffin-wale.com>",
+      careers: "Tiffin-Wale Careers <careers@tiffin-wale.com>",
+      marketing: "Tiffin-Wale Marketing <marketing@tiffin-wale.com>",
+      admin: "Tiffin-Wale Admin <admin@tiffin-wale.com>",
     };
+
+    // Log comprehensive email service status
+    this.logEmailServiceStatus();
+  }
+
+  /**
+   * Log comprehensive email service status on startup
+   */
+  private logEmailServiceStatus(): void {
+    const resendEnabled = this.emailConfig?.resend?.enabled && this.resend;
+    const mailjetEnabled =
+      this.emailConfig?.mailjet?.enabled && this.mailjetService.isEnabled();
+    const preferredProvider = this.emailConfig?.preferredProvider || "resend";
+    const autoFallback = this.emailConfig?.autoFallback ?? true;
+
+    // Main status
+    this.logger.log("📧 EMAIL SERVICE INITIALIZED");
+    this.logger.log("═══════════════════════════════════════");
+
+    // Overall configuration
+    this.logger.log(
+      `🎯 Service Status: ${this.emailEnabled ? "✅ ENABLED" : "❌ DISABLED"}`,
+    );
+    this.logger.log(
+      `🔄 Auto-Fallback: ${autoFallback ? "✅ ENABLED" : "❌ DISABLED"}`,
+    );
+    this.logger.log(
+      `⭐ Preferred Provider: ${preferredProvider.toUpperCase()}`,
+    );
+
+    // Provider status
+    this.logger.log("\n📊 PROVIDER STATUS:");
+
+    // Resend status
+    const resendStatus = resendEnabled ? "✅ READY" : "❌ DISABLED";
+    const resendLimit = this.emailConfig?.resend?.dailyLimit || 100;
+    this.logger.log(`  📤 Resend: ${resendStatus} (${resendLimit} emails/day)`);
+    if (resendEnabled) {
+      this.logger.log(
+        `     API Key: ${this.emailConfig?.resend?.apiKey ? "✅ Configured" : "❌ Missing"}`,
+      );
+    }
+
+    // Mailjet status
+    const mailjetStatus = mailjetEnabled ? "✅ READY" : "❌ DISABLED";
+    const mailjetLimit = this.emailConfig?.mailjet?.dailyLimit || 200;
+    this.logger.log(
+      `  📤 Mailjet: ${mailjetStatus} (${mailjetLimit} emails/day)`,
+    );
+    if (this.emailConfig?.mailjet?.enabled) {
+      const hasApiKey = !!this.emailConfig?.mailjet?.apiKey;
+      const hasSecretKey = !!this.emailConfig?.mailjet?.secretKey;
+      this.logger.log(
+        `     API Key: ${hasApiKey ? "✅ Configured" : "❌ Missing"}`,
+      );
+      this.logger.log(
+        `     Secret Key: ${hasSecretKey ? "✅ Configured" : "❌ Missing"}`,
+      );
+    }
+
+    // Total capacity
+    let totalCapacity = 0;
+    if (resendEnabled) totalCapacity += resendLimit;
+    if (mailjetEnabled) totalCapacity += mailjetLimit;
+
+    this.logger.log(`\n📈 TOTAL DAILY CAPACITY: ${totalCapacity} emails/day`);
+
+    // Email addresses
+    this.logger.log("\n📮 SENDER ADDRESSES:");
+    this.logger.log(`  Default: ${this.fromEmail}`);
+    this.logger.log(`  Support: ${this.supportEmail}`);
+    this.logger.log(`  App URL: ${this.appUrl}`);
+
+    // Warnings and recommendations
+    this.logger.log("\n⚠️  STATUS SUMMARY:");
+
+    if (!resendEnabled && !mailjetEnabled) {
+      this.logger.error(
+        "❌ NO EMAIL PROVIDERS AVAILABLE - Email service will not work!",
+      );
+    } else if (!resendEnabled) {
+      this.logger.warn("⚠️  Resend disabled - Using Mailjet only");
+    } else if (!mailjetEnabled) {
+      this.logger.warn(
+        "⚠️  Mailjet disabled - Using Resend only (no fallback)",
+      );
+    } else {
+      this.logger.log("✅ Both providers available - Full redundancy enabled");
+    }
+
+    if (autoFallback && resendEnabled && mailjetEnabled) {
+      this.logger.log(
+        "🔄 Smart fallback enabled - Automatic provider switching available",
+      );
+    }
+
+    this.logger.log("═══════════════════════════════════════\n");
   }
 
   /**
@@ -582,33 +675,160 @@ export class EmailService {
 
       await emailLog.save();
 
-      // Send email via Resend
-      const response = await this.resend.emails.send({
-        from: emailData.from || this.fromEmail,
-        to: emailData.to,
-        subject: emailData.subject,
-        react: emailComponent,
-        cc: emailData.cc,
-        bcc: emailData.bcc,
-        replyTo: emailData.replyTo,
-      });
+      // Determine which provider to use based on central configuration
+      let result: EmailResult;
+      let provider: string;
+      const preferredProvider = this.emailConfig?.preferredProvider || "resend";
+      const autoFallback = this.emailConfig?.autoFallback ?? true;
 
-      // Update email log with success
-      await this.emailLogModel.findByIdAndUpdate(emailLog._id, {
-        status: "sent",
-        resendId: response.data?.id,
-        sentAt: new Date(),
-      });
+      // Check if preferred provider is available
+      const resendEnabled = this.emailConfig?.resend?.enabled && this.resend;
+      const mailjetEnabled =
+        this.emailConfig?.mailjet?.enabled && this.mailjetService.isEnabled();
 
-      this.logger.log(
-        `Email sent successfully to ${emailData.to} using template ${emailData.template}`,
-      );
+      if (preferredProvider === "mailjet" && mailjetEnabled) {
+        // Use Mailjet as primary
+        provider = "mailjet";
+        const htmlContent = await this.templateService.buildTemplate(
+          emailData.template,
+          emailData.data,
+        );
 
-      return {
-        success: true,
-        messageId: response.data?.id,
-        resendId: response.data?.id,
-      };
+        result = await this.mailjetService.sendEmail({
+          from: emailData.from || this.fromEmail,
+          to: emailData.to,
+          subject: emailData.subject,
+          html: htmlContent,
+          cc: emailData.cc,
+          bcc: emailData.bcc,
+          replyTo: emailData.replyTo,
+        });
+
+        // Fallback to Resend if Mailjet fails and auto-fallback is enabled
+        if (!result.success && autoFallback && resendEnabled) {
+          this.logger.warn(
+            `Mailjet failed, trying Resend fallback: ${result.error}`,
+          );
+          provider = "resend";
+
+          try {
+            const response = await this.resend.emails.send({
+              from: emailData.from || this.fromEmail,
+              to: emailData.to,
+              subject: emailData.subject,
+              react: emailComponent,
+              cc: emailData.cc,
+              bcc: emailData.bcc,
+              replyTo: emailData.replyTo,
+            });
+
+            if (response.error) {
+              throw new Error(`Resend API error: ${response.error.message}`);
+            }
+
+            result = {
+              success: true,
+              messageId: response.data?.id,
+              resendId: response.data?.id,
+            };
+          } catch (resendError) {
+            result = {
+              success: false,
+              error: `Both providers failed. Mailjet: ${result.error}, Resend: ${resendError.message}`,
+            };
+          }
+        }
+      } else {
+        // Use Resend as primary (default behavior)
+        provider = "resend";
+
+        if (!resendEnabled) {
+          result = {
+            success: false,
+            error: "Resend service is not enabled or configured",
+          };
+        } else {
+          try {
+            const response = await this.resend.emails.send({
+              from: emailData.from || this.fromEmail,
+              to: emailData.to,
+              subject: emailData.subject,
+              react: emailComponent,
+              cc: emailData.cc,
+              bcc: emailData.bcc,
+              replyTo: emailData.replyTo,
+            });
+
+            if (response.error) {
+              throw new Error(`Resend API error: ${response.error.message}`);
+            }
+
+            result = {
+              success: true,
+              messageId: response.data?.id,
+              resendId: response.data?.id,
+            };
+          } catch (resendError) {
+            // Fallback to Mailjet if Resend fails and auto-fallback is enabled
+            if (autoFallback && mailjetEnabled) {
+              this.logger.warn(
+                `Resend failed, trying Mailjet fallback: ${resendError.message}`,
+              );
+              provider = "mailjet";
+
+              const htmlContent = await this.templateService.buildTemplate(
+                emailData.template,
+                emailData.data,
+              );
+
+              result = await this.mailjetService.sendEmail({
+                from: emailData.from || this.fromEmail,
+                to: emailData.to,
+                subject: emailData.subject,
+                html: htmlContent,
+                cc: emailData.cc,
+                bcc: emailData.bcc,
+                replyTo: emailData.replyTo,
+              });
+
+              if (!result.success) {
+                result = {
+                  success: false,
+                  error: `Both providers failed. Resend: ${resendError.message}, Mailjet: ${result.error}`,
+                };
+              }
+            } else {
+              result = {
+                success: false,
+                error: `Resend failed and no fallback available: ${resendError.message}`,
+              };
+            }
+          }
+        }
+      }
+
+      // Update email log with result
+      if (result.success) {
+        await this.emailLogModel.findByIdAndUpdate(emailLog._id, {
+          status: "sent",
+          resendId: result.messageId,
+          sentAt: new Date(),
+          metadata: { provider },
+        });
+
+        this.logger.log(
+          `Email sent successfully to ${emailData.to} using template ${emailData.template} via ${provider}`,
+        );
+      } else {
+        await this.emailLogModel.findByIdAndUpdate(emailLog._id, {
+          status: "failed",
+          errorMessage: result.error,
+          failedAt: new Date(),
+          metadata: { provider },
+        });
+      }
+
+      return result;
     } catch (error) {
       this.logger.error(`Failed to send email to ${emailData.to}:`, error);
 

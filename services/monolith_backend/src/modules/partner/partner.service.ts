@@ -8,6 +8,7 @@ import { Order } from "../order/schemas/order.schema";
 import { CreatePartnerDto } from "./dto/create-partner.dto";
 import { UpdatePartnerDto } from "./dto/update-partner.dto";
 import { EmailService } from "../email/email.service";
+import { SubscriptionPlan } from "../subscription/schemas/subscription-plan.schema";
 
 interface PartnerFilters {
   cuisineType?: string;
@@ -22,6 +23,8 @@ export class PartnerService {
     @InjectModel(MenuItem.name) private menuItemModel: Model<MenuItem>,
     @InjectModel(Feedback.name) private feedbackModel: Model<Feedback>,
     @InjectModel(Order.name) private orderModel: Model<Order>,
+    @InjectModel(SubscriptionPlan.name)
+    private subscriptionPlanModel: Model<SubscriptionPlan>,
     private readonly emailService: EmailService,
   ) {}
 
@@ -73,6 +76,16 @@ export class PartnerService {
         isActive: true,
       })
       .sort({ category: 1, name: 1 })
+      .exec();
+  }
+
+  async getSubscriptionPlans(partnerId: string): Promise<SubscriptionPlan[]> {
+    await this.findOne(partnerId);
+    return this.subscriptionPlanModel
+      .find({
+        partner: partnerId,
+        isActive: true,
+      })
       .exec();
   }
 

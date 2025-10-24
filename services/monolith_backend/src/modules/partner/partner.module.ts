@@ -10,6 +10,10 @@ import { MenuItem, MenuItemSchema } from "../menu/schemas/menu-item.schema";
 import { Feedback, FeedbackSchema } from "../feedback/schemas/feedback.schema";
 import { Order, OrderSchema } from "../order/schemas/order.schema";
 import { EmailModule } from "../email/email.module";
+import {
+  SubscriptionPlan,
+  SubscriptionPlanSchema,
+} from "../subscription/schemas/subscription-plan.schema";
 
 @Module({
   imports: [
@@ -18,6 +22,7 @@ import { EmailModule } from "../email/email.module";
       { name: MenuItem.name, schema: MenuItemSchema },
       { name: Feedback.name, schema: FeedbackSchema },
       { name: Order.name, schema: OrderSchema },
+      { name: SubscriptionPlan.name, schema: SubscriptionPlanSchema },
     ]),
     MenuModule,
     FeedbackModule,
