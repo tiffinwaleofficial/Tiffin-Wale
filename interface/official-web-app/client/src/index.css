@@ -4,6 +4,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import Poppins font family */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
 /* Add smooth scrolling behavior for all elements */
 html {
   scroll-behavior: smooth;
@@ -11,26 +14,52 @@ html {
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    /* Enhanced Tiffin Wale Color Scheme */
+    --background: 39 100% 97%; /* #FFFAF0 - Cream background */
+    --foreground: 213 27% 20%; /* #2D3748 - Dark text */
+    --card: 0 0% 100%; /* White cards */
+    --card-foreground: 213 27% 20%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 28 100% 63%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
+    --popover-foreground: 213 27% 20%;
+    --primary: 28 100% 63%; /* #FF9B42 - Orange primary */
+    --primary-foreground: 0 0% 100%; /* White text on primary */
+    --secondary: 39 100% 95%; /* #FFF5E6 - Light cream */
+    --secondary-foreground: 213 27% 20%;
+    --muted: 39 100% 95%;
+    --muted-foreground: 213 16% 45%; /* #718096 - Light text */
+    --accent: 28 85% 55%; /* #E8851E - Darker orange */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%; /* #F56565 - Red */
+    --destructive-foreground: 0 0% 100%;
+    --border: 39 50% 90%; /* Light border */
+    --input: 39 50% 90%;
+    --ring: 28 100% 63%; /* Primary color for focus rings */
+    --success: 142 69% 58%; /* #48BB78 - Green */
+    --warning: 32 95% 44%; /* #ED8936 - Orange warning */
+    --info: 204 94% 94%; /* #4299E1 - Blue */
+    --radius: 0.75rem; /* Slightly larger radius for modern look */
+  }
+  
+  .dark {
+    --background: 213 27% 8%; /* Dark background */
+    --foreground: 39 100% 97%;
+    --card: 213 27% 12%;
+    --card-foreground: 39 100% 97%;
+    --popover: 213 27% 12%;
+    --popover-foreground: 39 100% 97%;
+    --primary: 28 100% 63%; /* Keep primary orange in dark mode */
+    --primary-foreground: 213 27% 8%;
+    --secondary: 213 27% 15%;
+    --secondary-foreground: 39 100% 97%;
+    --muted: 213 27% 15%;
+    --muted-foreground: 213 16% 65%;
+    --accent: 28 85% 55%;
+    --accent-foreground: 39 100% 97%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 39 100% 97%;
+    --border: 213 27% 20%;
+    --input: 213 27% 20%;
     --ring: 28 100% 63%;
-    --radius: 0.5rem;
   }
 
   * {
@@ -39,11 +68,12 @@ html {
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    font-family: 'Open Sans', sans-serif;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 600;
   }
 }
 
@@ -93,7 +123,7 @@ html {
   }
 }
 
-/* Animations */
+/* Enhanced Animations */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -112,6 +142,14 @@ html {
   to {
     opacity: 1;
   }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.6s ease-out forwards;
 }
 
 @keyframes slideInRight {

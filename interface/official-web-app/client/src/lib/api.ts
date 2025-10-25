@@ -16,13 +16,15 @@ let socket: WebSocket | null = null;
 let socketReconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
-// Types
+// Enhanced Types with File Upload Support
 export type ContactFormData = {
   name: string;
   email: string;
   message: string;
-  phoneNumber?: string;
+  phone?: string;
   subject?: string;
+  priority?: 'low' | 'normal' | 'high' | 'urgent';
+  attachments?: string[]; // Cloudinary URLs
 };
 
 export type CorporateQuoteData = {
@@ -32,6 +34,7 @@ export type CorporateQuoteData = {
   phone: string;
   employeeCount: string;
   requirements?: string;
+  documents?: string[]; // Cloudinary URLs for proposals, company profiles, etc.
 };
 
 export type TestimonialFormData = {
@@ -40,14 +43,17 @@ export type TestimonialFormData = {
   profession?: string;
   rating: number;
   testimonial: string;
-  imageUrl?: string;
+  imageUrl?: string; // For backward compatibility
+  imageUrls?: string[]; // New field for multiple images
 };
 
 export type FeedbackFormData = {
+  name?: string;
   email: string;
-  type: 'suggestion' | 'complaint' | 'question' | 'other';
+  type: 'suggestion' | 'complaint' | 'question' | 'compliment' | 'other';
   feedback: string;
   rating?: number;
+  attachments?: string[]; // Cloudinary URLs for screenshots, documents, etc.
 };
 
 export type ApiResponse = {

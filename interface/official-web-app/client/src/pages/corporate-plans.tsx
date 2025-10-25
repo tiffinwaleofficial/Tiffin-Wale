@@ -3,64 +3,10 @@ import Footer from "@/components/Footer";
 import { ChevronRight } from "lucide-react";
 import { Link } from "wouter";
 import MobileAppBanner from "@/components/MobileAppBanner";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { useState } from "react";
 import { Users, Building2, Utensils, CalendarDays } from "lucide-react";
-import { submitCorporateQuote, CorporateQuoteData } from "@/lib/api";
-import { useToast } from "@/hooks/use-toast";
+import CorporateQuoteForm from "@/components/CorporateQuoteForm";
 
 export default function CorporatePlansPage() {
-  const [formSubmitted, setFormSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
-  const [formData, setFormData] = useState<CorporateQuoteData>({
-    companyName: '',
-    contactPerson: '',
-    email: '',
-    phone: '',
-    employeeCount: '5-20',
-    requirements: ''
-  });
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { id, value } = e.target;
-    setFormData({
-      ...formData,
-      [id === 'company' ? 'companyName' : 
-       id === 'name' ? 'contactPerson' : 
-       id === 'phone' ? 'phone' : 
-       id === 'email' ? 'email' : 
-       id === 'employees' ? 'employeeCount' : 
-       id === 'requirements' ? 'requirements' : id]: value
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    try {
-      await submitCorporateQuote(formData);
-    setFormSubmitted(true);
-      toast({
-        title: "Quote request submitted!",
-        description: "We'll get back to you with a custom quote soon.",
-        variant: "default",
-      });
-    } catch (error) {
-      console.error('Failed to submit quote request:', error);
-      toast({
-        title: "Submission failed",
-        description: "An error occurred. Please try again or contact us directly.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -245,111 +191,11 @@ export default function CorporatePlansPage() {
         </div>
       </section>
       
-      {/* Contact Form Section */}
+      {/* Enhanced Corporate Quote Form */}
       <section className="py-16 bg-white">
         <div className="container mx-auto">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="font-bold text-3xl mb-8 text-center">Get a Custom Quote</h2>
-            
-            {!formSubmitted ? (
-              <form onSubmit={handleSubmit} className="bg-gray-50 p-8 rounded-xl space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="company">Company Name</Label>
-                    <Input 
-                      id="company" 
-                      required 
-                      placeholder="Your company name" 
-                      value={formData.companyName}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Contact Person</Label>
-                    <Input 
-                      id="name" 
-                      required 
-                      placeholder="Full name" 
-                      value={formData.contactPerson}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      required 
-                      placeholder="your@email.com" 
-                      value={formData.email}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input 
-                      id="phone" 
-                      required 
-                      placeholder="Your contact number" 
-                      value={formData.phone}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="employees">Number of Employees</Label>
-                  <select 
-                    id="employees" 
-                    className="w-full rounded-md border border-input bg-background px-3 py-2"
-                    value={formData.employeeCount}
-                    onChange={handleChange}
-                  >
-                    <option value="5-20">5-20 employees</option>
-                    <option value="21-50">21-50 employees</option>
-                    <option value="51-100">51-100 employees</option>
-                    <option value="101-500">101-500 employees</option>
-                    <option value="500+">500+ employees</option>
-                  </select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="requirements">Additional Requirements</Label>
-                  <Textarea 
-                    id="requirements" 
-                    placeholder="Tell us about any specific dietary restrictions, meal preferences, or other requirements."
-                    rows={5}
-                    value={formData.requirements}
-                    onChange={handleChange}
-                  />
-                </div>
-                
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? "Submitting..." : "Request Corporate Quote"}
-                </Button>
-              </form>
-            ) : (
-              <div className="bg-green-50 p-8 rounded-xl text-center">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <h3 className="text-2xl font-bold text-green-800 mb-2">Thank You!</h3>
-                <p className="text-green-700 mb-4">
-                  We've received your corporate inquiry and will get back to you within 24 hours with a customized quote.
-                </p>
-                <p className="text-green-600 mb-6">
-                  One of our corporate solutions specialists will reach out to discuss your specific requirements.
-                </p>
-                <Link href="/">
-                  <Button variant="outline">Return to Home</Button>
-                </Link>
-              </div>
-            )}
+          <div className="max-w-4xl mx-auto">
+            <CorporateQuoteForm />
           </div>
         </div>
       </section>
