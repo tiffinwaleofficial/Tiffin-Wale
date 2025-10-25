@@ -12,6 +12,7 @@
 import { firebaseNotificationService } from './firebaseNotificationService'
 import { nativeWebSocketService } from './nativeWebSocketService'
 import { pushNotificationService } from './pushNotificationService'
+import { notificationPreferencesService, NotificationEvent } from './notificationPreferencesService'
 import { useAuthStore } from '@/store/authStore'
 
 export interface RealtimeNotificationPayload {
@@ -135,173 +136,150 @@ export class RealtimeNotificationService {
   /**
    * Handle order update notifications
    */
-  private handleOrderUpdate(data: any): void {
-    const { orderId, status, message, title } = data
+  private async handleOrderUpdate(data: any): Promise<void> {
+    const { orderId, status, message, title, userId } = data
 
     console.log('🍽️ Order update notification:', { orderId, status })
 
-    // Show Firebase notification with funny message
-    switch (status) {
-      case 'confirmed':
-      case 'placed':
-        firebaseNotificationService.showOrderUpdate('placed', {
-          title: title || undefined,
-          body: message || undefined,
-          data: { orderId, status }
-        })
-        break
-
-      case 'preparing':
-      case 'cooking':
-        firebaseNotificationService.showOrderUpdate('cooking', {
-          title: title || undefined,
-          body: message || undefined,
-          data: { orderId, status }
-        })
-        break
-
-      case 'out_for_delivery':
-      case 'on_the_way':
-        firebaseNotificationService.showOrderUpdate('delivery', {
-          title: title || undefined,
-          body: message || undefined,
-          data: { orderId, status }
-        })
-        break
-
-      case 'delivered':
-      case 'completed':
-        firebaseNotificationService.showOrderUpdate('delivered', {
-          title: title || undefined,
-          body: message || undefined,
-          data: { orderId, status }
-        })
-        break
-
-      case 'cancelled':
-        firebaseNotificationService.showError({
-          title: title || 'Order Cancelled 😔',
-          body: message || 'Your order has been cancelled. Don\'t worry, there are plenty more delicious options! 🍽️',
-          data: { orderId, status }
-        })
-        break
-
-      default:
-        firebaseNotificationService.showSuccess({
-          title: title || 'Order Update 📱',
-          body: message || `Your order status has been updated to: ${status}`,
-          data: { orderId, status }
-        })
-    }
-
-    // Also send push notification for background
-    this.sendPushNotification({
+    // Create notification event
+    const event: NotificationEvent = {
+      type: 'order',
+      subtype: this.mapOrderStatusToSubtype(status),
       title: title || this.getOrderStatusTitle(status),
       body: message || this.getOrderStatusMessage(status),
-      data: { type: 'order_update', orderId, status }
-    })
+      data: { orderId, status },
+      userId,
+      priority: this.getOrderPriority(status)
+    }
+
+    // Send through notification preferences service
+    const result = await notificationPreferencesService.sendNotification(event)
+    
+    if (result.sent) {
+      console.log('✅ Order notification sent successfully')
+    } else {
+      console.log('🔕 Order notification blocked:', result.reason)
+    }
   }
 
   /**
    * Handle payment update notifications
    */
-  private handlePaymentUpdate(data: any): void {
-    const { paymentId, status, amount, message, title } = data
+  private async handlePaymentUpdate(data: any): Promise<void> {
+    const { paymentId, status, amount, message, title, userId } = data
 
     console.log('💳 Payment update notification:', { paymentId, status })
 
     const success = status === 'completed' || status === 'success'
     
-    firebaseNotificationService.showPaymentUpdate(success, {
-      title: title || undefined,
-      body: message || undefined,
-      data: { paymentId, status, amount }
-    })
-
-    // Send push notification
-    this.sendPushNotification({
+    // Create notification event
+    const event: NotificationEvent = {
+      type: 'payment',
+      subtype: success ? 'paymentSuccess' : 'paymentFailed',
       title: title || (success ? 'Payment Successful! 💳' : 'Payment Failed 😅'),
       body: message || (success 
         ? `Payment of ₹${amount} completed successfully! Your wallet is lighter, but your stomach will be happier 😊`
         : 'Payment failed! Don\'t worry, we\'re fixing it faster than you can say "tiffin" 🔧'
       ),
-      data: { type: 'payment_update', paymentId, status, amount }
-    })
+      data: { paymentId, status, amount },
+      userId,
+      priority: 'high'
+    }
+
+    // Send through notification preferences service
+    const result = await notificationPreferencesService.sendNotification(event)
+    
+    if (result.sent) {
+      console.log('✅ Payment notification sent successfully')
+    } else {
+      console.log('🔕 Payment notification blocked:', result.reason)
+    }
   }
 
   /**
    * Handle chat message notifications
    */
-  private handleChatMessage(data: any): void {
-    const { conversationId, senderId, senderName, message, title } = data
+  private async handleChatMessage(data: any): Promise<void> {
+    const { conversationId, senderId, senderName, message, title, userId } = data
 
     console.log('💬 Chat message notification:', { conversationId, senderId })
 
-    firebaseNotificationService.showChatMessage({
+    // Create notification event
+    const event: NotificationEvent = {
+      type: 'chat',
+      subtype: 'newMessage',
       title: title || `New message from ${senderName || 'Support'}`,
       body: message || 'You have a new chat message',
-      data: { conversationId, senderId, senderName }
-    })
+      data: { conversationId, senderId, senderName },
+      userId,
+      priority: 'high'
+    }
 
-    // Send push notification
-    this.sendPushNotification({
-      title: title || `💬 ${senderName || 'Support'}`,
-      body: message || 'You have a new message',
-      data: { type: 'chat_message', conversationId, senderId }
-    })
+    // Send through notification preferences service
+    const result = await notificationPreferencesService.sendNotification(event)
+    
+    if (result.sent) {
+      console.log('✅ Chat notification sent successfully')
+    } else {
+      console.log('🔕 Chat notification blocked:', result.reason)
+    }
   }
 
   /**
    * Handle promotion notifications
    */
-  private handlePromotion(data: any): void {
-    const { promotionId, title, message, discountPercent, validUntil } = data
+  private async handlePromotion(data: any): Promise<void> {
+    const { promotionId, title, message, discountPercent, validUntil, userId } = data
 
     console.log('🎁 Promotion notification:', { promotionId, title })
 
-    firebaseNotificationService.showPromotion({
+    // Create notification event
+    const event: NotificationEvent = {
+      type: 'promotion',
+      subtype: 'discountOffers',
       title: title || 'Special Offer! 🎁',
       body: message || `New deal alert! Your wallet and stomach are both going to love this 💝`,
-      data: { promotionId, discountPercent, validUntil }
-    })
+      data: { promotionId, discountPercent, validUntil },
+      userId,
+      priority: 'normal'
+    }
 
-    // Send push notification
-    this.sendPushNotification({
-      title: title || '🎁 Special Offer!',
-      body: message || `${discountPercent}% off on your next order!`,
-      data: { type: 'promotion', promotionId, discountPercent }
-    })
+    // Send through notification preferences service
+    const result = await notificationPreferencesService.sendNotification(event)
+    
+    if (result.sent) {
+      console.log('✅ Promotion notification sent successfully')
+    } else {
+      console.log('🔕 Promotion notification blocked:', result.reason)
+    }
   }
 
   /**
    * Handle system notifications
    */
-  private handleSystemNotification(data: any): void {
-    const { title, message, type, priority } = data
+  private async handleSystemNotification(data: any): Promise<void> {
+    const { title, message, type, priority, userId } = data
 
     console.log('🔔 System notification:', { title, type })
 
-    if (type === 'error') {
-      firebaseNotificationService.showError({
-        title: title || 'System Alert',
-        body: message || 'System notification',
-        data
-      })
-    } else {
-      firebaseNotificationService.showSuccess({
-        title: title || 'System Alert',
-        body: message || 'System notification',
-        data
-      })
+    // Create notification event
+    const event: NotificationEvent = {
+      type: 'system',
+      subtype: type || 'serviceAnnouncements',
+      title: title || 'System Alert',
+      body: message || 'System notification',
+      data,
+      userId,
+      priority: priority || 'normal'
     }
 
-    // Send push notification for high priority
-    if (priority === 'high') {
-      this.sendPushNotification({
-        title: title || 'TiffinWale Alert',
-        body: message || 'Important system notification',
-        data: { type: 'system', ...data }
-      })
+    // Send through notification preferences service
+    const result = await notificationPreferencesService.sendNotification(event)
+    
+    if (result.sent) {
+      console.log('✅ System notification sent successfully')
+    } else {
+      console.log('🔕 System notification blocked:', result.reason)
     }
   }
 
@@ -362,6 +340,34 @@ export class RealtimeNotificationService {
       'cancelled': 'Your order has been cancelled. No worries, there are plenty more delicious options! 🍽️'
     }
     return messages[status as keyof typeof messages] || `Your order status has been updated to: ${status}`
+  }
+
+  /**
+   * Map order status to notification subtype
+   */
+  private mapOrderStatusToSubtype(status: string): string {
+    const mapping = {
+      'placed': 'orderPlaced',
+      'confirmed': 'orderConfirmed',
+      'preparing': 'orderPreparing',
+      'cooking': 'orderCooking',
+      'ready': 'orderReady',
+      'out_for_delivery': 'orderOutForDelivery',
+      'on_the_way': 'orderOutForDelivery',
+      'delivered': 'orderDelivered',
+      'completed': 'orderDelivered',
+      'cancelled': 'orderCancelled',
+      'delayed': 'orderDelayed'
+    }
+    return mapping[status as keyof typeof mapping] || 'orderPlaced'
+  }
+
+  /**
+   * Get order priority based on status
+   */
+  private getOrderPriority(status: string): 'low' | 'normal' | 'high' {
+    const highPriorityStatuses = ['cancelled', 'delayed', 'delivered']
+    return highPriorityStatuses.includes(status) ? 'high' : 'normal'
   }
 
   /**
