@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { envConfig } from '../config/env';
+import NavigationService from '../../services/NavigationService';
 
 // Custom fetch-based client for React Native/Expo compatibility
 export const customInstance = async <T = any>(
@@ -46,7 +47,10 @@ export const customInstance = async <T = any>(
         // Clear tokens and handle logout
         await AsyncStorage.removeItem('partner_auth_token');
         await AsyncStorage.removeItem('partner_refresh_token');
-        // TODO: Dispatch logout action or navigate to login
+        await AsyncStorage.removeItem('user_data');
+        
+        console.warn('Authentication failed, redirecting to login');
+        NavigationService.navigate('login');
       }
       
       const errorData = await response.json().catch(() => ({}));

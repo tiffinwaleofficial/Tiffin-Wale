@@ -143,37 +143,28 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
           let currentFiles = [...updatedFiles];
           currentFiles = currentFiles.map(f => 
             f.uri === file.uri 
-              ? { ...f, uploading: true, progress: 10 }
+              ? { ...f, uploading: true, progress: 0 }
               : f
           );
           onFilesChange(currentFiles);
-          console.log('📊 UploadComponent: Started upload for', file.uri.substring(0, 50) + '...', 'Progress: 10%');
-
-          // Simulate progress updates
-          setTimeout(() => {
-            const progressFiles = currentFiles.map(f => 
-              f.uri === file.uri 
-                ? { ...f, progress: 30 }
-                : f
-            );
-            onFilesChange(progressFiles);
-            console.log('📊 UploadComponent: Upload progress for', file.uri.substring(0, 50) + '...', 'Progress: 30%');
-          }, 500);
-
-          setTimeout(() => {
-            const progressFiles2 = currentFiles.map(f => 
-              f.uri === file.uri 
-                ? { ...f, progress: 60 }
-                : f
-            );
-            onFilesChange(progressFiles2);
-            console.log('📊 UploadComponent: Upload progress for', file.uri.substring(0, 50) + '...', 'Progress: 60%');
-          }, 1000);
+          console.log('📊 UploadComponent: Started upload for', file.uri.substring(0, 50) + '...', 'Progress: 0%');
 
             // Upload to Cloudinary using the enhanced uploadFile method
-            const uploadResult = await cloudinaryUploadService.uploadFile(file.uri, uploadType, {
-              folder,
-            });
+            const uploadResult = await cloudinaryUploadService.uploadFile(
+              file.uri,
+              uploadType,
+              {
+                folder,
+              },
+              (progress) => {
+                const progressFiles = currentFiles.map(f =>
+                  f.uri === file.uri
+                    ? { ...f, progress: progress * 100 }
+                    : f
+                );
+                onFilesChange(progressFiles);
+              }
+            );
 
           if (uploadResult.success && uploadResult.url) {
             // Update progress to 100% and mark as complete

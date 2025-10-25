@@ -279,31 +279,6 @@ export default function HomeScreen() {
           )}
         </Animated.View>
 
-        {/* Explore Restaurants - Only show when restaurants exist */}
-        {restaurants.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('exploreRestaurants')}</Text>
-            {restaurantsLoading && restaurants.length === 0 ? (
-              <ActivityIndicator style={{ marginTop: 20 }} size="large" color="#FF9B42" />
-            ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.restaurantList}>
-                {restaurants.map(restaurant => (
-                  <TouchableOpacity key={restaurant.id} style={styles.restaurantCard} onPress={() => router.push(`/restaurant/${restaurant.id}`)}>
-                    <Image source={{ uri: restaurant.image }} style={styles.restaurantImage} />
-                    <View style={styles.restaurantInfo}>
-                      <Text style={styles.restaurantName} numberOfLines={1}>{restaurant.name}</Text>
-                      <View style={styles.restaurantRating}>
-                        <Star size={14} color="#FFD700" fill="#FFD700" />
-                        <Text style={styles.restaurantRatingText}>{restaurant.rating}</Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
-          </Animated.View>
-        )}
-
         {/* Today's Meals - Only show when no active subscription */}
         {!currentSubscription && (
           <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.section}>

@@ -1,11 +1,12 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
-import { Chrome as Home, ClipboardList, ChartBar as BarChart3, Bell, User } from 'lucide-react-native';
+import { Chrome as Home, ClipboardList, BookText, ChartBar as BarChart3, Bell, User } from 'lucide-react-native';
 
 const tabs = [
   { name: 'dashboard', path: '/(tabs)/dashboard', title: 'Dashboard', Icon: Home },
   { name: 'orders', path: '/(tabs)/orders', title: 'Orders', Icon: ClipboardList },
+  { name: 'menu', path: '/(tabs)/menu', title: 'Menu', Icon: BookText },
   { name: 'earnings', path: '/(tabs)/earnings', title: 'Earnings', Icon: BarChart3 },
   { name: 'notifications', path: '/(tabs)/notifications', title: 'Alerts', Icon: Bell },
   { name: 'profile', path: '/(tabs)/profile', title: 'Profile', Icon: User },

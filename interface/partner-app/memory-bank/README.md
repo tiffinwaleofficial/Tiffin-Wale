@@ -1,205 +1,156 @@
-# TiffinWale Partner App - Memory Bank Index
+# Partner App Memory Bank
 
-## 🧠 Memory Bank Overview
-
-This memory bank contains comprehensive documentation and knowledge about the TiffinWale Partner App project. It serves as the single source of truth for project intelligence, enabling developers to work efficiently across different scopes while maintaining context and continuity.
-
-## 📚 Memory Bank Structure
-
-### **Core Documentation**
-- **[Project Overview](./project-overview.md)** - High-level project summary and business requirements
-- **[Frontend Scope](./frontend-scope.md)** - React Native UI development guidelines and patterns
-- **[State Management](./state-management.md)** - Zustand store architecture and data flow
-- **[Component Architecture](./component-architecture.md)** - UI component structure and design system
-- **[API Reference](./api-reference.md)** - Complete API integration documentation
-- **[Development Guide](./development-guide.md)** - Development workflow and best practices
-
-### **Analysis & Planning**
-- **[Current Status Analysis](./current-status-analysis.md)** - ⭐ **NEW** Comprehensive analysis comparing Partner App with Student App
-- **[Implementation Roadmap](./implementation-roadmap.md)** - ⭐ **NEW** 8-week implementation plan to reach Student App level
-- **[API Compatibility Analysis](./api-compatibility-analysis.md)** - Backend API integration compatibility
-- **[Backend Integration Scope](./backend-integration-scope.md)** - Backend integration requirements
-- **[Partner App Architecture Plan](./partner-app-architecture-plan.md)** - Technical architecture planning
-
-### **Development Resources**
-- **[Scope Onboarding](./scope-onboarding.md)** - Scope-based development approach
-- **[Development Scopes](./development-scopes.md)** - Role-specific development guidelines
-
-## 🎯 Quick Reference
-
-### **Project Status**: 65% Complete 🟡
-- **Authentication**: 60% (Missing robust token management)
-- **Real-time Features**: 0% (Completely missing)
-- **Notification System**: 0% (Using basic Alert.alert)
-- **UI Components**: 85% (Well implemented)
-- **API Integration**: 50% (Basic implementation)
-- **State Management**: 70% (6 stores implemented)
-
-### **Critical Gaps Identified**
-1. **Authentication Security**: No centralized token validation or refresh
-2. **Real-time Updates**: No WebSocket integration or push notifications
-3. **Enterprise Notifications**: No custom notification system
-4. **Route Protection**: No centralized route guards
-5. **Error Handling**: Basic error handling without recovery
-
-### **Comparison with Student App**
-| Feature | Student App | Partner App | Gap |
-|---------|-------------|-------------|-----|
-| Authentication | 100% ✅ | 60% 🟡 | 40% |
-| Real-time Features | 100% ✅ | 0% ❌ | 100% |
-| Notification System | 100% ✅ | 0% ❌ | 100% |
-| State Management | 100% ✅ | 70% 🟡 | 30% |
-| API Integration | 100% ✅ | 50% 🟡 | 50% |
-| UI Components | 99% ✅ | 85% 🟡 | 14% |
-
-## 🚀 Implementation Priority
-
-### **Phase 1: Critical Security (Week 1-2)**
-- Implement robust authentication system
-- Add centralized token validation and refresh
-- Create protected route components
-- Enhance error handling system
-
-### **Phase 2: Real-time Features (Week 3-4)**
-- Integrate WebSocket manager from Student App
-- Implement real-time order updates
-- Add push notification system
-- Create live dashboard updates
-
-### **Phase 3: Enterprise Notifications (Week 5-6)**
-- Implement custom notification service
-- Replace all Alert.alert with custom notifications
-- Add notification analytics and theming
-- Create comprehensive notification system
-
-### **Phase 4: Advanced Features (Week 7-8)**
-- Add offline-first architecture
-- Implement advanced state management
-- Optimize performance and caching
-- Final testing and deployment preparation
-
-## 🔍 Scope-Based Access
-
-### **Frontend Developers**
-**Primary Documents**: [Current Status Analysis](./current-status-analysis.md), [Frontend Scope](./frontend-scope.md), [Implementation Roadmap](./implementation-roadmap.md)
-**Key Focus**: React Native components, authentication UI, real-time updates, notification system
-
-### **Backend Integration Developers**
-**Primary Documents**: [API Reference](./api-reference.md), [Backend Integration Scope](./backend-integration-scope.md), [Current Status Analysis](./current-status-analysis.md)
-**Key Focus**: API client enhancement, WebSocket integration, authentication security, error handling
-
-### **Full-Stack Developers**
-**Primary Documents**: [Implementation Roadmap](./implementation-roadmap.md), [Current Status Analysis](./current-status-analysis.md), [State Management](./state-management.md)
-**Key Focus**: End-to-end feature implementation, authentication flow, real-time architecture
-
-### **Project Managers**
-**Primary Documents**: [Current Status Analysis](./current-status-analysis.md), [Implementation Roadmap](./implementation-roadmap.md), [Project Overview](./project-overview.md)
-**Key Focus**: Progress tracking, timeline management, resource allocation
-
-## 📊 Key Metrics & Progress
-
-### **Technical Metrics**
-- **Code Coverage**: 65% (Target: 80%)
-- **TypeScript Coverage**: 100%
-- **Component Coverage**: 85%
-- **API Integration**: 50% (Target: 100%)
-- **Test Coverage**: 40% (Target: 80%)
-
-### **Feature Completion**
-- **Core Architecture**: 90% ✅
-- **Authentication System**: 60% 🟡
-- **UI Components**: 85% ✅
-- **Screen Implementation**: 70% 🟡
-- **API Integration**: 50% 🟡
-- **Real-time Features**: 0% ❌
-- **Notification System**: 0% ❌
-- **Offline Support**: 0% ❌
-
-### **Security & Performance**
-- **Authentication Security**: 60% (Missing token refresh)
-- **Route Protection**: 30% (Basic implementation)
-- **Error Handling**: 40% (Basic error handling)
-- **Performance**: 70% (Good but needs optimization)
-- **Memory Usage**: Optimized
-
-## 🎯 Success Criteria
-
-### **Short-term Goals (Next 4 weeks)**
-- [ ] Implement robust authentication system (Student App level)
-- [ ] Add real-time WebSocket integration
-- [ ] Create enterprise notification system
-- [ ] Achieve 80% feature parity with Student App
-
-### **Medium-term Goals (Next 8 weeks)**
-- [ ] Complete offline-first architecture
-- [ ] Achieve 95% feature parity with Student App
-- [ ] Pass comprehensive security audit
-- [ ] Ready for production deployment
-
-### **Long-term Goals (Next quarter)**
-- [ ] Exceed Student App capabilities with partner-specific features
-- [ ] Implement advanced analytics and reporting
-- [ ] Add multi-location support
-- [ ] Achieve enterprise-grade scalability
-
-## 🔄 Memory Bank Maintenance
-
-### **Update Frequency**
-- **Daily**: Progress tracking updates during active development
-- **Weekly**: Implementation roadmap progress updates
-- **Bi-weekly**: Architecture and pattern updates
-- **Monthly**: Complete memory bank review and optimization
-
-### **Update Triggers**
-- **New Features**: Update relevant documentation
-- **Architecture Changes**: Update technical documentation
-- **Progress Milestones**: Update status and roadmap
-- **Gap Analysis**: Update comparison and implementation plans
-
-### **Quality Assurance**
-- [ ] **Accuracy**: Information is current and accurate
-- [ ] **Completeness**: All relevant information included
-- [ ] **Clarity**: Information is clear and actionable
-- [ ] **Consistency**: Information is consistent across documents
-- [ ] **Accessibility**: Information is accessible to all team members
-
-## 📞 Support & Contact
-
-### **Memory Bank Maintainer**
-- **Primary**: Development Team Lead
-- **Secondary**: Technical Architect
-- **Backup**: Senior Full-Stack Developer
-
-### **Update Requests**
-- **Process**: Create GitHub issue with "partner-memory-bank" label
-- **Priority**: High priority for critical updates
-- **Timeline**: Updates within 24 hours for critical issues
-
-### **Feedback**
-- **Process**: Use GitHub issues or team communication channels
-- **Categories**: Accuracy, completeness, clarity, accessibility
-- **Response**: Feedback addressed within 48 hours
+## 🧠 Overview
+This memory bank serves as the **source of truth** for the TiffinWale Partner App project intelligence, decision history, user preferences, and implementation standards. It is **version-controlled, actively maintained**, and **must be consulted before making architectural or behavioral decisions**.
 
 ---
 
-## 🔮 Recent Updates
+## 🗂️ Memory Bank Structure
 
-### **January 2025 - Major Analysis Update**
-- ✅ **Added**: [Current Status Analysis](./current-status-analysis.md) - Comprehensive comparison with Student App
-- ✅ **Added**: [Implementation Roadmap](./implementation-roadmap.md) - 8-week implementation plan
-- ✅ **Updated**: README with current status and priorities
-- ✅ **Identified**: Critical gaps in authentication, real-time features, and notifications
-- ✅ **Planned**: Phase-by-phase implementation strategy
-
-### **Next Planned Updates**
-- **Week 1**: Authentication implementation progress
-- **Week 2**: Real-time features integration progress
-- **Week 3**: Notification system implementation progress
-- **Week 4**: Advanced features and optimization progress
+```
+memory-bank/
+├── README.md                    # This file - overview and navigation
+├── project-overview.md          # High-level project understanding
+├── architecture-patterns.md    # Technical architecture and patterns
+├── api-integration-status.md    # Current API implementation status
+├── development-workflow.md      # Development processes and workflows
+├── component-library.md         # UI components and design system
+├── state-management.md          # Zustand stores and state patterns
+├── authentication-flow.md       # Auth implementation and security
+├── deployment-strategy.md       # Build, deployment, and DevOps
+├── known-issues.md             # Current challenges and workarounds
+└── decision-log.md             # Critical decisions and rationale
+```
 
 ---
 
-**Last Updated**: January 2025  
-**Version**: 2.0.0  
-**Memory Bank Status**: Active and Maintained  
-**Next Review**: Weekly during implementation phase
+## 🔁 Memory Bank Protocol
+
+1. **Required Reads**: Every task **must** begin with reading all relevant files in the `memory-bank/` directory.
+2. **Live Updates**: 
+   - Document **all significant changes** immediately.
+   - Use commit messages that reflect updates to project intelligence.
+3. **Manual Triggers**: 
+   - Use `"update memory bank"` to request or confirm memory alignment.
+4. **Automation**: 
+   - A diff of the memory bank must be included in any pull request that alters documentation.
+   - Cursor will flag unreferenced decisions or undocumented changes.
+
+---
+
+## 👤 User Preferences
+
+| Area | Preference |
+|------|------------|
+| Documentation | Must be comprehensive, structured, current |
+| Change Tracking | Document updates inline as they happen |
+| Communication | Clear, concise, and assumption-free |
+| Language | Use formal tone with declarative style |
+| Code Quality | TypeScript-first, error handling, testing |
+
+> 🔒 *Deviations from preferences must be explicitly justified and approved.*
+
+---
+
+## 🧩 Implementation Patterns
+
+> All significant design and logic patterns must be added here once used more than once.
+
+Each entry must include:
+- **Pattern Name**
+- **Intent / Use Case**
+- **Code Snippet or Structure**
+- **When to Use**
+- **When NOT to Use**
+- **Associated Risks**
+
+---
+
+## ⚠️ Known Challenges
+
+> This section must grow during active development. For each challenge:
+
+- **Title**
+- **Description**
+- **Workarounds / Decisions**
+- **Status (Open, In Progress, Solved)**
+- **Owner**
+
+> 🔄 *Cursor will prompt updates to this section after unresolved errors or blockers.*
+
+---
+
+## 🔧 Tool Usage Protocol
+
+| Tool | Purpose | Rule |
+|------|---------|------|
+| `memory-bank/` | Source of truth for project context | Must be consulted and updated for all major features |
+| `.cursorrules` | Project intelligence + decision evolution | Read-only unless agreed updates are made |
+| Docs | Markdown format only | All team members must follow naming & structure conventions |
+
+---
+
+## 🧭 Decision Evolution Log
+
+> Tracks critical decisions, reasons, reversals, and debates
+
+Each decision must be logged as follows:
+
+```markdown
+### Decision #001 – Partner API Integration Strategy
+- Date: 2024-12-20
+- Author: AI Assistant
+- Summary: Implemented 7 critical partner APIs for core functionality
+- Reason: Enable real-time partner operations and data management
+- Affected Modules: API Client, Stores, Components
+- Reversal Conditions: None
+- Status: Active
+```
+
+> ✍️ *Every design or infrastructure decision affecting multiple modules must be logged.*
+
+---
+
+## 🔒 Enforcement & Review
+
+- This file and `memory-bank/` are subject to weekly review.
+- PRs without appropriate `.cursorrules` or `memory-bank/` updates will be rejected.
+- Cursor will auto-flag inconsistencies or missing patterns based on commit messages and task scope.
+
+---
+
+## 🔄 Change Control
+
+- Edits to memory bank files must follow this protocol:
+  - Proposed via PR with tag: `[MEMORY BANK UPDATE]`
+  - Includes summary of change + justification
+  - Reviewed by product or engineering lead
+
+---
+
+## 📊 Current Project Status
+
+### ✅ **COMPLETED**
+- Partner app architecture and structure
+- Authentication system with JWT tokens
+- State management with Zustand stores
+- UI component library and design system
+- 7 critical partner APIs implemented and ready for integration
+
+### 🔄 **IN PROGRESS**
+- API integration with frontend components
+- Real-time order management
+- Menu management system
+- Analytics and reporting
+
+### ⏳ **PLANNED**
+- Notification system
+- Image upload functionality
+- Advanced analytics
+- Support ticket system
+
+---
+
+*Last Updated: December 2024*
+*Status: Memory Bank Initialized*
+*Next Review: Weekly*

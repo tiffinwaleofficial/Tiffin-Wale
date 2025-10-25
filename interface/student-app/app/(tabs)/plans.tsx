@@ -1,14 +1,16 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
-import { Check, Crown, Zap, Shield, RefreshCw, Eye } from 'lucide-react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Image, ActivityIndicator } from 'react-native';
+import { Check, Crown, Zap, Shield, RefreshCw, Eye, Star } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { useRestaurantStore } from '@/store/restaurantStore';
 
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { useAuth } from '@/auth/AuthProvider';
 import { SubscriptionPlan } from '@/types/api';
 import PlanDetailModal from '@/components/PlanDetailModal';
 import { useTranslation } from '@/hooks/useTranslation';
+import { Restaurant } from '@/types/restaurant';
 
 export default function PlansScreen() {
   const router = useRouter();
@@ -24,6 +26,12 @@ export default function PlansScreen() {
     refreshSubscriptionData,
     createSubscription 
   } = useSubscriptionStore();
+
+  const {
+    restaurants,
+    isLoading: restaurantsLoading,
+    fetchRestaurants,
+  } = useRestaurantStore();
   
   const [refreshing, setRefreshing] = useState(false);
   const [subscribingToPlan, setSubscribingToPlan] = useState<string | null>(null);
@@ -40,6 +48,7 @@ export default function PlansScreen() {
         await Promise.all([
           fetchAvailablePlans(false),
           fetchCurrentSubscription(false),
+          fetchRestaurants(),
         ]);
         
         if (__DEV__) console.log('✅ Plans: Cached data loaded instantly');
@@ -59,6 +68,7 @@ export default function PlansScreen() {
       setTimeout(() => {
         fetchAvailablePlans(false); // Background refresh
         fetchCurrentSubscription(false); // Background refresh
+        fetchRestaurants();
       }, 100);
     }, [fetchAvailablePlans, fetchCurrentSubscription])
   );
@@ -71,6 +81,7 @@ export default function PlansScreen() {
       await Promise.all([
         fetchAvailablePlans(true), // Force refresh
         fetchCurrentSubscription(true), // Force refresh
+        fetchRestaurants(),
       ]);
     } catch (error) {
       console.error('Error refreshing plans:', error);
@@ -101,6 +112,29 @@ export default function PlansScreen() {
 
   const formatPrice = (price: number) => {
     return `₹${price.toFixed(0)}`;
+  };
+
+  const renderRestaurantCard = (restaurant: Restaurant, index: number) => {
+    return (
+      <Animated.View
+        key={restaurant.id}
+        entering={FadeInDown.delay(index * 150).duration(400)}
+      >
+        <TouchableOpacity style={styles.restaurantCard} onPress={() => router.push(`/restaurant/${restaurant.id}`)}>
+          <Image source={{ uri: restaurant.image }} style={styles.restaurantImage} />
+          <View style={styles.restaurantInfo}>
+            <Text style={styles.restaurantName} numberOfLines={1}>{restaurant.name}</Text>
+            <Text style={styles.restaurantCuisine} numberOfLines={1}>
+              {Array.isArray(restaurant.cuisineType) ? restaurant.cuisineType.join(', ') : ''}
+            </Text>
+            <View style={styles.restaurantRating}>
+              <Star size={14} color="#FFD700" fill="#FFD700" />
+              <Text style={styles.restaurantRatingText}>{restaurant.rating?.toFixed(1)} ({restaurant.reviewCount} reviews)</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
+    );
   };
 
   const getPlanIcon = (planName: string) => {
@@ -253,7 +287,10 @@ export default function PlansScreen() {
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity 
-            onPress={() => fetchAvailablePlans(true)}
+            onPress={() => {
+              fetchAvailablePlans(true);
+              fetchRestaurants();
+            }}
             style={styles.retryButton}
           >
             <Text style={styles.retryButtonText}>{t('retry')}</Text>
@@ -285,45 +322,32 @@ export default function PlansScreen() {
           />
         }
       >
-        {availablePlans.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Crown size={64} color="#CCCCCC" />
-            <Text style={styles.emptyTitle}>{t('noPlansAvailable')}</Text>
-            <Text style={styles.emptyDescription}>
-              {t('checkBackLater')}
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.plansContainer}>
-            {availablePlans.map((plan, index) => renderPlanCard(plan, index))}
-          </View>
+        {currentSubscription && currentSubscription.plan && (
+          <Animated.View entering={FadeInDown.duration(400)}>
+            <Text style={styles.sectionTitle}>{t('activeSubscription')}</Text>
+            {renderPlanCard(currentSubscription.plan as SubscriptionPlan, 0)}
+          </Animated.View>
         )}
-
-        {/* Additional Info */}
-        <Animated.View 
-          entering={FadeInDown.delay(availablePlans.length * 150 + 200).duration(400)}
-          style={styles.infoCard}
-        >
-          <Text style={styles.infoTitle}>{t('whySubscribe')}</Text>
-          <View style={styles.infoList}>
-            <View style={styles.infoItem}>
-              <Check size={16} color="#4CAF50" />
-              <Text style={styles.infoText}>{t('regularHealthyMeals')}</Text>
+        
+        <Animated.View entering={FadeInDown.delay(200).duration(400)}>
+          <Text style={styles.sectionTitle}>{t('exploreTiffinCenters')}</Text>
+          {restaurantsLoading && restaurants.length === 0 ? (
+            <ActivityIndicator style={{ marginTop: 20 }} size="large" color="#FF9B42" />
+          ) : restaurants.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Crown size={64} color="#CCCCCC" />
+              <Text style={styles.emptyTitle}>{t('noTiffinCentersFound')}</Text>
+              <Text style={styles.emptyDescription}>
+                {t('checkBackLaterForTiffinCenters')}
+              </Text>
             </View>
-            <View style={styles.infoItem}>
-              <Check size={16} color="#4CAF50" />
-              <Text style={styles.infoText}>{t('affordablePricing')}</Text>
+          ) : (
+            <View style={styles.plansContainer}>
+              {restaurants.map((restaurant, index) => renderRestaurantCard(restaurant, index))}
             </View>
-            <View style={styles.infoItem}>
-              <Check size={16} color="#4CAF50" />
-              <Text style={styles.infoText}>{t('flexibleOptions')}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Check size={16} color="#4CAF50" />
-              <Text style={styles.infoText}>{t('noCookingRequired')}</Text>
-            </View>
-          </View>
+          )}
         </Animated.View>
+
       </ScrollView>
 
       {/* Plan Detail Modal */}
@@ -411,6 +435,53 @@ const styles = StyleSheet.create({
   },
   plansContainer: {
     paddingBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#333333',
+    marginBottom: 16,
+    marginTop: 20,
+  },
+  restaurantCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    flexDirection: 'row',
+    overflow: 'hidden',
+  },
+  restaurantImage: {
+    width: 120,
+    height: '100%',
+  },
+  restaurantInfo: {
+    padding: 16,
+    flex: 1,
+  },
+  restaurantName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333333',
+    marginBottom: 4,
+  },
+  restaurantCuisine: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 8,
+  },
+  restaurantRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  restaurantRatingText: {
+    marginLeft: 5,
+    fontSize: 12,
+    color: '#666',
   },
   planCard: {
     backgroundColor: '#FFFFFF',

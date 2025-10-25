@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, TouchableOpacity, Dimensions, FlatList } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRestaurantStore } from '@/store/restaurantStore';
+import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { BackButton } from '@/components/BackButton';
 import { useTranslation } from '@/hooks/useTranslation';
 import { 
@@ -40,6 +41,13 @@ export default function RestaurantDetails() {
     fetchRestaurantById, 
     fetchMenuForRestaurant 
   } = useRestaurantStore();
+
+  const {
+    availablePlans,
+    isLoading: plansLoading,
+    error: plansError,
+    fetchAvailablePlans,
+  } = useSubscriptionStore();
   
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -48,6 +56,7 @@ export default function RestaurantDetails() {
     if (id) {
       fetchRestaurantById(id);
       fetchMenuForRestaurant(id);
+      fetchAvailablePlans(true, id);
     }
   }, [id, fetchRestaurantById, fetchMenuForRestaurant]);
 
@@ -397,6 +406,38 @@ export default function RestaurantDetails() {
           ) : (
             <View style={styles.noMenuContainer}>
               <Text style={styles.noMenuText}>{t('noMenuItemsAvailable')}</Text>
+            </View>
+          )}
+        </Animated.View>
+
+        {/* Subscription Plans Section */}
+        <Animated.View entering={FadeInUp.delay(800).duration(600)} style={styles.menuContainer}>
+          <Text style={styles.menuTitle}>Subscription Plans</Text>
+          {plansLoading ? (
+            <ActivityIndicator size="small" color="#FF9B42" />
+          ) : plansError ? (
+            <Text style={styles.errorText}>{plansError}</Text>
+          ) : availablePlans.length > 0 ? (
+            availablePlans.map((plan, index) => (
+              <Animated.View key={plan.id} entering={FadeInUp.delay(index * 100).duration(500)}>
+                <TouchableOpacity
+                  style={styles.planCard}
+                  onPress={() => router.push(`/checkout?planId=${plan.id}` as any)}
+                >
+                  <View style={styles.planInfo}>
+                    <Text style={styles.planName}>{plan.name}</Text>
+                    <Text style={styles.planDescription}>{plan.description}</Text>
+                  </View>
+                  <View style={styles.planPricing}>
+                    <Text style={styles.planPrice}>₹{plan.price}</Text>
+                    <Text style={styles.planDuration}>/month</Text>
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+            ))
+          ) : (
+            <View style={styles.noMenuContainer}>
+              <Text style={styles.noMenuText}>No subscription plans available.</Text>
             </View>
           )}
         </Animated.View>
@@ -883,5 +924,47 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     fontWeight: '600',
     fontFamily: 'Poppins-SemiBold',
+  },
+  planCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F8F8F8',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  planInfo: {
+    flex: 1,
+  },
+  planName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    fontFamily: 'Poppins-SemiBold',
+  },
+  planDescription: {
+    fontSize: 14,
+    color: '#666',
+    fontFamily: 'Poppins-Regular',
+  },
+  planPricing: {
+    alignItems: 'flex-end',
+  },
+  planPrice: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FF9B42',
+    fontFamily: 'Poppins-Bold',
+  },
+  planDuration: {
+    fontSize: 12,
+    color: '#666',
+    fontFamily: 'Poppins-Regular',
   },
 }); 

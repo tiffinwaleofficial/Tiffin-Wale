@@ -692,6 +692,10 @@ const api = {
       const response = await apiClient.get(`/api/partners/${id}/stats`);
       return response.data;
     },
+    getSubscriptionPlans: async (id: string): Promise<SubscriptionPlan[]> => {
+      const response = await apiClient.get(`/api/partners/${id}/plans`);
+      return response.data;
+    },
   },
 
   

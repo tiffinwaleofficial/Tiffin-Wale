@@ -26,6 +26,9 @@ import { UpdateOrderDto } from "./dto/update-order.dto";
 import { UpdateOrderStatusDto } from "./dto/update-order-status.dto";
 import { MarkOrderPaidDto } from "./dto/mark-order-paid.dto";
 import { AddOrderReviewDto } from "./dto/add-order-review.dto";
+import { AcceptOrderDto } from "./dto/accept-order.dto";
+import { RejectOrderDto } from "./dto/reject-order.dto";
+import { ReadyOrderDto } from "./dto/ready-order.dto";
 import { GetCurrentUser } from "../../common/decorators/user.decorator";
 
 @ApiTags("orders")
@@ -162,5 +165,57 @@ export class OrderController {
   @ApiResponse({ status: 409, description: "Order already has a review" })
   addReview(@Param("id") id: string, @Body() addReviewDto: AddOrderReviewDto) {
     return this.orderService.addReview(id, addReviewDto);
+  }
+
+  // Partner-specific order action endpoints
+  @Patch(":id/accept")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.BUSINESS, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Accept an order (Partner only)" })
+  @ApiResponse({ status: 200, description: "Order has been accepted" })
+  @ApiResponse({ status: 400, description: "Bad request or invalid status transition" })
+  @ApiResponse({ status: 403, description: "Forbidden - not a partner" })
+  @ApiResponse({ status: 404, description: "Order not found" })
+  acceptOrder(
+    @Param("id") id: string,
+    @Body() acceptOrderDto: AcceptOrderDto,
+    @GetCurrentUser() user: any,
+  ) {
+    return this.orderService.acceptOrder(id, acceptOrderDto, user.id);
+  }
+
+  @Patch(":id/reject")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.BUSINESS, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Reject an order (Partner only)" })
+  @ApiResponse({ status: 200, description: "Order has been rejected" })
+  @ApiResponse({ status: 400, description: "Bad request or invalid status transition" })
+  @ApiResponse({ status: 403, description: "Forbidden - not a partner" })
+  @ApiResponse({ status: 404, description: "Order not found" })
+  rejectOrder(
+    @Param("id") id: string,
+    @Body() rejectOrderDto: RejectOrderDto,
+    @GetCurrentUser() user: any,
+  ) {
+    return this.orderService.rejectOrder(id, rejectOrderDto, user.id);
+  }
+
+  @Patch(":id/ready")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.BUSINESS, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Mark order as ready (Partner only)" })
+  @ApiResponse({ status: 200, description: "Order has been marked as ready" })
+  @ApiResponse({ status: 400, description: "Bad request or invalid status transition" })
+  @ApiResponse({ status: 403, description: "Forbidden - not a partner" })
+  @ApiResponse({ status: 404, description: "Order not found" })
+  markOrderReady(
+    @Param("id") id: string,
+    @Body() readyOrderDto: ReadyOrderDto,
+    @GetCurrentUser() user: any,
+  ) {
+    return this.orderService.markOrderReady(id, readyOrderDto, user.id);
   }
 }

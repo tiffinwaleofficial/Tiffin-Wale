@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   FlatList,
+  ActivityIndicator
 } from 'react-native';
 import {
   Calendar,
@@ -16,76 +17,28 @@ import {
   Download,
   ArrowRight,
 } from 'lucide-react-native';
+import { useTheme } from '../../store/themeStore';
 
-// Mock data for earnings
-const earningsData = {
-  today: {
-    total: 3420,
-    orderCount: 44,
-    comparison: { percent: 12, status: 'increase' },
-  },
-  weekly: {
-    total: 23150,
-    orderCount: 308,
-    comparison: { percent: 8, status: 'increase' },
-  },
-  monthly: {
-    total: 94500,
-    orderCount: 1240,
-    comparison: { percent: 15, status: 'increase' },
-  },
-};
+// TODO: Create these hooks once the backend is ready
+const useGetEarningsSummary = () => ({ data: null, isLoading: true, error: null });
+const useGetTransactions = () => ({ data: null, isLoading: true, error: null });
 
-// Mock data for transactions
-const transactionsData = [
-  {
-    id: '1',
-    date: '26 Apr, 2025',
-    amount: 23150,
-    status: 'Paid',
-    description: 'Weekly settlement',
-  },
-  {
-    id: '2',
-    date: '19 Apr, 2025',
-    amount: 21980,
-    status: 'Paid',
-    description: 'Weekly settlement',
-  },
-  {
-    id: '3',
-    date: '12 Apr, 2025',
-    amount: 24520,
-    status: 'Paid',
-    description: 'Weekly settlement',
-  },
-  {
-    id: '4',
-    date: '05 Apr, 2025',
-    amount: 22780,
-    status: 'Paid',
-    description: 'Weekly settlement',
-  },
-  {
-    id: '5',
-    date: '29 Mar, 2025',
-    amount: 23450,
-    status: 'Paid',
-    description: 'Weekly settlement',
-  },
-];
 
 export default function EarningsScreen() {
+  const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState('today');
   const [chartExpanded, setChartExpanded] = useState(true);
   const [activeFilter, setActiveFilter] = useState('last30Days');
 
+  const { data: earningsData, isLoading: earningsLoading, error: earningsError } = useGetEarningsSummary();
+  const { data: transactionsData, isLoading: transactionsLoading, error: transactionsError } = useGetTransactions();
+
   // Format currency
-  const formatCurrency = (amount) => {
-    return `₹${amount.toLocaleString('en-IN')}`;
+  const formatCurrency = (amount: number) => {
+    return `₹${(amount || 0).toLocaleString('en-IN')}`;
   };
 
-  const renderTransactionItem = ({ item }) => (
+  const renderTransactionItem = ({ item }: { item: any }) => (
     <View style={styles.transactionItem}>
       <View style={styles.transactionDetails}>
         <View>
@@ -203,6 +156,7 @@ export default function EarningsScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Earnings Summary Card */}
+        {earningsLoading ? <ActivityIndicator style={{ marginVertical: 40 }}/> :
         <View style={styles.summaryCard}>
           <View style={styles.summaryHeader}>
             <View style={styles.summaryIconContainer}>
@@ -288,6 +242,7 @@ export default function EarningsScreen() {
             )}
           </View>
         </View>
+        }
 
         {/* Payment History Section */}
         <View style={styles.paymentHistoryContainer}>
@@ -351,6 +306,7 @@ export default function EarningsScreen() {
           </View>
 
           {/* Transactions List */}
+          {transactionsLoading ? <ActivityIndicator style={{ marginVertical: 40 }} /> :
           <FlatList
             data={transactionsData}
             renderItem={renderTransactionItem}
@@ -358,6 +314,7 @@ export default function EarningsScreen() {
             scrollEnabled={false}
             contentContainerStyle={styles.transactionsList}
           />
+          }
         </View>
       </ScrollView>
     </View>

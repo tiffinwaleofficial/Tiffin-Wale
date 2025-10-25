@@ -120,5 +120,8 @@
   "skipAllowance": "Skip Allowance",
   "pauseAllowance": "Pause Allowance",
   "subscribeToThisPlan": "Subscribe to This Plan",
-  "subscriptionDetails": "Subscription Details"
+  "subscriptionDetails": "Subscription Details",
+  "exploreTiffinCenters": "Explore Tiffin Centers",
+  "noTiffinCentersFound": "No Tiffin Centers Found",
+  "checkBackLaterForTiffinCenters": "Check back later for available Tiffin Centers"
 }

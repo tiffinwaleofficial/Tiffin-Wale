@@ -7,6 +7,7 @@
 import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import { Platform } from 'react-native';
 
 interface CloudinaryConfig {
   cloudName: string;
@@ -238,7 +239,8 @@ export class CloudinaryUploadService {
   async uploadFile(
     fileUri: string, 
     uploadType: UploadType, 
-    customOptions?: Partial<UploadOptions>
+    customOptions?: Partial<UploadOptions>,
+    onProgress?: (progress: number) => void
   ): Promise<UploadResult> {
     try {
       console.log(`📤 Starting ${uploadType} file upload...`);
@@ -376,29 +378,20 @@ export class CloudinaryUploadService {
       // For web, we need to handle FormData differently
       console.log('📤 Platform:', isWeb ? 'web' : 'mobile');
       
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${this.config.cloudName}/upload`,
-        {
-          method: 'POST',
-          body: formData,
-          // Don't set Content-Type header - let browser set it automatically for FormData
-        }
-      );
+      return new Promise<UploadResult>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        const url = `https://api.cloudinary.com/v1_1/${this.config.cloudName}/upload`;
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`❌ Cloudinary ${uploadType} upload failed:`, errorText);
-        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
-      }
+        xhr.open('POST', url);
 
-      const result = await response.json();
-      
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            const result = JSON.parse(xhr.responseText);
       console.log(`✅ ${uploadType} uploaded successfully:`, {
         url: result.secure_url,
         publicId: result.public_id,
       });
-
-      return {
+            resolve({
         success: true,
         url: result.secure_url,
         publicId: result.public_id,
@@ -410,7 +403,29 @@ export class CloudinaryUploadService {
           folder: options.folder,
           uploadType,
         }
-      };
+            });
+          } else {
+            console.error(`❌ Cloudinary ${uploadType} upload failed:`, xhr.responseText);
+            reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+          }
+        };
+
+        xhr.onerror = () => {
+          console.error(`❌ Network error during ${uploadType} upload`);
+          reject(new Error('Network request failed'));
+        };
+
+        if (xhr.upload && onProgress) {
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const progress = event.loaded / event.total;
+              onProgress(progress);
+            }
+          };
+        }
+
+        xhr.send(formData);
+      });
 
     } catch (error) {
       console.error(`❌ ${uploadType} upload error:`, error);

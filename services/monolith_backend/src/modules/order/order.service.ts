@@ -13,6 +13,9 @@ import { UpdateOrderDto } from "./dto/update-order.dto";
 import { UpdateOrderStatusDto } from "./dto/update-order-status.dto";
 import { MarkOrderPaidDto } from "./dto/mark-order-paid.dto";
 import { AddOrderReviewDto } from "./dto/add-order-review.dto";
+import { AcceptOrderDto } from "./dto/accept-order.dto";
+import { RejectOrderDto } from "./dto/reject-order.dto";
+import { ReadyOrderDto } from "./dto/ready-order.dto";
 import { EmailService } from "../email/email.service";
 import { RedisService } from "../redis/redis.service";
 import { NotificationsGateway } from "../notifications/notifications.gateway";
@@ -360,6 +363,207 @@ export class OrderService {
       });
     } catch (error) {
       console.error("Email service error:", error);
+    }
+  }
+
+  // Partner-specific order action methods
+  async acceptOrder(
+    orderId: string,
+    acceptOrderDto: AcceptOrderDto,
+    partnerId: string,
+  ): Promise<Order> {
+    try {
+      const order = await this.findById(orderId);
+
+      // Validate that the order belongs to this partner
+      if (order.businessPartner.toString() !== partnerId) {
+        throw new BadRequestException(
+          "You can only accept orders assigned to your restaurant",
+        );
+      }
+
+      // Validate status transition (can only accept pending orders)
+      if (order.status !== OrderStatus.PENDING) {
+        throw new BadRequestException(
+          `Cannot accept order with status: ${order.status}. Only pending orders can be accepted.`,
+        );
+      }
+
+      // Update order status to confirmed
+      const updateData: any = {
+        status: OrderStatus.CONFIRMED,
+        acceptedAt: new Date(),
+      };
+
+      if (acceptOrderDto.estimatedTime) {
+        updateData.estimatedDeliveryTime = new Date(
+          Date.now() + acceptOrderDto.estimatedTime * 60 * 1000,
+        );
+      }
+
+      const updatedOrder = await this.orderModel
+        .findByIdAndUpdate(orderId, updateData, { new: true })
+        .exec();
+
+      // Send real-time notification via WebSocket
+      await this.notificationsGateway.updateOrderStatusViaMotia({
+        orderId,
+        status: "confirmed",
+        userId: updatedOrder.customer.toString(),
+        partnerId,
+        message:
+          acceptOrderDto.message ||
+          `Your order has been accepted${
+            acceptOrderDto.estimatedTime
+              ? ` and will be ready in ${acceptOrderDto.estimatedTime} minutes`
+              : ""
+          }`,
+        estimatedTime: acceptOrderDto.estimatedTime,
+      });
+
+      return updatedOrder;
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to accept order: ${error.message}`,
+      );
+    }
+  }
+
+  async rejectOrder(
+    orderId: string,
+    rejectOrderDto: RejectOrderDto,
+    partnerId: string,
+  ): Promise<Order> {
+    try {
+      const order = await this.findById(orderId);
+
+      // Validate that the order belongs to this partner
+      if (order.businessPartner.toString() !== partnerId) {
+        throw new BadRequestException(
+          "You can only reject orders assigned to your restaurant",
+        );
+      }
+
+      // Validate status transition (can only reject pending or confirmed orders)
+      if (![OrderStatus.PENDING, OrderStatus.CONFIRMED].includes(order.status)) {
+        throw new BadRequestException(
+          `Cannot reject order with status: ${order.status}. Only pending or confirmed orders can be rejected.`,
+        );
+      }
+
+      // Update order status to cancelled
+      const updateData = {
+        status: OrderStatus.CANCELLED,
+        rejectedAt: new Date(),
+        rejectionReason: rejectOrderDto.reason,
+        rejectionMessage: rejectOrderDto.message,
+      };
+
+      const updatedOrder = await this.orderModel
+        .findByIdAndUpdate(orderId, updateData, { new: true })
+        .exec();
+
+      // Send real-time notification via WebSocket
+      await this.notificationsGateway.updateOrderStatusViaMotia({
+        orderId,
+        status: "cancelled",
+        userId: updatedOrder.customer.toString(),
+        partnerId,
+        message:
+          rejectOrderDto.message ||
+          `Your order has been rejected. Reason: ${rejectOrderDto.reason}`,
+      });
+
+      return updatedOrder;
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to reject order: ${error.message}`,
+      );
+    }
+  }
+
+  async markOrderReady(
+    orderId: string,
+    readyOrderDto: ReadyOrderDto,
+    partnerId: string,
+  ): Promise<Order> {
+    try {
+      const order = await this.findById(orderId);
+
+      // Validate that the order belongs to this partner
+      if (order.businessPartner.toString() !== partnerId) {
+        throw new BadRequestException(
+          "You can only mark orders ready for your restaurant",
+        );
+      }
+
+      // Validate status transition (can only mark ready from preparing status)
+      if (order.status !== OrderStatus.PREPARING) {
+        throw new BadRequestException(
+          `Cannot mark order ready with status: ${order.status}. Only preparing orders can be marked as ready.`,
+        );
+      }
+
+      // Update order status to ready
+      const updateData: any = {
+        status: OrderStatus.READY,
+        readyAt: new Date(),
+      };
+
+      if (readyOrderDto.estimatedPickupTime) {
+        updateData.estimatedPickupTime = new Date(
+          Date.now() + readyOrderDto.estimatedPickupTime * 60 * 1000,
+        );
+      }
+
+      const updatedOrder = await this.orderModel
+        .findByIdAndUpdate(orderId, updateData, { new: true })
+        .exec();
+
+      // Send real-time notification via WebSocket
+      await this.notificationsGateway.updateOrderStatusViaMotia({
+        orderId,
+        status: "ready",
+        userId: updatedOrder.customer.toString(),
+        partnerId,
+        message:
+          readyOrderDto.message ||
+          `Your order is ready for pickup${
+            readyOrderDto.estimatedPickupTime
+              ? ` in ${readyOrderDto.estimatedPickupTime} minutes`
+              : ""
+          }`,
+        estimatedTime: readyOrderDto.estimatedPickupTime,
+      });
+
+      // Send email notification
+      this.sendOrderStatusUpdateEmail(updatedOrder, "ready").catch((error) => {
+        console.error("Failed to send ready notification email:", error);
+      });
+
+      return updatedOrder;
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to mark order ready: ${error.message}`,
+      );
     }
   }
 }

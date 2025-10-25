@@ -1,31 +1,94 @@
-# Tiffin-Wale Partner App - State Management
+# Partner App State Management
 
-## Overview
-The Partner App uses Zustand for state management with persistence middleware for offline capability. The state is organized into domain-specific stores that handle different aspects of the application.
+## 🏪 Zustand Store Architecture
 
-## Store Architecture
-
-### Store Structure
+### **Store Structure Overview**
 ```
 store/
-├── authStore.ts           # Authentication and user management
-├── partnerStore.ts        # Partner profile and business data
-├── orderStore.ts          # Order management and tracking
-└── notificationStore.ts   # Notifications and alerts
+├── authStore.ts          # Authentication & user management
+├── partnerStore.ts       # Partner profile & business data
+├── orderStore.ts         # Order management & tracking
+├── menuStore.ts          # Menu items & categories
+├── notificationStore.ts  # Notifications & alerts
+├── onboardingStore.ts    # Partner onboarding flow
+└── themeStore.ts         # Theme & UI preferences
 ```
 
-## Core Stores
+### **Core Store Pattern**
+All stores follow a consistent pattern for maintainability and predictability:
 
-### 1. Authentication Store (`authStore.ts`)
+```typescript
+// Base store interface
+interface BaseStoreState {
+  isLoading: boolean;
+  isRefreshing: boolean;
+  error: string | null;
+  lastUpdated: string | null;
+}
 
-#### Purpose
-Manages user authentication, session management, and partner profile data.
+interface BaseStoreActions {
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+  clearError: () => void;
+  reset: () => void;
+}
 
-#### State Structure
+// Store implementation pattern
+export const useExampleStore = create<ExampleState & ExampleActions>()(
+  persist(
+    (set, get) => ({
+      // Initial state
+      ...initialState,
+      
+      // Actions
+      fetchData: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          const data = await api.example.getData();
+          set({ 
+            data, 
+            isLoading: false, 
+            lastUpdated: new Date().toISOString() 
+          });
+        } catch (error) {
+          set({ 
+            error: error.message, 
+            isLoading: false 
+          });
+        }
+      },
+      
+      // ... other actions
+    }),
+    {
+      name: 'example-store',
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({
+        // Only persist essential data
+        data: state.data,
+        lastUpdated: state.lastUpdated,
+      }),
+    }
+  )
+);
+```
+
+---
+
+## 🔐 Authentication Store
+
+### **Purpose**
+Manages user authentication state, partner profile, and session management.
+
+### **State Structure**
 ```typescript
 interface AuthState {
   // Authentication status
   isAuthenticated: boolean;
+  isInitialized: boolean;
+  isLoggingOut: boolean;
+  
+  // User data
   user: AuthUser | null;
   partner: PartnerProfile | null;
   
@@ -39,67 +102,66 @@ interface AuthState {
 }
 ```
 
-#### Key Actions
+### **Key Actions**
 ```typescript
 interface AuthActions {
   // Authentication
   login: (email: string, password: string) => Promise<void>;
+  loginWithPhone: (phoneNumber: string, firebaseUid: string) => Promise<void>;
   register: (partnerData: CreatePartnerData) => Promise<void>;
   logout: () => Promise<void>;
-  changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
   
   // Session management
   initializeAuth: () => Promise<void>;
   refreshAuthToken: () => Promise<void>;
-  clearError: () => void;
   
-  // Partner profile
+  // Profile management
   updatePartnerProfile: (data: Partial<PartnerProfile>) => Promise<void>;
   refreshPartnerProfile: () => Promise<void>;
+  fetchUserProfile: () => Promise<void>;
 }
 ```
 
-#### Usage Example
+### **Usage Examples**
 ```typescript
-const LoginScreen = () => {
-  const { login, isLoading, error } = useAuthStore();
-  
-  const handleLogin = async (email: string, password: string) => {
-    try {
-      await login(email, password);
-      router.replace('/(tabs)/dashboard');
-    } catch (error) {
-      // Error handled by store
-    }
-  };
-  
-  return (
-    // Login form UI
-  );
+// Login flow
+const { login, isLoading, error } = useAuthStore();
+
+const handleLogin = async (email: string, password: string) => {
+  try {
+    await login(email, password);
+    // Navigation handled automatically
+  } catch (error) {
+    // Error displayed in UI
+  }
+};
+
+// Profile management
+const { partner, updatePartnerProfile } = useAuthStore();
+
+const handleUpdateProfile = async (updates: Partial<PartnerProfile>) => {
+  try {
+    await updatePartnerProfile(updates);
+    // Profile updated automatically
+  } catch (error) {
+    // Error handling
+  }
 };
 ```
 
-#### Persistence Configuration
-```typescript
-{
-  name: 'partner-auth-storage',
-  storage: createJSONStorage(() => AsyncStorage),
-  partialize: (state) => ({
-    isAuthenticated: state.isAuthenticated,
-    user: state.user,
-    partner: state.partner,
-    token: state.token,
-    refreshToken: state.refreshToken,
-  }),
-}
-```
+### **Persistence Strategy**
+- **Persisted**: `isAuthenticated`, `user`, `partner`, `token`, `refreshToken`
+- **Not Persisted**: `isLoading`, `error`, `isInitialized`, `isLoggingOut`
+- **Storage Key**: `partner-auth-storage`
 
-### 2. Partner Store (`partnerStore.ts`)
+---
 
-#### Purpose
-Manages partner business data, statistics, menu items, and settings.
+## 🏢 Partner Store
 
-#### State Structure
+### **Purpose**
+Manages partner business data, statistics, and settings.
+
+### **State Structure**
 ```typescript
 interface PartnerState {
   // Partner data
@@ -111,8 +173,10 @@ interface PartnerState {
   menuItems: MenuItem[];
   categories: MenuCategory[];
   
-  // Reviews and settings
+  // Reviews
   reviews: Review[];
+  
+  // Settings
   settings: PartnerSettings | null;
   
   // UI state
@@ -127,7 +191,7 @@ interface PartnerState {
 }
 ```
 
-#### Key Actions
+### **Key Actions**
 ```typescript
 interface PartnerActions {
   // Profile management
@@ -145,60 +209,63 @@ interface PartnerActions {
   
   // Menu management
   fetchMenu: () => Promise<void>;
-  fetchCategories: () => Promise<void>;
-  createMenuItem: (item: Omit<MenuItem, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  createMenuItem: (item: Omit<MenuItem, 'id'>) => Promise<void>;
   updateMenuItem: (id: string, item: Partial<MenuItem>) => Promise<void>;
   deleteMenuItem: (id: string) => Promise<void>;
-  createCategory: (category: Omit<MenuCategory, 'id'>) => Promise<void>;
-  
-  // Reviews and settings
-  fetchReviews: () => Promise<void>;
-  fetchSettings: () => Promise<void>;
-  updateSettings: (settings: Partial<PartnerSettings>) => Promise<void>;
   
   // Utility
   refreshData: () => Promise<void>;
 }
 ```
 
-#### Usage Example
+### **Usage Examples**
 ```typescript
-const DashboardScreen = () => {
-  const { 
-    profile, 
-    stats, 
-    isLoading, 
-    fetchProfile, 
-    fetchStats,
-    toggleAcceptingOrders 
-  } = usePartnerStore();
-  
-  useEffect(() => {
-    fetchProfile();
-    fetchStats();
-  }, []);
-  
-  const handleToggleOrders = async () => {
-    try {
-      await toggleAcceptingOrders();
-      // Show success message
-    } catch (error) {
-      // Handle error
-    }
+// Dashboard data loading
+const { 
+  profile, 
+  stats, 
+  fetchProfile, 
+  fetchStats, 
+  isLoading 
+} = usePartnerStore();
+
+useEffect(() => {
+  const loadDashboardData = async () => {
+    await Promise.all([
+      fetchProfile(),
+      fetchStats()
+    ]);
   };
   
-  return (
-    // Dashboard UI
-  );
+  loadDashboardData();
+}, []);
+
+// Status toggle
+const { toggleAcceptingOrders, isUpdating } = usePartnerStore();
+
+const handleToggleStatus = async () => {
+  try {
+    await toggleAcceptingOrders();
+    // Status updated automatically
+  } catch (error) {
+    // Error handling
+  }
 };
 ```
 
-### 3. Order Store (`orderStore.ts`)
+### **Persistence Strategy**
+- **Persisted**: `profile`, `stats`, `menuItems`, `categories`, `reviews`, `settings`
+- **Not Persisted**: `isLoading`, `isRefreshing`, `isUpdating`, `error`
+- **Storage Key**: `partner-profile-storage`
 
-#### Purpose
-Manages order data, status updates, and order-related statistics.
+---
 
-#### State Structure
+## 📦 Order Store
+
+### **Purpose**
+Manages order data, tracking, and status updates.
+
+### **State Structure**
 ```typescript
 interface OrderState {
   // Order data
@@ -232,14 +299,13 @@ interface OrderState {
 }
 ```
 
-#### Key Actions
+### **Key Actions**
 ```typescript
 interface OrderActions {
   // Data fetching
   fetchOrders: (page?: number, filters?: OrderFilter) => Promise<void>;
   fetchTodayOrders: () => Promise<void>;
   fetchOrderById: (id: string) => Promise<void>;
-  fetchOrderStats: () => Promise<void>;
   refreshOrders: () => Promise<void>;
   
   // Order management
@@ -255,47 +321,137 @@ interface OrderActions {
 }
 ```
 
-#### Usage Example
+### **Usage Examples**
 ```typescript
-const OrdersScreen = () => {
-  const { 
-    orders, 
-    todayOrders, 
-    isLoading, 
-    activeFilter,
-    fetchOrders,
-    updateOrderStatus,
-    setFilter 
-  } = useOrderStore();
-  
-  const handleStatusUpdate = async (orderId: string, status: OrderStatus) => {
-    try {
-      await updateOrderStatus(orderId, status);
-      // Show success message
-    } catch (error) {
-      // Handle error
-    }
-  };
-  
-  const handleFilterChange = (filter: Partial<OrderFilter>) => {
-    setFilter(filter);
-  };
-  
-  return (
-    // Orders UI
-  );
+// Orders list with pagination
+const { 
+  orders, 
+  isLoading, 
+  hasNextPage, 
+  fetchOrders, 
+  loadNextPage 
+} = useOrderStore();
+
+useEffect(() => {
+  fetchOrders(1);
+}, []);
+
+const handleLoadMore = () => {
+  if (hasNextPage && !isLoading) {
+    loadNextPage();
+  }
+};
+
+// Order status updates
+const { updateOrderStatus } = useOrderStore();
+
+const handleStatusUpdate = async (orderId: string, status: OrderStatus) => {
+  try {
+    await updateOrderStatus(orderId, status);
+    // Order updated automatically in all lists
+  } catch (error) {
+    // Error handling
+  }
 };
 ```
 
-### 4. Notification Store (`notificationStore.ts`)
+### **Persistence Strategy**
+- **Persisted**: `orders`, `todayOrders`, `currentPage`, `totalOrders`, `activeFilter`, `stats`
+- **Not Persisted**: `isLoading`, `isRefreshing`, `error`, `currentOrder`
+- **Storage Key**: `partner-order-storage`
 
-#### Purpose
+---
+
+## 🍽️ Menu Store
+
+### **Purpose**
+Manages menu items, categories, and availability.
+
+### **State Structure**
+```typescript
+interface MenuState {
+  // Menu data
+  menuItems: MenuItem[];
+  categories: MenuCategory[];
+  
+  // UI state
+  isLoading: boolean;
+  isCreating: boolean;
+  isUpdating: boolean;
+  error: string | null;
+  
+  // Filters
+  activeCategory: string | null;
+  searchQuery: string;
+}
+```
+
+### **Key Actions**
+```typescript
+interface MenuActions {
+  // Data fetching
+  fetchMenu: () => Promise<void>;
+  fetchCategories: () => Promise<void>;
+  
+  // Menu item management
+  createMenuItem: (item: Omit<MenuItem, 'id'>) => Promise<void>;
+  updateMenuItem: (id: string, item: Partial<MenuItem>) => Promise<void>;
+  deleteMenuItem: (id: string) => Promise<void>;
+  toggleAvailability: (id: string) => Promise<void>;
+  
+  // Category management
+  createCategory: (category: Omit<MenuCategory, 'id'>) => Promise<void>;
+  
+  // Filters
+  setActiveCategory: (category: string | null) => void;
+  setSearchQuery: (query: string) => void;
+  clearFilters: () => void;
+}
+```
+
+### **Usage Examples**
+```typescript
+// Menu management
+const { 
+  menuItems, 
+  categories, 
+  fetchMenu, 
+  createMenuItem, 
+  isLoading 
+} = useMenuStore();
+
+useEffect(() => {
+  fetchMenu();
+}, []);
+
+const handleCreateItem = async (itemData: CreateMenuItemData) => {
+  try {
+    await createMenuItem(itemData);
+    // Item added to list automatically
+  } catch (error) {
+    // Error handling
+  }
+};
+
+// Filtered menu items
+const { activeCategory, setActiveCategory } = useMenuStore();
+
+const filteredItems = menuItems.filter(item => 
+  !activeCategory || item.category === activeCategory
+);
+```
+
+---
+
+## 🔔 Notification Store
+
+### **Purpose**
 Manages notifications, alerts, and real-time updates.
 
-#### State Structure
+### **State Structure**
 ```typescript
 interface NotificationState {
-  // Notifications
+  // Notification data
   notifications: Notification[];
   unreadCount: number;
   
@@ -308,292 +464,363 @@ interface NotificationState {
 }
 ```
 
-## Data Flow Patterns
-
-### 1. Initial Data Loading
+### **Key Actions**
 ```typescript
-const DashboardScreen = () => {
-  const { fetchProfile, fetchStats } = usePartnerStore();
-  const { fetchTodayOrders } = useOrderStore();
+interface NotificationActions {
+  // Data fetching
+  fetchNotifications: () => Promise<void>;
   
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        await Promise.all([
-          fetchProfile(),
-          fetchStats(),
-          fetchTodayOrders(),
-        ]);
-      } catch (error) {
-        console.error('Failed to load dashboard data:', error);
-      }
-    };
-    
-    loadData();
-  }, []);
+  // Notification management
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  deleteNotification: (id: string) => Promise<void>;
   
-  // Component render
-};
+  // Settings
+  updateSettings: (settings: Partial<NotificationSettings>) => Promise<void>;
+  
+  // Real-time updates
+  addNotification: (notification: Notification) => void;
+  removeNotification: (id: string) => void;
+}
 ```
-
-### 2. Real-time Updates
-```typescript
-// WebSocket integration for real-time updates
-const useRealTimeUpdates = () => {
-  const { updateOrderStatus } = useOrderStore();
-  const { fetchTodayOrders } = useOrderStore();
-  
-  useEffect(() => {
-    const socket = io(config.apiBaseUrl);
-    
-    socket.on('order:status-updated', (order) => {
-      updateOrderStatus(order.id, order.status);
-    });
-    
-    socket.on('order:new', () => {
-      fetchTodayOrders();
-    });
-    
-    return () => socket.disconnect();
-  }, []);
-};
-```
-
-### 3. Optimistic Updates
-```typescript
-const updateOrderStatusOptimistic = async (orderId: string, status: OrderStatus) => {
-  // Update local state immediately
-  set((state) => ({
-    orders: state.orders.map(order =>
-      order.id === orderId ? { ...order, status } : order
-    ),
-  }));
-  
-  try {
-    // Make API call
-    await api.orders.updateOrderStatus(orderId, status);
-  } catch (error) {
-    // Revert on error
-    set((state) => ({
-      orders: state.orders.map(order =>
-        order.id === orderId ? { ...order, status: order.previousStatus } : order
-      ),
-    }));
-    throw error;
-  }
-};
-```
-
-## Error Handling
-
-### Store-Level Error Handling
-```typescript
-const fetchProfile = async () => {
-  try {
-    set({ isLoading: true, error: null });
-    
-    const profile = await api.partner.getCurrentProfile();
-    
-    set({
-      profile,
-      isLoading: false,
-      error: null,
-    });
-  } catch (error: any) {
-    console.error('Failed to fetch partner profile:', error);
-    set({
-      isLoading: false,
-      error: error.response?.data?.message || 'Failed to fetch profile',
-    });
-  }
-};
-```
-
-### Component-Level Error Handling
-```typescript
-const ProfileScreen = () => {
-  const { profile, error, fetchProfile } = usePartnerStore();
-  
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-  
-  if (error) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity onPress={fetchProfile}>
-          <Text>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-  
-  // Normal render
-};
-```
-
-## Persistence Strategy
-
-### Selective Persistence
-```typescript
-// Only persist essential data, not UI state
-partialize: (state) => ({
-  // Auth data
-  isAuthenticated: state.isAuthenticated,
-  user: state.user,
-  partner: state.partner,
-  token: state.token,
-  refreshToken: state.refreshToken,
-  
-  // Partner data
-  profile: state.profile,
-  stats: state.stats,
-  menuItems: state.menuItems,
-  categories: state.categories,
-  
-  // Order data
-  orders: state.orders,
-  todayOrders: state.todayOrders,
-  activeFilter: state.activeFilter,
-  
-  // Exclude UI state
-  // isLoading, error, isRefreshing, etc.
-})
-```
-
-### Data Hydration
-```typescript
-const initializeAuth = async () => {
-  try {
-    set({ isLoading: true });
-    
-    const session = await AuthService.getAuthSession();
-    
-    if (session.token && session.user) {
-      if (AuthService.isTokenExpired(session.token)) {
-        // Handle token refresh
-        await refreshAuthToken();
-        return;
-      }
-      
-      set({
-        isAuthenticated: true,
-        user: session.user,
-        partner: session.partner,
-        token: session.token,
-        refreshToken: session.refreshToken,
-        isLoading: false,
-      });
-    } else {
-      set({ ...initialState, isLoading: false });
-    }
-  } catch (error) {
-    console.error('Initialize auth error:', error);
-    set({ ...initialState, isLoading: false });
-  }
-};
-```
-
-## Performance Optimization
-
-### Memoization
-```typescript
-// Memoize expensive calculations
-const useOrderStats = () => {
-  const { orders } = useOrderStore();
-  
-  return useMemo(() => {
-    return {
-      total: orders.length,
-      pending: orders.filter(o => o.status === 'PENDING').length,
-      completed: orders.filter(o => o.status === 'DELIVERED').length,
-    };
-  }, [orders]);
-};
-```
-
-### Selective Subscriptions
-```typescript
-// Only subscribe to specific parts of the store
-const useOrderCount = () => {
-  return useOrderStore(state => state.orders.length);
-};
-
-const useOrderStats = () => {
-  return useOrderStore(state => ({
-    total: state.orders.length,
-    pending: state.orders.filter(o => o.status === 'PENDING').length,
-  }));
-};
-```
-
-## Testing Strategy
-
-### Store Testing
-```typescript
-describe('AuthStore', () => {
-  beforeEach(() => {
-    // Reset store state
-    useAuthStore.setState(initialState);
-  });
-  
-  it('should login successfully', async () => {
-    const { login } = useAuthStore.getState();
-    
-    await login('test@example.com', 'password');
-    
-    const { isAuthenticated, user } = useAuthStore.getState();
-    expect(isAuthenticated).toBe(true);
-    expect(user).toBeDefined();
-  });
-});
-```
-
-### Integration Testing
-```typescript
-describe('Dashboard Integration', () => {
-  it('should load dashboard data', async () => {
-    render(<DashboardScreen />);
-    
-    // Wait for data to load
-    await waitFor(() => {
-      expect(screen.getByText('Today\'s Earnings')).toBeInTheDocument();
-    });
-  });
-});
-```
-
-## Best Practices
-
-### 1. Store Organization
-- Keep stores focused on specific domains
-- Use consistent naming conventions
-- Implement proper TypeScript types
-- Handle loading and error states consistently
-
-### 2. Data Fetching
-- Implement proper error handling
-- Use loading states for better UX
-- Implement retry mechanisms
-- Cache data appropriately
-
-### 3. State Updates
-- Use immutable updates
-- Implement optimistic updates where appropriate
-- Handle concurrent updates properly
-- Validate data before updating state
-
-### 4. Performance
-- Use selective subscriptions
-- Implement proper memoization
-- Avoid unnecessary re-renders
-- Optimize for mobile performance
 
 ---
 
-*This state management architecture provides a robust, scalable, and maintainable solution for the Partner App's data needs.*
+## 🚀 Onboarding Store
 
+### **Purpose**
+Manages the partner onboarding flow and form data.
 
+### **State Structure**
+```typescript
+interface OnboardingState {
+  // Current step
+  currentStep: number;
+  totalSteps: number;
+  
+  // Form data
+  personalInfo: PersonalInfo | null;
+  businessProfile: BusinessProfile | null;
+  locationHours: LocationHours | null;
+  cuisineServices: CuisineServices | null;
+  imagesBranding: ImagesBranding | null;
+  documents: Documents | null;
+  paymentSetup: PaymentSetup | null;
+  
+  // UI state
+  isLoading: boolean;
+  error: string | null;
+}
+```
 
+### **Key Actions**
+```typescript
+interface OnboardingActions {
+  // Step management
+  nextStep: () => void;
+  prevStep: () => void;
+  goToStep: (step: number) => void;
+  
+  // Data management
+  updateStepData: (step: string, data: any) => void;
+  clearOnboardingData: () => void;
+  
+  // Submission
+  submitOnboarding: () => Promise<void>;
+}
+```
 
+---
+
+## 🎨 Theme Store
+
+### **Purpose**
+Manages theme preferences and UI customization.
+
+### **State Structure**
+```typescript
+interface ThemeState {
+  // Theme settings
+  isDarkMode: boolean;
+  primaryColor: string;
+  fontSize: 'small' | 'medium' | 'large';
+  
+  // UI preferences
+  animationsEnabled: boolean;
+  hapticFeedback: boolean;
+}
+```
+
+### **Key Actions**
+```typescript
+interface ThemeActions {
+  // Theme management
+  toggleDarkMode: () => void;
+  setPrimaryColor: (color: string) => void;
+  setFontSize: (size: 'small' | 'medium' | 'large') => void;
+  
+  // Preferences
+  toggleAnimations: () => void;
+  toggleHapticFeedback: () => void;
+  
+  // Reset
+  resetToDefaults: () => void;
+}
+```
+
+---
+
+## 🔄 State Management Patterns
+
+### **Pattern 1: Optimistic Updates**
+```typescript
+// Update UI immediately, rollback on error
+updateOrderStatus: async (orderId: string, status: OrderStatus) => {
+  const { orders } = get();
+  
+  // Optimistic update
+  const optimisticOrders = orders.map(order => 
+    order.id === orderId ? { ...order, status } : order
+  );
+  set({ orders: optimisticOrders });
+  
+  try {
+    const updatedOrder = await api.orders.updateStatus(orderId, status);
+    // Confirm update
+    set({
+      orders: orders.map(order => 
+        order.id === orderId ? updatedOrder : order
+      )
+    });
+  } catch (error) {
+    // Rollback on error
+    set({ orders: get().orders });
+    throw error;
+  }
+},
+```
+
+### **Pattern 2: Batch Operations**
+```typescript
+// Load multiple related data sources
+refreshData: async () => {
+  set({ isRefreshing: true });
+  try {
+    await Promise.all([
+      get().fetchProfile(),
+      get().fetchStats(),
+      get().fetchMenu(),
+      get().fetchOrders(),
+    ]);
+  } finally {
+    set({ isRefreshing: false });
+  }
+},
+```
+
+### **Pattern 3: Conditional Loading**
+```typescript
+// Only load data if not already loaded or stale
+fetchProfile: async () => {
+  const { profile, lastProfileUpdate } = get();
+  
+  // Skip if recently updated
+  if (profile && lastProfileUpdate) {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    if (new Date(lastProfileUpdate) > fiveMinutesAgo) {
+      return;
+    }
+  }
+  
+  set({ isLoading: true, error: null });
+  // ... fetch logic
+},
+```
+
+### **Pattern 4: Error Recovery**
+```typescript
+// Automatic retry with exponential backoff
+fetchData: async (retryCount = 0) => {
+  try {
+    const data = await api.getData();
+    set({ data, error: null });
+  } catch (error) {
+    if (retryCount < 3) {
+      // Retry with exponential backoff
+      setTimeout(() => {
+        get().fetchData(retryCount + 1);
+      }, Math.pow(2, retryCount) * 1000);
+    } else {
+      set({ error: error.message });
+    }
+  }
+},
+```
+
+---
+
+## 🧪 Testing Store Logic
+
+### **Unit Testing Stores**
+```typescript
+// __tests__/store/partnerStore.test.ts
+import { renderHook, act } from '@testing-library/react-hooks';
+import { usePartnerStore } from '../../store/partnerStore';
+
+describe('PartnerStore', () => {
+  beforeEach(() => {
+    usePartnerStore.getState().reset();
+  });
+  
+  it('should fetch profile successfully', async () => {
+    const { result } = renderHook(() => usePartnerStore());
+    
+    await act(async () => {
+      await result.current.fetchProfile();
+    });
+    
+    expect(result.current.profile).toBeDefined();
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.error).toBeNull();
+  });
+  
+  it('should handle fetch profile error', async () => {
+    // Mock API error
+    jest.spyOn(api.partner, 'getCurrentProfile').mockRejectedValue(
+      new Error('Network error')
+    );
+    
+    const { result } = renderHook(() => usePartnerStore());
+    
+    await act(async () => {
+      await result.current.fetchProfile();
+    });
+    
+    expect(result.current.profile).toBeNull();
+    expect(result.current.error).toBe('Network error');
+    expect(result.current.isLoading).toBe(false);
+  });
+});
+```
+
+### **Integration Testing**
+```typescript
+// __tests__/integration/authFlow.test.tsx
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { LoginScreen } from '../../app/(auth)/login';
+
+describe('Authentication Flow', () => {
+  it('should login and update auth state', async () => {
+    const { getByPlaceholderText, getByText } = render(<LoginScreen />);
+    
+    fireEvent.changeText(getByPlaceholderText('Email'), 'test@example.com');
+    fireEvent.changeText(getByPlaceholderText('Password'), 'password');
+    fireEvent.press(getByText('Login'));
+    
+    await waitFor(() => {
+      expect(useAuthStore.getState().isAuthenticated).toBe(true);
+    });
+  });
+});
+```
+
+---
+
+## 📊 Performance Optimization
+
+### **Selective Subscriptions**
+```typescript
+// Only subscribe to specific state slices
+const profile = usePartnerStore(state => state.profile);
+const isLoading = usePartnerStore(state => state.isLoading);
+
+// Instead of subscribing to entire store
+const { profile, isLoading } = usePartnerStore();
+```
+
+### **Memoized Selectors**
+```typescript
+// Create memoized selectors for complex computations
+const selectFilteredOrders = useMemo(
+  () => (state: OrderState) => {
+    return state.orders.filter(order => 
+      order.status === state.activeFilter.status
+    );
+  },
+  []
+);
+
+const filteredOrders = useOrderStore(selectFilteredOrders);
+```
+
+### **Debounced Updates**
+```typescript
+// Debounce frequent updates
+const debouncedUpdateProfile = useMemo(
+  () => debounce((data: Partial<PartnerProfile>) => {
+    updateProfile(data);
+  }, 500),
+  [updateProfile]
+);
+```
+
+---
+
+## 🔒 Security Considerations
+
+### **Sensitive Data Handling**
+```typescript
+// Don't persist sensitive data
+partialize: (state) => ({
+  // Safe to persist
+  profile: {
+    ...state.profile,
+    // Remove sensitive fields
+    password: undefined,
+    ssn: undefined,
+  },
+  // Don't persist tokens in partner store
+  token: undefined,
+  refreshToken: undefined,
+}),
+```
+
+### **Token Management**
+```typescript
+// Use secure storage for tokens
+const storeTokens = async (accessToken: string, refreshToken: string) => {
+  await SecureStore.setItemAsync('access_token', accessToken);
+  await SecureStore.setItemAsync('refresh_token', refreshToken);
+};
+```
+
+---
+
+## 📝 Best Practices
+
+### **Store Design**
+1. **Single Responsibility**: Each store should manage one domain
+2. **Immutable Updates**: Always return new state objects
+3. **Error Boundaries**: Handle errors gracefully
+4. **Loading States**: Provide clear loading indicators
+5. **Persistence Strategy**: Only persist essential data
+
+### **Action Design**
+1. **Async Actions**: Use async/await for API calls
+2. **Error Handling**: Always handle and store errors
+3. **Optimistic Updates**: Update UI immediately when appropriate
+4. **Batch Operations**: Group related operations
+5. **Conditional Loading**: Avoid unnecessary API calls
+
+### **State Structure**
+1. **Normalized Data**: Keep related data normalized
+2. **Computed Properties**: Use selectors for derived state
+3. **Timestamps**: Track when data was last updated
+4. **Filters**: Store filter state separately
+5. **UI State**: Keep UI state minimal and focused
+
+---
+
+*Last Updated: December 2024*
+*Status: State Management Documented*
+*Next Review: When new stores are added*

@@ -3,9 +3,26 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DeviceEventEmitter } from 'react-native';
 import api from '../utils/apiClient';
-import { authService } from '../utils/authService';
-import { tokenManager } from '../utils/tokenManager';
-import { AuthState, AuthUser, PartnerProfile, CreatePartnerData, LoginResponse } from '../types/auth';
+import { secureTokenManager } from '../auth/SecureTokenManager';
+import { 
+  AuthUser, 
+  LoginCredentials, 
+  PhoneLoginCredentials,
+  LoginResponse 
+} from '../auth/types';
+import { PartnerProfile, CreatePartnerData } from '../types/auth';
+
+interface AuthState {
+  isAuthenticated: boolean;
+  user: AuthUser | null;
+  partner: PartnerProfile | null;
+  token: string | null;
+  refreshToken: string | null;
+  isLoading: boolean;
+  error: string | null;
+  isInitialized: boolean;
+  isLoggingOut: boolean;
+}
 
 interface AuthActions {
   // Authentication actions
@@ -52,38 +69,31 @@ export const useAuthStore = create<AuthState & AuthActions>()(
     (set, get) => ({
       ...initialState,
 
-      // Initialize authentication
+      // Initialize authentication using SecureTokenManager
       initializeAuth: async () => {
         if (__DEV__) console.log('🔍 Partner AuthStore: Starting authentication initialization');
         set({ isLoading: true, error: null });
         
         try {
-          // Debug: Check what's in storage
-          const token = await authService.getToken();
-          const user = await authService.getCurrentUser();
-          if (__DEV__) console.log('🔍 Partner AuthStore: Storage check:', { 
-            hasToken: !!token, 
-            tokenLength: token?.length || 0,
-            hasUser: !!user,
-            userId: user?.id 
-          });
+          // Initialize SecureTokenManager
+          await secureTokenManager.initialize();
           
-          // First check if we have a valid token locally
-          const isAuthenticated = await authService.isAuthenticated();
-          if (__DEV__) console.log('🔍 Partner AuthStore: Local auth check result:', isAuthenticated);
+          // Check authentication status
+          const isAuthenticated = await secureTokenManager.isAuthenticated();
+          if (__DEV__) console.log('🔍 Partner AuthStore: Auth status:', isAuthenticated);
           
           if (isAuthenticated) {
-            // Get user from storage first
-            const storedUser = await authService.getCurrentUser();
+            // Get stored user data
+            const storedUser = await secureTokenManager.getUserData();
             if (__DEV__) console.log('🔍 Partner AuthStore: Stored user:', storedUser ? 'Found' : 'Not found');
             
             if (storedUser) {
-              // Validate token with backend
-              if (__DEV__) console.log('🔍 Partner AuthStore: Validating token with backend...');
-              const isValidWithBackend = await authService.validateToken();
-              if (__DEV__) console.log('🔍 Partner AuthStore: Backend validation result:', isValidWithBackend);
+              // Check if token is expired
+              const isTokenExpired = await secureTokenManager.isTokenExpired();
+              if (__DEV__) console.log('🔍 Partner AuthStore: Token expired:', isTokenExpired);
               
-              if (isValidWithBackend) {
+              if (!isTokenExpired) {
+                // Token is valid, set authenticated state
                 if (__DEV__) console.log('✅ Partner AuthStore: Auth initialized successfully with valid user');
                 set({ 
                   user: storedUser, 
@@ -94,12 +104,27 @@ export const useAuthStore = create<AuthState & AuthActions>()(
                 });
                 return;
               } else {
-                if (__DEV__) console.log('⚠️ Partner AuthStore: Token invalid with backend, clearing auth');
-                await authService.logout();
+                // Try to refresh token
+                try {
+                  if (__DEV__) console.log('🔄 Partner AuthStore: Attempting token refresh...');
+                  await secureTokenManager.refreshAccessToken();
+                  
+                  set({ 
+                    user: storedUser, 
+                    isAuthenticated: true, 
+                    isLoading: false,
+                    isInitialized: true,
+                    error: null
+                  });
+                  return;
+                } catch (refreshError) {
+                  if (__DEV__) console.log('⚠️ Partner AuthStore: Token refresh failed, clearing auth');
+                  await secureTokenManager.clearAll();
+                }
               }
             } else {
               if (__DEV__) console.log('⚠️ Partner AuthStore: No stored user found, clearing auth');
-              await authService.logout();
+              await secureTokenManager.clearAll();
             }
           }
           
@@ -107,6 +132,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           if (__DEV__) console.log('🔍 Partner AuthStore: User not authenticated, setting initial state');
           set({ 
             user: null,
+            partner: null,
             isAuthenticated: false, 
             isLoading: false,
             isInitialized: true,
@@ -117,6 +143,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           console.error('❌ Partner AuthStore: Auth initialization error:', error);
           set({ 
             user: null,
+            partner: null,
             isAuthenticated: false, 
             isLoading: false,
             isInitialized: true,
@@ -125,23 +152,37 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
       },
 
-      // Authentication actions
+      // Login with email and password
       login: async (email: string, password: string) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await authService.login({ email, password });
+          if (__DEV__) console.log('🔐 Partner AuthStore: Attempting login for:', email);
+          
+          const credentials: LoginCredentials = { email, password };
+          const response: LoginResponse = await api.auth.login(credentials);
+          
+          // Store tokens and user data securely
+          await secureTokenManager.storeTokens({
+            accessToken: response.accessToken,
+            refreshToken: response.refreshToken,
+          });
+          
+          await secureTokenManager.storeUserData(response.user);
           
           set({ 
             user: response.user,
             partner: response.partner || null,
-            token: response.accessToken || response.token,
+            token: response.accessToken,
+            refreshToken: response.refreshToken,
             isAuthenticated: true,
-            isLoading: false 
+            isLoading: false,
+            error: null
           });
           
-          if (__DEV__) console.log('✅ Partner AuthStore: Login successful, tokens stored securely');
+          if (__DEV__) console.log('✅ Partner AuthStore: Login successful');
         } catch (error: any) {
-          const errorMessage = error.response?.data?.message || error.message || 'Login failed. Please try again.';
+          console.error('❌ Partner AuthStore: Login error:', error);
+          const errorMessage = error.message || 'Login failed. Please try again.';
           set({ 
             error: errorMessage, 
             isLoading: false 
@@ -150,24 +191,37 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
       },
 
+      // Login with phone number
       loginWithPhone: async (phoneNumber: string, firebaseUid: string) => {
         set({ isLoading: true, error: null });
         try {
           if (__DEV__) console.log('📱 Partner AuthStore: Attempting phone login for:', phoneNumber);
           
-          const response = await authService.loginWithPhone(phoneNumber, firebaseUid);
+          const credentials: PhoneLoginCredentials = { phoneNumber, firebaseUid };
+          const response: LoginResponse = await api.auth.loginWithPhone(credentials);
+          
+          // Store tokens and user data securely
+          await secureTokenManager.storeTokens({
+            accessToken: response.accessToken,
+            refreshToken: response.refreshToken,
+          });
+          
+          await secureTokenManager.storeUserData(response.user);
           
           set({ 
             user: response.user,
             partner: response.partner || null,
-            token: response.accessToken || response.token,
+            token: response.accessToken,
+            refreshToken: response.refreshToken,
             isAuthenticated: true,
-            isLoading: false 
+            isLoading: false,
+            error: null
           });
           
           if (__DEV__) console.log('✅ Partner AuthStore: Phone login successful');
         } catch (error: any) {
-          const errorMessage = error.response?.data?.message || error.message || 'Phone login failed. Please try again.';
+          console.error('❌ Partner AuthStore: Phone login error:', error);
+          const errorMessage = error.message || 'Phone login failed. Please try again.';
           set({ 
             error: errorMessage, 
             isLoading: false 
@@ -176,32 +230,47 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
       },
 
+      // Check if user exists
       checkUserExists: async (phoneNumber: string): Promise<boolean> => {
         try {
           if (__DEV__) console.log('🔍 Partner AuthStore: Checking if partner exists for phone:', phoneNumber);
-          return await authService.checkUserExists(phoneNumber);
+          return await api.auth.checkUserExists(phoneNumber);
         } catch (error) {
           console.error('❌ Partner AuthStore: Error checking user existence:', error);
           return false;
         }
       },
 
+      // Register new partner
       register: async (partnerData: CreatePartnerData) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await authService.register(partnerData);
+          if (__DEV__) console.log('🏪 Partner AuthStore: Attempting registration');
+          
+          const response: LoginResponse = await api.auth.register(partnerData);
+          
+          // Store tokens and user data securely
+          await secureTokenManager.storeTokens({
+            accessToken: response.accessToken,
+            refreshToken: response.refreshToken,
+          });
+          
+          await secureTokenManager.storeUserData(response.user);
           
           set({ 
             user: response.user,
             partner: response.partner || null,
-            token: response.accessToken || response.token,
+            token: response.accessToken,
+            refreshToken: response.refreshToken,
             isAuthenticated: true,
-            isLoading: false 
+            isLoading: false,
+            error: null
           });
           
           if (__DEV__) console.log('✅ Partner AuthStore: Registration successful');
         } catch (error: any) {
-          const errorMessage = error.response?.data?.message || error.message || 'Registration failed. Please try again.';
+          console.error('❌ Partner AuthStore: Registration error:', error);
+          const errorMessage = error.message || 'Registration failed. Please try again.';
           set({ 
             error: errorMessage, 
             isLoading: false 
@@ -210,72 +279,44 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
       },
 
+      // Register with onboarding data
       registerWithOnboarding: async (onboardingData: any) => {
-        if (__DEV__) console.log('🏪 Partner AuthStore: registerWithOnboarding called with:', onboardingData);
+        if (__DEV__) console.log('🏪 Partner AuthStore: registerWithOnboarding called');
         set({ isLoading: true, error: null });
         try {
           // Map onboarding data to registration format for partners
-          const registrationData = {
+          const registrationData: CreatePartnerData = {
             // Personal info
             firstName: onboardingData.personalInfo?.firstName,
             lastName: onboardingData.personalInfo?.lastName,
             email: onboardingData.personalInfo?.email,
             phoneNumber: onboardingData.phoneVerification?.phoneNumber,
+            password: onboardingData.personalInfo?.password,
             
             // Business info
             businessName: onboardingData.businessProfile?.businessName,
             description: onboardingData.businessProfile?.description,
-            establishedDate: onboardingData.businessProfile?.establishedDate,
             
             // Location & Hours
             address: onboardingData.locationHours?.address,
             businessHours: onboardingData.locationHours?.businessHours,
-            deliveryRadius: onboardingData.locationHours?.deliveryRadius || 5,
             
             // Cuisine & Services
             cuisineTypes: onboardingData.cuisineServices?.cuisineTypes || [],
-            isVegetarian: onboardingData.cuisineServices?.isVegetarian || false,
-            hasDelivery: onboardingData.cuisineServices?.hasDelivery !== false,
-            hasPickup: onboardingData.cuisineServices?.hasPickup !== false,
-            acceptsCash: onboardingData.cuisineServices?.acceptsCash !== false,
-            acceptsCard: onboardingData.cuisineServices?.acceptsCard !== false,
-            minimumOrderAmount: onboardingData.cuisineServices?.minimumOrderAmount || 100,
-            deliveryFee: onboardingData.cuisineServices?.deliveryFee || 0,
-            estimatedDeliveryTime: onboardingData.cuisineServices?.estimatedDeliveryTime || 30,
             
             // Images & Branding
             logoUrl: onboardingData.imagesBranding?.logoUrl,
             bannerUrl: onboardingData.imagesBranding?.bannerUrl,
-            socialMedia: onboardingData.imagesBranding?.socialMedia,
-            
-            // Documents
-            gstNumber: onboardingData.documents?.gstNumber,
-            licenseNumber: onboardingData.documents?.licenseNumber,
-            documents: onboardingData.documents?.documents || {},
-            
-            // Payment Setup
-            commissionRate: onboardingData.paymentSetup?.commissionRate || 20,
-            
-            // Role
-            role: 'business' as const,
           };
 
-          if (__DEV__) console.log('🏪 Partner AuthStore: Mapped registration data:', registrationData);
+          if (__DEV__) console.log('🏪 Partner AuthStore: Mapped registration data');
           
-          const response = await authService.register(registrationData);
-          
-          set({ 
-            user: response.user,
-            partner: response.partner || null,
-            token: response.accessToken || response.token,
-            isAuthenticated: true,
-            isLoading: false 
-          });
+          await get().register(registrationData);
           
           if (__DEV__) console.log('✅ Partner AuthStore: Registration with onboarding successful');
         } catch (error: any) {
           console.error('❌ Partner AuthStore: Registration with onboarding error:', error);
-          const errorMessage = error.response?.data?.message || error.message || 'Registration failed. Please try again.';
+          const errorMessage = error.message || 'Registration failed. Please try again.';
           set({ 
             error: errorMessage, 
             isLoading: false 
@@ -284,6 +325,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
       },
 
+      // Logout
       logout: async () => {
         const currentState = get();
         
@@ -297,11 +339,9 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         set({ isLoggingOut: true, isLoading: true, error: null });
         
         try {
-          await authService.logout();
-          if (__DEV__) console.log('✅ Partner AuthStore: Logout API call completed');
-          
-          // Clear all tokens using TokenManager
-          await tokenManager.clearTokens();
+          // Call logout API (this also clears tokens)
+          await api.auth.logout();
+          if (__DEV__) console.log('✅ Partner AuthStore: Logout completed');
           
           set({ 
             user: null,
@@ -310,14 +350,14 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             refreshToken: null,
             isAuthenticated: false, 
             isLoading: false,
-            isLoggingOut: false 
+            isLoggingOut: false,
+            error: null
           });
         } catch (error: any) {
           console.error('❌ Partner AuthStore: Logout error:', error);
-          const errorMessage = error.response?.data?.message || error.message || 'Logout failed';
           
-          // Even if logout API fails, clear local state and tokens
-          await tokenManager.clearTokens();
+          // Even if logout API fails, clear local state
+          await secureTokenManager.clearAll();
           
           set({ 
             user: null,
@@ -325,13 +365,14 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             token: null,
             refreshToken: null,
             isAuthenticated: false,
-            error: errorMessage, 
             isLoading: false,
-            isLoggingOut: false 
+            isLoggingOut: false,
+            error: null
           });
         }
       },
 
+      // Change password
       changePassword: async (oldPassword: string, newPassword: string) => {
         set({ isLoading: true, error: null });
         try {
@@ -342,7 +383,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           });
         } catch (error: any) {
           console.error('❌ Partner AuthStore: Change password error:', error);
-          const errorMessage = error.response?.data?.message || error.message || 'Failed to change password. Please try again.';
+          const errorMessage = error.message || 'Failed to change password. Please try again.';
           set({
             isLoading: false,
             error: errorMessage,
@@ -351,22 +392,14 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
       },
 
+      // Refresh auth token
       refreshAuthToken: async () => {
         try {
-          const refreshToken = await tokenManager.getRefreshToken();
-          if (!refreshToken) {
-            throw new Error('No refresh token available');
+          const newToken = await secureTokenManager.refreshAccessToken();
+          if (newToken) {
+            set({ token: newToken });
+            if (__DEV__) console.log('✅ Partner AuthStore: Token refreshed successfully');
           }
-
-          const response = await authService.refreshToken(refreshToken);
-          await tokenManager.storeTokens(response.accessToken, response.refreshToken);
-          
-          set({
-            token: response.accessToken,
-            refreshToken: response.refreshToken,
-          });
-          
-          if (__DEV__) console.log('✅ Partner AuthStore: Token refreshed successfully');
         } catch (error: any) {
           console.error('❌ Partner AuthStore: Token refresh error:', error);
           // If refresh fails, logout user
@@ -375,6 +408,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
       },
 
+      // Clear error
       clearError: () => {
         set({ error: null });
       },
@@ -385,18 +419,22 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         try {
           const updatedPartner = await api.partner.updateProfile(data);
           
-          // Update local storage
-          await authService.updateStoredUser(updatedPartner as AuthUser);
-          
-          set({
-            partner: updatedPartner,
-            user: updatedPartner as AuthUser, // Update user as well since they're the same for partners
-            isLoading: false,
-            error: null,
-          });
+          // Update stored user data
+          const currentUser = get().user;
+          if (currentUser) {
+            const updatedUser = { ...currentUser, ...updatedPartner };
+            await secureTokenManager.storeUserData(updatedUser);
+            
+            set({
+              partner: updatedPartner,
+              user: updatedUser,
+              isLoading: false,
+              error: null,
+            });
+          }
         } catch (error: any) {
           console.error('❌ Partner AuthStore: Update partner profile error:', error);
-          const errorMessage = error.response?.data?.message || error.message || 'Failed to update profile. Please try again.';
+          const errorMessage = error.message || 'Failed to update profile. Please try again.';
           set({
             isLoading: false,
             error: errorMessage,
@@ -405,77 +443,56 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
       },
 
+      // Refresh partner profile
       refreshPartnerProfile: async () => {
         try {
           const partner = await api.partner.getCurrentProfile();
           
-          // Update local storage
-          await authService.updateStoredUser(partner as AuthUser);
-          
-          set({ partner, user: partner as AuthUser });
+          // Update stored user data
+          const currentUser = get().user;
+          if (currentUser) {
+            const updatedUser = { ...currentUser, ...partner };
+            await secureTokenManager.storeUserData(updatedUser);
+            
+            set({ partner, user: updatedUser });
+          }
         } catch (error: any) {
           console.error('❌ Partner AuthStore: Refresh partner profile error:', error);
           // Don't set error state for silent refresh
         }
       },
 
+      // Fetch user profile
       fetchUserProfile: async () => {
         if (__DEV__) console.log('🔍 Partner AuthStore: fetchUserProfile called');
         set({ isLoading: true, error: null });
         try {
-          if (__DEV__) console.log('📱 Partner AuthStore: Fetching partner profile from API...');
+          const profileData = await api.partner.getCurrentProfile();
+          if (__DEV__) console.log('✅ Partner AuthStore: Profile fetched from API');
           
-          // Try to fetch from API first
-          try {
-            const profileData = await api.partner.getCurrentProfile();
-            if (__DEV__) console.log('✅ Partner AuthStore: Profile fetched from API:', profileData);
-            
-            // Update local storage with fresh data
-            await authService.updateStoredUser(profileData as AuthUser);
-            
-            set({ user: profileData as AuthUser, partner: profileData, isLoading: false });
-            return;
-          } catch (apiError) {
-            if (__DEV__) console.log('⚠️ Partner AuthStore: API fetch failed, falling back to stored user');
-            console.error('API Error:', apiError);
-            
-            // Fallback to stored user if API fails
-            const storedUser = await authService.getCurrentUser();
-            if (__DEV__) console.log('👤 Partner AuthStore: Stored user:', storedUser);
-            
-            if (storedUser) {
-              if (__DEV__) console.log('✅ Partner AuthStore: Using stored user data');
-              set({ user: storedUser, partner: storedUser as PartnerProfile, isLoading: false });
-            } else {
-              if (__DEV__) console.log('❌ Partner AuthStore: No user found in storage either');
-              set({ 
-                error: 'Partner profile not found', 
-                isLoading: false 
-              });
-            }
-          }
-        } catch (error) {
+          // Update stored user data
+          await secureTokenManager.storeUserData(profileData as AuthUser);
+          
+          set({ 
+            user: profileData as AuthUser, 
+            partner: profileData, 
+            isLoading: false,
+            error: null
+          });
+        } catch (error: any) {
           console.error('❌ Partner AuthStore: Error in fetchUserProfile:', error);
-          const errorMessage = error instanceof Error ? error.message : 'Failed to fetch profile';
+          const errorMessage = error.message || 'Failed to fetch profile';
           set({ 
             error: errorMessage, 
             isLoading: false 
           });
+          throw error;
         }
       },
 
+      // Update user profile
       updateUserProfile: async (data: Partial<PartnerProfile>) => {
-        set({ isLoading: true, error: null });
-        try {
-          const updatedUser = await api.partner.updateProfile(data);
-          set({ user: updatedUser as AuthUser, partner: updatedUser, isLoading: false });
-        } catch (error: any) {
-          const errorMessage = error.response?.data?.message || error.message || 'Failed to update profile';
-          set({ 
-            error: errorMessage, 
-            isLoading: false 
-          });
-        }
+        await get().updatePartnerProfile(data);
       },
 
       // State setters
@@ -490,13 +507,23 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       // Only persist essential data, not loading/error states
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
-        user: state.user,
-        partner: state.partner,
-        token: state.token,
-        refreshToken: state.refreshToken,
+        // Don't persist user/partner data here - SecureTokenManager handles it
+        token: null, // Don't persist tokens in Zustand
+        refreshToken: null, // Don't persist tokens in Zustand
       }),
     }
   )
 );
 
-export default useAuthStore; 
+// Set up auth error event listener
+DeviceEventEmitter.addListener('partner_auth_error', (event) => {
+  if (__DEV__) console.log('🚨 Partner AuthStore: Auth error event received:', event);
+  useAuthStore.getState().logout();
+});
+
+DeviceEventEmitter.addListener('partner_auth:token-expired', () => {
+  if (__DEV__) console.log('🚨 Partner AuthStore: Token expired event received');
+  useAuthStore.getState().logout();
+});
+
+export default useAuthStore;

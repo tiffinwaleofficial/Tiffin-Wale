@@ -1,131 +1,232 @@
 import React from 'react';
-import { TouchableOpacity, Text as RNText, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
-import { useTheme } from '../../hooks/useTheme';
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  ViewStyle,
+  TextStyle,
+} from 'react-native';
+import { useTheme } from '../../store/themeStore';
 
-export interface ButtonProps {
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+export type ButtonSize = 'small' | 'medium' | 'large';
+
+interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
-  fullWidth?: boolean;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   disabled?: boolean;
   loading?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
+  fullWidth?: boolean;
 }
 
+/**
+ * Theme-based Button component
+ * All styling comes from the theme store - no hardcoded values
+ */
 export const Button: React.FC<ButtonProps> = ({
   title,
   onPress,
   variant = 'primary',
-  size = 'md',
-  fullWidth = false,
+  size = 'medium',
   disabled = false,
   loading = false,
   style,
   textStyle,
+  fullWidth = false,
 }) => {
   const { theme } = useTheme();
 
-  const getButtonStyle = (): ViewStyle => {
-    const baseStyle: ViewStyle = {
-      borderRadius: theme.borderRadius.md,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexDirection: 'row',
-      paddingHorizontal: theme.spacing.md,
-      paddingVertical: theme.spacing.sm,
-    };
-
-    // Size variations
-    switch (size) {
-      case 'sm':
-        baseStyle.paddingHorizontal = theme.spacing.sm;
-        baseStyle.paddingVertical = theme.spacing.xs;
-        break;
-      case 'lg':
-        baseStyle.paddingHorizontal = theme.spacing.lg;
-        baseStyle.paddingVertical = theme.spacing.md;
-        break;
-    }
-
-    // Variant styles
+  const getVariantStyles = (): { container: ViewStyle; text: TextStyle } => {
     switch (variant) {
       case 'primary':
-        baseStyle.backgroundColor = disabled ? theme.colors.primaryLight : theme.colors.primary;
-        break;
+        return {
+          container: {
+            backgroundColor: disabled ? theme.colors.border : theme.colors.primary,
+            borderWidth: 0,
+          },
+          text: {
+            color: theme.colors.white,
+            fontFamily: theme.typography.fontFamily.semiBold,
+          },
+        };
+      
       case 'secondary':
-        baseStyle.backgroundColor = disabled ? theme.colors.secondaryLight : theme.colors.secondary;
-        break;
+        return {
+          container: {
+            backgroundColor: disabled ? theme.colors.border : theme.colors.secondary,
+            borderWidth: 0,
+          },
+          text: {
+            color: theme.colors.white,
+            fontFamily: theme.typography.fontFamily.semiBold,
+          },
+        };
+      
       case 'outline':
-        baseStyle.backgroundColor = 'transparent';
-        baseStyle.borderWidth = 1;
-        baseStyle.borderColor = disabled ? theme.colors.border : theme.colors.primary;
-        break;
+        return {
+          container: {
+            backgroundColor: 'transparent',
+            borderWidth: 1,
+            borderColor: disabled ? theme.colors.border : theme.colors.primary,
+          },
+          text: {
+            color: disabled ? theme.colors.textTertiary : theme.colors.primary,
+            fontFamily: theme.typography.fontFamily.medium,
+          },
+        };
+      
       case 'ghost':
-        baseStyle.backgroundColor = 'transparent';
-        break;
+        return {
+          container: {
+            backgroundColor: 'transparent',
+            borderWidth: 0,
+          },
+          text: {
+            color: disabled ? theme.colors.textTertiary : theme.colors.primary,
+            fontFamily: theme.typography.fontFamily.medium,
+          },
+        };
+      
+      case 'danger':
+        return {
+          container: {
+            backgroundColor: disabled ? theme.colors.border : theme.colors.error,
+            borderWidth: 0,
+          },
+          text: {
+            color: theme.colors.white,
+            fontFamily: theme.typography.fontFamily.semiBold,
+          },
+        };
+      
+      default:
+        return {
+          container: {
+            backgroundColor: disabled ? theme.colors.border : theme.colors.primary,
+            borderWidth: 0,
+          },
+          text: {
+            color: theme.colors.white,
+            fontFamily: theme.typography.fontFamily.semiBold,
+          },
+        };
     }
-
-    if (fullWidth) {
-      baseStyle.width = '100%';
-    }
-
-    return baseStyle;
   };
 
-  const getTextStyle = (): TextStyle => {
-    const baseStyle: TextStyle = {
-      fontFamily: theme.typography.fontFamily.semiBold,
-      fontSize: theme.typography.fontSize.md,
-    };
-
-    // Size variations
+  const getSizeStyles = (): { container: ViewStyle; text: TextStyle } => {
+    const componentConfig = theme.components.button;
+    
     switch (size) {
-      case 'sm':
-        baseStyle.fontSize = theme.typography.fontSize.sm;
-        break;
-      case 'lg':
-        baseStyle.fontSize = theme.typography.fontSize.lg;
-        break;
+      case 'small':
+        return {
+          container: {
+            height: componentConfig.height.small,
+            paddingHorizontal: componentConfig.padding.small.horizontal,
+            paddingVertical: componentConfig.padding.small.vertical,
+            borderRadius: theme.borderRadius.sm,
+          },
+          text: {
+            fontSize: theme.typography.fontSize.sm,
+            lineHeight: theme.typography.lineHeight.sm,
+          },
+        };
+      
+      case 'medium':
+        return {
+          container: {
+            height: componentConfig.height.medium,
+            paddingHorizontal: componentConfig.padding.medium.horizontal,
+            paddingVertical: componentConfig.padding.medium.vertical,
+            borderRadius: theme.borderRadius.md,
+          },
+          text: {
+            fontSize: theme.typography.fontSize.md,
+            lineHeight: theme.typography.lineHeight.md,
+          },
+        };
+      
+      case 'large':
+        return {
+          container: {
+            height: componentConfig.height.large,
+            paddingHorizontal: componentConfig.padding.large.horizontal,
+            paddingVertical: componentConfig.padding.large.vertical,
+            borderRadius: theme.borderRadius.lg,
+          },
+          text: {
+            fontSize: theme.typography.fontSize.lg,
+            lineHeight: theme.typography.lineHeight.lg,
+          },
+        };
+      
+      default:
+        return {
+          container: {
+            height: componentConfig.height.medium,
+            paddingHorizontal: componentConfig.padding.medium.horizontal,
+            paddingVertical: componentConfig.padding.medium.vertical,
+            borderRadius: theme.borderRadius.md,
+          },
+          text: {
+            fontSize: theme.typography.fontSize.md,
+            lineHeight: theme.typography.lineHeight.md,
+          },
+        };
     }
+  };
 
-    // Variant text colors
-    switch (variant) {
-      case 'primary':
-      case 'secondary':
-        baseStyle.color = theme.colors.white;
-        break;
-      case 'outline':
-      case 'ghost':
-        baseStyle.color = disabled ? theme.colors.textTertiary : theme.colors.primary;
-        break;
-    }
+  const variantStyles = getVariantStyles();
+  const sizeStyles = getSizeStyles();
 
-    if (disabled) {
-      baseStyle.color = theme.colors.textTertiary;
-    }
+  const containerStyle: ViewStyle = {
+    ...styles.baseContainer,
+    ...variantStyles.container,
+    ...sizeStyles.container,
+    ...(fullWidth && { width: '100%' }),
+    ...(disabled && { opacity: 0.6 }),
+    ...style,
+  };
 
-    return baseStyle;
+  const textStyleCombined: TextStyle = {
+    ...styles.baseText,
+    ...variantStyles.text,
+    ...sizeStyles.text,
+    ...textStyle,
   };
 
   return (
     <TouchableOpacity
-      style={[getButtonStyle(), style]}
+      style={containerStyle}
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.7}
     >
-      {loading && (
+      {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === 'outline' || variant === 'ghost' ? theme.colors.primary : theme.colors.white}
-          style={{ marginRight: theme.spacing.xs }}
+          color={variantStyles.text.color}
         />
+      ) : (
+        <Text style={textStyleCombined}>{title}</Text>
       )}
-      <RNText style={[getTextStyle(), textStyle]}>
-        {title}
-      </RNText>
     </TouchableOpacity>
   );
 };
+
+const styles = StyleSheet.create({
+  baseContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  baseText: {
+    textAlign: 'center',
+  },
+});
+
+export default Button;

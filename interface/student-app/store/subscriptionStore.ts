@@ -21,7 +21,7 @@ interface SubscriptionState {
   // Actions
   fetchCurrentSubscription: (forceRefresh?: boolean) => Promise<void>;
   fetchAllSubscriptions: (forceRefresh?: boolean) => Promise<void>;
-  fetchAvailablePlans: (forceRefresh?: boolean) => Promise<void>;
+  fetchAvailablePlans: (forceRefresh?: boolean, partnerId?: string) => Promise<void>;
   createSubscription: (planId: string) => Promise<void>;
   cancelSubscription: (subscriptionId: string, reason: string) => Promise<void>;
   pauseSubscription: (subscriptionId: string) => Promise<void>;
@@ -190,7 +190,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
     }
   },
 
-  fetchAvailablePlans: async (forceRefresh = false) => {
+  fetchAvailablePlans: async (forceRefresh = false, partnerId) => {
     const { lastPlansFetched, isLoadingPlans } = get();
     
     // Check cache validity
@@ -209,7 +209,9 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       console.log('🔔 SubscriptionStore: Fetching available plans...');
       
       // Use the existing subscription plan API
-      const apiPlans = await api.subscriptionPlans.getAll();
+      const apiPlans = partnerId 
+        ? await api.partners.getSubscriptionPlans(partnerId)
+        : await api.subscriptionPlans.getAll();
       console.log('✅ SubscriptionStore: Available plans fetched:', apiPlans);
       
       // Map API plans to frontend types

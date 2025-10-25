@@ -50,6 +50,8 @@ export interface BusinessHours {
 export interface CreatePartnerData {
   email: string;
   password: string;
+  firstName?: string;
+  lastName?: string;
   businessName: string;
   phoneNumber: string;
   description: string;

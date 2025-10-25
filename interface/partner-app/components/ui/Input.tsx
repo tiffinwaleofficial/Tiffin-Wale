@@ -1,139 +1,257 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, ViewStyle, TextStyle } from 'react-native';
-import { Eye, EyeOff } from 'lucide-react-native';
-import { useTheme } from '../../hooks/useTheme';
-import { Text } from './Text';
+import {
+  View,
+  TextInput,
+  Text,
+  StyleSheet,
+  ViewStyle,
+  TextStyle,
+  TextInputProps,
+} from 'react-native';
+import { useTheme } from '../../store/themeStore';
 
-export interface InputProps {
+export type InputSize = 'small' | 'medium' | 'large';
+export type InputVariant = 'default' | 'filled' | 'outline';
+
+interface InputProps extends Omit<TextInputProps, 'style'> {
   label?: string;
-  placeholder?: string;
-  value: string;
-  onChangeText: (text: string) => void;
-  type?: 'text' | 'email' | 'password' | 'numeric' | 'phone';
-  multiline?: boolean;
-  numberOfLines?: number;
   error?: string;
+  hint?: string;
+  size?: InputSize;
+  variant?: InputVariant;
   disabled?: boolean;
-  leftIcon?: string;
-  rightIcon?: string;
-  onRightIconPress?: () => void;
-  style?: ViewStyle;
+  required?: boolean;
+  containerStyle?: ViewStyle;
   inputStyle?: TextStyle;
+  labelStyle?: TextStyle;
 }
 
+/**
+ * Theme-based Input component
+ * All styling comes from the theme store - no hardcoded values
+ */
 export const Input: React.FC<InputProps> = ({
   label,
-  placeholder,
-  value,
-  onChangeText,
-  type = 'text',
-  multiline = false,
-  numberOfLines = 1,
   error,
+  hint,
+  size = 'medium',
+  variant = 'outline',
   disabled = false,
-  leftIcon,
-  rightIcon,
-  onRightIconPress,
-  style,
+  required = false,
+  containerStyle,
   inputStyle,
+  labelStyle,
+  ...textInputProps
 }) => {
   const { theme } = useTheme();
-  const [showPassword, setShowPassword] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
-  const getKeyboardType = () => {
-    switch (type) {
-      case 'email':
-        return 'email-address';
-      case 'numeric':
-        return 'numeric';
-      case 'phone':
-        return 'phone-pad';
+  const getVariantStyles = (): { container: ViewStyle; input: TextStyle } => {
+    const borderColor = error
+      ? theme.colors.error
+      : isFocused
+      ? theme.colors.primary
+      : theme.colors.border;
+
+    switch (variant) {
+      case 'filled':
+        return {
+          container: {
+            backgroundColor: theme.colors.backgroundSecondary,
+            borderWidth: 0,
+            borderBottomWidth: 2,
+            borderBottomColor: borderColor,
+          },
+          input: {
+            backgroundColor: 'transparent',
+          },
+        };
+      
+      case 'outline':
+        return {
+          container: {
+            backgroundColor: theme.colors.surface,
+            borderWidth: 1,
+            borderColor: borderColor,
+          },
+          input: {
+            backgroundColor: 'transparent',
+          },
+        };
+      
+      case 'default':
       default:
-        return 'default';
+        return {
+          container: {
+            backgroundColor: theme.colors.surface,
+            borderWidth: 1,
+            borderColor: borderColor,
+          },
+          input: {
+            backgroundColor: 'transparent',
+          },
+        };
     }
   };
 
-  const getSecureTextEntry = () => {
-    return type === 'password' && !showPassword;
+  const getSizeStyles = (): { container: ViewStyle; input: TextStyle } => {
+    const componentConfig = theme.components.input;
+    
+    switch (size) {
+      case 'small':
+        return {
+          container: {
+            height: componentConfig.height.small,
+            borderRadius: theme.borderRadius.sm,
+          },
+          input: {
+            fontSize: theme.typography.fontSize.sm,
+            lineHeight: theme.typography.lineHeight.sm,
+            paddingHorizontal: componentConfig.padding.horizontal,
+            paddingVertical: componentConfig.padding.vertical,
+          },
+        };
+      
+      case 'medium':
+        return {
+          container: {
+            height: componentConfig.height.medium,
+            borderRadius: theme.borderRadius.md,
+          },
+          input: {
+            fontSize: theme.typography.fontSize.md,
+            lineHeight: theme.typography.lineHeight.md,
+            paddingHorizontal: componentConfig.padding.horizontal,
+            paddingVertical: componentConfig.padding.vertical,
+          },
+        };
+      
+      case 'large':
+        return {
+          container: {
+            height: componentConfig.height.large,
+            borderRadius: theme.borderRadius.lg,
+          },
+          input: {
+            fontSize: theme.typography.fontSize.lg,
+            lineHeight: theme.typography.lineHeight.lg,
+            paddingHorizontal: componentConfig.padding.horizontal,
+            paddingVertical: componentConfig.padding.vertical,
+          },
+        };
+      
+      default:
+        return {
+          container: {
+            height: componentConfig.height.medium,
+            borderRadius: theme.borderRadius.md,
+          },
+          input: {
+            fontSize: theme.typography.fontSize.md,
+            lineHeight: theme.typography.lineHeight.md,
+            paddingHorizontal: componentConfig.padding.horizontal,
+            paddingVertical: componentConfig.padding.vertical,
+          },
+        };
+    }
+  };
+
+  const variantStyles = getVariantStyles();
+  const sizeStyles = getSizeStyles();
+
+  const containerStyleCombined: ViewStyle = {
+    ...styles.container,
+    ...variantStyles.container,
+    ...sizeStyles.container,
+    ...(disabled && { opacity: 0.6 }),
+    ...containerStyle,
+  };
+
+  const inputStyleCombined: TextStyle = {
+    ...styles.input,
+    ...variantStyles.input,
+    ...sizeStyles.input,
+    color: theme.colors.text,
+    fontFamily: theme.typography.fontFamily.regular,
+    ...inputStyle,
+  };
+
+  const labelStyleCombined: TextStyle = {
+    ...styles.label,
+    color: theme.colors.text,
+    fontFamily: theme.typography.fontFamily.medium,
+    fontSize: theme.typography.fontSize.sm,
+    marginBottom: theme.spacing.xs,
+    ...labelStyle,
+  };
+
+  const errorStyleCombined: TextStyle = {
+    ...styles.error,
+    color: theme.colors.error,
+    fontFamily: theme.typography.fontFamily.regular,
+    fontSize: theme.typography.fontSize.xs,
+    marginTop: theme.spacing.xs,
+  };
+
+  const hintStyleCombined: TextStyle = {
+    ...styles.hint,
+    color: theme.colors.textSecondary,
+    fontFamily: theme.typography.fontFamily.regular,
+    fontSize: theme.typography.fontSize.xs,
+    marginTop: theme.spacing.xs,
   };
 
   return (
-    <View style={[{ marginBottom: theme.spacing.md }, style]}>
+    <View style={styles.wrapper}>
       {label && (
-        <Text variant="label" style={{ marginBottom: theme.spacing.xs }}>
+        <Text style={labelStyleCombined}>
           {label}
+          {required && <Text style={{ color: theme.colors.error }}> *</Text>}
         </Text>
       )}
       
-      <View style={{
-        flexDirection: 'row',
-        alignItems: multiline ? 'flex-start' : 'center',
-        backgroundColor: theme.colors.surface,
-        borderRadius: theme.borderRadius.md,
-        borderWidth: 1,
-        borderColor: error ? theme.colors.error : theme.colors.border,
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: multiline ? theme.spacing.md : theme.spacing.sm,
-        minHeight: multiline ? 80 : 48,
-      }}>
-        {leftIcon && (
-          <Text style={{ marginRight: theme.spacing.sm, fontSize: 16 }}>
-            {leftIcon}
-          </Text>
-        )}
-        
+      <View style={containerStyleCombined}>
         <TextInput
-          style={[{
-            flex: 1,
-            fontSize: theme.typography.fontSize.md,
-            fontFamily: theme.typography.fontFamily.regular,
-            color: theme.colors.text,
-            textAlignVertical: multiline ? 'top' : 'center',
-          }, inputStyle]}
-          placeholder={placeholder}
-          placeholderTextColor={theme.colors.textTertiary}
-          value={value}
-          onChangeText={onChangeText}
-          keyboardType={getKeyboardType()}
-          secureTextEntry={getSecureTextEntry()}
-          multiline={multiline}
-          numberOfLines={numberOfLines}
+          {...textInputProps}
+          style={inputStyleCombined}
           editable={!disabled}
-          autoCapitalize={type === 'email' ? 'none' : 'sentences'}
-          autoCorrect={type !== 'email'}
+          onFocus={(e) => {
+            setIsFocused(true);
+            textInputProps.onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setIsFocused(false);
+            textInputProps.onBlur?.(e);
+          }}
+          placeholderTextColor={theme.colors.textTertiary}
         />
-        
-        {type === 'password' && (
-          <TouchableOpacity
-            onPress={() => setShowPassword(!showPassword)}
-            style={{ padding: theme.spacing.xs }}
-          >
-            {showPassword ? (
-              <EyeOff size={20} color={theme.colors.textSecondary} />
-            ) : (
-              <Eye size={20} color={theme.colors.textSecondary} />
-            )}
-          </TouchableOpacity>
-        )}
-        
-        {rightIcon && type !== 'password' && (
-          <TouchableOpacity
-            onPress={onRightIconPress}
-            style={{ padding: theme.spacing.xs }}
-            disabled={!onRightIconPress}
-          >
-            <Text style={{ fontSize: 16 }}>
-              {rightIcon}
-            </Text>
-          </TouchableOpacity>
-        )}
       </View>
       
-      {error && (
-        <Text variant="error" style={{ marginTop: theme.spacing.xs }}>
-          {error}
-        </Text>
-      )}
+      {error && <Text style={errorStyleCombined}>{error}</Text>}
+      {hint && !error && <Text style={hintStyleCombined}>{hint}</Text>}
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  wrapper: {
+    width: '100%',
+  },
+  container: {
+    justifyContent: 'center',
+  },
+  input: {
+    flex: 1,
+  },
+  label: {
+    // Styles come from theme
+  },
+  error: {
+    // Styles come from theme
+  },
+  hint: {
+    // Styles come from theme
+  },
+});
+
+export default Input;

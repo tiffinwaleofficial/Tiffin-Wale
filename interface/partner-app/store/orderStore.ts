@@ -45,8 +45,15 @@ interface OrderActions {
   
   // Order management
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
-  markOrderReady: (orderId: string) => Promise<void>;
+  acceptOrder: (orderId: string, estimatedTime?: number, message?: string) => Promise<void>;
+  rejectOrder: (orderId: string, reason: string, message?: string) => Promise<void>;
+  markOrderReady: (orderId: string, estimatedPickupTime?: number, message?: string) => Promise<void>;
   startPreparingOrder: (orderId: string) => Promise<void>;
+  
+  // Real-time store updates
+  updateOrderInStore: (orderId: string, updates: Partial<Order>) => void;
+  addOrderToStore: (order: Order) => void;
+  removeOrderFromStore: (orderId: string) => void;
   
   // Filters and pagination
   setFilter: (filter: Partial<OrderFilter>) => void;
@@ -204,12 +211,147 @@ export const useOrderStore = create<OrderState & OrderActions>()(
         }
       },
 
-      markOrderReady: async (orderId: string) => {
-        await get().updateOrderStatus(orderId, 'READY');
+      // Partner-specific order actions
+      acceptOrder: async (orderId: string, estimatedTime?: number, message?: string) => {
+        try {
+          set({ error: null });
+          
+          const acceptData = {
+            ...(estimatedTime && { estimatedTime }),
+            ...(message && { message }),
+          };
+          
+          const updatedOrder = await api.orders.acceptOrder(orderId, acceptData);
+          
+          // Update orders in state
+          const { orders, todayOrders, currentOrder } = get();
+          set({
+            orders: orders.map(order => order.id === orderId ? updatedOrder : order),
+            todayOrders: todayOrders.map(order => order.id === orderId ? updatedOrder : order),
+            currentOrder: currentOrder?.id === orderId ? updatedOrder : currentOrder,
+          });
+          
+          // Refresh stats
+          await get().fetchOrderStats();
+        } catch (error: any) {
+          console.error('Accept order error:', error);
+          set({
+            error: error.response?.data?.message || 'Failed to accept order',
+          });
+          throw error;
+        }
+      },
+
+      rejectOrder: async (orderId: string, reason: string, message?: string) => {
+        try {
+          set({ error: null });
+          
+          const rejectData = {
+            reason,
+            ...(message && { message }),
+          };
+          
+          const updatedOrder = await api.orders.rejectOrder(orderId, rejectData);
+          
+          // Update orders in state
+          const { orders, todayOrders, currentOrder } = get();
+          set({
+            orders: orders.map(order => order.id === orderId ? updatedOrder : order),
+            todayOrders: todayOrders.map(order => order.id === orderId ? updatedOrder : order),
+            currentOrder: currentOrder?.id === orderId ? updatedOrder : currentOrder,
+          });
+          
+          // Refresh stats
+          await get().fetchOrderStats();
+        } catch (error: any) {
+          console.error('Reject order error:', error);
+          set({
+            error: error.response?.data?.message || 'Failed to reject order',
+          });
+          throw error;
+        }
+      },
+
+      markOrderReady: async (orderId: string, estimatedPickupTime?: number, message?: string) => {
+        try {
+          set({ error: null });
+          
+          const readyData = {
+            ...(estimatedPickupTime && { estimatedPickupTime }),
+            ...(message && { message }),
+          };
+          
+          const updatedOrder = await api.orders.markOrderReady(orderId, readyData);
+          
+          // Update orders in state
+          const { orders, todayOrders, currentOrder } = get();
+          set({
+            orders: orders.map(order => order.id === orderId ? updatedOrder : order),
+            todayOrders: todayOrders.map(order => order.id === orderId ? updatedOrder : order),
+            currentOrder: currentOrder?.id === orderId ? updatedOrder : currentOrder,
+          });
+          
+          // Refresh stats
+          await get().fetchOrderStats();
+        } catch (error: any) {
+          console.error('Mark order ready error:', error);
+          set({
+            error: error.response?.data?.message || 'Failed to mark order ready',
+          });
+          throw error;
+        }
       },
 
       startPreparingOrder: async (orderId: string) => {
         await get().updateOrderStatus(orderId, 'PREPARING');
+      },
+
+      // Real-time store update methods
+      updateOrderInStore: (orderId: string, updates: Partial<Order>) => {
+        const { orders, todayOrders, currentOrder } = get();
+        
+        const updateOrder = (order: Order) => 
+          order.id === orderId ? { ...order, ...updates } : order;
+        
+        set({
+          orders: orders.map(updateOrder),
+          todayOrders: todayOrders.map(updateOrder),
+          currentOrder: currentOrder?.id === orderId ? { ...currentOrder, ...updates } : currentOrder,
+        });
+        
+        if (__DEV__) console.log(`📦 OrderStore: Updated order ${orderId} in store`, updates);
+      },
+
+      addOrderToStore: (order: Order) => {
+        const { orders, todayOrders } = get();
+        
+        // Check if order already exists
+        const orderExists = orders.some(o => o.id === order.id);
+        if (orderExists) {
+          // Update existing order instead
+          get().updateOrderInStore(order.id, order);
+          return;
+        }
+        
+        // Add new order to the beginning of the arrays
+        set({
+          orders: [order, ...orders],
+          todayOrders: [order, ...todayOrders],
+        });
+        
+        if (__DEV__) console.log(`📦 OrderStore: Added new order ${order.id} to store`);
+      },
+
+      removeOrderFromStore: (orderId: string) => {
+        const { orders, todayOrders, currentOrder } = get();
+        
+        set({
+          orders: orders.filter(order => order.id !== orderId),
+          todayOrders: todayOrders.filter(order => order.id !== orderId),
+          currentOrder: currentOrder?.id === orderId ? null : currentOrder,
+        });
+        
+        if (__DEV__) console.log(`📦 OrderStore: Removed order ${orderId} from store`);
       },
 
       // Filters and pagination

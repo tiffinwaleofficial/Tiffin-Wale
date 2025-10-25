@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api } from '../api';
+
+const { api: partnerApi } = api;
 
 // Step 1: Personal Information
 export interface PersonalInfoData {
@@ -276,15 +279,42 @@ export const useOnboardingStore = create<OnboardingStore>()(
         set({ isSubmitting: true, submissionError: null });
 
         try {
-          // TODO: Implement actual API submission
-          // For now, simulate API call
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          const partnerData = {
+            ownerName: `${formData.step1?.firstName} ${formData.step1?.lastName}`,
+            email: formData.step1?.email,
+            password: formData.step2?.password,
+            businessName: formData.step3?.businessName,
+            businessType: formData.step3?.businessType,
+            description: formData.step3?.description,
+            address: formData.step4?.address,
+            businessHours: formData.step4?.businessHours,
+            deliveryRadius: formData.step4?.deliveryRadius,
+            cuisineTypes: formData.step5?.cuisineTypes,
+            isVegetarian: formData.step5?.isVegetarian,
+            acceptsCash: formData.step5?.acceptsCash,
+            acceptsCard: formData.step5?.acceptsCard,
+            minimumOrderAmount: formData.step5?.minimumOrderAmount,
+            deliveryFee: formData.step5?.deliveryFee,
+            estimatedDeliveryTime: formData.step5?.estimatedDeliveryTime,
+            logoUrl: formData.step6?.logoUrl,
+            bannerUrl: formData.step6?.bannerUrl,
+            socialMedia: formData.step6?.socialMedia,
+            fssaiLicense: formData.step7?.fssaiLicense,
+            gstNumber: formData.step7?.gstNumber,
+            panNumber: formData.step7?.panNumber,
+            licenseNumber: formData.step7?.licenseNumber,
+            bankDetails: formData.step8?.bankDetails,
+            upiId: formData.step8?.upiId,
+          };
+
+          await partnerApi.partnerControllerCreate(partnerData as any);
           
           // Simulate success
           console.log('Onboarding data submitted:', formData);
           
           set({ isSubmitting: false });
-        } catch (error) {
+        } catch (error: any) {
           set({ 
             isSubmitting: false, 
             submissionError: error instanceof Error ? error.message : 'Submission failed' 

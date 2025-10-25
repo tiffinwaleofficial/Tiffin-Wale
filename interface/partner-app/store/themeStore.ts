@@ -86,6 +86,64 @@ export interface ThemeTypography {
     xxl: number;
     xxxl: number;
   };
+  fontWeight: {
+    normal: string;
+    medium: string;
+    semiBold: string;
+    bold: string;
+  };
+}
+
+export interface ThemeShadows {
+  none: object;
+  small: object;
+  medium: object;
+  large: object;
+  xl: object;
+}
+
+export interface ThemeAnimations {
+  duration: {
+    fast: number;
+    normal: number;
+    slow: number;
+  };
+  easing: {
+    linear: string;
+    easeIn: string;
+    easeOut: string;
+    easeInOut: string;
+  };
+}
+
+export interface ThemeComponents {
+  button: {
+    height: {
+      small: number;
+      medium: number;
+      large: number;
+    };
+    padding: {
+      small: { horizontal: number; vertical: number };
+      medium: { horizontal: number; vertical: number };
+      large: { horizontal: number; vertical: number };
+    };
+  };
+  input: {
+    height: {
+      small: number;
+      medium: number;
+      large: number;
+    };
+    padding: {
+      horizontal: number;
+      vertical: number;
+    };
+  };
+  card: {
+    padding: number;
+    margin: number;
+  };
 }
 
 export interface Theme {
@@ -93,6 +151,9 @@ export interface Theme {
   spacing: ThemeSpacing;
   borderRadius: ThemeBorderRadius;
   typography: ThemeTypography;
+  shadows: ThemeShadows;
+  animations: ThemeAnimations;
+  components: ThemeComponents;
   isDark: boolean;
 }
 
@@ -177,6 +238,85 @@ const lightTheme: Theme = {
       xl: 32,
       xxl: 36,
       xxxl: 40,
+    },
+    fontWeight: {
+      normal: '400',
+      medium: '500',
+      semiBold: '600',
+      bold: '700',
+    },
+  },
+  shadows: {
+    none: {},
+    small: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    medium: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    large: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 5,
+    },
+    xl: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.2,
+      shadowRadius: 16,
+      elevation: 8,
+    },
+  },
+  animations: {
+    duration: {
+      fast: 150,
+      normal: 300,
+      slow: 500,
+    },
+    easing: {
+      linear: 'linear',
+      easeIn: 'ease-in',
+      easeOut: 'ease-out',
+      easeInOut: 'ease-in-out',
+    },
+  },
+  components: {
+    button: {
+      height: {
+        small: 32,
+        medium: 40,
+        large: 48,
+      },
+      padding: {
+        small: { horizontal: 12, vertical: 6 },
+        medium: { horizontal: 16, vertical: 8 },
+        large: { horizontal: 20, vertical: 12 },
+      },
+    },
+    input: {
+      height: {
+        small: 36,
+        medium: 44,
+        large: 52,
+      },
+      padding: {
+        horizontal: 12,
+        vertical: 8,
+      },
+    },
+    card: {
+      padding: 16,
+      margin: 8,
     },
   },
   isDark: false,
@@ -263,6 +403,85 @@ const darkTheme: Theme = {
       xl: 32,
       xxl: 36,
       xxxl: 40,
+    },
+    fontWeight: {
+      normal: '400',
+      medium: '500',
+      semiBold: '600',
+      bold: '700',
+    },
+  },
+  shadows: {
+    none: {},
+    small: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.2,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    medium: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    large: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.4,
+      shadowRadius: 8,
+      elevation: 5,
+    },
+    xl: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.5,
+      shadowRadius: 16,
+      elevation: 8,
+    },
+  },
+  animations: {
+    duration: {
+      fast: 150,
+      normal: 300,
+      slow: 500,
+    },
+    easing: {
+      linear: 'linear',
+      easeIn: 'ease-in',
+      easeOut: 'ease-out',
+      easeInOut: 'ease-in-out',
+    },
+  },
+  components: {
+    button: {
+      height: {
+        small: 32,
+        medium: 40,
+        large: 48,
+      },
+      padding: {
+        small: { horizontal: 12, vertical: 6 },
+        medium: { horizontal: 16, vertical: 8 },
+        large: { horizontal: 20, vertical: 12 },
+      },
+    },
+    input: {
+      height: {
+        small: 36,
+        medium: 44,
+        large: 52,
+      },
+      padding: {
+        horizontal: 12,
+        vertical: 8,
+      },
+    },
+    card: {
+      padding: 16,
+      margin: 8,
     },
   },
   isDark: true,

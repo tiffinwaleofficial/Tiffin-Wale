@@ -3,10 +3,8 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   FlatList,
-  RefreshControl,
   Switch,
   Alert,
   ActivityIndicator,
@@ -27,11 +25,14 @@ import {
 import { useAuthStore } from '../../store/authStore';
 import { useOrderStore } from '../../store/orderStore';
 import { usePartnerStore } from '../../store/partnerStore';
+import { useTheme } from '../../store/themeStore';
+import RefreshableScreen from '../../components/RefreshableScreen';
+import useRealTimeOrders from '../../hooks/useRealTimeOrders';
 
 export default function HomeScreen() {
   const router = useRouter();
   const [currentDate] = useState(new Date());
-  const [refreshing, setRefreshing] = useState(false);
+  const { theme } = useTheme();
 
   // Store hooks
   const { user, partner, isAuthenticated } = useAuthStore();
@@ -54,6 +55,12 @@ export default function HomeScreen() {
     refreshStats,
     toggleAcceptingOrders 
   } = usePartnerStore();
+
+  // Real-time WebSocket integration
+  const { isConnected: isWebSocketConnected } = useRealTimeOrders({
+    autoJoinPartnerRoom: true,
+    enableNotifications: true,
+  });
 
   // Load data on component mount
   useEffect(() => {
@@ -84,7 +91,6 @@ export default function HomeScreen() {
   };
 
   const onRefresh = useCallback(async () => {
-    setRefreshing(true);
     try {
       await Promise.all([
         refreshProfile(),
@@ -93,8 +99,6 @@ export default function HomeScreen() {
       ]);
     } catch (error) {
       console.error('Failed to refresh data:', error);
-    } finally {
-      setRefreshing(false);
     }
   }, [refreshProfile, refreshStats, fetchTodayOrders]);
 
@@ -208,10 +212,30 @@ export default function HomeScreen() {
 
   const handleAcceptOrder = async (orderId: string) => {
     try {
+      const { acceptOrder } = useOrderStore.getState();
+      
+      // Show confirmation dialog with estimated time input
       Alert.alert(
         'Accept Order',
-        'Order accepted successfully!',
-        [{ text: 'OK' }]
+        'How long will it take to prepare this order?',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: '15 min',
+            onPress: () => acceptOrder(orderId, 15, 'Your order will be ready in 15 minutes'),
+          },
+          {
+            text: '30 min',
+            onPress: () => acceptOrder(orderId, 30, 'Your order will be ready in 30 minutes'),
+          },
+          {
+            text: '45 min',
+            onPress: () => acceptOrder(orderId, 45, 'Your order will be ready in 45 minutes'),
+          },
+        ]
       );
     } catch (error) {
       Alert.alert('Error', 'Failed to accept order');
@@ -230,12 +254,10 @@ export default function HomeScreen() {
   const todayRevenue = todayStats?.totalRevenue || stats?.todayRevenue || 0;
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
+    <RefreshableScreen
+      onRefresh={onRefresh}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      containerStyle={styles.contentContainer}
     >
       {/* Header */}
       <View style={styles.header}>
@@ -256,6 +278,17 @@ export default function HomeScreen() {
               {profile?.isAcceptingOrders ? 'Open' : 'Closed'}
             </Text>
           </TouchableOpacity>
+          
+          {/* WebSocket Connection Status Indicator */}
+          <View style={[
+            styles.connectionIndicator,
+            { backgroundColor: isWebSocketConnected ? '#10B981' : '#EF4444' }
+          ]}>
+            <View style={[
+              styles.connectionDot,
+              { backgroundColor: isWebSocketConnected ? '#DCFCE7' : '#FEE2E2' }
+            ]} />
+          </View>
           <TouchableOpacity
             style={styles.notificationButton}
             onPress={() => router.push('/notifications')}
@@ -398,14 +431,13 @@ export default function HomeScreen() {
           </Text>
         </View>
       )}
-    </ScrollView>
+    </RefreshableScreen>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FEF6E9',
   },
   contentContainer: {
     padding: 16,
@@ -444,6 +476,19 @@ const styles = StyleSheet.create({
   statusToggleText: {
     fontFamily: 'Poppins-Medium',
     fontSize: 12,
+  },
+  connectionIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 8,
+  },
+  connectionDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   notificationButton: {
     height: 44,
