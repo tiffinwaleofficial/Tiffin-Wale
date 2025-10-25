@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  Alert,
   Image,
   FlatList,
   Platform,
@@ -18,6 +17,7 @@ import { useReviewStore } from '@/store/reviewStore';
 import { imageUploadService, UploadType } from '@/services/imageUploadService';
 import { cloudinaryDeleteService } from '@/services/cloudinaryDeleteService';
 import * as ImagePicker from 'expo-image-picker';
+import { useValidationNotifications, useSystemNotifications } from '@/hooks/useFirebaseNotification';
 import { Review } from '@/types';
 
 interface ReviewModalProps {
@@ -38,6 +38,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   editingReview,
 }) => {
   const { t } = useTranslation('common');
+  const { requiredField } = useValidationNotifications();
+  const { showSuccess, showError, showInfo } = require('@/hooks/useFirebaseNotification').default();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [mediaFiles, setMediaFiles] = useState<Array<{uri: string, type: 'image' | 'video', duration?: number, cloudinaryUrl?: string, uploading?: boolean}>>([]);
@@ -104,7 +106,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
       
       if (!configStatus.configured) {
         console.error('❌ Cloudinary not configured:', configStatus.missing);
-        Alert.alert('Configuration Error', `Cloudinary not configured. Missing: ${configStatus.missing.join(', ')}`);
+        showError('Configuration Error', 'Media upload is temporarily unavailable. Please try again later! 📷');
         return;
       }
       
@@ -150,7 +152,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
 
   const handleSubmit = async () => {
     if (rating === 0) {
-      Alert.alert('Rating Required', 'Please select a rating before submitting.');
+      requiredField('rating');
       return;
     }
 
@@ -159,7 +161,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
       // Check if all media files are uploaded
       const uploadingFiles = mediaFiles.filter(file => file.uploading);
       if (uploadingFiles.length > 0) {
-        Alert.alert('Uploading', 'Please wait for all media files to finish uploading.');
+        showInfo('Still Uploading! ⏳', 'Please wait for all media files to finish uploading. Good things take time!');
         setIsSubmitting(false);
         return;
       }
@@ -202,10 +204,10 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
       onReviewSubmitted?.();
       onClose();
       
-      Alert.alert('Success', 'Your review has been submitted successfully!');
+      showSuccess('Review Submitted! 🌟', 'Thank you for your feedback! Your review helps other food lovers make better choices 🍽️');
     } catch (error) {
       console.error('❌ Review submission error:', error);
-      Alert.alert('Error', 'Failed to submit review. Please try again.');
+      showError('Submission Failed 😅', 'Failed to submit review. Don\'t worry, your opinion still matters to us!');
     } finally {
       setIsSubmitting(false);
       setIsUploadingMedia(false);

@@ -26,6 +26,7 @@ import {
   LogOut,
   ChevronRight,
   Edit,
+  TestTube,
 } from 'lucide-react-native';
 import { useAuth } from '@/auth/AuthProvider';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
@@ -35,6 +36,7 @@ import { profileImageService } from '@/services/profileImageService';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { useTranslation } from '@/hooks/useTranslation';
+import NotificationTestPanel from '@/components/NotificationTestPanel';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -44,6 +46,7 @@ export default function ProfileScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [showTestPanel, setShowTestPanel] = useState(false);
 
   if (__DEV__) console.log('🔍 MyProfileScreen: Component rendered');
   if (__DEV__) console.log('👤 MyProfileScreen: User state:', user);
@@ -314,25 +317,36 @@ export default function ProfileScreen() {
               <ChevronRight size={20} color="#CCCCCC" />
             </TouchableOpacity>
 
-            <View style={styles.menuItem}>
+            <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/notification-preferences')}>
               <View style={styles.menuItemLeft}>
                 <View style={[styles.menuIcon, { backgroundColor: '#F3E5F5' }]}>
                   <Bell size={20} color="#9C27B0" />
                 </View>
-                <Text style={styles.menuItemText}>{t('pushNotifications')}</Text>
+                <Text style={styles.menuItemText}>Notification Settings</Text>
               </View>
-              <Switch
-                value={notificationsEnabled}
-                onValueChange={setNotificationsEnabled}
-                trackColor={{ false: '#E0E0E0', true: '#FF9B42' }}
-                thumbColor={notificationsEnabled ? '#FFFFFF' : '#FFFFFF'}
-              />
-            </View>
+              <ChevronRight size={20} color="#CCCCCC" />
+            </TouchableOpacity>
 
             <LanguageSelector onLanguageChange={(lang) => {
               console.log('🌐 Language changed to:', lang);
               // Optionally refresh user profile or other data after language change
             }} />
+
+            {/* Development Test Panel - Remove in production */}
+            {__DEV__ && (
+              <TouchableOpacity 
+                style={[styles.menuItem, { backgroundColor: '#FFF3E0' }]} 
+                onPress={() => setShowTestPanel(true)}
+              >
+                <View style={styles.menuItemLeft}>
+                  <View style={[styles.menuIcon, { backgroundColor: '#FF9800' }]}>
+                    <TestTube size={20} color="#FFFFFF" />
+                  </View>
+                  <Text style={styles.menuItemText}>🧪 Test Notifications</Text>
+                </View>
+                <ChevronRight size={20} color="#CCCCCC" />
+              </TouchableOpacity>
+            )}
           </Animated.View>
 
           {/* Support Section */}
@@ -387,6 +401,12 @@ export default function ProfileScreen() {
           </Animated.View>
         </View>
       </ScrollView>
+      
+      {/* Test Panel - Development Only */}
+      <NotificationTestPanel 
+        visible={showTestPanel} 
+        onClose={() => setShowTestPanel(false)} 
+      />
     </SafeAreaView>
   );
 }

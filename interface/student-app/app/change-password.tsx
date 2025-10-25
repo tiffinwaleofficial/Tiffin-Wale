@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Eye, EyeOff } from 'lucide-react-native';
 import api from '@/utils/apiClient';
 import { BackButton } from '@/components/BackButton';
 import { useTranslation } from '@/hooks/useTranslation';
 import { ProtectedRoute } from '@/auth/AuthMiddleware';
+import { useProfileNotifications, useValidationNotifications } from '@/hooks/useFirebaseNotification';
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
   const { t } = useTranslation('profile');
+  const { passwordChanged, passwordChangeFailed } = useProfileNotifications();
+  const { requiredField, passwordMismatch } = useValidationNotifications();
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -20,21 +23,21 @@ export default function ChangePasswordScreen() {
 
   const handleChangePassword = async () => {
     if (!oldPassword || !newPassword || !confirmPassword) {
-      Alert.alert(t('allFieldsRequired'), t('pleaseFillAllPasswordFields'));
+      requiredField('password fields');
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert(t('passwordsMismatch'), t('newPasswordsDoNotMatch'));
+      passwordMismatch();
       return;
     }
     setIsLoading(true);
     try {
       await api.auth.changePassword(oldPassword, newPassword);
-      Alert.alert(t('success'), t('passwordChangedSuccessfully'));
+      passwordChanged();
       router.back();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : t('passwordChangeError');
-      Alert.alert(t('error'), errorMessage);
+      passwordChangeFailed(errorMessage);
     } finally {
       setIsLoading(false);
     }
