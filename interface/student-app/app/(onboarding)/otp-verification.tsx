@@ -8,7 +8,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -18,6 +17,7 @@ import { useOnboardingStore } from '@/store/onboardingStore';
 import { useAuth } from '@/auth/AuthProvider';
 import { notificationActions } from '@/store/notificationStore';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useAuthNotifications, useValidationNotifications, useSystemNotifications } from '@/hooks/useFirebaseNotification';
 
 export default function OTPVerificationScreen() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -31,6 +31,12 @@ export default function OTPVerificationScreen() {
   const { setPhoneVerification, nextStep, setCurrentStep } = useOnboardingStore();
   const { loginWithPhone, checkUserExists } = useAuth();
   const { t } = useTranslation('onboarding');
+  
+  // Firebase notifications
+  const { loginFailed } = useAuthNotifications();
+  const { requiredField } = useValidationNotifications();
+  const { networkError } = useSystemNotifications();
+  const { showSuccess, showError } = require('@/hooks/useFirebaseNotification').default();
   
   // Refs for OTP inputs
   const inputRefs = useRef<(TextInput | null)[]>([]);
@@ -83,7 +89,7 @@ export default function OTPVerificationScreen() {
     const otpCode = otp.join('');
     
     if (otpCode.length !== 6) {
-      Alert.alert(t('invalidOtpTitle'), t('invalidOtpMessage'));
+      requiredField('complete OTP');
       return;
     }
 
@@ -130,7 +136,7 @@ export default function OTPVerificationScreen() {
             
           } catch (loginError) {
             console.error('❌ OTP Verification: Login failed:', loginError);
-            Alert.alert('Login Failed', 'Please try again.');
+            loginFailed('Please try again');
             setIsLoading(false);
             return;
           }
@@ -153,11 +159,11 @@ export default function OTPVerificationScreen() {
           router.push('/(onboarding)/personal-info' as any);
         }
       } else {
-        Alert.alert(t('verificationFailedTitle'), result.error || t('verificationFailedMessage'));
+        loginFailed(result.error || t('verificationFailedMessage'));
       }
     } catch (error: any) {
       console.error('Error verifying OTP:', error);
-      Alert.alert(t('error'), t('somethingWentWrong'));
+      networkError();
     } finally {
       setIsLoading(false);
     }
@@ -180,13 +186,14 @@ export default function OTPVerificationScreen() {
         // Focus first input
         inputRefs.current[0]?.focus();
         
-        Alert.alert(t('otpSentTitle'), t('otpSentMessage'));
+        // Show success notification for OTP resent
+        showSuccess(t('otpSentTitle'), t('otpSentMessage'));
       } else {
-        Alert.alert(t('error'), result.error || t('resendOtpFailed'));
+        showError(t('error'), result.error || t('resendOtpFailed'));
       }
     } catch (error) {
       console.error('Error resending OTP:', error);
-      Alert.alert(t('error'), t('somethingWentWrong'));
+      networkError();
     } finally {
       setIsResending(false);
     }

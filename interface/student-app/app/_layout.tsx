@@ -14,6 +14,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import NotificationContainer from '@/components/NotificationContainer';
 import { nativeWebSocketService } from '@/services/nativeWebSocketService';
+import { firebaseNotificationService } from '@/services/firebaseNotificationService';
+import { realtimeNotificationService } from '@/services/realtimeNotificationService';
+import { useNotificationPreferencesStore } from '@/store/notificationPreferencesStore';
 import KeyboardAvoidingWrapper from '@/components/KeyboardAvoidingWrapper';
 import LanguageService from '@/utils/languageService';
 import { useNavigationTracking } from '@/hooks/useNavigationTracking';
@@ -70,6 +73,21 @@ export default function RootLayout() {
       // Initialize native WebSocket service
       nativeWebSocketService.initialize().catch((error) => {
         console.warn('⚠️ Native WebSocket initialization failed:', error);
+      });
+      
+      // Initialize Firebase notification service
+      firebaseNotificationService.initialize().catch((error) => {
+        console.warn('⚠️ Firebase notification initialization failed:', error);
+      });
+      
+      // Initialize real-time notification service
+      realtimeNotificationService.initialize().catch((error) => {
+        console.warn('⚠️ Real-time notification initialization failed:', error);
+      });
+      
+      // Initialize notification preferences
+      useNotificationPreferencesStore.getState().initializePreferences().catch((error) => {
+        console.warn('⚠️ Notification preferences initialization failed:', error);
       });
     }
   }, [fontsLoaded, fontError]);
