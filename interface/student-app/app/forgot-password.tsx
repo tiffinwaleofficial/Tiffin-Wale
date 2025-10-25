@@ -1,32 +1,36 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { } from 'lucide-react-native';
 import api from '@/utils/apiClient';
 import { useTranslation } from 'react-i18next';
 import { BackButton } from '@/components/BackButton';
 import { GuestRoute } from '@/auth/AuthMiddleware';
+import { useValidationNotifications, useSystemNotifications } from '@/hooks/useFirebaseNotification';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const { t } = useTranslation('auth');
+  const { invalidEmail } = useValidationNotifications();
+  const { showError, showSuccess } = require('@/hooks/useFirebaseNotification').default();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
 
   const handleResetRequest = async () => {
     if (!email) {
-      Alert.alert(t('emailRequired'), t('emailRequiredMessage'));
+      invalidEmail();
       return;
     }
     setIsLoading(true);
     setMessage('');
     try {
       await api.auth.forgotPassword(email);
+      showSuccess(t('resetLinkSent'), 'Check your email for reset instructions! 📧');
       setMessage(t('resetLinkSent'));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : t('unexpectedError');
-      Alert.alert(t('error'), errorMessage);
+      showError(t('error'), errorMessage);
     } finally {
       setIsLoading(false);
     }

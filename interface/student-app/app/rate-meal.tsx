@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Star,} from 'lucide-react-native';
 import { useOrderStore } from '@/store/orderStore';
 import Animated from 'react-native-reanimated';
 import { BackButton } from '@/components/BackButton';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useValidationNotifications } from '@/hooks/useFirebaseNotification';
 
 export default function RateMealScreen() {
   const router = useRouter();
   const { t } = useTranslation('orders');
+  const { requiredField } = useValidationNotifications();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { isLoading, addReview } = useOrderStore();
   const [rating, setRating] = useState(0);
@@ -18,7 +20,7 @@ export default function RateMealScreen() {
   const handleSaveReview = async () => {
     if (!id) return;
     if (rating === 0) {
-      Alert.alert(t('ratingRequired'), t('pleaseSelectRating'));
+      requiredField('rating');
       return;
     }
     await addReview(id, rating, comment);

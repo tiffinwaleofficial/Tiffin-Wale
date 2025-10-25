@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Linking, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Linking } from 'react-native';
 import { MessageCircle, Phone, HelpCircle, ChevronRight } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -7,10 +7,12 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useFeedbackStore } from '@/store/feedbackStore';
 import { BackButton } from '@/components/BackButton';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useSystemNotifications } from '@/hooks/useFirebaseNotification';
 
 export default function HelpSupportScreen() {
   const router = useRouter();
   const { t } = useTranslation('support');
+  const { showSuccess, showError } = require('@/hooks/useFirebaseNotification').default();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCategory, setExpandedCategory] = useState<number | null>(null);
   const { submitFeedback, isLoading, error, submitSuccess, clearError, clearSuccess } = useFeedbackStore();
@@ -27,17 +29,17 @@ export default function HelpSupportScreen() {
         category: 'service'
       });
       
-      Alert.alert(
+      showSuccess(
         t('supportRequestSent'),
-        t('supportRequestSentMessage'),
-        [{ text: t('ok'), onPress: () => clearSuccess() }]
+        'Our support team will get back to you faster than food delivery! 🚀'
       );
+      clearSuccess();
     } catch (err) {
-      Alert.alert(
+      showError(
         t('error'),
-        t('failedToSendSupportRequest'),
-        [{ text: t('ok'), onPress: () => clearError() }]
+        'Failed to send support request. Don\'t worry, we\'re still here to help! 💪'
       );
+      clearError();
     }
   };
 
@@ -113,16 +115,17 @@ export default function HelpSupportScreen() {
         category: 'service'
       });
       
-      Alert.alert(
-        'Chat Request Sent',
-        'Your chat support request has been received. We will connect you with an agent shortly.',
-        [{ text: 'OK', onPress: () => clearSuccess() }]
+      showSuccess(
+        'Chat Request Sent! 💬',
+        'We will connect you with an agent faster than you can say "tiffin"! 🏃‍♂️'
       );
+      clearSuccess();
     } catch (err) {
-      Alert.alert(
-        'Error',
-        'Failed to initiate chat support. Please try calling us instead.',
-        [{ text: 'OK', onPress: () => clearError() }]
+      showError(
+        'Chat Error 😅',
+        'Failed to initiate chat. Don\'t worry, our phone support is always ready! ☎️'
+      );
+      clearError();
       );
     }
   };
