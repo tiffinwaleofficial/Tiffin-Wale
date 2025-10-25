@@ -201,19 +201,19 @@ export default function FeedbackForm({ className = '' }: { className?: string })
 
           {/* Feedback Type */}
           <div>
-            <Label className="flex items-center gap-1 mb-3">
+            <Label className="flex items-center gap-1 mb-4">
               Feedback Type <span className="text-red-500">*</span>
             </Label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {feedbackTypes.map((type) => {
                 const Icon = type.icon;
                 return (
                   <label
                     key={type.value}
-                    className={`relative flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 hover:shadow-md ${
+                    className={`relative flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-lg ${
                       formData.type === type.value
-                        ? `border-primary ${type.bgColor} shadow-md`
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? `border-primary ${type.bgColor} shadow-lg scale-[1.02]`
+                        : 'border-gray-200 hover:border-primary/30'
                     }`}
                   >
                     <input
@@ -224,12 +224,12 @@ export default function FeedbackForm({ className = '' }: { className?: string })
                       onChange={handleChange}
                       className="sr-only"
                     />
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
                       formData.type === type.value ? type.bgColor : 'bg-gray-100'
                     }`}>
-                      <Icon className={`h-5 w-5 ${formData.type === type.value ? type.color : 'text-gray-500'}`} />
+                      <Icon className={`h-6 w-6 ${formData.type === type.value ? type.color : 'text-gray-500'}`} />
                     </div>
-                    <span className={`font-medium ${
+                    <span className={`font-semibold text-base ${
                       formData.type === type.value ? 'text-primary' : 'text-gray-700'
                     }`}>
                       {type.label}

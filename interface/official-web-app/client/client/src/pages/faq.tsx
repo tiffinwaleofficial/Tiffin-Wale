@@ -319,7 +319,7 @@ export default function FAQPage() {
       {/* Chat Dialog */}
       <div 
         id="chat-dialog" 
-        className="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+        className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
         onClick={(e) => {
           // Close dialog when clicking the backdrop
           if (e.target === e.currentTarget) {
@@ -388,7 +388,7 @@ export default function FAQPage() {
       {/* Email Support Dialog */}
       <div 
         id="email-support-dialog" 
-        className="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+        className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
         onClick={(e) => {
           // Close dialog when clicking the backdrop
           if (e.target === e.currentTarget) {

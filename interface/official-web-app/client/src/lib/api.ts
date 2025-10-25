@@ -322,3 +322,230 @@ export const logApiConfig = () => {
     console.log('- Backend reachable:', isReachable);
   });
 };
+
+// ============================================================
+// MARKETPLACE APIs - Partners, Plans, Reviews
+// ============================================================
+
+export type Partner = {
+  _id: string;
+  businessName: string;
+  ownerName: string;
+  description?: string;
+  cuisineType: string[];
+  rating: number;
+  totalReviews: number;
+  city: string;
+  address: string;
+  phone: string;
+  email: string;
+  imageUrl?: string;
+  isActive: boolean;
+  isVerified: boolean;
+  deliveryAreas?: string[];
+  operatingHours?: any;
+};
+
+export type SubscriptionPlan = {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+  duration: string; // 'daily', 'weekly', 'monthly', 'quarterly', 'annual'
+  meals: {
+    breakfast?: boolean;
+    lunch?: boolean;
+    dinner?: boolean;
+  };
+  features: string[];
+  isActive: boolean;
+  isPopular?: boolean;
+  discount?: number;
+};
+
+export type Review = {
+  _id: string;
+  userId?: string;
+  userName: string;
+  userImage?: string;
+  rating: number;
+  comment: string;
+  restaurantId?: string;
+  menuItemId?: string;
+  createdAt: string;
+  helpful: number;
+  isVerified?: boolean;
+};
+
+export type PartnerFilters = {
+  cuisineType?: string;
+  rating?: number;
+  city?: string;
+};
+
+export type PlatformStats = {
+  totalPartners: number;
+  totalSubscriptions: number;
+  totalCustomers: number;
+  totalCities: number;
+  avgRating: number;
+};
+
+// Get all partners/tiffin centers
+export const getPartners = async (filters?: PartnerFilters): Promise<Partner[]> => {
+  try {
+    const params = new URLSearchParams();
+    if (filters?.cuisineType) params.append('cuisineType', filters.cuisineType);
+    if (filters?.rating) params.append('rating', filters.rating.toString());
+    if (filters?.city) params.append('city', filters.city);
+    
+    const queryString = params.toString();
+    const endpoint = queryString ? `partners?${queryString}` : 'partners';
+    
+    console.log('Fetching partners:', endpoint);
+    return await apiRequest<Partner[]>(endpoint, 'GET');
+  } catch (error) {
+    console.error('Failed to fetch partners:', error);
+    throw error;
+  }
+};
+
+// Get a specific partner by ID
+export const getPartner = async (id: string): Promise<Partner> => {
+  try {
+    console.log('Fetching partner:', id);
+    return await apiRequest<Partner>(`partners/${id}`, 'GET');
+  } catch (error) {
+    console.error('Failed to fetch partner:', error);
+    throw error;
+  }
+};
+
+// Get partner menu
+export const getPartnerMenu = async (partnerId: string): Promise<any[]> => {
+  try {
+    console.log('Fetching partner menu:', partnerId);
+    return await apiRequest<any[]>(`partners/${partnerId}/menu`, 'GET');
+  } catch (error) {
+    console.error('Failed to fetch partner menu:', error);
+    throw error;
+  }
+};
+
+// Get partner subscription plans
+export const getPartnerPlans = async (partnerId: string): Promise<SubscriptionPlan[]> => {
+  try {
+    console.log('Fetching partner plans:', partnerId);
+    return await apiRequest<SubscriptionPlan[]>(`partners/${partnerId}/plans`, 'GET');
+  } catch (error) {
+    console.error('Failed to fetch partner plans:', error);
+    throw error;
+  }
+};
+
+// Get partner reviews
+export const getPartnerReviews = async (partnerId: string): Promise<Review[]> => {
+  try {
+    console.log('Fetching partner reviews:', partnerId);
+    return await apiRequest<Review[]>(`partners/${partnerId}/reviews`, 'GET');
+  } catch (error) {
+    console.error('Failed to fetch partner reviews:', error);
+    throw error;
+  }
+};
+
+// Get partner statistics
+export const getPartnerStats = async (partnerId: string): Promise<any> => {
+  try {
+    console.log('Fetching partner stats:', partnerId);
+    return await apiRequest<any>(`partners/${partnerId}/stats`, 'GET');
+  } catch (error) {
+    console.error('Failed to fetch partner stats:', error);
+    throw error;
+  }
+};
+
+// Get all subscription plans
+export const getSubscriptionPlans = async (): Promise<SubscriptionPlan[]> => {
+  try {
+    console.log('Fetching subscription plans');
+    return await apiRequest<SubscriptionPlan[]>('subscription-plans', 'GET');
+  } catch (error) {
+    console.error('Failed to fetch subscription plans:', error);
+    throw error;
+  }
+};
+
+// Get active subscription plans only
+export const getActiveSubscriptionPlans = async (): Promise<SubscriptionPlan[]> => {
+  try {
+    console.log('Fetching active subscription plans');
+    return await apiRequest<SubscriptionPlan[]>('subscription-plans/active', 'GET');
+  } catch (error) {
+    console.error('Failed to fetch active subscription plans:', error);
+    throw error;
+  }
+};
+
+// Get a specific subscription plan
+export const getSubscriptionPlan = async (id: string): Promise<SubscriptionPlan> => {
+  try {
+    console.log('Fetching subscription plan:', id);
+    return await apiRequest<SubscriptionPlan>(`subscription-plans/${id}`, 'GET');
+  } catch (error) {
+    console.error('Failed to fetch subscription plan:', error);
+    throw error;
+  }
+};
+
+// Get restaurant reviews
+export const getRestaurantReviews = async (restaurantId: string): Promise<Review[]> => {
+  try {
+    console.log('Fetching restaurant reviews:', restaurantId);
+    return await apiRequest<Review[]>(`reviews/restaurant/${restaurantId}`, 'GET');
+  } catch (error) {
+    console.error('Failed to fetch restaurant reviews:', error);
+    throw error;
+  }
+};
+
+// Get menu item reviews
+export const getMenuItemReviews = async (itemId: string): Promise<Review[]> => {
+  try {
+    console.log('Fetching menu item reviews:', itemId);
+    return await apiRequest<Review[]>(`reviews/menu-item/${itemId}`, 'GET');
+  } catch (error) {
+    console.error('Failed to fetch menu item reviews:', error);
+    throw error;
+  }
+};
+
+// Subscribe to newsletter
+export const subscribeToNewsletter = async (email: string): Promise<ApiResponse> => {
+  try {
+    console.log('Subscribing to newsletter:', email);
+    return await apiRequest<ApiResponse>('subscribe', 'POST', { email });
+  } catch (error) {
+    console.error('Newsletter subscription failed:', error);
+    throw error;
+  }
+};
+
+// Get platform statistics (for homepage stats)
+export const getPlatformStats = async (): Promise<PlatformStats> => {
+  try {
+    console.log('Fetching platform statistics');
+    // This endpoint might need to be created in backend or we can aggregate from other endpoints
+    return await apiRequest<PlatformStats>('stats/platform', 'GET');
+  } catch (error) {
+    console.warn('Failed to fetch platform stats from backend, using default values:', error);
+    // Return default/fallback stats if backend endpoint doesn't exist yet
+    return {
+      totalPartners: 100,
+      totalSubscriptions: 5000,
+      totalCustomers: 10000,
+      totalCities: 50,
+      avgRating: 4.6
+    };
+  }
+};

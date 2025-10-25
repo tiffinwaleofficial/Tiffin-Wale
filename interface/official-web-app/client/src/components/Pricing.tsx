@@ -1,190 +1,317 @@
-import { Check } from "lucide-react";
+import { Check, Star, MapPin, ChefHat, Clock, TrendingUp, Filter, Search, Smartphone, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { useState } from "react";
 
-interface PlanFeature {
-  text: string;
+interface TiffinCenter {
+  id: string;
+  name: string;
+  rating: number;
+  reviews: number;
+  location: string;
+  cuisineTypes: string[];
+  startingPrice: string;
+  image: string;
+  verified: boolean;
+  features: string[];
+  isFeatured?: boolean;
 }
 
-interface PricingPlanProps {
-  title: string;
-  price: string;
-  features: PlanFeature[];
-  isPopular?: boolean;
+interface TiffinCenterCardProps {
+  center: TiffinCenter;
+  index: number;
 }
 
-const PricingPlan = ({ title, price, features, isPopular = false }: PricingPlanProps) => {
+const TiffinCenterCard = ({ center, index }: TiffinCenterCardProps) => {
   return (
     <div 
-      className={`bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden 
-      ${isPopular ? 'relative z-10 transform scale-105 border-[3px] border-primary' : 'border border-gray-200 hover:border-gray-300'}`}
+      className={`bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border hover:border-primary/30 group
+      ${center.isFeatured ? 'ring-2 ring-primary/50' : 'border-gray-200'}`}
       style={{
-        background: isPopular ? 'linear-gradient(to bottom, #fff, #fff, rgba(255, 166, 77, 0.08))' : 'white',
-        boxShadow: isPopular ? '0 10px 40px -10px rgba(255, 166, 77, 0.4)' : ''
+        animation: `fadeInUp 0.6s ease-out ${index * 0.1}s backwards`
       }}
     >
-      {/* No ribbon as requested */}
-      
-      <div className={`px-8 pt-8 pb-4 ${isPopular ? 'bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5' : ''}`}>
-        <div className="flex justify-center mb-3">
-          <div className={`h-16 w-16 rounded-full flex items-center justify-center ${isPopular ? 'bg-primary/20' : 'bg-gray-100'}`}>
-            {title === "Basic" && (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-700" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
-              </svg>
-            )}
-            {title === "Standard" && (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-primary" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-            )}
-            {title === "Premium" && (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-700" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z" clipRule="evenodd" />
-              </svg>
-            )}
+      {/* Image Section */}
+      <div className="relative h-48 overflow-hidden">
+        <img 
+          src={center.image}
+          alt={center.name}
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+        />
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+        
+        {/* Featured Badge */}
+        {center.isFeatured && (
+          <div className="absolute top-3 left-3 bg-gradient-to-r from-primary to-accent text-white px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg">
+            <TrendingUp className="h-3 w-3" />
+            Top Rated
           </div>
-        </div>
-        <h3 className={`font-bold text-2xl text-center mb-2 ${isPopular ? 'text-primary' : 'text-gray-800'}`}>
-          {title}
-        </h3>
-        <div className="text-center mb-6 relative">
-          <span className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-700">{price}</span>
-          <span className="text-gray-500 ml-1">/month</span>
-          
-          {isPopular && (
-            <div className="absolute -right-2 -top-2 transform rotate-12">
-              <div className="bg-primary/20 text-primary text-xs px-2 py-1 rounded-full">Best Value</div>
+        )}
+        
+        {/* Verified Badge */}
+        {center.verified && (
+          <div className="absolute top-3 right-3 bg-green-500 text-white p-1.5 rounded-full shadow-lg">
+            <Check className="h-4 w-4" />
             </div>
           )}
+        
+        {/* Rating & Reviews */}
+        <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
+          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+          <span className="font-bold text-sm">{center.rating.toFixed(1)}</span>
+          <span className="text-xs text-muted-foreground">({center.reviews})</span>
         </div>
       </div>
       
-      <div className="p-8 pt-4">
-        <div className="mb-6">
-          <ul className="space-y-4">
-            {features.map((feature, index) => (
-              <li key={index} className="flex items-center">
-                <div className={`h-6 w-6 rounded-full flex items-center justify-center mr-3 ${isPopular ? 'bg-primary/20 text-primary' : 'bg-gray-100 text-green-500'}`}>
-                  <Check className="h-4 w-4" />
-                </div>
-                <span className="text-gray-700">{feature.text}</span>
-              </li>
-            ))}
-          </ul>
+      {/* Content Section */}
+      <div className="p-6">
+        {/* Center Name */}
+        <h3 className="font-bold text-xl mb-2 text-foreground group-hover:text-primary transition-colors">
+          {center.name}
+        </h3>
+        
+        {/* Location */}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+          <MapPin className="h-4 w-4 text-primary" />
+          <span>{center.location}</span>
         </div>
         
+        {/* Cuisine Types */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {center.cuisineTypes.map((cuisine, idx) => (
+            <span key={idx} className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-medium">
+              {cuisine}
+            </span>
+          ))}
+        </div>
+        
+        {/* Features */}
+        <div className="space-y-2 mb-4">
+          {center.features.slice(0, 3).map((feature, idx) => (
+            <div key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Check className="h-4 w-4 text-green-500" />
+              <span>{feature}</span>
+                </div>
+            ))}
+        </div>
+        
+        {/* Price & CTA */}
+        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+          <div>
+            <span className="text-sm text-muted-foreground">Starting at</span>
+            <div className="font-bold text-2xl text-primary">{center.startingPrice}</div>
+          </div>
         <Link href="#download">
-          <Button 
-            className={`w-full py-6 group relative overflow-hidden transition-all duration-500 
-              ${isPopular 
-                ? 'bg-primary hover:bg-primary/90 text-white' 
-                : 'bg-gray-100 hover:bg-gray-200 text-gray-800'}`
-              }
-            variant={isPopular ? "default" : "outline"}
-          >
-            <span className="relative z-10 font-bold">Choose {title}</span>
-            <span className="absolute inset-0 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500 bg-gradient-to-r from-transparent via-white/10 to-transparent"></span>
+            <Button className="bg-primary hover:bg-accent text-white font-semibold px-6 py-2 rounded-full shadow-md hover:shadow-lg transition-all duration-300">
+              View Plans
           </Button>
         </Link>
+        </div>
       </div>
     </div>
   );
 };
 
 export default function Pricing() {
-  const pricingPlans = [
+  const [priceFilter, setPriceFilter] = useState<string>("all");
+  
+  // Sample featured tiffin centers (will be replaced with API data)
+  const tiffinCenters: TiffinCenter[] = [
     {
-      title: "Basic",
-      price: "₹3,999",
-      features: [
-        { text: "1 Meal/Day (Lunch)" },
-        { text: "Weekly Menu Rotation" },
-        { text: "Free Delivery" },
-        { text: "Eco-Friendly Packaging" }
-      ]
+      id: "1",
+      name: "Maa Ka Khana",
+      rating: 4.8,
+      reviews: 1240,
+      location: "Vijay Nagar, Indore",
+      cuisineTypes: ["North Indian", "Home-style"],
+      startingPrice: "₹80/day",
+      image: "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&q=80",
+      verified: true,
+      features: ["Fresh Daily", "No Preservatives", "Customizable Menu"],
+      isFeatured: true
     },
     {
-      title: "Standard",
-      price: "₹5,999",
-      features: [
-        { text: "2 Meals/Day (Lunch & Dinner)" },
-        { text: "Dietary Preferences" },
-        { text: "Priority Delivery" },
-        { text: "Weekend Special Menu" }
-      ],
-      isPopular: true
+      id: "2",
+      name: "Ghar Jaisa Tiffin",
+      rating: 4.7,
+      reviews: 980,
+      location: "Sapna Sangeeta, Indore",
+      cuisineTypes: ["North Indian", "Punjabi"],
+      startingPrice: "₹75/day",
+      image: "https://images.unsplash.com/photo-1606491956689-2ea866880c84?w=600&q=80",
+      verified: true,
+      features: ["2 Meals/Day", "Weekend Delivery", "Healthy Options"],
+      isFeatured: true
     },
     {
-      title: "Premium",
-      price: "₹7,999",
-      features: [
-        { text: "3 Meals/Day (All Meals)" },
-        { text: "Custom Menu Selection" },
-        { text: "Premium Add-ons" },
-        { text: "Flexible Delivery Times" }
-      ]
+      id: "3",
+      name: "South Indian Delights",
+      rating: 4.6,
+      reviews: 756,
+      location: "MG Road, Indore",
+      cuisineTypes: ["South Indian", "Traditional"],
+      startingPrice: "₹65/day",
+      image: "https://images.unsplash.com/photo-1630383249896-424e482df921?w=600&q=80",
+      verified: true,
+      features: ["Authentic Taste", "Oil-free Options", "Daily Variety"]
+    },
+    {
+      id: "4",
+      name: "Student's Choice Tiffin",
+      rating: 4.5,
+      reviews: 654,
+      location: "Palasia Square, Indore",
+      cuisineTypes: ["Multi-Cuisine", "Budget-friendly"],
+      startingPrice: "₹50/day",
+      image: "https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?w=600&q=80",
+      verified: true,
+      features: ["Affordable", "Large Portions", "Student Special"]
+    },
+    {
+      id: "5",
+      name: "Premium Home Kitchen",
+      rating: 4.9,
+      reviews: 420,
+      location: "AB Road, Indore",
+      cuisineTypes: ["Multi-Cuisine", "Gourmet"],
+      startingPrice: "₹120/day",
+      image: "https://images.unsplash.com/photo-1606491956807-a6c3e01ee5a7?w=600&q=80",
+      verified: true,
+      features: ["Premium Ingredients", "Chef Special", "Exotic Dishes"],
+      isFeatured: true
+    },
+    {
+      id: "6",
+      name: "Healthy Bites",
+      rating: 4.7,
+      reviews: 512,
+      location: "Rau, Indore",
+      cuisineTypes: ["Health Food", "Protein-Rich"],
+      startingPrice: "₹95/day",
+      image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&q=80",
+      verified: true,
+      features: ["Low-Calorie", "High-Protein", "Dietitian Approved"]
     }
   ];
 
+  const priceRanges = [
+    { label: "All", value: "all" },
+    { label: "₹50-80/day", value: "50-80" },
+    { label: "₹80-120/day", value: "80-120" },
+    { label: "₹120+/day", value: "120+" }
+  ];
+
   return (
-    <section id="pricing" className="py-20 bg-gray-50 relative overflow-hidden">
+    <section id="pricing" className="py-20 md:py-28 bg-gradient-to-b from-gray-50 via-white to-gray-50 relative overflow-hidden">
+      {/* Background decoration */}
       <div className="absolute inset-0 opacity-5">
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary rounded-full"></div>
-        <div className="absolute top-1/4 right-0 w-64 h-64 bg-primary rounded-full"></div>
-        <div className="absolute -bottom-40 left-1/3 w-80 h-80 bg-primary rounded-full"></div>
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary rounded-full blur-3xl"></div>
+        <div className="absolute top-1/4 right-0 w-64 h-64 bg-accent rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 left-1/3 w-80 h-80 bg-primary rounded-full blur-3xl"></div>
       </div>
+      
       <div className="container mx-auto px-4 relative z-10">
-        <div className="text-center mb-16">
-          <h2 className="font-bold text-4xl md:text-5xl mb-4 bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary/80 to-primary relative inline-block">
-            <span className="relative">Simple & Flexible Pricing
-              <div className="absolute -bottom-2 left-0 right-0 h-1 bg-primary/20 rounded-full"></div>
+        {/* Section Header */}
+        <div className="text-center mb-12 max-w-3xl mx-auto">
+          <div className="inline-block mb-4">
+            <span className="bg-gradient-to-r from-primary/20 to-accent/20 text-primary px-4 py-2 rounded-full text-sm font-semibold border border-primary/30">
+              <ChefHat className="inline h-4 w-4 mr-2" />
+              Browse Our Marketplace
             </span>
+          </div>
+          <h2 className="font-bold text-4xl md:text-5xl mb-6 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+            Top-Rated Tiffin Centers
           </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto text-lg mt-6">
-            Choose the plan that works best for you. All plans include free delivery.
+          <p className="text-lg text-muted-foreground leading-relaxed">
+            Discover 100+ verified tiffin centers sorted by ratings. 
+            <span className="text-primary font-medium"> Compare plans and subscribe to your favorite!</span>
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto pt-10">
-          <div className="self-start">
-            <PricingPlan
-              title={pricingPlans[0].title}
-              price={pricingPlans[0].price}
-              features={pricingPlans[0].features}
-              isPopular={pricingPlans[0].isPopular}
-            />
+        {/* Filters */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
+          {priceRanges.map((range) => (
+            <button
+              key={range.value}
+              onClick={() => setPriceFilter(range.value)}
+              className={`px-6 py-2.5 rounded-full font-medium transition-all duration-300 ${
+                priceFilter === range.value
+                  ? 'bg-gradient-to-r from-primary to-accent text-white shadow-lg scale-105'
+                  : 'bg-white text-muted-foreground hover:bg-primary/10 hover:text-primary border border-gray-200'
+              }`}
+            >
+              {range.label}
+            </button>
+          ))}
+        </div>
+
+        {/* How It Works - Quick Guide */}
+        <div className="bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 rounded-2xl p-8 mb-12 border border-primary/20">
+          <h3 className="font-bold text-2xl text-center mb-8 text-foreground">How It Works</h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <Search className="h-8 w-8 text-white" />
+              </div>
+              <h4 className="font-semibold mb-2">1. Browse Centers</h4>
+              <p className="text-sm text-muted-foreground">Explore top-rated tiffin centers by location and rating</p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <Star className="h-8 w-8 text-white" />
+              </div>
+              <h4 className="font-semibold mb-2">2. Check Ratings</h4>
+              <p className="text-sm text-muted-foreground">Read reviews from real customers</p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <Calendar className="h-8 w-8 text-white" />
+              </div>
+              <h4 className="font-semibold mb-2">3. View Plans</h4>
+              <p className="text-sm text-muted-foreground">Compare subscription plans and prices</p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <Check className="h-8 w-8 text-white" />
           </div>
-          <div className="self-start">
-            <PricingPlan
-              title={pricingPlans[1].title}
-              price={pricingPlans[1].price}
-              features={pricingPlans[1].features}
-              isPopular={pricingPlans[1].isPopular}
-            />
+              <h4 className="font-semibold mb-2">4. Subscribe</h4>
+              <p className="text-sm text-muted-foreground">Download app and start your subscription</p>
           </div>
-          <div className="self-start">
-            <PricingPlan
-              title={pricingPlans[2].title}
-              price={pricingPlans[2].price}
-              features={pricingPlans[2].features}
-              isPopular={pricingPlans[2].isPopular}
-            />
           </div>
         </div>
         
-        <div className="text-center mt-20 max-w-3xl mx-auto bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 p-8 rounded-2xl border border-primary/20 shadow-lg">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="text-left">
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">Need a custom plan for your office?</h3>
-              <p className="text-gray-600">Get special pricing and customized meal options for your team.</p>
+        {/* Tiffin Centers Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+          {tiffinCenters.map((center, index) => (
+            <TiffinCenterCard key={center.id} center={center} index={index} />
+          ))}
+        </div>
+
+        {/* View All CTA */}
+        <div className="text-center">
+          <Link href="#download">
+            <Button size="lg" className="bg-gradient-to-r from-primary to-accent hover:from-accent hover:to-primary text-white font-bold px-12 py-6 rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 text-lg">
+              <Smartphone className="mr-2 h-6 w-6" />
+              Download App to View All Centers
+            </Button>
+          </Link>
+          <p className="text-muted-foreground mt-4">100+ verified tiffin centers available on our app</p>
+        </div>
+
+        {/* Corporate Plans CTA */}
+        <div className="text-center mt-20 max-w-4xl mx-auto bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 p-10 rounded-3xl border-2 border-primary/30 shadow-2xl">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="text-left flex-1">
+              <h3 className="text-3xl font-bold text-foreground mb-3">Corporate Meal Plans</h3>
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                Need bulk tiffin services for your office? Get special corporate pricing and customized meal options for your team.
+              </p>
             </div>
             <Link href="/corporate-plans">
-              <Button className="bg-primary hover:bg-primary/90 text-white px-8 py-6 whitespace-nowrap animate-pulse-slow">
+              <Button className="bg-primary hover:bg-accent text-white px-10 py-7 rounded-full font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 whitespace-nowrap group">
                 Get Corporate Pricing
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
+                <TrendingUp className="ml-3 h-6 w-6 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
           </div>

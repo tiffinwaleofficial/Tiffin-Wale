@@ -2,66 +2,112 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import AppStoreButtons from "@/components/AppStoreButtons";
 import { OptimizedImage } from "@/components/ui";
-import { Star, Users, Clock, Award } from "lucide-react";
+import { Star, Users, Clock, Award, ChefHat, MapPin, TrendingUp, Shield } from "lucide-react";
 
 export default function Hero() {
   return (
     <section className="relative bg-gradient-to-br from-background via-background to-secondary/30 overflow-hidden">
-      {/* Background Pattern */}
+      {/* Enhanced Background Pattern */}
       <div className="absolute inset-0 opacity-5">
-        <div className="absolute top-20 left-10 w-32 h-32 bg-primary rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 right-10 w-40 h-40 bg-accent rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/3 w-24 h-24 bg-primary rounded-full blur-2xl"></div>
+        <div className="absolute top-20 left-10 w-32 h-32 bg-primary rounded-full blur-3xl animate-pulse-slow"></div>
+        <div className="absolute bottom-20 right-10 w-40 h-40 bg-accent rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 left-1/3 w-24 h-24 bg-primary rounded-full blur-2xl animate-pulse-slow" style={{ animationDelay: '2s' }}></div>
       </div>
 
-      <div className="container mx-auto px-4 py-16 md:py-24 relative">
+      {/* Floating Food Icons Animation (Optional) */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/4 right-10 opacity-10 animate-pulse-slow">
+          <ChefHat className="h-16 w-16 text-primary" />
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-16 md:py-24 lg:py-28 relative">
         {/* Main Content Row */}
         <div className="flex flex-col lg:flex-row items-center gap-12 mb-12">
           {/* Left Content (Text) */}
           <div className="w-full lg:w-1/2 text-center lg:text-left z-10">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6 animate-pulse-slow">
-              <Award className="h-4 w-4" />
-              #1 Tiffin Service in India
+            {/* Enhanced Badge */}
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-primary/20 to-accent/20 border border-primary/30 text-primary px-5 py-2.5 rounded-full text-sm font-semibold mb-6 animate-pulse-slow shadow-lg backdrop-blur-sm">
+              <Award className="h-5 w-5" />
+              India's #1 Tiffin Marketplace
             </div>
 
             <h1 className="font-bold text-4xl md:text-5xl lg:text-6xl xl:text-7xl mb-6 leading-tight">
-              <span className="text-primary block animate-fadeInUp">Delicious</span>
-              <span className="text-foreground block animate-fadeInUp" style={{ animationDelay: '0.2s' }}>Home-Cooked</span>
-              <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent block animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
-                Meals Daily
+              <span className="text-foreground block animate-fadeInUp">Discover</span>
+              <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent block animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
+                100+ Verified
+              </span>
+              <span className="text-foreground block animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
+                Tiffin Centers
               </span>
             </h1>
             
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto lg:mx-0 animate-fadeInUp" style={{ animationDelay: '0.6s' }}>
-              Nutritious, affordable monthly plans perfect for students & busy professionals. 
-              <span className="text-primary font-medium"> Fresh ingredients, authentic flavors, delivered daily.</span>
+            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto lg:mx-0 animate-fadeInUp leading-relaxed" style={{ animationDelay: '0.6s' }}>
+              Browse by <span className="text-primary font-semibold">ratings</span>, compare plans, and subscribe to your favorite tiffin center. 
+              <span className="text-foreground font-medium"> Home-cooked meals from trusted kitchens, delivered daily.</span>
             </p>
 
-            {/* Stats */}
-            <div className="flex flex-wrap justify-center lg:justify-start gap-6 mb-8 animate-fadeInUp" style={{ animationDelay: '0.8s' }}>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Users className="h-4 w-4 text-primary" />
-                <span className="font-semibold text-foreground">50,000+</span> Happy Customers
+            {/* Enhanced Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 animate-fadeInUp" style={{ animationDelay: '0.8s' }}>
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-primary/10">
+                <div className="flex flex-col items-center text-center">
+                  <Users className="h-6 w-6 text-primary mb-2" />
+                  <span className="font-bold text-xl text-foreground">50K+</span>
+                  <span className="text-xs text-muted-foreground">Happy Users</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Star className="h-4 w-4 text-yellow-500" />
-                <span className="font-semibold text-foreground">4.8/5</span> Rating
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-primary/10">
+                <div className="flex flex-col items-center text-center">
+                  <ChefHat className="h-6 w-6 text-primary mb-2" />
+                  <span className="font-bold text-xl text-foreground">100+</span>
+                  <span className="text-xs text-muted-foreground">Tiffin Centers</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock className="h-4 w-4 text-primary" />
-                <span className="font-semibold text-foreground">On-Time</span> Delivery
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-primary/10">
+                <div className="flex flex-col items-center text-center">
+                  <Star className="h-6 w-6 text-yellow-500 mb-2" />
+                  <span className="font-bold text-xl text-foreground">4.6★</span>
+                  <span className="text-xs text-muted-foreground">Avg Rating</span>
+                </div>
+              </div>
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-primary/10">
+                <div className="flex flex-col items-center text-center">
+                  <MapPin className="h-6 w-6 text-primary mb-2" />
+                  <span className="font-bold text-xl text-foreground">200+</span>
+                  <span className="text-xs text-muted-foreground">Locations</span>
+                </div>
               </div>
             </div>
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8 animate-fadeInUp" style={{ animationDelay: '1s' }}>
-              <Button size="lg" className="bg-primary hover:bg-accent text-white font-semibold px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
-                Order Now - ₹99/day
-              </Button>
-              <Button variant="outline" size="lg" className="border-2 border-primary text-primary hover:bg-primary hover:text-white font-semibold px-8 py-4 rounded-full transition-all duration-300">
-                View Menu
-              </Button>
+              <Link href="#pricing">
+                <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-primary to-accent hover:from-accent hover:to-primary text-white font-bold px-8 py-6 rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 text-base">
+                  <ChefHat className="mr-2 h-5 w-5" />
+                  Browse Tiffin Centers
+                </Button>
+              </Link>
+              <Link href="#download">
+                <Button variant="outline" size="lg" className="w-full sm:w-auto border-2 border-primary text-primary hover:bg-primary hover:text-white font-semibold px-8 py-6 rounded-full transition-all duration-300 text-base">
+                  Download App
+                </Button>
+              </Link>
+            </div>
+
+            {/* Trust Indicators */}
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 text-sm text-muted-foreground animate-fadeInUp" style={{ animationDelay: '1.2s' }}>
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-green-500" />
+                <span>Verified Centers</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                <span>Best Prices</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" />
+                <span>On-Time Delivery</span>
+              </div>
             </div>
           </div>
           
@@ -69,7 +115,7 @@ export default function Hero() {
           <div className="w-full lg:w-1/2 relative z-10">
             <div className="relative animate-fadeIn" style={{ animationDelay: '0.4s' }}>
               {/* Main Image */}
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl transform hover:scale-105 transition-all duration-700">
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl transform hover:scale-105 transition-all duration-700 border-4 border-white/50">
                 <OptimizedImage 
                   src="https://images.unsplash.com/photo-1546833999-b9f581a1996d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600&q=80" 
                   alt="Delicious Indian tiffin meals with curry, rice, and vegetables" 
@@ -85,8 +131,8 @@ export default function Hero() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                 
                 {/* Floating price tag */}
-                <div className="absolute top-4 right-4 bg-primary text-white px-4 py-2 rounded-full font-bold shadow-lg animate-bounce">
-                  ₹99/day
+                <div className="absolute top-4 right-4 bg-gradient-to-r from-primary to-accent text-white px-5 py-2.5 rounded-full font-bold shadow-xl">
+                  From ₹50/day
                 </div>
               </div>
 
