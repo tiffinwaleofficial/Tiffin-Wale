@@ -42,7 +42,20 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   const { showSuccess, showError, showInfo } = require('@/hooks/useFirebaseNotification').default();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
-  const [mediaFiles, setMediaFiles] = useState<Array<{uri: string, type: 'image' | 'video', duration?: number, cloudinaryUrl?: string, uploading?: boolean}>>([]);
+  const [mediaFiles, setMediaFiles] = useState<Array<{
+    uri: string, 
+    type: 'image' | 'video', 
+    duration?: number, 
+    cloudinaryUrl?: string, 
+    uploading?: boolean,
+    progress?: number,
+    status?: 'optimizing' | 'uploading' | 'completed' | 'failed',
+    optimizationData?: {
+      originalSize: number,
+      optimizedSize: number,
+      compressionRatio: number
+    }
+  }>>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
 
@@ -94,10 +107,10 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
     setMediaFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Upload to Cloudinary immediately when file is selected
-  const uploadToCloudinary = async (fileUri: string, mediaType: 'image' | 'video') => {
+  // Upload to Cloudinary with optimization and progress tracking
+  const uploadToCloudinaryWithProgress = async (fileUri: string, mediaType: 'image' | 'video') => {
     try {
-      console.log('☁️ Starting Cloudinary upload for:', mediaType);
+      console.log('☁️ Starting optimized Cloudinary upload for:', mediaType);
       console.log('☁️ File URI:', fileUri);
       
       // Check if imageUploadService is configured
@@ -113,40 +126,77 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
       const uploadType = mediaType === 'video' ? UploadType.REVIEW_VIDEO : UploadType.REVIEW_IMAGE;
       console.log('☁️ Upload type:', uploadType);
       
-      const result = await imageUploadService.uploadImage(fileUri, uploadType);
-      
-      if (result.success && result.url) {
-        console.log('✅ Cloudinary upload successful:', result.url);
+      // Progress callback to update UI
+      const onProgress = (progress: number, status: string, optimizationData?: any) => {
+        console.log(`📊 Upload progress: ${progress}% - ${status}`);
         
-        // Update the media file with Cloudinary URL
         setMediaFiles(prev => prev.map(file => 
           file.uri === fileUri 
-            ? { ...file, cloudinaryUrl: result.url, uploading: false }
+            ? { 
+                ...file, 
+                progress: progress,
+                status: status as any,
+                optimizationData: optimizationData ? {
+                  originalSize: optimizationData.originalSize,
+                  optimizedSize: optimizationData.optimizedSize,
+                  compressionRatio: optimizationData.compressionRatio
+                } : undefined
+              }
             : file
         ));
+      };
+      
+      // Use the new optimized upload method
+      const result = await imageUploadService.uploadImageWithProgress(
+        fileUri, 
+        uploadType, 
+        onProgress
+      );
+      
+      if (result.success && result.url) {
+        console.log('✅ Optimized Cloudinary upload successful:', result.url);
+        
+        // Update the media file with final result
+        setMediaFiles(prev => prev.map(file => 
+          file.uri === fileUri 
+            ? { 
+                ...file, 
+                cloudinaryUrl: result.url, 
+                uploading: false,
+                progress: 100,
+                status: 'completed'
+              }
+            : file
+        ));
+        
+        // Show success message with optimization info
+        if (result.metadata?.optimization?.compressionRatio > 0) {
+          const compressionPercent = Math.round(result.metadata.optimization.compressionRatio * 100);
+          showSuccess('Upload Complete! 🎉', `File optimized and uploaded successfully! Reduced size by ${compressionPercent}% 📉`);
+        }
       } else {
-        console.error('❌ Cloudinary upload failed:', result.error);
+        console.error('❌ Optimized Cloudinary upload failed:', result.error);
         
         // Mark upload as failed
         setMediaFiles(prev => prev.map(file => 
           file.uri === fileUri 
-            ? { ...file, uploading: false }
+            ? { ...file, uploading: false, status: 'failed', progress: 0 }
             : file
         ));
         
-        Alert.alert('Upload Failed', result.error || 'Failed to upload media');
+        showError('Upload Failed 😅', result.error || 'Failed to upload media. Please try again!');
       }
     } catch (error) {
-      console.error('❌ Cloudinary upload error:', error);
+      console.error('❌ Optimized Cloudinary upload error:', error);
       
       // Mark upload as failed
       setMediaFiles(prev => prev.map(file => 
         file.uri === fileUri 
-          ? { ...file, uploading: false }
+          ? { ...file, uploading: false, status: 'failed', progress: 0 }
           : file
       ));
       
-      Alert.alert('Upload Error', 'Failed to upload media to Cloudinary');
+      showError('Upload Error 😅', 'Failed to upload media to Cloudinary. Please try again!');
     }
   };
 
@@ -285,8 +335,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                 return newFiles;
               });
               
-              // Start immediate Cloudinary upload
-              uploadToCloudinary(result, mediaType);
+              // Start immediate optimized Cloudinary upload
+              uploadToCloudinaryWithProgress(result, mediaType);
             };
             
             reader.onerror = (error) => {
@@ -337,8 +387,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
           uploading: true,
         }]);
         
-        // Start immediate Cloudinary upload
-        uploadToCloudinary(asset.uri, 'image');
+        // Start immediate optimized Cloudinary upload
+        uploadToCloudinaryWithProgress(asset.uri, 'image');
       }
     } catch (error) {
       console.error('❌ Camera error:', error);
@@ -364,8 +414,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
           uploading: true,
         }]);
         
-        // Start immediate Cloudinary upload
-        uploadToCloudinary(asset.uri, 'video');
+        // Start immediate optimized Cloudinary upload
+        uploadToCloudinaryWithProgress(asset.uri, 'video');
       }
     } catch (error) {
       console.error('❌ Video recording error:', error);
@@ -393,10 +443,10 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
         }));
         setMediaFiles(prev => [...prev, ...newMediaFiles]);
         
-        // Start immediate Cloudinary uploads for all selected files
+        // Start immediate optimized Cloudinary uploads for all selected files
         result.assets.forEach(asset => {
           const mediaType = asset.type === 'video' ? 'video' as const : 'image' as const;
-          uploadToCloudinary(asset.uri, mediaType);
+          uploadToCloudinaryWithProgress(asset.uri, mediaType);
         });
       }
     } catch (error) {
@@ -499,7 +549,24 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                         {/* Upload Progress Indicator */}
                         {item.uploading && (
                           <View style={styles.uploadingOverlay}>
-                            <Text style={styles.uploadingText}>{t('uploading')}</Text>
+                            <View style={styles.progressContainer}>
+                              <View style={styles.progressBar}>
+                                <View 
+                                  style={[
+                                    styles.progressFill, 
+                                    { width: `${item.progress || 0}%` }
+                                  ]} 
+                                />
+                              </View>
+                              <Text style={styles.uploadingText}>
+                                {item.status === 'optimizing' ? 'Optimizing...' : 
+                                 item.status === 'uploading' ? 'Uploading...' : 
+                                 'Processing...'}
+                              </Text>
+                              <Text style={styles.progressPercentage}>
+                                {Math.round(item.progress || 0)}%
+                              </Text>
+                            </View>
                           </View>
                         )}
                         
@@ -507,6 +574,18 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                         {item.cloudinaryUrl && !item.uploading && (
                           <View style={styles.uploadSuccessOverlay}>
                             <Text style={styles.uploadSuccessText}>✓</Text>
+                            {item.optimizationData && item.optimizationData.compressionRatio > 0 && (
+                              <Text style={styles.compressionText}>
+                                -{Math.round(item.optimizationData.compressionRatio * 100)}%
+                              </Text>
+                            )}
+                          </View>
+                        )}
+                        
+                        {/* Upload Failed Indicator */}
+                        {item.status === 'failed' && (
+                          <View style={styles.uploadFailedOverlay}>
+                            <Text style={styles.uploadFailedText}>✗</Text>
                           </View>
                         )}
                       </TouchableOpacity>
@@ -789,16 +868,42 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 8,
+  },
+  progressContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  progressBar: {
+    width: '80%',
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 2,
+    marginBottom: 4,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#FF9B42',
+    borderRadius: 2,
   },
   uploadingText: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 8,
     fontWeight: '600',
     fontFamily: 'Poppins-SemiBold',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  progressPercentage: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+    fontFamily: 'Poppins-Bold',
   },
   
   // Upload Success Overlay
@@ -807,13 +912,41 @@ const styles = StyleSheet.create({
     top: 4,
     left: 4,
     backgroundColor: '#4CAF50',
+    borderRadius: 8,
+    minWidth: 20,
+    minHeight: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  uploadSuccessText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+    fontFamily: 'Poppins-Bold',
+  },
+  compressionText: {
+    color: '#FFFFFF',
+    fontSize: 8,
+    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
+    marginTop: 1,
+  },
+  
+  // Upload Failed Overlay
+  uploadFailedOverlay: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    backgroundColor: '#FF6B6B',
     borderRadius: 10,
     width: 20,
     height: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  uploadSuccessText: {
+  uploadFailedText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: 'bold',
