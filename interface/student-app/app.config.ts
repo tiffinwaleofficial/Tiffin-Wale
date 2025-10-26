@@ -51,7 +51,14 @@ export default {
       permissions: [
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE"
-      ]
+      ],
+      // Enable Hermes for better performance and code splitting
+      jsEngine: "hermes"
+    },
+    // Enable Hermes for iOS as well
+    ios: {
+      supportsTablet: true,
+      jsEngine: "hermes"
     },
     extra: {
       // API URL is now platform-detected in environment.ts
