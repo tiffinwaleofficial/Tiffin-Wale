@@ -5,6 +5,8 @@
 
 import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { Video } from 'expo-av';
 
 interface CloudinaryConfig {
   cloudName: string;
@@ -19,6 +21,13 @@ interface UploadResult {
   publicId?: string;
   error?: string;
   metadata?: any;
+}
+
+interface OptimizationResult {
+  uri: string;
+  originalSize: number;
+  optimizedSize: number;
+  compressionRatio: number;
 }
 
 interface UploadOptions {
@@ -71,6 +80,219 @@ export class ImageUploadService {
       envVars: {
         CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
         EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME: process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME,
+      }
+    });
+  }
+
+  /**
+   * Optimize image before upload - resize and compress while preserving quality
+   */
+  private async optimizeImage(imageUri: string): Promise<OptimizationResult> {
+    try {
+      console.log('🔧 Starting image optimization for:', imageUri);
+      
+      // Get original file info
+      const originalInfo = await ImageManipulator.manipulateAsync(imageUri, [], {});
+      const originalSize = originalInfo.width * originalInfo.height; // Approximate size calculation
+      
+      // Determine optimal resize dimensions (max 1920px on longest side)
+      const maxDimension = 1920;
+      let resizeAction: ImageManipulator.Action[] = [];
+      
+      if (originalInfo.width > maxDimension || originalInfo.height > maxDimension) {
+        if (originalInfo.width > originalInfo.height) {
+          resizeAction = [{ resize: { width: maxDimension } }];
+        } else {
+          resizeAction = [{ resize: { height: maxDimension } }];
+        }
+        console.log(`📐 Resizing from ${originalInfo.width}x${originalInfo.height} to max ${maxDimension}px`);
+      }
+      
+      // Apply optimization - resize and compress
+      const optimizedResult = await ImageManipulator.manipulateAsync(
+        imageUri,
+        resizeAction,
+        {
+          compress: 0.9, // High quality compression
+          format: ImageManipulator.SaveFormat.JPEG,
+        }
+      );
+      
+      const optimizedSize = optimizedResult.width * optimizedResult.height;
+      const compressionRatio = originalSize > 0 ? (originalSize - optimizedSize) / originalSize : 0;
+      
+      console.log('✅ Image optimization completed:', {
+        originalDimensions: `${originalInfo.width}x${originalInfo.height}`,
+        optimizedDimensions: `${optimizedResult.width}x${optimizedResult.height}`,
+        compressionRatio: `${Math.round(compressionRatio * 100)}%`,
+      });
+      
+      return {
+        uri: optimizedResult.uri,
+        originalSize,
+        optimizedSize,
+        compressionRatio,
+      };
+    } catch (error) {
+      console.error('❌ Image optimization failed:', error);
+      // Return original if optimization fails
+      return {
+        uri: imageUri,
+        originalSize: 0,
+        optimizedSize: 0,
+        compressionRatio: 0,
+      };
+    }
+  }
+
+  /**
+   * Optimize video before upload - basic compression for large videos
+   */
+  private async optimizeVideo(videoUri: string): Promise<OptimizationResult> {
+    try {
+      console.log('🎥 Starting video optimization for:', videoUri);
+      
+      // For now, return original video URI as video optimization is complex
+      // In a full implementation, you would use expo-av or external libraries
+      // to compress videos while maintaining quality
+      
+      console.log('⚠️ Video optimization not implemented - uploading original');
+      return {
+        uri: videoUri,
+        originalSize: 0,
+        optimizedSize: 0,
+        compressionRatio: 0,
+      };
+    } catch (error) {
+      console.error('❌ Video optimization failed:', error);
+      return {
+        uri: videoUri,
+        originalSize: 0,
+        optimizedSize: 0,
+        compressionRatio: 0,
+      };
+    }
+  }
+
+  /**
+   * Upload with real-time progress tracking using XMLHttpRequest
+   */
+  private async uploadWithProgress(
+    fileUri: string,
+    uploadType: UploadType,
+    onProgress: (progress: number) => void,
+    customOptions?: Partial<UploadOptions>
+  ): Promise<UploadResult> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        if (!this.config.cloudName || !this.config.uploadPreset) {
+          throw new Error('Cloudinary configuration is incomplete');
+        }
+
+        const defaultOptions = this.getDefaultOptions(uploadType);
+        const options = { ...defaultOptions, ...customOptions };
+
+        const formData = new FormData();
+        
+        // Create file object for upload
+        const isVideo = uploadType === UploadType.REVIEW_VIDEO;
+        const isWeb = typeof window !== 'undefined';
+        
+        let file;
+        if (isWeb && fileUri.startsWith('data:')) {
+          // For web, convert data URL to Blob
+          const response = await fetch(fileUri);
+          const blob = await response.blob();
+          file = new File([blob], `${uploadType}_${Date.now()}.${isVideo ? 'mp4' : 'jpg'}`, {
+            type: isVideo ? 'video/mp4' : 'image/jpeg'
+          });
+        } else {
+          // For mobile, use the original format
+          file = {
+            uri: fileUri,
+            type: isVideo ? 'video/mp4' : 'image/jpeg',
+            name: `${uploadType}_${Date.now()}.${isVideo ? 'mp4' : 'jpg'}`,
+          } as any;
+        }
+
+        formData.append('file', file);
+        formData.append('upload_preset', this.config.uploadPreset);
+        formData.append('cloud_name', this.config.cloudName);
+        formData.append('folder', options.folder || 'uploads');
+        
+        // Add transformation parameters
+        if (options.maxWidth) {
+          formData.append('width', options.maxWidth.toString());
+        }
+        if (options.maxHeight) {
+          formData.append('height', options.maxHeight.toString());
+        }
+        if (options.crop) {
+          formData.append('crop', options.crop);
+        }
+        if (options.gravity) {
+          formData.append('gravity', options.gravity);
+        }
+        if (options.quality) {
+          formData.append('quality', options.quality.toString());
+        }
+        if (options.format) {
+          formData.append('fetch_format', options.format);
+        }
+
+        // Use XMLHttpRequest for progress tracking
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const progress = Math.round((event.loaded / event.total) * 100);
+            onProgress(progress);
+          }
+        });
+
+        xhr.addEventListener('load', () => {
+          if (xhr.status === 200) {
+            try {
+              const result = JSON.parse(xhr.responseText);
+              console.log(`✅ ${uploadType} uploaded successfully:`, {
+                url: result.secure_url,
+                publicId: result.public_id,
+              });
+
+              resolve({
+                success: true,
+                url: result.secure_url,
+                publicId: result.public_id,
+                metadata: {
+                  width: result.width,
+                  height: result.height,
+                  format: result.format,
+                  bytes: result.bytes,
+                  folder: options.folder,
+                  uploadType,
+                }
+              });
+            } catch (parseError) {
+              console.error('❌ Failed to parse upload response:', parseError);
+              reject(new Error('Failed to parse upload response'));
+            }
+          } else {
+            console.error(`❌ Upload failed with status: ${xhr.status}`);
+            reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+          }
+        });
+
+        xhr.addEventListener('error', () => {
+          console.error('❌ Upload request failed');
+          reject(new Error('Upload request failed'));
+        });
+
+        xhr.open('POST', `https://api.cloudinary.com/v1_1/${this.config.cloudName}/upload`);
+        xhr.send(formData);
+
+      } catch (error) {
+        console.error(`❌ ${uploadType} upload error:`, error);
+        reject(error);
       }
     });
   }
@@ -169,7 +391,111 @@ export class ImageUploadService {
   }
 
   /**
-   * Upload image to Cloudinary
+   * Upload image with optimization and progress tracking
+   */
+  async uploadImageWithProgress(
+    imageUri: string,
+    uploadType: UploadType,
+    onProgress: (progress: number, status: string, optimizationData?: OptimizationResult) => void,
+    customOptions?: Partial<UploadOptions>
+  ): Promise<UploadResult> {
+    try {
+      console.log(`📸 Starting optimized ${uploadType} upload with progress tracking...`);
+
+      if (!this.config.cloudName || !this.config.uploadPreset) {
+        throw new Error('Cloudinary configuration is incomplete');
+      }
+
+      // Phase 1: Optimization (0-30% progress)
+      onProgress(0, 'optimizing');
+      
+      let optimizationResult: OptimizationResult;
+      const isVideo = uploadType === UploadType.REVIEW_VIDEO;
+      
+      if (isVideo) {
+        optimizationResult = await this.optimizeVideo(imageUri);
+      } else {
+        optimizationResult = await this.optimizeImage(imageUri);
+      }
+      
+      onProgress(30, 'uploading', optimizationResult);
+
+      // Phase 2: Upload with progress (30-100%)
+      const result = await this.uploadWithProgress(
+        optimizationResult.uri,
+        uploadType,
+        (uploadProgress) => {
+          // Map upload progress from 30-100%
+          const totalProgress = 30 + (uploadProgress * 0.7);
+          onProgress(Math.round(totalProgress), 'uploading', optimizationResult);
+        },
+        customOptions
+      );
+
+      onProgress(100, 'completed', optimizationResult);
+      
+      // Add optimization metadata to result
+      if (result.success && result.metadata) {
+        result.metadata.optimization = optimizationResult;
+      }
+
+      return result;
+
+    } catch (error) {
+      console.error(`❌ ${uploadType} optimized upload error:`, error);
+      onProgress(0, 'failed');
+      
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+      };
+    }
+  }
+
+  /**
+   * Upload multiple images with individual progress tracking
+   */
+  async uploadMultipleImagesWithProgress(
+    imageUris: string[],
+    uploadType: UploadType,
+    onProgressUpdate: (fileIndex: number, progress: number, status: string, optimizationData?: OptimizationResult) => void,
+    customOptions?: Partial<UploadOptions>
+  ): Promise<UploadResult[]> {
+    console.log(`📸 Starting batch optimized upload of ${imageUris.length} ${uploadType} files...`);
+    
+    const results: UploadResult[] = [];
+    
+    for (let i = 0; i < imageUris.length; i++) {
+      const uri = imageUris[i];
+      
+      try {
+        const result = await this.uploadImageWithProgress(
+          uri,
+          uploadType,
+          (progress, status, optimizationData) => {
+            onProgressUpdate(i, progress, status, optimizationData);
+          },
+          customOptions
+        );
+        
+        results.push(result);
+      } catch (error) {
+        console.error(`❌ Failed to upload file ${i}:`, error);
+        results.push({
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error occurred',
+        });
+      }
+    }
+    
+    const successful = results.filter(r => r.success).length;
+    console.log(`✅ Batch optimized upload completed: ${successful}/${imageUris.length} successful`);
+    
+    return results;
+  }
+
+  /**
+   * Upload image to Cloudinary (legacy method - kept for backward compatibility)
    */
   async uploadImage(
     imageUri: string, 

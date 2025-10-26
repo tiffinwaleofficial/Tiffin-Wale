@@ -20,6 +20,7 @@ import { useChatStore } from '../store/chatStore';
 import { ChatMessage, Conversation } from '../services/chatService';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import { imageUploadService, UploadType } from '../services/imageUploadService';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -54,6 +55,12 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ conversation, onBack }) => {
   const [previewVideo, setPreviewVideo] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<'image' | 'video'>('image');
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState<'optimizing' | 'uploading' | 'completed' | 'failed'>('optimizing');
+  const [optimizationData, setOptimizationData] = useState<{
+    originalSize: number,
+    optimizedSize: number,
+    compressionRatio: number
+  } | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -189,13 +196,73 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ conversation, onBack }) => {
 
     try {
       const fileUri = previewType === 'video' ? previewVideo! : previewImage!;
-      await sendMediaMessage(conversation.id, fileUri, previewType);
       
-      setShowImagePreview(false);
-      setPreviewImage(null);
-      setPreviewVideo(null);
+      // Reset progress states
+      setUploadProgress(0);
+      setUploadStatus('optimizing');
+      setOptimizationData(null);
+      
+      console.log('🚀 Starting optimized media upload for chat...');
+      
+      // Check if imageUploadService is configured
+      const configStatus = imageUploadService.getConfigStatus();
+      if (!configStatus.configured) {
+        console.error('❌ Cloudinary not configured:', configStatus.missing);
+        Alert.alert('Configuration Error', 'Media upload is temporarily unavailable. Please try again later!');
+        return;
+      }
+      
+      const uploadType = previewType === 'video' ? UploadType.REVIEW_VIDEO : UploadType.REVIEW_IMAGE;
+      
+      // Progress callback to update UI
+      const onProgress = (progress: number, status: string, optimizationResult?: any) => {
+        console.log(`📊 Chat media upload progress: ${progress}% - ${status}`);
+        setUploadProgress(progress);
+        setUploadStatus(status as any);
+        
+        if (optimizationResult) {
+          setOptimizationData({
+            originalSize: optimizationResult.originalSize,
+            optimizedSize: optimizationResult.optimizedSize,
+            compressionRatio: optimizationResult.compressionRatio
+          });
+        }
+      };
+      
+      // Use the optimized upload service
+      const result = await imageUploadService.uploadImageWithProgress(
+        fileUri,
+        uploadType,
+        onProgress
+      );
+      
+      if (result.success && result.url) {
+        console.log('✅ Chat media upload successful:', result.url);
+        
+        // Send message with uploaded URL
+        await sendMediaMessage(conversation.id, result.url, previewType);
+        
+        // Show success message with optimization info
+        if (result.metadata?.optimization?.compressionRatio > 0) {
+          const compressionPercent = Math.round(result.metadata.optimization.compressionRatio * 100);
+          console.log(`🎉 Media optimized by ${compressionPercent}% before sending`);
+        }
+        
+        // Reset states
+        setShowImagePreview(false);
+        setPreviewImage(null);
+        setPreviewVideo(null);
+        setUploadProgress(0);
+        setUploadStatus('optimizing');
+        setOptimizationData(null);
+      } else {
+        console.error('❌ Chat media upload failed:', result.error);
+        setUploadStatus('failed');
+        Alert.alert('Upload Failed', result.error || 'Failed to upload media. Please try again!');
+      }
     } catch (error) {
-      console.error('Error sending media:', error);
+      console.error('Error sending optimized media:', error);
+      setUploadStatus('failed');
       Alert.alert('Error', 'Failed to send media');
     }
   };
@@ -411,12 +478,28 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ conversation, onBack }) => {
               )}
             </ScrollView>
             
-            {uploadProgress > 0 && (
+            {uploadProgress > 0 && uploadProgress < 100 && (
               <View style={styles.progressContainer}>
                 <View style={styles.progressBar}>
                   <View style={[styles.progressFill, { width: `${uploadProgress}%` }]} />
                 </View>
-                <Text style={styles.progressText}>{Math.round(uploadProgress)}%</Text>
+                <Text style={styles.progressText}>
+                  {uploadStatus === 'optimizing' ? 'Optimizing...' : 
+                   uploadStatus === 'uploading' ? 'Uploading...' : 
+                   'Processing...'}
+                </Text>
+                <Text style={styles.progressPercentage}>{Math.round(uploadProgress)}%</Text>
+                {optimizationData && optimizationData.compressionRatio > 0 && (
+                  <Text style={styles.compressionInfo}>
+                    Size reduced by {Math.round(optimizationData.compressionRatio * 100)}%
+                  </Text>
+                )}
+              </View>
+            )}
+            
+            {uploadStatus === 'failed' && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>Upload failed. Please try again.</Text>
               </View>
             )}
           </View>
@@ -744,8 +827,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     backgroundColor: 'rgba(0,0,0,0.8)',
+    alignItems: 'center',
   },
   progressBar: {
+    width: '100%',
     height: 4,
     backgroundColor: 'rgba(255,255,255,0.3)',
     borderRadius: 2,
@@ -757,6 +842,30 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   progressText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  progressPercentage: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  compressionInfo: {
+    color: '#4CAF50',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  errorContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: 'rgba(255,0,0,0.8)',
+    alignItems: 'center',
+  },
+  errorText: {
     color: '#FFFFFF',
     fontSize: 14,
     textAlign: 'center',
