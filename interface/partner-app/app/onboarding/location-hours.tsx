@@ -260,23 +260,23 @@ export default function LocationHours() {
                 containerStyle={styles.inputMargin}
               />
 
-              <Input
-                label="City"
-                value={localData.address.city}
+                  <Input
+                    label="City"
+                    value={localData.address.city}
                 onChangeText={(value: string) => handleAddressChange('city', value)}
-                placeholder="Enter city"
-                error={errors.city}
+                    placeholder="Enter city"
+                    error={errors.city}
                 containerStyle={styles.inputMargin}
-              />
+                  />
 
-              <Input
-                label="State"
-                value={localData.address.state}
+                  <Input
+                    label="State"
+                    value={localData.address.state}
                 onChangeText={(value: string) => handleAddressChange('state', value)}
-                placeholder="Enter state"
-                error={errors.state}
+                    placeholder="Enter state"
+                    error={errors.state}
                 containerStyle={styles.inputMargin}
-              />
+                  />
 
               <Input
                 label="Postal Code"
@@ -314,7 +314,7 @@ export default function LocationHours() {
                     ]}
                   >
                     <Text 
-                      style={{
+                      style={{ 
                         ...styles.dayTagText,
                         ...(localData.businessHours.days.includes(day.id) ? styles.dayTagTextSelected : styles.dayTagTextUnselected)
                       }}

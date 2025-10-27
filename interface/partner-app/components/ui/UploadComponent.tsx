@@ -17,6 +17,7 @@ import { cloudinaryUploadService, UploadType } from '../../services/cloudinaryUp
 export interface UploadedFile {
   uri: string;
   cloudinaryUrl?: string;
+  publicId?: string; // For Cloudinary deletion
   status: 'pending' | 'optimizing' | 'uploading' | 'completed' | 'error';
   error?: string;
   progress: number;
@@ -97,9 +98,13 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
       const updatedFiles = [...files, ...newFiles].slice(0, maxFiles);
       onFilesChange(updatedFiles);
 
-      // Upload each new file
-      newFiles.forEach(async (file) => {
+      // Upload each new file (using for...of for proper async handling)
+      for (const file of newFiles) {
         try {
+          console.log('🚀 Starting upload for file:', file.uri);
+          console.log('📦 Upload type:', uploadType);
+          console.log('📁 Folder:', folder);
+          
           updateFileStatus(file.uri, { status: 'optimizing' });
 
           const uploadResult = await cloudinaryUploadService.uploadFile(
@@ -107,6 +112,7 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
             uploadType,
             { folder },
             (progress) => {
+              console.log('📊 Upload progress:', progress * 100, '%');
               updateFileStatus(file.uri, {
                 status: 'uploading',
                 progress: progress * 100,
@@ -114,32 +120,68 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
             },
           );
 
+          console.log('✅ Upload result:', uploadResult);
+
           if (uploadResult.success && uploadResult.url) {
+            console.log('🎉 Upload completed successfully!', uploadResult.url);
             updateFileStatus(file.uri, {
               status: 'completed',
               cloudinaryUrl: uploadResult.url,
+              publicId: uploadResult.publicId,
               progress: 100,
             });
           } else {
+            console.error('❌ Upload failed:', uploadResult.error);
             throw new Error(uploadResult.error || 'Upload failed');
           }
         } catch (error: any) {
-          console.error('Upload error for', file.uri, error);
+          console.error('❌ Upload error for', file.uri, error);
           updateFileStatus(file.uri, {
             status: 'error',
             error: error.message,
           });
         }
-      });
+      }
     } catch (error) {
       console.error('File selection error:', error);
       Alert.alert('Error', 'Failed to select files.');
     }
   };
 
-  const removeFile = (uri: string) => {
+  const removeFile = async (file: UploadedFile) => {
     if (disabled) return;
-    onFilesChange(files.filter((file) => file.uri !== uri));
+    
+    // Show confirmation dialog
+    Alert.alert(
+      'Delete Asset',
+      'Are you sure you want to delete this asset? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            // If file is uploaded to Cloudinary, delete it there first
+            if (file.publicId && file.status === 'completed') {
+              try {
+                const deleteResult = await cloudinaryUploadService.deleteImage(file.publicId);
+                if (!deleteResult.success) {
+                  Alert.alert('Error', 'Failed to delete asset from server.');
+                  return;
+                }
+              } catch (error) {
+                console.error('Delete error:', error);
+                Alert.alert('Error', 'Failed to delete asset from server.');
+                return;
+              }
+            }
+            
+            // Remove from local state
+            onFilesChange(files.filter((f) => f.uri !== file.uri));
+          },
+        },
+      ],
+    );
   };
 
   const renderFilePreview = (file: UploadedFile, index: number) => {
@@ -156,11 +198,24 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
             source={{ uri: file.cloudinaryUrl || file.uri }}
             style={styles.previewImage}
           />
-        ) : (
-          <View style={styles.documentPreview}>
-            <Ionicons name="document-text-outline" size={24} color="#FF9B42" />
-          </View>
-        )}
+        ) : (() => {
+          const isVideo = file.uri.match(/\.(mp4|mov|avi|mkv|webm|flv|wmv)$/i);
+          return isVideo ? (
+            <View style={styles.videoPreview}>
+              <Image
+                source={{ uri: file.cloudinaryUrl || file.uri }}
+                style={styles.previewImage}
+              />
+              <View style={styles.playButtonOverlay}>
+                <Ionicons name="play-circle" size={32} color="white" />
+              </View>
+            </View>
+          ) : (
+            <View style={styles.documentPreview}>
+              <Ionicons name="document-text-outline" size={24} color="#FF9B42" />
+            </View>
+          );
+        })()}
 
         {file.status === 'uploading' && (
           <View style={styles.progressOverlay}>
@@ -187,7 +242,7 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
         {!disabled && (
           <TouchableOpacity
             style={styles.removeButton}
-            onPress={() => removeFile(file.uri)}
+            onPress={() => removeFile(file)}
           >
             <Ionicons name="close" size={12} color="white" />
           </TouchableOpacity>
@@ -257,6 +312,16 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
                   source={{ uri: previewFile.cloudinaryUrl || previewFile.uri }}
                   style={styles.modalImage}
                 />
+              ) : previewFile.uri.match(/\.(mp4|mov|avi|mkv|webm|flv|wmv)$/i) ? (
+                <View style={styles.modalDocumentView}>
+                  <Ionicons name="videocam" size={64} color="#FF9B42" />
+                  <Text style={styles.modalDocumentTitle}>
+                    {previewFile.uri.split('/').pop() || 'Video'}
+                  </Text>
+                  <Text style={styles.modalDocumentStatus}>
+                    Video uploaded successfully
+                  </Text>
+                </View>
               ) : (
                 <View style={styles.modalDocumentView}>
                   <Ionicons 
@@ -335,6 +400,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#e9f5ff',
+  },
+  videoPreview: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+  },
+  playButtonOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   progressOverlay: {
     ...StyleSheet.absoluteFillObject,

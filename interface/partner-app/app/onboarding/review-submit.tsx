@@ -46,7 +46,6 @@ export default function ReviewSubmit() {
     const routes = [
       '', // Step 0 (not used)
       'welcome',
-      'account-setup',
       'business-profile',
       'location-hours',
       'cuisine-services',
@@ -88,7 +87,16 @@ export default function ReviewSubmit() {
       
       {fields.map((field) => {
         const value = getNestedValue(data, field);
-        if (!value) return null;
+        
+        // Check if value exists and has meaningful data
+        const hasValue = value !== undefined && value !== null && value !== '';
+        const hasArrayValue = Array.isArray(value) && value.length > 0;
+        const hasObjectValue = typeof value === 'object' && value !== null && !Array.isArray(value) && Object.keys(value).length > 0;
+        
+        // Show field if it has value, is an array with items, or is an object with properties, or is a boolean
+        if (!hasValue && !hasArrayValue && !hasObjectValue && typeof value !== 'boolean') {
+          return null;
+        }
         
         return (
           <View key={field} style={styles.fieldContainer}>
@@ -155,14 +163,24 @@ export default function ReviewSubmit() {
       }
     }
     
+    // Handle cuisine types array
+    if (field === 'cuisineTypes' && Array.isArray(value)) {
+      return value.length > 0 ? value.join(', ') : 'Not selected';
+    }
+    
+    // Handle days array for business hours
+    if (field === 'days' && Array.isArray(value)) {
+      return value.length > 0 ? value.join(', ') : 'Not set';
+    }
+    
     if (Array.isArray(value)) {
-      return value.join(', ');
+      return value.length > 0 ? value.join(', ') : 'Not selected';
     }
     if (typeof value === 'object' && value !== null) {
       return Object.entries(value)
         .filter(([_, v]) => v)
         .map(([k, v]) => `${k}: ${v}`)
-        .join(', ');
+        .join(', ') || 'Not provided';
     }
     if (typeof value === 'boolean') {
       return value ? 'Yes' : 'No';
@@ -210,46 +228,46 @@ export default function ReviewSubmit() {
             ['firstName', 'lastName', 'email', 'phoneNumber']
           )}
 
-          {formData.step3 && renderSummaryCard(
+          {formData.step2 && renderSummaryCard(
             'Business Profile',
-            3,
-            formData.step3,
+            2,
+            formData.step2,
             ['businessName', 'businessType', 'description', 'establishedDate']
           )}
 
-          {formData.step4 && renderSummaryCard(
+          {formData.step3 && renderSummaryCard(
             'Location & Hours',
+            3,
+            formData.step3,
+            ['address.street', 'address.city', 'address.state', 'address.postalCode', 'businessHours.days', 'businessHours.open', 'businessHours.close', 'deliveryRadius']
+          )}
+
+          {formData.step4 && renderSummaryCard(
+            'Cuisine & Services',
             4,
             formData.step4,
-            ['address.street', 'address.city', 'address.state', 'address.postalCode', 'businessHours.days', 'deliveryRadius']
+            ['cuisineTypes', 'isVegetarian', 'hasDelivery', 'hasPickup', 'acceptsCash', 'acceptsCard', 'minimumOrderAmount', 'deliveryFee', 'estimatedDeliveryTime']
           )}
 
           {formData.step5 && renderSummaryCard(
-            'Cuisine & Services',
+            'Images & Branding',
             5,
             formData.step5,
-            ['cuisineTypes', 'isVegetarian', 'hasDelivery', 'hasPickup', 'acceptsCash', 'acceptsCard', 'minimumOrderAmount', 'deliveryFee']
-          )}
-
-          {(formData.step6 as any)?.logoUrl || (formData.step6 as any)?.bannerUrl || Object.values((formData.step6 as any)?.socialMedia || {}).some(v => v) && renderSummaryCard(
-            'Images & Branding',
-            6,
-            formData.step6,
             ['logoUrl', 'bannerUrl', 'socialMedia']
           )}
 
-          {formData.step7 && renderSummaryCard(
+          {formData.step6 && renderSummaryCard(
             'Documents & Verification',
-            7,
-            formData.step7,
+            6,
+            formData.step6,
             ['fssaiLicense', 'gstNumber', 'panNumber', 'licenseNumber']
           )}
 
-          {(formData as any).step8 && renderSummaryCard(
+          {formData.step7 && renderSummaryCard(
             'Payment Setup',
-            8,
-            (formData as any).step8,
-            ['bankDetails.accountHolderName', 'bankDetails.bankName', 'upiId', 'commissionRate']
+            7,
+            formData.step7,
+            ['bankDetails.accountHolderName', 'bankDetails.accountNumber', 'bankDetails.ifscCode', 'bankDetails.bankName', 'upiId', 'commissionRate']
           )}
 
           {/* Terms and Conditions */}
