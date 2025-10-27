@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter, useSegments } from 'expo-router';
-import { useAuthContext } from '../../context/AuthProvider';
+import { useAuthContext } from '../../lib/auth/AuthProvider';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

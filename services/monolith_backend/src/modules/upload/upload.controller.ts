@@ -30,14 +30,17 @@ export class UploadController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "Upload image to Cloudinary" })
   @ApiConsumes("multipart/form-data")
-  @ApiQuery({ 
-    name: "type", 
-    required: false, 
+  @ApiQuery({
+    name: "type",
+    required: false,
     description: "Image type (profile, menu, banner, general)",
-    enum: ["profile", "menu", "banner", "general"]
+    enum: ["profile", "menu", "banner", "general"],
   })
   @ApiResponse({ status: 201, description: "Image uploaded successfully" })
-  @ApiResponse({ status: 400, description: "Bad request - invalid file or type" })
+  @ApiResponse({
+    status: 400,
+    description: "Bad request - invalid file or type",
+  })
   @UseInterceptors(FileInterceptor("file"))
   uploadImage(
     @UploadedFile() file: Express.Multer.File,

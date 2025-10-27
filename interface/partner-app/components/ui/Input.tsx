@@ -8,7 +8,6 @@ import {
   TextStyle,
   TextInputProps,
 } from 'react-native';
-import { useTheme } from '../../store/themeStore';
 
 export type InputSize = 'small' | 'medium' | 'large';
 export type InputVariant = 'default' | 'filled' | 'outline';
@@ -27,10 +26,10 @@ interface InputProps extends Omit<TextInputProps, 'style'> {
 }
 
 /**
- * Theme-based Input component
- * All styling comes from the theme store - no hardcoded values
+ * Input component with hardcoded theme values
+ * Matches the styling pattern used in otp-verification and welcome screens
  */
-export const Input: React.FC<InputProps> = ({
+export default function Input({
   label,
   error,
   hint,
@@ -42,163 +41,79 @@ export const Input: React.FC<InputProps> = ({
   inputStyle,
   labelStyle,
   ...textInputProps
-}) => {
-  const { theme } = useTheme();
+}: InputProps) {
   const [isFocused, setIsFocused] = useState(false);
 
-  const getVariantStyles = (): { container: ViewStyle; input: TextStyle } => {
-    const borderColor = error
-      ? theme.colors.error
-      : isFocused
-      ? theme.colors.primary
-      : theme.colors.border;
+  const borderColor = error ? '#EF4444' : isFocused ? '#FF9B42' : '#E5E7EB';
 
-    switch (variant) {
-      case 'filled':
-        return {
-          container: {
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderWidth: 0,
-            borderBottomWidth: 2,
-            borderBottomColor: borderColor,
-          },
-          input: {
-            backgroundColor: 'transparent',
-          },
-        };
-      
-      case 'outline':
-        return {
-          container: {
-            backgroundColor: theme.colors.surface,
-            borderWidth: 1,
-            borderColor: borderColor,
-          },
-          input: {
-            backgroundColor: 'transparent',
-          },
-        };
-      
-      case 'default':
-      default:
-        return {
-          container: {
-            backgroundColor: theme.colors.surface,
-            borderWidth: 1,
-            borderColor: borderColor,
-          },
-          input: {
-            backgroundColor: 'transparent',
-          },
-        };
+  // Get container styles based on size and variant
+  const getContainerStyle = (): ViewStyle => {
+    const baseStyle: ViewStyle = {
+      height: size === 'small' ? 36 : size === 'large' ? 52 : 44,
+      borderRadius: size === 'small' ? 8 : size === 'large' ? 16 : 12,
+      borderWidth: 1,
+      borderColor,
+      backgroundColor: '#FFF',
+      justifyContent: 'center',
+      opacity: disabled ? 0.6 : 1,
+    };
+
+    // Variant-specific styles
+    if (variant === 'filled') {
+      return {
+        ...baseStyle,
+        borderWidth: 0,
+        borderBottomWidth: 2,
+        backgroundColor: '#F9FAFB',
+      };
     }
+
+    return baseStyle;
   };
 
-  const getSizeStyles = (): { container: ViewStyle; input: TextStyle } => {
-    const componentConfig = theme.components.input;
-    
-    switch (size) {
-      case 'small':
-        return {
-          container: {
-            height: componentConfig.height.small,
-            borderRadius: theme.borderRadius.sm,
-          },
-          input: {
-            fontSize: theme.typography.fontSize.sm,
-            lineHeight: theme.typography.lineHeight.sm,
-            paddingHorizontal: componentConfig.padding.horizontal,
-            paddingVertical: componentConfig.padding.vertical,
-          },
-        };
-      
-      case 'medium':
-        return {
-          container: {
-            height: componentConfig.height.medium,
-            borderRadius: theme.borderRadius.md,
-          },
-          input: {
-            fontSize: theme.typography.fontSize.md,
-            lineHeight: theme.typography.lineHeight.md,
-            paddingHorizontal: componentConfig.padding.horizontal,
-            paddingVertical: componentConfig.padding.vertical,
-          },
-        };
-      
-      case 'large':
-        return {
-          container: {
-            height: componentConfig.height.large,
-            borderRadius: theme.borderRadius.lg,
-          },
-          input: {
-            fontSize: theme.typography.fontSize.lg,
-            lineHeight: theme.typography.lineHeight.lg,
-            paddingHorizontal: componentConfig.padding.horizontal,
-            paddingVertical: componentConfig.padding.vertical,
-          },
-        };
-      
-      default:
-        return {
-          container: {
-            height: componentConfig.height.medium,
-            borderRadius: theme.borderRadius.md,
-          },
-          input: {
-            fontSize: theme.typography.fontSize.md,
-            lineHeight: theme.typography.lineHeight.md,
-            paddingHorizontal: componentConfig.padding.horizontal,
-            paddingVertical: componentConfig.padding.vertical,
-          },
-        };
-    }
+  // Get input styles based on size
+  const getInputStyle = (): TextStyle => {
+    return {
+      flex: 1,
+      fontSize: size === 'small' ? 14 : size === 'large' ? 18 : 16,
+      lineHeight: size === 'small' ? 20 : size === 'large' ? 26 : 22,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      color: '#1A1A1A',
+      fontFamily: 'Poppins-Regular',
+    };
   };
-
-  const variantStyles = getVariantStyles();
-  const sizeStyles = getSizeStyles();
 
   const containerStyleCombined: ViewStyle = {
-    ...styles.container,
-    ...variantStyles.container,
-    ...sizeStyles.container,
-    ...(disabled && { opacity: 0.6 }),
+    ...getContainerStyle(),
     ...containerStyle,
   };
 
   const inputStyleCombined: TextStyle = {
-    ...styles.input,
-    ...variantStyles.input,
-    ...sizeStyles.input,
-    color: theme.colors.text,
-    fontFamily: theme.typography.fontFamily.regular,
+    ...getInputStyle(),
     ...inputStyle,
   };
 
   const labelStyleCombined: TextStyle = {
-    ...styles.label,
-    color: theme.colors.text,
-    fontFamily: theme.typography.fontFamily.medium,
-    fontSize: theme.typography.fontSize.sm,
-    marginBottom: theme.spacing.xs,
+    fontSize: 14,
+    fontFamily: 'Poppins-Medium',
+    color: '#1A1A1A',
+    marginBottom: 8,
     ...labelStyle,
   };
 
   const errorStyleCombined: TextStyle = {
-    ...styles.error,
-    color: theme.colors.error,
-    fontFamily: theme.typography.fontFamily.regular,
-    fontSize: theme.typography.fontSize.xs,
-    marginTop: theme.spacing.xs,
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: '#EF4444',
+    marginTop: 4,
   };
 
   const hintStyleCombined: TextStyle = {
-    ...styles.hint,
-    color: theme.colors.textSecondary,
-    fontFamily: theme.typography.fontFamily.regular,
-    fontSize: theme.typography.fontSize.xs,
-    marginTop: theme.spacing.xs,
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+    marginTop: 4,
   };
 
   return (
@@ -206,7 +121,7 @@ export const Input: React.FC<InputProps> = ({
       {label && (
         <Text style={labelStyleCombined}>
           {label}
-          {required && <Text style={{ color: theme.colors.error }}> *</Text>}
+          {required && <Text style={styles.requiredMark}> *</Text>}
         </Text>
       )}
       
@@ -223,7 +138,7 @@ export const Input: React.FC<InputProps> = ({
             setIsFocused(false);
             textInputProps.onBlur?.(e);
           }}
-          placeholderTextColor={theme.colors.textTertiary}
+          placeholderTextColor="#9CA3AF"
         />
       </View>
       
@@ -231,27 +146,13 @@ export const Input: React.FC<InputProps> = ({
       {hint && !error && <Text style={hintStyleCombined}>{hint}</Text>}
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   wrapper: {
     width: '100%',
   },
-  container: {
-    justifyContent: 'center',
-  },
-  input: {
-    flex: 1,
-  },
-  label: {
-    // Styles come from theme
-  },
-  error: {
-    // Styles come from theme
-  },
-  hint: {
-    // Styles come from theme
+  requiredMark: {
+    color: '#EF4444',
   },
 });
-
-export default Input;

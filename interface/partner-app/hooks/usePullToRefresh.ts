@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { RefreshControl } from 'react-native';
 import { useTheme } from '../store/themeStore';
 
 interface UsePullToRefreshOptions {
@@ -10,7 +9,14 @@ interface UsePullToRefreshOptions {
 interface UsePullToRefreshReturn {
   refreshing: boolean;
   onRefresh: () => void;
-  refreshControl: JSX.Element;
+  refreshControlProps: {
+    refreshing: boolean;
+    onRefresh: () => void;
+    colors: string[];
+    tintColor: string;
+    progressBackgroundColor: string;
+    enabled: boolean;
+  };
 }
 
 /**
@@ -37,22 +43,19 @@ export const usePullToRefresh = ({
     }
   }, [onRefresh, enabled, refreshing]);
 
-  const refreshControl = (
-    <RefreshControl
-      refreshing={refreshing}
-      onRefresh={handleRefresh}
-      colors={[theme.colors.primary]} // Android
-      tintColor={theme.colors.primary} // iOS
-      progressBackgroundColor={theme.colors.surface} // Android
-      style={{ backgroundColor: theme.colors.background }}
-      enabled={enabled}
-    />
-  );
+  const refreshControlProps = {
+    refreshing,
+    onRefresh: handleRefresh,
+    colors: [theme.colors.primary], // Android
+    tintColor: theme.colors.primary, // iOS
+    progressBackgroundColor: theme.colors.surface, // Android
+    enabled,
+  };
 
   return {
     refreshing,
     onRefresh: handleRefresh,
-    refreshControl,
+    refreshControlProps,
   };
 };
 

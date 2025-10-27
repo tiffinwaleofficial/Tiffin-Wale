@@ -82,7 +82,7 @@ export class CorePhase extends BaseSeederPhase {
           lastName: lastName.toLowerCase(),
         }),
         password: hashedPassword,
-        role: UserRole.BUSINESS,
+        role: UserRole.PARTNER,
         firstName,
         lastName,
         phoneNumber: this.generatePhoneNumber(),
@@ -249,7 +249,7 @@ export class CorePhase extends BaseSeederPhase {
       role: UserRole.CUSTOMER,
     });
     const businessCount = await userModel.countDocuments({
-      role: UserRole.BUSINESS,
+      role: UserRole.PARTNER,
     });
 
     if (customerCount < businessCount) {

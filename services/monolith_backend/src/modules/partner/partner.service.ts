@@ -66,6 +66,14 @@ export class PartnerService {
     return partner;
   }
 
+  async findByUserId(userId: string): Promise<Partner> {
+    const partner = await this.partnerModel.findOne({ userId }).exec();
+    if (!partner) {
+      throw new NotFoundException(`Partner with user ID ${userId} not found`);
+    }
+    return partner;
+  }
+
   async getMenu(partnerId: string): Promise<MenuItem[]> {
     // Verify partner exists
     await this.findOne(partnerId);
@@ -89,18 +97,43 @@ export class PartnerService {
       .exec();
   }
 
-  async getReviews(partnerId: string): Promise<Feedback[]> {
+  async getReviews(
+    partnerId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    reviews: Feedback[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     // Verify partner exists
     await this.findOne(partnerId);
 
-    return this.feedbackModel
-      .find({
+    const skip = (page - 1) * limit;
+
+    const [reviews, total] = await Promise.all([
+      this.feedbackModel
+        .find({
+          category: "partner",
+          // Note: We'll need to add partnerId field to feedback schema or use a different approach
+        })
+        .populate("user", "firstName lastName")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.feedbackModel.countDocuments({
         category: "partner",
-        // Note: We'll need to add partnerId field to feedback schema or use a different approach
-      })
-      .populate("user", "firstName lastName")
-      .sort({ createdAt: -1 })
-      .exec();
+      }),
+    ]);
+
+    return {
+      reviews,
+      total,
+      page,
+      limit,
+    };
   }
 
   async getStats(partnerId: string): Promise<any> {

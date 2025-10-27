@@ -1,10 +1,16 @@
+/**
+ * Phone Input Screen
+ * First step of authentication - enter phone number and receive OTP
+ */
+
 import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
+  StyleSheet,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -12,121 +18,125 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowRight, Phone } from 'lucide-react-native';
+import { Phone, ArrowRight } from 'lucide-react-native';
 import phoneAuthService from '../../services/phoneAuthService';
+import FirebaseRecaptchaContainer from '../../components/FirebaseRecaptchaContainer';
 
 export default function PhoneInputScreen() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const formatPhoneNumber = (text: string) => {
-    // Remove all non-digit characters
-    const cleaned = text.replace(/\D/g, '');
-    
-    // Limit to 10 digits
-    const limited = cleaned.slice(0, 10);
-    
-    // Format as XXX XXX XXXX
-    if (limited.length >= 6) {
-      return `${limited.slice(0, 3)} ${limited.slice(3, 6)} ${limited.slice(6)}`;
-    } else if (limited.length >= 3) {
-      return `${limited.slice(0, 3)} ${limited.slice(3)}`;
-    }
-    return limited;
-  };
-
+  /**
+   * Validate Indian phone number
+   */
   const validatePhoneNumber = (phone: string): boolean => {
     const cleaned = phone.replace(/\D/g, '');
-    // Valid Indian mobile number: 10 digits starting with 6, 7, 8, or 9
+    // Must be 10 digits and start with 6-9
     return /^[6-9]\d{9}$/.test(cleaned);
   };
 
+  /**
+   * Format phone number for display
+   */
+  const formatPhoneNumber = (text: string): string => {
+    // Remove all non-digits
+    const cleaned = text.replace(/\D/g, '');
+    // Limit to 10 digits
+    return cleaned.substring(0, 10);
+  };
+
+  /**
+   * Handle send OTP
+   */
   const handleSendOTP = async () => {
-    const cleanedPhone = phoneNumber.replace(/\D/g, '');
-    
-    console.log('Cleaned phone number:', cleanedPhone);
-    console.log('Phone number length:', cleanedPhone.length);
-    
-    if (!validatePhoneNumber(cleanedPhone)) {
+    // Validate phone number
+    if (!validatePhoneNumber(phoneNumber)) {
       Alert.alert(
         'Invalid Phone Number',
-        `Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.\n\nYou entered: ${cleanedPhone} (${cleanedPhone.length} digits)`,
+        'Please enter a valid 10-digit Indian mobile number (starting with 6, 7, 8, or 9)',
         [{ text: 'OK' }]
       );
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
-      const result = await phoneAuthService.sendOTP(cleanedPhone);
-      
+      if (__DEV__) console.log('📱 Sending OTP to:', phoneNumber);
+
+      // Send OTP via Firebase
+      const result = await phoneAuthService.sendOTP(phoneNumber);
+
       if (result.success) {
-        // Navigate to OTP verification screen with phone number
+        // Navigate to OTP verification screen
         router.push({
           pathname: '/(auth)/otp-verification',
-          params: { phoneNumber: cleanedPhone }
+          params: { phoneNumber },
         });
       } else {
-        Alert.alert('Error', result.error || 'Failed to send OTP. Please try again.');
+        Alert.alert(
+          'Failed to Send OTP',
+          result.error || 'Please try again',
+          [{ text: 'OK' }]
+        );
       }
     } catch (error: any) {
-      console.error('Error sending OTP:', error);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+      console.error('❌ Error sending OTP:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to send OTP. Please try again.',
+        [{ text: 'OK' }]
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handlePhoneChange = (text: string) => {
-    const formatted = formatPhoneNumber(text);
-    setPhoneNumber(formatted);
-  };
-
-  const isValidPhone = validatePhoneNumber(phoneNumber.replace(/\D/g, ''));
-
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
-    >
-      <ScrollView contentContainerStyle={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <Phone size={40} color="#FF9F43" />
-          </View>
-          <Text style={styles.title}>Enter Your Phone Number</Text>
-          <Text style={styles.subtitle}>
-            We'll send you a verification code to confirm your number
-          </Text>
+    <>
+      {/* Firebase reCAPTCHA container for web */}
+      <FirebaseRecaptchaContainer />
+      
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+        {/* Logo and Header */}
+        <View style={styles.headerContainer}>
+          <Image
+            source={{ uri: 'https://images.pexels.com/photos/5920773/pexels-photo-5920773.jpeg?auto=compress&cs=tinysrgb&w=800' }}
+            style={styles.logo}
+          />
+          <Text style={styles.title}>TiffinWale Partner</Text>
+          <Text style={styles.subtitle}>Enter your phone number to continue</Text>
         </View>
 
-        {/* Phone Input Section */}
-        <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Mobile Number</Text>
-          
-          <View style={styles.phoneInputContainer}>
+        {/* Phone Input */}
+        <View style={styles.inputContainer}>
+          <View style={styles.inputWrapper}>
             <View style={styles.countryCode}>
               <Text style={styles.countryCodeText}>🇮🇳 +91</Text>
             </View>
-            
             <TextInput
-              style={styles.phoneInput}
-              placeholder="987 654 3210"
-              placeholderTextColor="#999"
+              style={styles.input}
+              placeholder="Enter 10-digit mobile number"
+              keyboardType="phone-pad"
+              maxLength={10}
               value={phoneNumber}
-              onChangeText={handlePhoneChange}
-              keyboardType="numeric"
-              maxLength={13} // Formatted length: XXX XXX XXXX
+              onChangeText={(text) => setPhoneNumber(formatPhoneNumber(text))}
+              editable={!isLoading}
               autoFocus
             />
           </View>
           
-          {phoneNumber.length > 0 && !isValidPhone && (
+          {phoneNumber.length > 0 && !validatePhoneNumber(phoneNumber) && (
             <Text style={styles.errorText}>
-              Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9
+              Please enter a valid 10-digit mobile number
             </Text>
           )}
         </View>
@@ -135,92 +145,70 @@ export default function PhoneInputScreen() {
         <TouchableOpacity
           style={[
             styles.sendButton,
-            (!isValidPhone || isLoading) && styles.sendButtonDisabled
+            (!validatePhoneNumber(phoneNumber) || isLoading) && styles.sendButtonDisabled,
           ]}
           onPress={handleSendOTP}
-          disabled={!isValidPhone || isLoading}
+          disabled={!validatePhoneNumber(phoneNumber) || isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color="#FFF" />
+            <ActivityIndicator color="#FFF" />
           ) : (
             <>
+              <Phone size={20} color="#FFF" style={styles.buttonIcon} />
               <Text style={styles.sendButtonText}>Send OTP</Text>
               <ArrowRight size={20} color="#FFF" />
             </>
           )}
         </TouchableOpacity>
 
-        {/* Terms and Privacy */}
-        <View style={styles.termsContainer}>
-          <Text style={styles.termsText}>
-            By continuing, you agree to our{' '}
-            <Text style={styles.linkText}>Terms of Service</Text>
-            {' '}and{' '}
-            <Text style={styles.linkText}>Privacy Policy</Text>
-          </Text>
-        </View>
-
-        {/* reCAPTCHA container for web */}
-        {Platform.OS === 'web' && <div id="recaptcha-container"></div>}
-      </ScrollView>
-    </KeyboardAvoidingView>
+        {/* Info Text */}
+        <Text style={styles.infoText}>
+          We'll send you a One-Time Password (OTP) to verify your phone number
+        </Text>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
+    flex: 1,
     backgroundColor: '#FEF6E9',
+  },
+  scrollContent: {
+    flexGrow: 1,
     padding: 24,
     justifyContent: 'center',
   },
-  header: {
+  headerContainer: {
     alignItems: 'center',
     marginBottom: 48,
   },
-  iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#FFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+  logo: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    marginBottom: 16,
   },
   title: {
-    fontFamily: 'Poppins-SemiBold',
-    fontSize: 28,
+    fontSize: 32,
+    fontFamily: 'Poppins-Bold',
     color: '#333',
-    marginBottom: 12,
-    textAlign: 'center',
+    marginBottom: 8,
   },
   subtitle: {
-    fontFamily: 'Poppins-Regular',
     fontSize: 16,
+    fontFamily: 'Poppins-Regular',
     color: '#666',
     textAlign: 'center',
-    lineHeight: 24,
-    paddingHorizontal: 20,
   },
-  inputSection: {
-    marginBottom: 32,
+  inputContainer: {
+    marginBottom: 24,
   },
-  inputLabel: {
-    fontFamily: 'Poppins-Medium',
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 12,
-  },
-  phoneInputContainer: {
+  inputWrapper: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFF',
     borderRadius: 12,
     borderWidth: 2,
@@ -228,64 +216,72 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   countryCode: {
-    backgroundColor: '#F8F8F8',
     paddingHorizontal: 16,
     paddingVertical: 18,
+    backgroundColor: '#F5F5F5',
     borderRightWidth: 1,
     borderRightColor: '#E0E0E0',
-    justifyContent: 'center',
   },
   countryCodeText: {
-    fontFamily: 'Poppins-Medium',
     fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
     color: '#333',
   },
-  phoneInput: {
+  input: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 18,
+    padding: 18,
     fontSize: 18,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: 'Poppins-Medium',
     color: '#333',
   },
   errorText: {
+    color: '#E74C3C',
+    fontSize: 12,
     fontFamily: 'Poppins-Regular',
-    fontSize: 14,
-    color: '#FF4444',
     marginTop: 8,
+    marginLeft: 4,
   },
   sendButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#FF9F43',
     borderRadius: 12,
     padding: 18,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   sendButtonDisabled: {
     backgroundColor: '#FFB97C',
     opacity: 0.6,
   },
-  sendButtonText: {
-    fontFamily: 'Poppins-SemiBold',
-    color: '#FFF',
-    fontSize: 16,
+  buttonIcon: {
     marginRight: 8,
   },
-  termsContainer: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
+  sendButtonText: {
+    fontSize: 18,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#FFF',
+    marginRight: 8,
   },
-  termsText: {
-    fontFamily: 'Poppins-Regular',
+  infoText: {
     fontSize: 14,
+    fontFamily: 'Poppins-Regular',
     color: '#666',
     textAlign: 'center',
     lineHeight: 20,
   },
-  linkText: {
-    color: '#FF9F43',
-    fontFamily: 'Poppins-Medium',
+  devNote: {
+    marginTop: 24,
+    padding: 12,
+    backgroundColor: '#FFF3CD',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFE69C',
+  },
+  devNoteText: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: '#856404',
+    textAlign: 'center',
   },
 });

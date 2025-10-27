@@ -2,6 +2,8 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
+  Logger,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
@@ -38,13 +40,32 @@ import {
   RevenueBreakdownDto,
   TopSellingItemDto,
   SystemSettingsDto,
+  DatabaseStatsResponseDto,
+  CleanCollectionResponseDto,
+  CleanDatabaseResponseDto,
 } from "./dto";
 import { Partner } from "../partner/schemas/partner.schema";
 import { CustomerProfile } from "../customer/schemas/customer-profile.schema";
 import { Subscription } from "../subscription/schemas/subscription.schema";
+import { SubscriptionPlan } from "../subscription/schemas/subscription-plan.schema";
 import { Payment } from "../payment/schemas/payment.schema";
+import { PaymentMethod } from "../payment/schemas/payment-method.schema";
 import { Feedback } from "../feedback/schemas/feedback.schema";
 import { Meal } from "../meal/schemas/meal.schema";
+import { Testimonial } from "../marketing/schemas/testimonial.schema";
+import { Referral } from "../marketing/schemas/referral.schema";
+import { CorporateQuote } from "../marketing/schemas/corporate-quote.schema";
+import { Contact } from "../landing/schemas/contact.schema";
+import { Subscriber } from "../landing/schemas/subscriber.schema";
+import { Conversation } from "../chat/schemas/conversation.schema";
+import { ChatMessage } from "../chat/schemas/chat-message.schema";
+import { TypingIndicator } from "../chat/schemas/typing-indicator.schema";
+import { Notification } from "../notifications/schemas/notification.schema";
+import { NotificationTemplate } from "../notifications/schemas/notification-template.schema";
+import { DeviceRegistration } from "../notifications/schemas/device-registration.schema";
+import { Review } from "../review/schemas/review.schema";
+import { EmailLog } from "../email/schemas/email-log.schema";
+import { EmailPreference } from "../email/schemas/email-preference.schema";
 
 interface DashboardStats {
   totalUsers: number;
@@ -76,19 +97,71 @@ interface ActivityLog {
 
 @Injectable()
 export class AdminService {
+  private readonly logger = new Logger(AdminService.name);
+
   constructor(
+    // Core models
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Partner.name) private partnerModel: Model<Partner>,
+
+    // Menu models
+    @InjectModel(Category.name) private readonly categoryModel: Model<Category>,
+    @InjectModel(MenuItem.name) private readonly menuItemModel: Model<MenuItem>,
+
+    // Order and Meal models
     @InjectModel(Order.name) private orderModel: Model<Order>,
-    @InjectModel(CustomerProfile.name)
-    private customerModel: Model<CustomerProfile>,
+    @InjectModel(Meal.name) private mealModel: Model<Meal>,
+
+    // Subscription models
     @InjectModel(Subscription.name)
     private subscriptionModel: Model<Subscription>,
+    @InjectModel(SubscriptionPlan.name)
+    private subscriptionPlanModel: Model<SubscriptionPlan>,
+
+    // Payment models
     @InjectModel(Payment.name) private paymentModel: Model<Payment>,
+    @InjectModel(PaymentMethod.name)
+    private paymentMethodModel: Model<PaymentMethod>,
+
+    // Customer models
+    @InjectModel(CustomerProfile.name)
+    private customerModel: Model<CustomerProfile>,
+
+    // Feedback model
     @InjectModel(Feedback.name) private feedbackModel: Model<Feedback>,
-    @InjectModel(Meal.name) private mealModel: Model<Meal>,
-    @InjectModel(MenuItem.name) private readonly menuItemModel: Model<MenuItem>,
-    @InjectModel(Category.name) private readonly categoryModel: Model<Category>,
+
+    // Marketing models
+    @InjectModel(Testimonial.name) private testimonialModel: Model<Testimonial>,
+    @InjectModel(Referral.name) private referralModel: Model<Referral>,
+    @InjectModel(CorporateQuote.name)
+    private corporateQuoteModel: Model<CorporateQuote>,
+
+    // Landing page models
+    @InjectModel(Contact.name) private contactModel: Model<Contact>,
+    @InjectModel(Subscriber.name) private subscriberModel: Model<Subscriber>,
+
+    // Chat models
+    @InjectModel(Conversation.name)
+    private conversationModel: Model<Conversation>,
+    @InjectModel(ChatMessage.name) private chatMessageModel: Model<ChatMessage>,
+    @InjectModel(TypingIndicator.name)
+    private typingIndicatorModel: Model<TypingIndicator>,
+
+    // Notification models
+    @InjectModel(Notification.name)
+    private notificationModel: Model<Notification>,
+    @InjectModel(NotificationTemplate.name)
+    private notificationTemplateModel: Model<NotificationTemplate>,
+    @InjectModel(DeviceRegistration.name)
+    private deviceRegistrationModel: Model<DeviceRegistration>,
+
+    // Review model
+    @InjectModel(Review.name) private reviewModel: Model<Review>,
+
+    // Email models
+    @InjectModel(EmailLog.name) private emailLogModel: Model<EmailLog>,
+    @InjectModel(EmailPreference.name)
+    private emailPreferenceModel: Model<EmailPreference>,
   ) {}
 
   /**
@@ -152,7 +225,7 @@ export class AdminService {
       role: UserRole.CUSTOMER,
     });
     const businessPartners = await this.userModel.countDocuments({
-      role: UserRole.BUSINESS,
+      role: UserRole.PARTNER,
     });
     const admins = await this.userModel.countDocuments({
       role: { $in: [UserRole.ADMIN, UserRole.SUPER_ADMIN] },
@@ -365,7 +438,7 @@ export class AdminService {
       role: UserRole.CUSTOMER,
     });
     const businessPartners = await this.userModel.countDocuments({
-      role: UserRole.BUSINESS,
+      role: UserRole.PARTNER,
     });
     const admins = await this.userModel.countDocuments({
       role: { $in: [UserRole.ADMIN, UserRole.SUPER_ADMIN] },
@@ -707,14 +780,14 @@ export class AdminService {
    */
   private async getPartnerCounts(): Promise<PartnerCountsDto> {
     const total = await this.userModel.countDocuments({
-      role: UserRole.BUSINESS,
+      role: UserRole.PARTNER,
     });
 
     // Count active partners (those with at least one menu item)
     const activePartnerIds = await this.menuItemModel.distinct("partner");
     const active = await this.userModel.countDocuments({
       _id: { $in: activePartnerIds },
-      role: UserRole.BUSINESS,
+      role: UserRole.PARTNER,
     });
 
     // Count pending partners (assuming we have a status field; this is a simplification)
@@ -744,7 +817,7 @@ export class AdminService {
 
       // Count partners registered up to and including this day
       const count = await this.userModel.countDocuments({
-        role: UserRole.BUSINESS,
+        role: UserRole.PARTNER,
         createdAt: { $lte: new Date(date.setHours(23, 59, 59, 999)) },
       });
 
@@ -804,7 +877,7 @@ export class AdminService {
     });
 
     const partnerCount = await this.userModel.countDocuments({
-      role: UserRole.BUSINESS,
+      role: UserRole.PARTNER,
     });
 
     const avgDailyOrders = partnerCount > 0 ? dailyOrders / partnerCount : 0;
@@ -824,7 +897,7 @@ export class AdminService {
     // Get all business user accounts with necessary fields
     const partners = await this.userModel
       .find({
-        role: UserRole.BUSINESS,
+        role: UserRole.PARTNER,
       })
       .select("_id firstName lastName email")
       .lean();
@@ -1683,7 +1756,7 @@ export class AdminService {
   async getAllSupportTickets(
     page: number,
     limit: number,
-    filters?: { status?: string; priority?: string },
+    _filters?: { status?: string; priority?: string },
   ) {
     // TODO: Implement when support ticket schema is ready
     return {
@@ -1716,5 +1789,312 @@ export class AdminService {
     if (diffHours < 24) return `${diffHours} hours ago`;
     if (diffDays < 7) return `${diffDays} days ago`;
     return date.toLocaleDateString();
+  }
+
+  // ========== DATABASE MANAGEMENT METHODS ==========
+
+  /**
+   * Get statistics for all database collections
+   */
+  async getDatabaseCollectionStats(): Promise<DatabaseStatsResponseDto> {
+    this.logger.log("Fetching database collection statistics");
+
+    try {
+      // Define all collections with their models
+      const collections = [
+        { name: "users", model: this.userModel },
+        { name: "partners", model: this.partnerModel },
+        { name: "categories", model: this.categoryModel },
+        { name: "menuitems", model: this.menuItemModel },
+        { name: "orders", model: this.orderModel },
+        { name: "meals", model: this.mealModel },
+        { name: "subscriptions", model: this.subscriptionModel },
+        { name: "subscriptionplans", model: this.subscriptionPlanModel },
+        { name: "payments", model: this.paymentModel },
+        { name: "paymentmethods", model: this.paymentMethodModel },
+        { name: "customerprofiles", model: this.customerModel },
+        { name: "feedbacks", model: this.feedbackModel },
+        { name: "testimonials", model: this.testimonialModel },
+        { name: "referrals", model: this.referralModel },
+        { name: "corporatequotes", model: this.corporateQuoteModel },
+        { name: "contacts", model: this.contactModel },
+        { name: "subscribers", model: this.subscriberModel },
+        { name: "conversations", model: this.conversationModel },
+        { name: "chatmessages", model: this.chatMessageModel },
+        { name: "typingindicators", model: this.typingIndicatorModel },
+        { name: "notifications", model: this.notificationModel },
+        {
+          name: "notificationtemplates",
+          model: this.notificationTemplateModel,
+        },
+        { name: "deviceregistrations", model: this.deviceRegistrationModel },
+        { name: "reviews", model: this.reviewModel },
+        { name: "emaillogs", model: this.emailLogModel },
+        { name: "emailpreferences", model: this.emailPreferenceModel },
+      ];
+
+      // Get document counts for all collections in parallel
+      const collectionStats = await Promise.all(
+        collections.map(async ({ name, model }) => {
+          try {
+            const count = await model.countDocuments();
+            return {
+              collectionName: name,
+              documentCount: count,
+            };
+          } catch (error) {
+            this.logger.error(
+              `Error counting documents in ${name}: ${error.message}`,
+            );
+            return {
+              collectionName: name,
+              documentCount: 0,
+            };
+          }
+        }),
+      );
+
+      // Calculate totals
+      const totalCollections = collectionStats.length;
+      const totalDocuments = collectionStats.reduce(
+        (sum, stat) => sum + stat.documentCount,
+        0,
+      );
+
+      // Sort by document count (descending)
+      collectionStats.sort((a, b) => b.documentCount - a.documentCount);
+
+      this.logger.log(
+        `Database stats retrieved: ${totalCollections} collections, ${totalDocuments} total documents`,
+      );
+
+      return {
+        collections: collectionStats,
+        totalCollections,
+        totalDocuments,
+        timestamp: new Date(),
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error fetching database collection stats: ${error.message}`,
+      );
+      throw new BadRequestException(
+        "Failed to fetch database collection statistics",
+      );
+    }
+  }
+
+  /**
+   * Clean a specific collection
+   */
+  async cleanSpecificCollection(
+    collectionName: string,
+    confirmDelete: string,
+    reason?: string,
+  ): Promise<CleanCollectionResponseDto> {
+    this.logger.warn(`Attempting to clean collection: ${collectionName}`);
+
+    // Validate confirmation
+    if (confirmDelete !== "YES_DELETE_COLLECTION") {
+      throw new BadRequestException(
+        "Invalid confirmation. Must provide 'YES_DELETE_COLLECTION'",
+      );
+    }
+
+    // Environment safety check
+    const environment = process.env.NODE_ENV;
+    if (environment === "production") {
+      throw new ForbiddenException(
+        "Collection cleaning is not allowed in production environment",
+      );
+    }
+
+    // Define allowed collections and their models
+    const allowedCollections: Record<string, Model<any>> = {
+      users: this.userModel,
+      partners: this.partnerModel,
+      categories: this.categoryModel,
+      menuitems: this.menuItemModel,
+      orders: this.orderModel,
+      meals: this.mealModel,
+      subscriptions: this.subscriptionModel,
+      subscriptionplans: this.subscriptionPlanModel,
+      payments: this.paymentModel,
+      paymentmethods: this.paymentMethodModel,
+      customerprofiles: this.customerModel,
+      feedbacks: this.feedbackModel,
+      testimonials: this.testimonialModel,
+      referrals: this.referralModel,
+      corporatequotes: this.corporateQuoteModel,
+      contacts: this.contactModel,
+      subscribers: this.subscriberModel,
+      conversations: this.conversationModel,
+      chatmessages: this.chatMessageModel,
+      typingindicators: this.typingIndicatorModel,
+      notifications: this.notificationModel,
+      notificationtemplates: this.notificationTemplateModel,
+      deviceregistrations: this.deviceRegistrationModel,
+      reviews: this.reviewModel,
+      emaillogs: this.emailLogModel,
+      emailpreferences: this.emailPreferenceModel,
+    };
+
+    // Validate collection name
+    const model = allowedCollections[collectionName.toLowerCase()];
+    if (!model) {
+      throw new BadRequestException(
+        `Invalid collection name. Allowed collections: ${Object.keys(allowedCollections).join(", ")}`,
+      );
+    }
+
+    try {
+      // Get count before deletion
+      const countBefore = await model.countDocuments();
+
+      // Perform deletion
+      const result = await (model as any).deleteMany({}).exec();
+
+      const message = `Collection '${collectionName}' cleaned successfully`;
+
+      this.logger.warn(
+        `${message}. Deleted ${result.deletedCount} documents. Reason: ${reason || "Not provided"}`,
+      );
+
+      return {
+        collectionName,
+        deletedCount: result.deletedCount || countBefore,
+        message,
+        timestamp: new Date(),
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error cleaning collection ${collectionName}: ${error.message}`,
+      );
+      throw new BadRequestException(
+        `Failed to clean collection: ${error.message}`,
+      );
+    }
+  }
+
+  /**
+   * Clean entire database (all collections)
+   */
+  async cleanEntireDatabase(
+    confirmDestroy: string,
+    environment: string,
+    reason?: string,
+  ): Promise<CleanDatabaseResponseDto> {
+    this.logger.warn("Attempting to clean entire database");
+
+    // Validate confirmation
+    if (confirmDestroy !== "YES_DELETE_ALL") {
+      throw new BadRequestException(
+        "Invalid confirmation. Must provide 'YES_DELETE_ALL'",
+      );
+    }
+
+    // Environment safety checks
+    const currentEnv = process.env.NODE_ENV;
+    if (currentEnv === "production") {
+      throw new ForbiddenException(
+        "Database cleaning is not allowed in production environment",
+      );
+    }
+
+    if (environment !== currentEnv) {
+      throw new BadRequestException(
+        `Environment mismatch. Expected '${currentEnv}', got '${environment}'`,
+      );
+    }
+
+    try {
+      // Define all collections with their models
+      const collections = [
+        { name: "users", model: this.userModel },
+        { name: "partners", model: this.partnerModel },
+        { name: "categories", model: this.categoryModel },
+        { name: "menuitems", model: this.menuItemModel },
+        { name: "orders", model: this.orderModel },
+        { name: "meals", model: this.mealModel },
+        { name: "subscriptions", model: this.subscriptionModel },
+        { name: "subscriptionplans", model: this.subscriptionPlanModel },
+        { name: "payments", model: this.paymentModel },
+        { name: "paymentmethods", model: this.paymentMethodModel },
+        { name: "customerprofiles", model: this.customerModel },
+        { name: "feedbacks", model: this.feedbackModel },
+        { name: "testimonials", model: this.testimonialModel },
+        { name: "referrals", model: this.referralModel },
+        { name: "corporatequotes", model: this.corporateQuoteModel },
+        { name: "contacts", model: this.contactModel },
+        { name: "subscribers", model: this.subscriberModel },
+        { name: "conversations", model: this.conversationModel },
+        { name: "chatmessages", model: this.chatMessageModel },
+        { name: "typingindicators", model: this.typingIndicatorModel },
+        { name: "notifications", model: this.notificationModel },
+        {
+          name: "notificationtemplates",
+          model: this.notificationTemplateModel,
+        },
+        { name: "deviceregistrations", model: this.deviceRegistrationModel },
+        { name: "reviews", model: this.reviewModel },
+        { name: "emaillogs", model: this.emailLogModel },
+        { name: "emailpreferences", model: this.emailPreferenceModel },
+      ];
+
+      // Clean all collections in parallel
+      const cleanResults = await Promise.all(
+        collections.map(async ({ name, model }) => {
+          try {
+            const countBefore = await model.countDocuments();
+            const result = await (model as any).deleteMany({}).exec();
+
+            return {
+              collectionName: name,
+              deletedCount: result.deletedCount || countBefore,
+              message: `Collection '${name}' cleaned successfully`,
+              timestamp: new Date(),
+            };
+          } catch (error) {
+            this.logger.error(
+              `Error cleaning collection ${name}: ${error.message}`,
+            );
+            return {
+              collectionName: name,
+              deletedCount: 0,
+              message: `Failed to clean collection '${name}': ${error.message}`,
+              timestamp: new Date(),
+            };
+          }
+        }),
+      );
+
+      // Calculate totals
+      const totalCollectionsCleaned = cleanResults.filter(
+        (result) => result.deletedCount > 0,
+      ).length;
+      const totalDocumentsDeleted = cleanResults.reduce(
+        (sum, result) => sum + result.deletedCount,
+        0,
+      );
+
+      const message = "Database cleaned successfully";
+
+      this.logger.warn(
+        `${message}. Cleaned ${totalCollectionsCleaned} collections, deleted ${totalDocumentsDeleted} documents. Reason: ${reason || "Not provided"}`,
+      );
+
+      return {
+        cleanedCollections: cleanResults,
+        totalCollectionsCleaned,
+        totalDocumentsDeleted,
+        message,
+        timestamp: new Date(),
+      };
+    } catch (error) {
+      this.logger.error(`Error cleaning entire database: ${error.message}`);
+      throw new BadRequestException(
+        `Failed to clean database: ${error.message}`,
+      );
+    }
   }
 }

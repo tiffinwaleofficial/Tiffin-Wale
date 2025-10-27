@@ -9,17 +9,17 @@ import {
   ScrollView,
   Modal,
   Dimensions,
+  StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { cloudinaryUploadService, UploadType } from '../../services/cloudinaryUploadService';
-import { useTheme } from '../../store/themeStore';
 
-interface UploadedFile {
+export interface UploadedFile {
   uri: string;
   cloudinaryUrl?: string;
-  uploading: boolean;
+  status: 'pending' | 'optimizing' | 'uploading' | 'completed' | 'error';
   error?: string;
-  progress?: number;
+  progress: number;
 }
 
 interface UploadComponentProps {
@@ -45,409 +45,194 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
   folder,
   disabled = false,
 }) => {
-  const { theme } = useTheme();
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
   const [previewFile, setPreviewFile] = useState<UploadedFile | null>(null);
 
+  const updateFileStatus = (uri: string, updates: Partial<UploadedFile>) => {
+    onFilesChange(
+      files.map((f) => (f.uri === uri ? { ...f, ...updates } : f)),
+    );
+  };
+
   const handleFilePreview = (file: UploadedFile) => {
-    setPreviewFile(file);
-    setPreviewModalVisible(true);
+    if (file.status === 'completed' || file.status === 'pending') {
+      setPreviewFile(file);
+      setPreviewModalVisible(true);
+    }
   };
 
   const handleFileSelection = async () => {
-    if (disabled) return;
-    
-    if (files.length >= maxFiles) {
+    if (disabled || files.length >= maxFiles) {
       Alert.alert('Maximum Files Reached', `You can only upload up to ${maxFiles} files.`);
       return;
     }
 
     try {
-      // Check if cloudinaryUploadService is configured
       const configStatus = cloudinaryUploadService.getConfigStatus();
       if (!configStatus.configured) {
         Alert.alert(
           'Configuration Error', 
-          `Cloudinary not configured. Missing: ${configStatus.missing.join(', ')}`
+          `Cloudinary not configured. Missing: ${configStatus.missing.join(', ')}`,
         );
         return;
       }
 
-      // Pick files based on allowed types
-      let result: any;
-      if (allowedTypes.includes('document') && !allowedTypes.includes('image')) {
-        // Documents only
-        result = await cloudinaryUploadService.pickDocuments({
-          allowsMultipleSelection: maxFiles > 1,
-        });
-      } else if (allowedTypes.includes('image') && allowedTypes.includes('document')) {
-        // Both images and documents - default to images for now
-        result = await cloudinaryUploadService.pickImage({
-          allowsMultipleSelection: maxFiles > 1,
-          allowsEditing: false,
-        });
-      } else {
-        // Images only (default)
-        result = await cloudinaryUploadService.pickImage({
-          allowsMultipleSelection: maxFiles > 1,
-          allowsEditing: false,
-        });
-      }
-
-      // Handle different result structures
-      let newFiles: UploadedFile[] = [];
-      
-      if (allowedTypes.includes('document') && !allowedTypes.includes('image')) {
-        // Document picker result
-        if (result && !(result as any).canceled) {
-          if ((result as any).assets && Array.isArray((result as any).assets)) {
-            newFiles = (result as any).assets.map((asset: any) => ({
-              uri: asset.uri,
-              uploading: false,
-              progress: 0,
-            }));
-          } else if ((result as any).uri) {
-            newFiles = [{
-              uri: (result as any).uri,
-              uploading: false,
-              progress: 0,
-            }];
-          }
-        }
-      } else {
-        // Image picker result
-        if (!result.canceled && result.assets) {
-          newFiles = result.assets.map((asset: any) => ({
-            uri: asset.uri,
-            uploading: false,
-            progress: 0,
+      const result: any = await (allowedTypes.includes('document')
+        ? cloudinaryUploadService.pickDocuments({ allowsMultipleSelection: maxFiles > 1 })
+        : cloudinaryUploadService.pickImage({
+            allowsMultipleSelection: maxFiles > 1,
+            allowsEditing: false,
           }));
-        }
+
+      if (result.canceled || !result.assets) {
+        return;
       }
       
-      if (newFiles.length === 0) {
-        return; // No files selected
-      }
+      const newFiles: UploadedFile[] = result.assets.map((asset: any) => ({
+        uri: asset.uri,
+        status: 'pending',
+        progress: 0,
+      }));
 
-      // Add new files to the list
-      const updatedFiles = [...files, ...newFiles];
+      const updatedFiles = [...files, ...newFiles].slice(0, maxFiles);
       onFilesChange(updatedFiles);
 
-      // Upload each file to Cloudinary with progress tracking
-      for (let i = 0; i < newFiles.length; i++) {
-        const file = newFiles[i];
+      // Upload each new file
+      newFiles.forEach(async (file) => {
         try {
-          console.log('🚀 UploadComponent: Starting upload for', file.uri.substring(0, 50) + '...');
-          
-          // Mark as uploading and show initial progress
-          let currentFiles = [...updatedFiles];
-          currentFiles = currentFiles.map(f => 
-            f.uri === file.uri 
-              ? { ...f, uploading: true, progress: 0 }
-              : f
-          );
-          onFilesChange(currentFiles);
-          console.log('📊 UploadComponent: Started upload for', file.uri.substring(0, 50) + '...', 'Progress: 0%');
+          updateFileStatus(file.uri, { status: 'optimizing' });
 
-            // Upload to Cloudinary using the enhanced uploadFile method
-            const uploadResult = await cloudinaryUploadService.uploadFile(
-              file.uri,
-              uploadType,
-              {
-                folder,
-              },
-              (progress) => {
-                const progressFiles = currentFiles.map(f =>
-                  f.uri === file.uri
-                    ? { ...f, progress: progress * 100 }
-                    : f
-                );
-                onFilesChange(progressFiles);
-              }
-            );
+          const uploadResult = await cloudinaryUploadService.uploadFile(
+            file.uri,
+            uploadType,
+            { folder },
+            (progress) => {
+              updateFileStatus(file.uri, {
+                status: 'uploading',
+                progress: progress * 100,
+              });
+            },
+          );
 
           if (uploadResult.success && uploadResult.url) {
-            // Update progress to 100% and mark as complete
-            const completedFiles = currentFiles.map(f => 
-              f.uri === file.uri 
-                ? { ...f, cloudinaryUrl: uploadResult.url, uploading: false, progress: 100 }
-                : f
-            );
-            onFilesChange(completedFiles);
-            console.log('✅ UploadComponent: Upload completed for', file.uri.substring(0, 50) + '...', 'URL:', uploadResult.url);
+            updateFileStatus(file.uri, {
+              status: 'completed',
+              cloudinaryUrl: uploadResult.url,
+              progress: 100,
+            });
           } else {
-            // Mark upload as failed
-            const failedFiles = currentFiles.map(f => 
-              f.uri === file.uri 
-                ? { ...f, uploading: false, error: uploadResult.error, progress: 0 }
-                : f
-            );
-            onFilesChange(failedFiles);
-            Alert.alert('Upload Failed', uploadResult.error || 'Failed to upload file');
+            throw new Error(uploadResult.error || 'Upload failed');
           }
-        } catch (error) {
-          console.error('Upload error:', error);
-          const errorFiles = updatedFiles.map(f => 
-            f.uri === file.uri 
-              ? { ...f, uploading: false, error: 'Upload failed', progress: 0 }
-              : f
-          );
-          onFilesChange(errorFiles);
+        } catch (error: any) {
+          console.error('Upload error for', file.uri, error);
+          updateFileStatus(file.uri, {
+            status: 'error',
+            error: error.message,
+          });
         }
-      }
+      });
     } catch (error) {
       console.error('File selection error:', error);
-      Alert.alert('Error', 'Failed to select files');
+      Alert.alert('Error', 'Failed to select files.');
     }
   };
 
-  const removeFile = (index: number) => {
+  const removeFile = (uri: string) => {
     if (disabled) return;
-    const updatedFiles = files.filter((_: UploadedFile, i: number) => i !== index);
-    onFilesChange(updatedFiles);
+    onFilesChange(files.filter((file) => file.uri !== uri));
   };
 
+  const renderFilePreview = (file: UploadedFile, index: number) => {
+    const isImage = file.uri.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i);
+
+    return (
+      <TouchableOpacity
+        key={index}
+        onPress={() => handleFilePreview(file)}
+        style={styles.previewContainer}
+      >
+        {isImage ? (
+          <Image
+            source={{ uri: file.cloudinaryUrl || file.uri }}
+            style={styles.previewImage}
+          />
+        ) : (
+          <View style={styles.documentPreview}>
+            <Ionicons name="document-text-outline" size={24} color="#FF9B42" />
+          </View>
+        )}
+
+        {file.status === 'uploading' && (
+          <View style={styles.progressOverlay}>
+            <View style={styles.progressBarContainer}>
+              <View style={[styles.progressBar, { width: `${file.progress}%` }]} />
+            </View>
+            <Text style={styles.progressText}>{Math.round(file.progress)}%</Text>
+          </View>
+        )}
+        
+        {file.status === 'optimizing' && (
+          <View style={styles.statusOverlay}>
+            <ActivityIndicator size="small" color="#fff" />
+            <Text style={styles.statusText}>Optimizing...</Text>
+          </View>
+        )}
+        
+        {file.status === 'error' && (
+          <View style={styles.errorOverlay}>
+            <Ionicons name="alert-circle" size={24} color="#EF4444" />
+          </View>
+        )}
+
+        {!disabled && (
+          <TouchableOpacity
+            style={styles.removeButton}
+            onPress={() => removeFile(file.uri)}
+          >
+            <Ionicons name="close" size={12} color="white" />
+          </TouchableOpacity>
+        )}
+      </TouchableOpacity>
+    );
+  };
+  
   return (
-    <View style={{ marginBottom: theme.spacing.lg }}>
-      <Text style={{
-        fontSize: 16,
-        fontWeight: '600',
-        color: theme.colors.text,
-        marginBottom: theme.spacing.sm,
-      }}>
-        {title}
-      </Text>
+    <View style={{ marginBottom: 24 }}>
+      <Text style={styles.title}>{title}</Text>
 
       {description && (
-        <Text style={{
-          fontSize: 14,
-          color: theme.colors.textSecondary,
-          marginBottom: theme.spacing.md,
-          lineHeight: 20,
-        }}>
-          {description}
-        </Text>
+        <Text style={styles.description}>{description}</Text>
       )}
 
-      {/* Upload Button */}
-      {files.length === 0 ? (
+      {files.length < maxFiles && !disabled ? (
         <TouchableOpacity
           onPress={handleFileSelection}
-          disabled={disabled}
-          style={{
-            borderWidth: 2,
-            borderColor: theme.colors.primary,
-            borderStyle: 'dashed',
-            borderRadius: theme.borderRadius.md,
-            padding: theme.spacing.xl,
-            alignItems: 'center',
-            backgroundColor: disabled ? theme.colors.surface : 'transparent',
-            opacity: disabled ? 0.6 : 1,
-          }}
+          style={styles.uploadButton}
         >
           <Ionicons 
             name="cloud-upload-outline" 
             size={48} 
-            color={disabled ? theme.colors.textSecondary : theme.colors.primary} 
+            color="#FF9B42" 
           />
-          <View style={{ alignItems: 'center', marginTop: theme.spacing.md }}>
-            <Text style={{
-              fontSize: 16,
-              fontWeight: '600',
-              color: disabled ? theme.colors.textSecondary : theme.colors.primary,
-              textAlign: 'center',
-            }}>
+          <View style={{ alignItems: 'center', marginTop: 16 }}>
+            <Text style={styles.uploadButtonText}>
               {`Tap to upload ${title.toLowerCase()}`}
             </Text>
-            <Text style={{
-              color: theme.colors.textSecondary,
-              marginTop: theme.spacing.xs,
-              fontSize: 12,
-            }}>
-              PNG, JPG up to 5MB
+            <Text style={styles.uploadButtonSubText}>
+              {allowedTypes.join(', ').toUpperCase()} up to 5MB
             </Text>
           </View>
         </TouchableOpacity>
-      ) : (
-        <View style={{
-          borderWidth: 1,
-          borderColor: theme.colors.success,
-          borderRadius: theme.borderRadius.md,
-          padding: theme.spacing.md,
-          backgroundColor: theme.colors.success + '10',
-          flexDirection: 'row',
-          alignItems: 'center',
-        }}>
-          <Ionicons name="checkmark-circle" size={20} color={theme.colors.success} />
-          <Text style={{
-            color: theme.colors.success,
-            marginLeft: theme.spacing.sm,
-            flex: 1,
-            fontSize: 16,
-            fontWeight: '500',
-          }}>
-            {title} uploaded successfully
-          </Text>
-          {!disabled && (
-            <TouchableOpacity onPress={handleFileSelection}>
-              <Ionicons name="add-circle" size={20} color={theme.colors.primary} />
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
+      ) : null}
 
-      {/* File Previews with Progress Overlay */}
       {files.length > 0 && (
-        <View style={{ marginTop: theme.spacing.md }}>
+        <View style={{ marginTop: 16 }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {files.map((file, index) => (
-                <TouchableOpacity 
-                  key={index} 
-                  onPress={() => handleFilePreview(file)}
-                  style={{
-                    width: 80,
-                    height: 80,
-                    margin: 4,
-                    borderRadius: 8,
-                    backgroundColor: theme.colors.surface,
-                    borderWidth: 1,
-                    borderColor: theme.colors.border,
-                    position: 'relative',
-                    overflow: 'hidden',
-                  }}>
-                  {file.uploading ? (
-                    <View style={{
-                      flex: 1,
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      backgroundColor: theme.colors.surface,
-                    }}>
-                      {/* Animated Progress Bar */}
-                      <View style={{
-                        width: '80%',
-                        height: 4,
-                        backgroundColor: theme.colors.border,
-                        borderRadius: 2,
-                        overflow: 'hidden',
-                        marginBottom: 8,
-                      }}>
-                        <View style={{
-                          width: `${file.progress || 0}%`,
-                          height: '100%',
-                          backgroundColor: theme.colors.primary,
-                          borderRadius: 2,
-                        }} />
-                      </View>
-                      <Text style={{
-                        fontSize: 12,
-                        color: theme.colors.primary,
-                        fontWeight: '600',
-                      }}>
-                        {Math.round(file.progress || 0)}%
-                      </Text>
-                      <ActivityIndicator size="small" color={theme.colors.primary} style={{ marginTop: 4 }} />
-                    </View>
-                  ) : file.error ? (
-                    <View style={{
-                      flex: 1,
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      backgroundColor: theme.colors.error + '10',
-                    }}>
-                      <Ionicons name="alert-circle" size={24} color={theme.colors.error} />
-                      <Text style={{
-                        fontSize: 10,
-                        color: theme.colors.error,
-                        textAlign: 'center',
-                        marginTop: 4,
-                      }}>
-                        Failed
-                      </Text>
-                    </View>
-                  ) : (
-                    // Show file preview
-                    <View style={{ flex: 1 }}>
-                      {file.uri && file.uri.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i) ? (
-                        <Image
-                          source={{ uri: file.cloudinaryUrl || file.uri }}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            resizeMode: 'cover',
-                          }}
-                        />
-                      ) : (
-                        // Document icon
-                        <View style={{
-                          flex: 1,
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          backgroundColor: theme.colors.primary + '10',
-                        }}>
-                          <Ionicons 
-                            name={file.uri.match(/\.pdf$/i) ? 'document-text' : 
-                                  file.uri.match(/\.(doc|docx)$/i) ? 'document' :
-                                  file.uri.match(/\.(xls|xlsx)$/i) ? 'grid' :
-                                  file.uri.match(/\.(ppt|pptx)$/i) ? 'easel' :
-                                  'document'} 
-                            size={24} 
-                            color={theme.colors.primary} 
-                          />
-                        </View>
-                      )}
-                    </View>
-                  )}
-
-                  {/* Remove button */}
-                  {!disabled && (
-                    <TouchableOpacity
-                      style={{
-                        position: 'absolute',
-                        top: 4,
-                        right: 4,
-                        backgroundColor: theme.colors.error,
-                        borderRadius: 10,
-                        width: 20,
-                        height: 20,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                      }}
-                      onPress={() => removeFile(index)}
-                    >
-                      <Ionicons name="close" size={12} color="white" />
-                    </TouchableOpacity>
-                  )}
-                </TouchableOpacity>
-              ))}
+              {files.map(renderFilePreview)}
             </View>
           </ScrollView>
         </View>
-      )}
-
-      {/* Upload Status Messages */}
-      {files.some(f => f.uploading) && (
-        <Text style={{
-          fontSize: 12,
-          color: theme.colors.primary,
-          marginTop: theme.spacing.sm,
-          textAlign: 'center',
-          fontWeight: '500',
-        }}>
-          Uploading files... Please wait
-        </Text>
-      )}
-
-      {files.some(f => f.error) && (
-        <Text style={{
-          fontSize: 12,
-          color: theme.colors.error,
-          marginTop: theme.spacing.sm,
-          textAlign: 'center',
-          fontWeight: '500',
-        }}>
-          Some files failed to upload. Please try again.
-        </Text>
       )}
 
       {/* File Preview Modal */}
@@ -457,106 +242,35 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
         animationType="fade"
         onRequestClose={() => setPreviewModalVisible(false)}
       >
-        <View style={{
-          flex: 1,
-          backgroundColor: 'rgba(0, 0, 0, 0.9)',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}>
-          {/* Close Button */}
+        <View style={styles.modalContainer}>
           <TouchableOpacity
-            style={{
-              position: 'absolute',
-              top: 50,
-              right: 20,
-              zIndex: 1000,
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
-              borderRadius: 20,
-              width: 40,
-              height: 40,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
+            style={styles.closeButton}
             onPress={() => setPreviewModalVisible(false)}
           >
             <Ionicons name="close" size={24} color="white" />
           </TouchableOpacity>
 
-          {/* Preview Content */}
           {previewFile && (
-            <View style={{
-              width: Dimensions.get('window').width * 0.9,
-              height: Dimensions.get('window').height * 0.8,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}>
-              {/* Check if it's an image */}
-              {previewFile.uri && (
-                previewFile.uri.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i) ? (
-                  <Image
-                    source={{ uri: previewFile.cloudinaryUrl || previewFile.uri }}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      resizeMode: 'contain',
-                    }}
+            <View style={styles.modalContent}>
+              {previewFile.uri.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i) ? (
+                <Image
+                  source={{ uri: previewFile.cloudinaryUrl || previewFile.uri }}
+                  style={styles.modalImage}
+                />
+              ) : (
+                <View style={styles.modalDocumentView}>
+                  <Ionicons 
+                    name="document-text" 
+                    size={64} 
+                    color="#FF9B42" 
                   />
-                ) : (
-                  // For documents and other files, show file info
-                  <View style={{
-                    backgroundColor: 'white',
-                    borderRadius: 12,
-                    padding: 20,
-                    alignItems: 'center',
-                    maxWidth: '80%',
-                  }}>
-                    <Ionicons 
-                      name={previewFile.uri.match(/\.pdf$/i) ? 'document-text' : 
-                            previewFile.uri.match(/\.(doc|docx)$/i) ? 'document' :
-                            previewFile.uri.match(/\.(xls|xlsx)$/i) ? 'grid' :
-                            previewFile.uri.match(/\.(ppt|pptx)$/i) ? 'easel' :
-                            'document'} 
-                      size={64} 
-                      color={theme.colors.primary} 
-                    />
-                    <Text style={{
-                      fontSize: 18,
-                      fontWeight: '600',
-                      color: theme.colors.text,
-                      marginTop: 16,
-                      textAlign: 'center',
-                    }}>
-                      {previewFile.uri.split('/').pop() || 'Document'}
-                    </Text>
-                    <Text style={{
-                      fontSize: 14,
-                      color: theme.colors.textSecondary,
-                      marginTop: 8,
-                      textAlign: 'center',
-                    }}>
-                      {previewFile.uploading ? 'Uploading...' : 'Uploaded successfully'}
-                    </Text>
-                    {previewFile.cloudinaryUrl && (
-                      <TouchableOpacity
-                        style={{
-                          backgroundColor: theme.colors.primary,
-                          paddingHorizontal: 16,
-                          paddingVertical: 8,
-                          borderRadius: 8,
-                          marginTop: 16,
-                        }}
-                        onPress={() => {
-                          // Open the file URL (this would work better in a real app with proper linking)
-                          Alert.alert('File URL', previewFile.cloudinaryUrl);
-                        }}
-                      >
-                        <Text style={{ color: 'white', fontWeight: '600' }}>
-                          View Full File
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                )
+                  <Text style={styles.modalDocumentTitle}>
+                    {previewFile.uri.split('/').pop() || 'Document'}
+                  </Text>
+                  <Text style={styles.modalDocumentStatus}>
+                    {previewFile.status === 'completed' ? 'Uploaded successfully' : 'Pending upload'}
+                  </Text>
+                </View>
               )}
             </View>
           )}
@@ -565,5 +279,158 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  title: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  description: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  uploadButton: {
+    borderWidth: 2,
+    borderColor: '#FF9B42',
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    padding: 24,
+    alignItems: 'center',
+    backgroundColor: '#FFF8F0',
+  },
+  uploadButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FF9B42',
+    textAlign: 'center',
+    fontFamily: 'Poppins-SemiBold',
+  },
+  uploadButtonSubText: {
+    color: '#666',
+    marginTop: 4,
+    fontSize: 12,
+  },
+  previewContainer: {
+    width: 80,
+    height: 80,
+    margin: 4,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  documentPreview: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#e9f5ff',
+  },
+  progressOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressBarContainer: {
+    width: '80%',
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: '#fff',
+  },
+  progressText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginTop: 4,
+  },
+  statusOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusText: {
+    color: '#fff',
+    fontSize: 10,
+    marginTop: 4,
+  },
+  errorOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,0,0,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removeButton: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 1,
+    padding: 8,
+  },
+  modalContent: {
+    width: Dimensions.get('window').width * 0.9,
+    height: Dimensions.get('window').height * 0.8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
+  },
+  modalDocumentView: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    maxWidth: '80%',
+  },
+  modalDocumentTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  modalDocumentStatus: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+});
 
 export default UploadComponent;

@@ -38,7 +38,7 @@ export class PartnerPhase extends BaseSeederPhase {
 
     // Get business users from core phase
     const businessUsers = await this.models.users.find({
-      role: UserRole.BUSINESS,
+      role: UserRole.PARTNER,
     });
 
     if (businessUsers.length === 0) {

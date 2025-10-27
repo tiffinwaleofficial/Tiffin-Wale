@@ -5,9 +5,11 @@
  */
 
 import Constants from 'expo-constants';
-import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import { Platform } from 'react-native';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { api } from '@/lib/api';
 
 interface CloudinaryConfig {
   cloudName: string;
@@ -79,6 +81,37 @@ export class CloudinaryUploadService {
         EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME: process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME,
       }
     });
+
+    if (!this.config.cloudName) {
+      console.warn('Cloudinary cloudName is not configured. Uploads will fail.');
+    }
+  }
+
+  private async optimizeAsset(fileUri: string): Promise<string> {
+    const fileExtension = fileUri.split('.').pop()?.toLowerCase() || '';
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'heic', 'webp'];
+    const videoExtensions = ['mp4', 'mov'];
+
+    try {
+      if (imageExtensions.includes(fileExtension)) {
+        console.log('🖼️  Optimizing image:', fileUri);
+        const manipResult = await ImageManipulator.manipulateAsync(
+          fileUri,
+          [{ resize: { width: 2000 } }], // Resize longest edge to 2000px
+          { compress: 0.9, format: ImageManipulator.SaveFormat.JPEG },
+        );
+        console.log('✅ Image optimized:', manipResult.uri);
+        return manipResult.uri;
+      }
+      
+      console.log('🎥  Skipping video optimization for now:', fileUri);
+      return fileUri;
+
+    } catch (error) {
+      console.error('Asset optimization failed:', error);
+      // Return original URI if optimization fails
+      return fileUri;
+    }
   }
 
   /**
@@ -233,180 +266,73 @@ export class CloudinaryUploadService {
     return mimeTypes[extension.toLowerCase()] || 'application/octet-stream';
   }
 
-  /**
-   * Upload file to Cloudinary (supports images, videos, documents)
-   */
   async uploadFile(
-    fileUri: string, 
-    uploadType: UploadType, 
+    fileUri: string,
+    uploadType: UploadType,
     customOptions?: Partial<UploadOptions>,
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
   ): Promise<UploadResult> {
     try {
-      console.log(`📤 Starting ${uploadType} file upload...`);
+      console.log(`🚀 Starting optimized ${uploadType} file upload...`);
 
-      if (!this.config.cloudName || !this.config.uploadPreset) {
-        throw new Error('Cloudinary configuration is incomplete');
+      if (!this.config.cloudName) {
+        throw new Error('Cloudinary configuration is incomplete.');
       }
 
-      const defaultOptions = this.getDefaultOptions(uploadType);
-      const options = { ...defaultOptions, ...customOptions };
+      // 1. Optimize the asset
+      const optimizedUri = await this.optimizeAsset(fileUri);
 
-      const formData = new FormData();
-      
-      // Detect file type from URI
-      const fileExtension = fileUri.split('.').pop()?.toLowerCase() || '';
-      const isVideo = uploadType === UploadType.REVIEW_VIDEO || 
-                     ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(fileExtension);
-      const isDocument = ['pdf', 'doc', 'docx', 'txt', 'xls', 'xlsx', 'ppt', 'pptx'].includes(fileExtension);
-      
-      console.log('🔍 File type detection:', { fileExtension, isVideo, isDocument });
-      
-      // Create file object for upload - use exact same approach as student app
-      const isWeb = typeof window !== 'undefined';
-      
-      console.log('🔍 Platform detection:', { isWeb, fileUri: fileUri.substring(0, 50) + '...' });
-      
-      if (isWeb) {
-        // For web, convert URI to Blob and create File
-        const response = await fetch(fileUri);
-        const blob = await response.blob();
-        
-        // Determine MIME type based on file extension
-        let mimeType = 'application/octet-stream';
-        if (isVideo) {
-          mimeType = 'video/mp4';
-        } else if (isDocument) {
-          mimeType = this.getMimeTypeFromExtension(fileExtension);
-        } else {
-          mimeType = 'image/jpeg';
-        }
-        
-        const file = new File([blob], `${uploadType}_${Date.now()}.${fileExtension}`, {
-          type: mimeType
-        });
-        formData.append('file', file);
-        console.log('📤 Web file created:', { name: file.name, type: file.type, size: file.size });
-      } else {
-        // For mobile platforms - create proper file object
-        const mimeType = isVideo ? 'video/mp4' : (isDocument ? this.getMimeTypeFromExtension(fileExtension) : 'image/jpeg');
-        const fileName = `${uploadType}_${Date.now()}.${fileExtension}`;
-        
-        // Create file object that works with React Native FormData
-        // This is the exact structure that React Native expects
-        const fileObject = {
-          uri: fileUri,
-          type: mimeType,
-          name: fileName,
-        };
-        
-        // For React Native, create the file object in the exact format expected
-        // This avoids the blob.name error in Expo's FormData implementation
-        const reactNativeFile = {
-          uri: fileUri,
-          type: mimeType,
-          name: fileName,
-        };
-        
-        // Special handling for Android to avoid FormData blob issues
-        if (Platform.OS === 'android') {
-          // Use a more direct approach for Android
-          const androidFile = {
-            uri: fileUri,
-            type: mimeType,
-            name: fileName,
-          };
-          
-          // Append using the native FormData append method
-          try {
-            formData.append('file', androidFile as any);
-            console.log('📤 Android file created:', { uri: androidFile.uri, type: androidFile.type, name: androidFile.name });
-          } catch (androidError) {
-            console.error('❌ Android FormData error:', androidError);
-            // Last resort: try with minimal structure
-            formData.append('file', {
-              uri: fileUri,
-              type: mimeType,
-              name: fileName,
-            } as any);
-            console.log('📤 Android file created (minimal)');
-          }
-        } else {
-          // For iOS and other platforms
-          formData.append('file', reactNativeFile as any);
-          console.log('📤 Mobile file created:', { uri: reactNativeFile.uri, type: reactNativeFile.type, name: reactNativeFile.name });
-        }
-      }
-      formData.append('upload_preset', this.config.uploadPreset);
-      formData.append('cloud_name', this.config.cloudName);
-      formData.append('folder', options.folder || 'uploads');
-      
-      console.log('📤 FormData details:', {
-        uploadPreset: this.config.uploadPreset,
-        cloudName: this.config.cloudName,
-        folder: options.folder || 'uploads',
-        platform: isWeb ? 'web' : 'mobile',
-        fileUri: fileUri,
-        isVideo
+      // 2. Get signature from backend
+      const folder = customOptions?.folder || 'uploads';
+      console.log(`✍️  Requesting signature for folder: ${folder}`);
+      const { signature, timestamp, api_key } = await api.upload.getUploadSignature({
+        folder,
       });
-      
-      // Debug: Log FormData contents
-      console.log('📤 FormData entries:');
 
-      // Add individual transformation parameters instead of complex transformation array
-      if (options.maxWidth) {
-        formData.append('width', options.maxWidth.toString());
-      }
-      if (options.maxHeight) {
-        formData.append('height', options.maxHeight.toString());
-      }
-      if (options.crop) {
-        formData.append('crop', options.crop);
-      }
-      if (options.gravity) {
-        formData.append('gravity', options.gravity);
-      }
-      if (options.quality) {
-        formData.append('quality', options.quality.toString());
-      }
-      if (options.format) {
-        formData.append('fetch_format', options.format);
-      }
+      // 3. Prepare FormData for direct Cloudinary upload
+      const formData = new FormData();
+      const fileExtension = optimizedUri.split('.').pop()?.toLowerCase() || '';
+      const mimeType = this.getMimeTypeFromExtension(fileExtension);
+      const fileName = `${uploadType}_${Date.now()}.${fileExtension}`;
 
-      console.log(`📤 Uploading ${uploadType} to Cloudinary...`);
-      
-      // For web, we need to handle FormData differently
-      console.log('📤 Platform:', isWeb ? 'web' : 'mobile');
-      
+      const fileDetails = {
+        uri: optimizedUri,
+        type: mimeType,
+        name: fileName,
+      };
+
+      formData.append('file', fileDetails as any);
+      formData.append('folder', folder);
+      formData.append('signature', signature);
+      formData.append('timestamp', String(timestamp));
+      formData.append('api_key', api_key);
+
+      console.log(`📤 Uploading ${fileName} to Cloudinary...`);
+
+      // 4. Perform the upload using XMLHttpRequest for progress tracking
       return new Promise<UploadResult>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        const url = `https://api.cloudinary.com/v1_1/${this.config.cloudName}/upload`;
+        const url = `https://api.cloudinary.com/v1_1/${this.config.cloudName}/auto/upload`;
 
         xhr.open('POST', url);
 
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             const result = JSON.parse(xhr.responseText);
-      console.log(`✅ ${uploadType} uploaded successfully:`, {
-        url: result.secure_url,
-        publicId: result.public_id,
-      });
+            console.log(`✅ ${uploadType} uploaded successfully:`, {
+              url: result.secure_url,
+              publicId: result.public_id,
+            });
             resolve({
-        success: true,
-        url: result.secure_url,
-        publicId: result.public_id,
-        metadata: {
-          width: result.width,
-          height: result.height,
-          format: result.format,
-          bytes: result.bytes,
-          folder: options.folder,
-          uploadType,
-        }
+              success: true,
+              url: result.secure_url,
+              publicId: result.public_id,
+              metadata: { ...result },
             });
           } else {
-            console.error(`❌ Cloudinary ${uploadType} upload failed:`, xhr.responseText);
-            reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+            const errorText = xhr.responseText || 'Unknown upload error';
+            console.error(`❌ Cloudinary ${uploadType} upload failed:`, errorText);
+            reject(new Error(`Upload failed: ${xhr.status} - ${errorText}`));
           }
         };
 
@@ -426,13 +352,11 @@ export class CloudinaryUploadService {
 
         xhr.send(formData);
       });
-
-    } catch (error) {
-      console.error(`❌ ${uploadType} upload error:`, error);
-      
+    } catch (error: any) {
+      console.error(`❌ ${uploadType} upload error:`, error.message);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        error: error.message || 'An unknown error occurred during upload',
       };
     }
   }
@@ -470,25 +394,27 @@ export class CloudinaryUploadService {
     return this.uploadFile(videoUri, uploadType, customOptions);
   }
 
-  /**
-   * Upload multiple files (supports images, videos, documents)
-   */
   async uploadMultipleFiles(
     fileUris: string[],
     uploadType: UploadType,
-    customOptions?: Partial<UploadOptions>
+    customOptions?: Partial<UploadOptions>,
+    onFileProgress?: (index: number, progress: number) => void,
   ): Promise<UploadResult[]> {
     console.log(`📤 Starting batch upload of ${fileUris.length} ${uploadType} files...`);
-    
-    const uploadPromises = fileUris.map(uri => 
-      this.uploadFile(uri, uploadType, customOptions)
+
+    const uploadPromises = fileUris.map((uri, index) =>
+      this.uploadFile(uri, uploadType, customOptions, (progress) => {
+        if (onFileProgress) {
+          onFileProgress(index, progress);
+        }
+      }),
     );
 
     const results = await Promise.all(uploadPromises);
-    
-    const successful = results.filter(r => r.success).length;
+
+    const successful = results.filter((r) => r.success).length;
     console.log(`✅ Batch upload completed: ${successful}/${fileUris.length} successful`);
-    
+
     return results;
   }
 
@@ -508,46 +434,15 @@ export class CloudinaryUploadService {
    */
   async deleteImage(publicId: string): Promise<UploadResult> {
     try {
-      console.log('🗑️ Deleting image:', publicId);
-
-      if (!this.config.cloudName || !this.config.apiKey || !this.config.apiSecret) {
-        throw new Error('Cloudinary configuration is incomplete for deletion');
-      }
-
-      const timestamp = Math.round(new Date().getTime() / 1000);
-      
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${this.config.cloudName}/image/destroy`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            public_id: publicId,
-            timestamp: timestamp,
-            api_key: this.config.apiKey,
-            // Note: For client-side deletion, you might need to implement server-side endpoint
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Cloudinary deletion failed:', errorText);
-        throw new Error(`Deletion failed: ${response.status} ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      console.log('✅ Image deleted successfully:', result);
-
+      console.log('🗑️  Deleting image via backend:', publicId);
+      await api.upload.deleteImage(publicId);
+      console.log('✅ Image deleted successfully via backend');
       return { success: true };
-
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Image deletion error:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        error: error.message || 'Unknown error occurred during deletion',
       };
     }
   }
@@ -662,8 +557,7 @@ export class CloudinaryUploadService {
   }> {
     const mediaTypes = options?.mediaTypes || ['image', 'video', 'document'];
     
-    // For now, we'll use a simple approach - pick images by default
-    // In a real app, you might want to show a picker to choose media type
+    // This logic should be improved to allow user to choose
     if (mediaTypes.includes('image')) {
       const result = await this.pickImage({
         allowsMultipleSelection: options?.allowsMultipleSelection,
@@ -715,7 +609,7 @@ export class CloudinaryUploadService {
    * Check if service is properly configured
    */
   isConfigured(): boolean {
-    return !!(this.config.cloudName && this.config.uploadPreset);
+    return !!this.config.cloudName;
   }
 
   /**
@@ -725,7 +619,6 @@ export class CloudinaryUploadService {
     const missing: string[] = [];
     
     if (!this.config.cloudName) missing.push('cloudName');
-    if (!this.config.uploadPreset) missing.push('uploadPreset');
     
     return {
       configured: missing.length === 0,

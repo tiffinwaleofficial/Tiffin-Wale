@@ -209,7 +209,7 @@ export class SeederService {
       usersToCreate.push({
         email: faker.internet.email(),
         password: hashedPassword,
-        role: UserRole.BUSINESS,
+        role: UserRole.PARTNER,
         firstName: faker.person.firstName(),
         lastName: faker.person.lastName(),
         phoneNumber: faker.phone.number(),
@@ -242,7 +242,7 @@ export class SeederService {
     console.log("🏪 Seeding partners...");
     const partnersToCreate = [];
     const businessUsers = this.users.filter(
-      (user) => user.role === UserRole.BUSINESS,
+      (user) => user.role === UserRole.PARTNER,
     );
 
     const cuisineTypes = [

@@ -93,4 +93,3 @@ export abstract class BaseEmailProvider implements EmailProviderInterface {
     };
   }
 }
-

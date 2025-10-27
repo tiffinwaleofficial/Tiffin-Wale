@@ -102,6 +102,95 @@ export class OrderService {
     return this.orderModel.find({ businessPartner: partnerId }).exec();
   }
 
+  async findByPartnerId(
+    partnerId: string,
+    page: number = 1,
+    limit: number = 10,
+    status?: string,
+  ): Promise<{ orders: Order[]; total: number; page: number; limit: number }> {
+    try {
+      const query: any = { businessPartner: partnerId };
+
+      if (status) {
+        query.status = status;
+      }
+
+      const skip = (page - 1) * limit;
+
+      const [orders, total] = await Promise.all([
+        this.orderModel
+          .find(query)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .populate("customer", "firstName lastName phoneNumber email")
+          .exec(),
+        this.orderModel.countDocuments(query),
+      ]);
+
+      return {
+        orders,
+        total,
+        page,
+        limit,
+      };
+    } catch (error) {
+      throw new BadRequestException(
+        `Failed to retrieve partner orders: ${error.message}`,
+      );
+    }
+  }
+
+  async getTodayOrdersByPartnerId(partnerId: string): Promise<{
+    orders: Order[];
+    stats: {
+      totalOrders: number;
+      completedOrders: number;
+      pendingOrders: number;
+      totalRevenue: number;
+    };
+  }> {
+    try {
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const query = {
+        businessPartner: partnerId,
+        createdAt: {
+          $gte: startOfDay,
+          $lte: endOfDay,
+        },
+      };
+
+      const orders = await this.orderModel
+        .find(query)
+        .sort({ createdAt: -1 })
+        .populate("customer", "firstName lastName phoneNumber email")
+        .exec();
+
+      const stats = {
+        totalOrders: orders.length,
+        completedOrders: orders.filter(
+          (o) => o.status === OrderStatus.DELIVERED,
+        ).length,
+        pendingOrders: orders.filter((o) => o.status === OrderStatus.PENDING)
+          .length,
+        totalRevenue: orders
+          .filter((o) => o.status === OrderStatus.DELIVERED)
+          .reduce((sum, o) => sum + (o.totalAmount || 0), 0),
+      };
+
+      return { orders, stats };
+    } catch (error) {
+      throw new BadRequestException(
+        `Failed to retrieve today's orders: ${error.message}`,
+      );
+    }
+  }
+
   async update(id: string, updateOrderDto: UpdateOrderDto): Promise<Order> {
     try {
       const order = await this.findById(id);
@@ -429,9 +518,7 @@ export class OrderService {
       ) {
         throw error;
       }
-      throw new BadRequestException(
-        `Failed to accept order: ${error.message}`,
-      );
+      throw new BadRequestException(`Failed to accept order: ${error.message}`);
     }
   }
 
@@ -451,7 +538,9 @@ export class OrderService {
       }
 
       // Validate status transition (can only reject pending or confirmed orders)
-      if (![OrderStatus.PENDING, OrderStatus.CONFIRMED].includes(order.status)) {
+      if (
+        ![OrderStatus.PENDING, OrderStatus.CONFIRMED].includes(order.status)
+      ) {
         throw new BadRequestException(
           `Cannot reject order with status: ${order.status}. Only pending or confirmed orders can be rejected.`,
         );
@@ -488,9 +577,7 @@ export class OrderService {
       ) {
         throw error;
       }
-      throw new BadRequestException(
-        `Failed to reject order: ${error.message}`,
-      );
+      throw new BadRequestException(`Failed to reject order: ${error.message}`);
     }
   }
 

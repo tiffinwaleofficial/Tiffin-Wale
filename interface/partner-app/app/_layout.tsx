@@ -4,12 +4,13 @@ import { Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700
 import { useEffect } from 'react';
 import { Text, View, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
-import { AuthProvider } from '@/context/AuthProvider';
+import { AuthProvider } from '../lib/auth/AuthProvider';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import NotificationContainer from '@/components/NotificationContainer';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { Slot } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeLoader } from '../components/ThemeLoader';
+import { useTheme } from '../store/themeStore';
 
 // Import Vercel Analytics for web builds only
 let Analytics: any = null;
@@ -60,37 +61,37 @@ export default function RootLayout() {
     'Poppins-SemiBold': Poppins_600SemiBold,
     'Poppins-Bold': Poppins_700Bold,
   });
+  const { hasHydrated } = useTheme();
 
   useEffect(() => {
+    // Hide splash screen when fonts are loaded
+    // Theme is always available immediately from themes.ts
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
 
-  // Show loading screen while fonts are loading
+  // Only wait for fonts, not theme hydration
+  // Theme is always available from themes.ts, hydration just loads the isDark preference
   if (!fontsLoaded && !fontError) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF9B42" />
-        <Text style={styles.loadingText}>Loading fonts...</Text>
-      </View>
-    );
+    return null;
   }
 
+  // Always render the navigator structure once everything is ready
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <NotificationContainer>
-            <ProtectedRoute>
+        <ThemeLoader>
+          <AuthProvider>
+            <NotificationContainer>
               <Slot />
-            </ProtectedRoute>
-          </NotificationContainer>
-          <StatusBar style="dark" />
-          {/* Vercel Analytics - Web only */}
-          {Platform.OS === 'web' && Analytics && <Analytics />}
-          {Platform.OS === 'web' && SpeedInsights && <SpeedInsights />}
-        </AuthProvider>
+            </NotificationContainer>
+            <StatusBar style="dark" />
+            {/* Vercel Analytics - Web only */}
+            {Platform.OS === 'web' && Analytics && <Analytics />}
+            {Platform.OS === 'web' && SpeedInsights && <SpeedInsights />}
+          </AuthProvider>
+        </ThemeLoader>
       </QueryClientProvider>
     </SafeAreaProvider>
   );

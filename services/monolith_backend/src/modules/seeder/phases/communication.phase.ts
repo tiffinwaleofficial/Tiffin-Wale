@@ -87,7 +87,7 @@ export class CommunicationPhase extends BaseSeederPhase {
     const adminUsers = users.filter(
       (u) => u.role === UserRole.ADMIN || u.role === UserRole.SUPER_ADMIN,
     );
-    const businessUsers = users.filter((u) => u.role === UserRole.BUSINESS);
+    const businessUsers = users.filter((u) => u.role === UserRole.PARTNER);
 
     // Create different types of conversations
     const conversationTypes = [

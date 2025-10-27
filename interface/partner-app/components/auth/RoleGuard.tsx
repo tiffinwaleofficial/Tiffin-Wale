@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { UserCheck, AlertTriangle } from 'lucide-react-native';
-import { useAuthContext } from '../../context/AuthProvider';
+import { useAuthContext } from '../../lib/auth/AuthProvider';
 import { useRouter } from 'expo-router';
 
 interface RoleGuardProps {

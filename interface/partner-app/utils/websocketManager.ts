@@ -1,8 +1,8 @@
 import { io, Socket } from 'socket.io-client';
 import { DeviceEventEmitter } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
-import { secureTokenManager } from '../auth/SecureTokenManager';
-import { config } from '../config/environment';
+import { tokenManager } from '../lib/auth/TokenManager';
+import { config } from '../config';
 
 export interface WebSocketConfig {
   namespace?: string;
@@ -53,7 +53,7 @@ class WebSocketManager {
   private eventQueue: Array<{ event: string; data: any }> = [];
   private isInitialized = false;
   private networkUnsubscribe: (() => void) | null = null;
-  private heartbeatInterval: NodeJS.Timeout | null = null;
+  private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(config: WebSocketConfig = {}) {
     this.config = {
@@ -81,13 +81,13 @@ class WebSocketManager {
       if (__DEV__) console.log('🔌 WebSocket: Initializing connection...');
       
       // Get authentication token
-      const token = await secureTokenManager.getAccessToken();
+      const token = await tokenManager.getAccessToken();
       if (!token) {
         throw new Error('No authentication token available');
       }
 
       // Create socket connection
-      const socketUrl = `${config.apiBaseUrl}${this.config.namespace}`;
+      const socketUrl = `${config.websocket.url}${this.config.namespace}`;
       
       this.socket = io(socketUrl, {
         auth: {
@@ -131,7 +131,7 @@ class WebSocketManager {
       this.connectionState.lastError = null;
       
       // Refresh token before connecting
-      const token = await secureTokenManager.getAccessToken();
+      const token = await tokenManager.getAccessToken();
       if (token && this.socket) {
         this.socket.auth = { token };
       }

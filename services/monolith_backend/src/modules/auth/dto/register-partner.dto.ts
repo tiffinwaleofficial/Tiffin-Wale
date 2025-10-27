@@ -12,7 +12,6 @@ import {
   IsBoolean,
   IsNumber,
   ValidateNested,
-  IsObject,
 } from "class-validator";
 import { Type } from "class-transformer";
 import { UserRole } from "../../../common/interfaces/user.interface";
@@ -208,7 +207,7 @@ export class RegisterPartnerDto {
 
   @ApiProperty({
     enum: UserRole,
-    default: UserRole.BUSINESS,
+    default: UserRole.PARTNER,
     description: "User role",
   })
   @IsEnum(UserRole, { message: "Invalid user role" })

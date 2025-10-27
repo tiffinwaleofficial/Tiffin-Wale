@@ -229,4 +229,3 @@ export class EmailCounterService {
     await this.cleanupOldCounters();
   }
 }
-

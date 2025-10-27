@@ -1,20 +1,18 @@
 import React, { useState } from 'react';
-import { View, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '../../components/layout/Screen';
 import { Container } from '../../components/layout/Container';
 import { Card } from '../../components/layout/Card';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
 import { Text } from '../../components/ui/Text';
 import { Icon } from '../../components/ui/Icon';
 import ProgressIndicator from '../../components/onboarding/ProgressIndicator';
 import BackButton from '../../components/navigation/BackButton';
 import { useOnboardingStore, PaymentSetupData } from '../../store/onboardingStore';
-import { useTheme } from '../../store/themeStore';
 
-const PaymentSetup: React.FC = () => {
-  const { theme } = useTheme();
+export default function PaymentSetup() {
   const { 
     currentStep, 
     totalSteps, 
@@ -25,8 +23,12 @@ const PaymentSetup: React.FC = () => {
     setCurrentStep 
   } = useOnboardingStore();
 
-  const [localData, setLocalData] = useState<PaymentSetupData>(
-    formData.step8 || {
+  const [localData, setLocalData] = useState<PaymentSetupData>(() => {
+    const step7Data = (formData.step7 as unknown as PaymentSetupData);
+    if (step7Data && step7Data.bankDetails) {
+      return step7Data;
+    }
+    return {
       bankDetails: {
         accountNumber: '',
         ifscCode: '',
@@ -35,8 +37,8 @@ const PaymentSetup: React.FC = () => {
       },
       upiId: '',
       commissionRate: 20,
-    }
-  );
+    };
+  });
 
   const [errors, setLocalErrors] = useState<Record<string, string>>({});
 
@@ -147,7 +149,7 @@ const PaymentSetup: React.FC = () => {
     }
 
     // Save data and proceed
-    updateFormData('step8', localData);
+    updateFormData('step7', localData);
     setCurrentStep(9);
     router.push('./review-submit');
   };
@@ -159,9 +161,9 @@ const PaymentSetup: React.FC = () => {
     localData.bankDetails.bankName.trim();
 
   return (
-    <Screen backgroundColor={theme.colors.background}>
+    <Screen backgroundColor="#FFFAF0">
       <KeyboardAvoidingView 
-        style={{ flex: 1 }} 
+        style={styles.keyboardView} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ProgressIndicator currentStep={currentStep} totalSteps={totalSteps} />
@@ -169,48 +171,37 @@ const PaymentSetup: React.FC = () => {
         {/* Back Button */}
         <BackButton 
           onPress={() => router.back()} 
-          style={{ marginTop: 16, marginLeft: 16 }}
+          style={styles.backButton}
         />
         
         <ScrollView 
-          style={{ flex: 1 }}
-          contentContainerStyle={{ flexGrow: 1 }}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <Container padding="lg">
             {/* Header */}
-            <View style={{ alignItems: 'center', marginBottom: theme.spacing.xl }}>
+            <View style={styles.header}>
               <Text 
                 variant="title" 
-                style={{ 
-                  textAlign: 'center', 
-                  marginBottom: theme.spacing.sm,
-                  color: theme.colors.text 
-                }}
+                style={styles.title}
               >
                 Payment setup
               </Text>
               <Text 
                 variant="body" 
-                style={{ 
-                  textAlign: 'center', 
-                  color: theme.colors.textSecondary,
-                  lineHeight: 22 
-                }}
+                style={styles.subtitle}
               >
                 Set up your payment details to receive earnings
               </Text>
             </View>
 
             {/* Form Card */}
-            <Card variant="elevated" style={{ marginBottom: theme.spacing.lg }}>
+            <Card variant="elevated" style={styles.card}>
               {/* Bank Details */}
               <Text 
                 variant="subtitle" 
-                style={{ 
-                  marginBottom: theme.spacing.md,
-                  color: theme.colors.text 
-                }}
+                style={styles.sectionTitle}
               >
                 Bank Account Details
               </Text>
@@ -218,47 +209,44 @@ const PaymentSetup: React.FC = () => {
               <Input
                 label="Account Holder Name"
                 value={localData.bankDetails.accountHolderName}
-                onChangeText={(value) => handleBankDetailChange('accountHolderName', value)}
+                onChangeText={(value: string) => handleBankDetailChange('accountHolderName', value)}
                 placeholder="Enter account holder name"
                 error={errors.accountHolderName}
-                style={{ marginBottom: theme.spacing.md }}
+                containerStyle={styles.inputMargin}
               />
 
               <Input
                 label="Account Number"
                 value={localData.bankDetails.accountNumber}
-                onChangeText={(value) => handleBankDetailChange('accountNumber', value.replace(/\D/g, ''))}
+                onChangeText={(value: string) => handleBankDetailChange('accountNumber', value.replace(/\D/g, ''))}
                 placeholder="Enter account number"
-                type="numeric"
+                keyboardType="numeric"
                 error={errors.accountNumber}
-                style={{ marginBottom: theme.spacing.md }}
+                containerStyle={styles.inputMargin}
               />
 
               <Input
                 label="IFSC Code"
                 value={localData.bankDetails.ifscCode}
-                onChangeText={(value) => handleBankDetailChange('ifscCode', value.toUpperCase())}
+                onChangeText={(value: string) => handleBankDetailChange('ifscCode', value.toUpperCase())}
                 placeholder="Enter IFSC code (e.g., SBIN0001234)"
                 error={errors.ifscCode}
-                style={{ marginBottom: theme.spacing.md }}
+                containerStyle={styles.inputMargin}
               />
 
               <Input
                 label="Bank Name"
                 value={localData.bankDetails.bankName}
-                onChangeText={(value) => handleBankDetailChange('bankName', value)}
+                onChangeText={(value: string) => handleBankDetailChange('bankName', value)}
                 placeholder="Enter bank name"
                 error={errors.bankName}
-                style={{ marginBottom: theme.spacing.lg }}
+                containerStyle={styles.inputMargin}
               />
 
               {/* UPI Details */}
               <Text 
                 variant="subtitle" 
-                style={{ 
-                  marginBottom: theme.spacing.md,
-                  color: theme.colors.text 
-                }}
+                style={styles.sectionTitle}
               >
                 UPI Details (Optional)
               </Text>
@@ -266,53 +254,43 @@ const PaymentSetup: React.FC = () => {
               <Input
                 label="UPI ID"
                 value={localData.upiId}
-                onChangeText={handleUpiIdChange}
+                onChangeText={(value: string) => handleUpiIdChange(value)}
                 placeholder="yourname@paytm or yourname@phonepe"
                 error={errors.upiId}
-                style={{ marginBottom: theme.spacing.lg }}
+                containerStyle={styles.inputMargin}
               />
 
               {/* Commission Information */}
-              <View style={{
-                padding: theme.spacing.md,
-                backgroundColor: theme.colors.info + '10',
-                borderRadius: theme.borderRadius.md,
-                marginBottom: theme.spacing.lg,
-              }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.sm }}>
-                  <Icon name="info" size={20} color={theme.colors.info} />
-                  <Text variant="subtitle" style={{ color: theme.colors.info, marginLeft: theme.spacing.sm }}>
+              <View style={styles.infoBox}>
+                <View style={styles.infoHeader}>
+                  <Icon name="info" size={20} color="#3B82F6" />
+                  <Text variant="subtitle" style={styles.infoTitle}>
                     Commission Information
                   </Text>
                 </View>
-                <Text variant="body" style={{ color: theme.colors.textSecondary, lineHeight: 20 }}>
+                <Text variant="body" style={styles.infoText}>
                   TiffinWale charges a {localData.commissionRate}% commission on all orders. This helps us maintain the platform, provide customer support, and handle payments securely.
                 </Text>
-                <Text variant="caption" style={{ color: theme.colors.textSecondary, marginTop: theme.spacing.sm }}>
+                <Text variant="caption" style={styles.infoItem}>
                   • Commission is calculated on the order total (excluding taxes)
                 </Text>
-                <Text variant="caption" style={{ color: theme.colors.textSecondary }}>
+                <Text variant="caption" style={styles.infoItemLast}>
                   • Payments are processed weekly
                 </Text>
-                <Text variant="caption" style={{ color: theme.colors.textSecondary }}>
+                <Text variant="caption" style={styles.infoItemLast}>
                   • No hidden fees or charges
                 </Text>
               </View>
 
               {/* Security Notice */}
-              <View style={{
-                padding: theme.spacing.md,
-                backgroundColor: theme.colors.success + '10',
-                borderRadius: theme.borderRadius.md,
-                marginBottom: theme.spacing.lg,
-              }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.sm }}>
-                  <Icon name="shield" size={20} color={theme.colors.success} />
-                  <Text variant="subtitle" style={{ color: theme.colors.success, marginLeft: theme.spacing.sm }}>
+              <View style={styles.successBox}>
+                <View style={styles.infoHeader}>
+                  <Icon name="shield" size={20} color="#10B981" />
+                  <Text variant="subtitle" style={styles.successTitle}>
                     Secure & Encrypted
                   </Text>
                 </View>
-                <Text variant="body" style={{ color: theme.colors.textSecondary, lineHeight: 20 }}>
+                <Text variant="body" style={styles.infoText}>
                   Your payment information is encrypted and stored securely. We use bank-grade security to protect your financial data.
                 </Text>
               </View>
@@ -323,7 +301,7 @@ const PaymentSetup: React.FC = () => {
                 onPress={handleContinue}
                 disabled={!isFormValid}
                 fullWidth
-                style={{ marginBottom: theme.spacing.md }}
+                style={styles.buttonMargin}
               />
             </Card>
           </Container>
@@ -331,6 +309,100 @@ const PaymentSetup: React.FC = () => {
       </KeyboardAvoidingView>
     </Screen>
   );
-};
+}
 
-export default PaymentSetup;
+const styles = StyleSheet.create({
+  keyboardView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  backButton: {
+    marginTop: 16,
+    marginLeft: 16,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  title: {
+    textAlign: 'center',
+    marginBottom: 8,
+    fontSize: 24,
+    fontFamily: 'Poppins-Bold',
+    color: '#1A1A1A',
+  },
+  subtitle: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+    lineHeight: 22,
+  },
+  card: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    marginBottom: 16,
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#1A1A1A',
+  },
+  inputMargin: {
+    marginBottom: 16,
+  },
+  infoBox: {
+    padding: 16,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  successBox: {
+    padding: 16,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 8,
+    marginBottom: 24,
+  },
+  infoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  infoTitle: {
+    color: '#3B82F6',
+    marginLeft: 8,
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+  },
+  successTitle: {
+    color: '#10B981',
+    marginLeft: 8,
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+  },
+  infoText: {
+    color: '#666',
+    lineHeight: 20,
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    marginBottom: 8,
+  },
+  infoItem: {
+    color: '#666',
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+  },
+  infoItemLast: {
+    color: '#666',
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    marginTop: 4,
+  },
+  buttonMargin: {
+    marginBottom: 16,
+  },
+});

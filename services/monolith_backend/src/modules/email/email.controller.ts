@@ -107,7 +107,7 @@ export class EmailController {
 
   @Post("preview")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.BUSINESS)
+  @Roles(UserRole.ADMIN, UserRole.PARTNER)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Preview email template" })
   @ApiResponse({ status: 200, description: "Email preview generated" })
@@ -159,7 +159,7 @@ export class EmailController {
 
   @Get("templates")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.BUSINESS)
+  @Roles(UserRole.ADMIN, UserRole.PARTNER)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get available email templates" })
   @ApiResponse({ status: 200, description: "List of available templates" })

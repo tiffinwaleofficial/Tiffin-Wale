@@ -14,8 +14,9 @@ declare const process: {
 
 export default {
   expo: {
-    name: "TiffinWale Partner",
-    slug: "tiffinwale-partner",
+    name: "Tiffin Wale Business",
+    slug: "tiffin-wale-business",
+    owner: "tiffinwale_official",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
@@ -54,6 +55,9 @@ export default {
       ]
     },
     extra: {
+      eas: {
+        projectId: "a85a689c-b7b9-4cb4-8db8-a8d8aac64f16"
+      },
       apiBaseUrl: process.env.API_BASE_URL,
       cloudinary: {
         cloudName: process.env.CLOUDINARY_CLOUD_NAME,

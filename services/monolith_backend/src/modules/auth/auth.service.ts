@@ -184,14 +184,15 @@ export class AuthService {
         throw new ConflictException("Email already in use");
       }
 
-      // Create user with business role
+      // Create user with partner role
       const userData = {
         email: registerPartnerDto.email,
         password: registerPartnerDto.password,
-        role: UserRole.BUSINESS,
+        role: UserRole.PARTNER,
         firstName: registerPartnerDto.firstName,
         lastName: registerPartnerDto.lastName,
         phoneNumber: registerPartnerDto.phoneNumber,
+        phoneVerified: false, // Will be set to true after phone verification
       };
 
       const user = await this.userService.create(userData);
@@ -591,7 +592,10 @@ export class AuthService {
     };
   }
 
-  async checkPhoneExists(phoneNumber: string, role?: "customer" | "business") {
+  async checkPhoneExists(
+    phoneNumber: string,
+    role: UserRole.CUSTOMER | UserRole.PARTNER,
+  ) {
     try {
       const user = await this.userService.findByPhoneNumber(phoneNumber);
 
@@ -603,24 +607,15 @@ export class AuthService {
         };
       }
 
-      // If role is specified, check if user has the specified role
-      if (role) {
-        const hasRole = user.role === role;
-        return {
-          exists: hasRole,
-          userId: hasRole ? user._id : null,
-          role: user.role,
-          message: hasRole
-            ? null
-            : `User exists but has role '${user.role}', not '${role}'`,
-        };
-      }
-
-      // If no role specified, return general existence
+      // Check if user has the specified role (role is now required)
+      const hasRole = user.role === role;
       return {
-        exists: true,
-        userId: user._id,
+        exists: hasRole,
+        userId: hasRole ? user._id : null,
         role: user.role,
+        message: hasRole
+          ? null
+          : `This phone number is registered as a ${user.role}. Please use the correct app for your account type.`,
       };
     } catch (error) {
       console.error("Error checking phone existence:", error);
@@ -636,7 +631,7 @@ export class AuthService {
   async loginWithPhone(
     phoneNumber: string,
     firebaseUid: string,
-    role?: "customer" | "business",
+    role: UserRole.CUSTOMER | UserRole.PARTNER,
   ) {
     try {
       // Find user by phone number
@@ -646,10 +641,10 @@ export class AuthService {
         throw new NotFoundException("User not found with this phone number");
       }
 
-      // If role is specified, check if user has the specified role
-      if (role && user.role !== role) {
+      // Check if user has the specified role (role is now required)
+      if (user.role !== role) {
         throw new UnauthorizedException(
-          `User exists but has role '${user.role}', not '${role}'`,
+          `This phone number is registered as a ${user.role}. Please use the correct app for your account type.`,
         );
       }
 
@@ -659,9 +654,11 @@ export class AuthService {
         );
       }
 
-      // Store Firebase UID for future reference (optional)
+      // Store Firebase UID and mark phone as verified
       if (!user.firebaseUid) {
         await this.userService.updateFirebaseUid(user._id, firebaseUid);
+        // Mark phone as verified since Firebase has verified it
+        await this.userService.updatePhoneVerification(user._id, true);
       }
 
       return this.generateToken(user);

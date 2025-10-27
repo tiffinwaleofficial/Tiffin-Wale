@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '../../components/layout/Screen';
 import { Container } from '../../components/layout/Container';
 import { Card } from '../../components/layout/Card';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
 import { Text } from '../../components/ui/Text';
 import { Image } from '../../components/ui/Image';
 import ProgressIndicator from '../../components/onboarding/ProgressIndicator';
 import BackButton from '../../components/navigation/BackButton';
 import { useOnboardingStore, PersonalInfoData } from '../../store/onboardingStore';
-import { useTheme } from '../../store/themeStore';
 
-const Step1Welcome: React.FC = () => {
-  const { theme } = useTheme();
+export default function Step1Welcome() {
   const { 
     currentStep, 
     totalSteps, 
@@ -107,11 +105,11 @@ const Step1Welcome: React.FC = () => {
     // Save data and proceed
     updateFormData('step1', localData);
     setCurrentStep(2);
-    router.push('./account-setup');
+    router.push('./business-profile');
   };
 
   const handleLoginPress = () => {
-    router.push('/(auth)/login');
+    router.push('/(auth)/phone-input');
   };
 
   const isFormValid = Object.keys(errors).length === 0 && 
@@ -121,64 +119,53 @@ const Step1Welcome: React.FC = () => {
     localData.phoneNumber.trim(); // Phone number is pre-populated from verification
 
   return (
-    <Screen backgroundColor={theme.colors.background}>
+    <Screen backgroundColor="#FFFAF0">
       <KeyboardAvoidingView 
-        style={{ flex: 1 }} 
+        style={styles.keyboardView} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ProgressIndicator currentStep={currentStep} totalSteps={totalSteps} />
         
         {/* Back Button - Navigate to Login */}
         <BackButton 
-          onPress={() => router.push('/(auth)/login')} 
-          style={{ marginTop: 16, marginLeft: 16 }}
+          onPress={() => router.push('/(auth)/phone-input')} 
+          style={styles.backButton}
         />
         
         <ScrollView 
-          style={{ flex: 1 }}
-          contentContainerStyle={{ flexGrow: 1 }}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <Container padding="lg">
             {/* Header */}
-            <View style={{ alignItems: 'center', marginBottom: theme.spacing.xl }}>
+            <View style={styles.header}>
               <Image
                 source="https://via.placeholder.com/80x80/FF9F43/FFFFFF?text=TW"
                 width={80}
                 height={80}
                 borderRadius={40}
-                style={{ marginBottom: theme.spacing.md }}
+                style={styles.logo}
               />
               <Text 
                 variant="title" 
-                style={{ 
-                  textAlign: 'center', 
-                  marginBottom: theme.spacing.sm,
-                  color: theme.colors.text 
-                }}
+                style={styles.title}
               >
                 Join TiffinWale Partner Network
               </Text>
               <Text 
                 variant="body" 
-                style={{ 
-                  textAlign: 'center', 
-                  color: theme.colors.textSecondary,
-                  lineHeight: 22 
-                }}
+                style={styles.subtitle}
               >
                 Start earning with your delicious food. Join thousands of partners already making money with TiffinWale.
               </Text>
             </View>
 
             {/* Form Card */}
-            <Card variant="elevated" style={{ marginBottom: theme.spacing.lg }}>
+            <Card variant="elevated" style={styles.card}>
               <Text 
                 variant="subtitle" 
-                style={{ 
-                  marginBottom: theme.spacing.lg,
-                  color: theme.colors.text 
-                }}
+                style={styles.formTitle}
               >
                 Let's get started
               </Text>
@@ -187,56 +174,42 @@ const Step1Welcome: React.FC = () => {
               <Input
                 label="First Name"
                 value={localData.firstName}
-                onChangeText={(value) => handleFieldChange('firstName', value)}
+                onChangeText={(value: string) => handleFieldChange('firstName', value)}
                 placeholder="Enter your first name"
                 error={errors.firstName}
-                style={{ marginBottom: theme.spacing.md }}
+                containerStyle={styles.inputMargin}
               />
 
               {/* Last Name */}
               <Input
                 label="Last Name"
                 value={localData.lastName}
-                onChangeText={(value) => handleFieldChange('lastName', value)}
+                onChangeText={(value: string) => handleFieldChange('lastName', value)}
                 placeholder="Enter your last name"
                 error={errors.lastName}
-                style={{ marginBottom: theme.spacing.md }}
+                containerStyle={styles.inputMargin}
               />
 
               {/* Email */}
               <Input
                 label="Email Address"
                 value={localData.email}
-                onChangeText={(value) => handleFieldChange('email', value)}
+                onChangeText={(value: string) => handleFieldChange('email', value)}
                 placeholder="Enter your email address"
-                type="email"
+                keyboardType="email-address"
+                autoCapitalize="none"
                 error={errors.email}
-                style={{ marginBottom: theme.spacing.md }}
+                containerStyle={styles.inputMargin}
               />
 
               {/* Phone Number - Already Verified */}
-              <View style={{ marginBottom: theme.spacing.lg }}>
-                <Text style={{ 
-                  fontFamily: 'Poppins-Medium', 
-                  fontSize: 14, 
-                  color: theme.colors.text,
-                  marginBottom: 8 
-                }}>
+              <View style={styles.phoneContainer}>
+                <Text style={styles.phoneLabel}>
                   Phone Number (Verified)
                 </Text>
-                <View style={{
-                  backgroundColor: '#F0F9FF',
-                  borderRadius: 12,
-                  padding: 16,
-                  borderWidth: 1,
-                  borderColor: '#10B981',
-                }}>
-                  <Text style={{
-                    fontFamily: 'Poppins-Medium',
-                    fontSize: 16,
-                    color: '#10B981',
-                  }}>
-                    +91 {localData.phoneNumber.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')}
+                <View style={styles.phoneVerifiedBox}>
+                  <Text style={styles.phoneNumber}>
+                    +91 {localData.phoneNumber.replace(/^\+91/, '').replace(/(\d{5})(\d{5})/, '$1 $2')}
                   </Text>
                 </View>
               </View>
@@ -247,26 +220,10 @@ const Step1Welcome: React.FC = () => {
                 onPress={handleContinue}
                 disabled={!isFormValid}
                 fullWidth
-                style={{ marginBottom: theme.spacing.md }}
+                style={styles.buttonMargin}
               />
             </Card>
 
-            {/* Login Link */}
-            <View style={{ alignItems: 'center' }}>
-              <Text variant="body" style={{ color: theme.colors.textSecondary }}>
-                Already have an account?{' '}
-                <Text 
-                  variant="body" 
-                  style={{ 
-                    color: theme.colors.primary,
-                    textDecorationLine: 'underline' 
-                  }}
-                  onPress={handleLoginPress}
-                >
-                  Sign In
-                </Text>
-              </Text>
-            </View>
           </Container>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -274,4 +231,75 @@ const Step1Welcome: React.FC = () => {
   );
 };
 
-export default Step1Welcome;
+const styles = StyleSheet.create({
+  keyboardView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  backButton: {
+    marginTop: 16,
+    marginLeft: 16,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  logo: {
+    marginBottom: 16,
+  },
+  title: {
+    textAlign: 'center',
+    marginBottom: 8,
+    fontSize: 24,
+    fontFamily: 'Poppins-Bold',
+    color: '#1A1A1A',
+  },
+  subtitle: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+    lineHeight: 22,
+  },
+  card: {
+    marginBottom: 24,
+  },
+  formTitle: {
+    marginBottom: 24,
+    fontSize: 18,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#1A1A1A',
+  },
+  inputMargin: {
+    marginBottom: 16,
+  },
+  phoneContainer: {
+    marginBottom: 24,
+  },
+  phoneLabel: {
+    fontFamily: 'Poppins-Medium',
+    fontSize: 14,
+    color: '#1A1A1A',
+    marginBottom: 8,
+  },
+  phoneVerifiedBox: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  phoneNumber: {
+    fontFamily: 'Poppins-Medium',
+    fontSize: 16,
+    color: '#10B981',
+  },
+  buttonMargin: {
+    marginBottom: 16,
+  },
+});

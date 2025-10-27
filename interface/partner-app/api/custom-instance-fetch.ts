@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { envConfig } from '../config/env';
-import NavigationService from '../../services/NavigationService';
+import { config } from '../config';
+import NavigationService from '../services/navigationService';
 
 // Custom fetch-based client for React Native/Expo compatibility
 export const customInstance = async <T = any>(

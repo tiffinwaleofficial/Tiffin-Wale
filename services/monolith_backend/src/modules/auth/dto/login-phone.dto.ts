@@ -1,11 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
-import {
-  IsString,
-  IsNotEmpty,
-  Matches,
-  IsOptional,
-  IsEnum,
-} from "class-validator";
+import { IsString, IsNotEmpty, Matches, IsEnum } from "class-validator";
+import { UserRole } from "../../../common/interfaces/user.interface";
 
 export class LoginPhoneDto {
   @ApiProperty({
@@ -29,13 +24,13 @@ export class LoginPhoneDto {
 
   @ApiProperty({
     example: "customer",
-    description: "Role to login as (customer or business)",
-    enum: ["customer", "business"],
-    required: false,
+    description: "Role to login as (customer or partner)",
+    enum: [UserRole.CUSTOMER, UserRole.PARTNER],
+    required: true,
   })
-  @IsOptional()
-  @IsEnum(["customer", "business"], {
-    message: "Role must be either 'customer' or 'business'",
+  @IsNotEmpty({ message: "Role is required" })
+  @IsEnum([UserRole.CUSTOMER, UserRole.PARTNER], {
+    message: "Role must be either 'customer' or 'partner'",
   })
-  role?: "customer" | "business";
+  role: UserRole.CUSTOMER | UserRole.PARTNER;
 }

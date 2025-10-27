@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
-import { View, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '../../components/layout/Screen';
 import { Container } from '../../components/layout/Container';
 import { Card } from '../../components/layout/Card';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
 import { Text } from '../../components/ui/Text';
 import { Switch } from '../../components/ui/Switch';
 import CustomDateTimePicker from '../../components/ui/DateTimePicker';
 import ProgressIndicator from '../../components/onboarding/ProgressIndicator';
 import BackButton from '../../components/navigation/BackButton';
 import { useOnboardingStore, LocationHoursData } from '../../store/onboardingStore';
-import { useTheme } from '../../store/themeStore';
 
 const daysOfWeek = [
   { id: 'monday', label: 'Monday' },
@@ -32,8 +31,7 @@ const timeSlots = [
   '22:00', '22:30', '23:00', '23:30', '00:00'
 ];
 
-const LocationHours: React.FC = () => {
-  const { theme } = useTheme();
+export default function LocationHours() {
   const { 
     currentStep, 
     totalSteps, 
@@ -45,7 +43,7 @@ const LocationHours: React.FC = () => {
   } = useOnboardingStore();
 
   const [localData, setLocalData] = useState<LocationHoursData>(
-    formData.step4 || {
+    (formData.step4 as unknown as LocationHoursData) || {
       address: {
         street: '',
         city: '',
@@ -206,9 +204,9 @@ const LocationHours: React.FC = () => {
     localData.deliveryRadius > 0;
 
   return (
-    <Screen backgroundColor={theme.colors.background}>
+    <Screen backgroundColor="#FFFAF0">
       <KeyboardAvoidingView 
-        style={{ flex: 1 }} 
+        style={styles.keyboardView} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ProgressIndicator currentStep={currentStep} totalSteps={totalSteps} />
@@ -216,48 +214,37 @@ const LocationHours: React.FC = () => {
         {/* Back Button */}
         <BackButton 
           onPress={() => router.back()} 
-          style={{ marginTop: 16, marginLeft: 16 }}
+          style={styles.backButton}
         />
         
         <ScrollView 
-          style={{ flex: 1 }}
-          contentContainerStyle={{ flexGrow: 1 }}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <Container padding="lg">
             {/* Header */}
-            <View style={{ alignItems: 'center', marginBottom: theme.spacing.xl }}>
+            <View style={styles.header}>
               <Text 
                 variant="title" 
-                style={{ 
-                  textAlign: 'center', 
-                  marginBottom: theme.spacing.sm,
-                  color: theme.colors.text 
-                }}
+                style={styles.title}
               >
                 Where is your business located?
               </Text>
               <Text 
                 variant="body" 
-                style={{ 
-                  textAlign: 'center', 
-                  color: theme.colors.textSecondary,
-                  lineHeight: 22 
-                }}
+                style={styles.subtitle}
               >
                 Tell us your business address and operating hours
               </Text>
             </View>
 
             {/* Form Card */}
-            <Card variant="elevated" style={{ marginBottom: theme.spacing.lg }}>
+            <Card variant="elevated" style={styles.card}>
               {/* Address Section */}
               <Text 
                 variant="subtitle" 
-                style={{ 
-                  marginBottom: theme.spacing.md,
-                  color: theme.colors.text 
-                }}
+                style={styles.sectionTitle}
               >
                 Business Address
               </Text>
@@ -265,50 +252,46 @@ const LocationHours: React.FC = () => {
               <Input
                 label="Street Address"
                 value={localData.address.street}
-                onChangeText={(value) => handleAddressChange('street', value)}
+                onChangeText={(value: string) => handleAddressChange('street', value)}
                 placeholder="Enter your street address"
+                multiline
+                numberOfLines={3}
                 error={errors.street}
-                style={{ marginBottom: theme.spacing.md }}
+                containerStyle={styles.inputMargin}
               />
 
-              <View style={{ flexDirection: 'row', marginBottom: theme.spacing.md }}>
-                <View style={{ flex: 2, marginRight: theme.spacing.sm }}>
-                  <Input
-                    label="City"
-                    value={localData.address.city}
-                    onChangeText={(value) => handleAddressChange('city', value)}
-                    placeholder="Enter city"
-                    error={errors.city}
-                  />
-                </View>
-                <View style={{ flex: 1, marginLeft: theme.spacing.sm }}>
-                  <Input
-                    label="State"
-                    value={localData.address.state}
-                    onChangeText={(value) => handleAddressChange('state', value)}
-                    placeholder="Enter state"
-                    error={errors.state}
-                  />
-                </View>
-              </View>
+              <Input
+                label="City"
+                value={localData.address.city}
+                onChangeText={(value: string) => handleAddressChange('city', value)}
+                placeholder="Enter city"
+                error={errors.city}
+                containerStyle={styles.inputMargin}
+              />
+
+              <Input
+                label="State"
+                value={localData.address.state}
+                onChangeText={(value: string) => handleAddressChange('state', value)}
+                placeholder="Enter state"
+                error={errors.state}
+                containerStyle={styles.inputMargin}
+              />
 
               <Input
                 label="Postal Code"
                 value={localData.address.postalCode}
-                onChangeText={(value) => handleAddressChange('postalCode', value.replace(/\D/g, '').slice(0, 6))}
+                onChangeText={(value: string) => handleAddressChange('postalCode', value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="Enter 6-digit postal code"
-                type="numeric"
+                keyboardType="numeric"
                 error={errors.postalCode}
-                style={{ marginBottom: theme.spacing.lg }}
+                containerStyle={styles.inputMargin}
               />
 
               {/* Business Hours Section */}
               <Text 
                 variant="subtitle" 
-                style={{ 
-                  marginBottom: theme.spacing.md,
-                  color: theme.colors.text 
-                }}
+                style={styles.sectionTitle}
               >
                 Operating Hours
               </Text>
@@ -316,43 +299,24 @@ const LocationHours: React.FC = () => {
               {/* Operating Days */}
               <Text 
                 variant="body" 
-                style={{ 
-                  marginBottom: theme.spacing.sm,
-                  color: theme.colors.textSecondary 
-                }}
+                style={styles.sectionDescription}
               >
                 Select operating days
               </Text>
-              <View style={{ 
-                flexDirection: 'row', 
-                flexWrap: 'wrap', 
-                marginBottom: theme.spacing.md 
-              }}>
+              <View style={styles.dayContainer}>
                 {daysOfWeek.map((day) => (
                   <TouchableOpacity
                     key={day.id}
                     onPress={() => handleDayToggle(day.id)}
-                    style={{
-                      paddingHorizontal: theme.spacing.md,
-                      paddingVertical: theme.spacing.sm,
-                      marginRight: theme.spacing.sm,
-                      marginBottom: theme.spacing.sm,
-                      borderWidth: 1,
-                      borderColor: localData.businessHours.days.includes(day.id) 
-                        ? theme.colors.primary 
-                        : theme.colors.border,
-                      borderRadius: theme.borderRadius.md,
-                      backgroundColor: localData.businessHours.days.includes(day.id) 
-                        ? theme.colors.primary + '10' 
-                        : theme.colors.background,
-                    }}
+                    style={[
+                      styles.dayTag,
+                      localData.businessHours.days.includes(day.id) ? styles.dayTagSelected : styles.dayTagUnselected
+                    ]}
                   >
                     <Text 
-                      variant="caption" 
-                      style={{ 
-                        color: localData.businessHours.days.includes(day.id) 
-                          ? theme.colors.primary 
-                          : theme.colors.textSecondary 
+                      style={{
+                        ...styles.dayTagText,
+                        ...(localData.businessHours.days.includes(day.id) ? styles.dayTagTextSelected : styles.dayTagTextUnselected)
                       }}
                     >
                       {day.label.slice(0, 3)}
@@ -361,14 +325,14 @@ const LocationHours: React.FC = () => {
                 ))}
               </View>
               {errors.days && (
-                <Text variant="caption" style={{ color: theme.colors.error, marginBottom: theme.spacing.md }}>
+                <Text variant="caption" style={styles.errorText}>
                   {errors.days}
                 </Text>
               )}
 
               {/* Operating Times */}
-              <View style={{ flexDirection: 'row', marginBottom: theme.spacing.lg }}>
-                <View style={{ flex: 1, marginRight: theme.spacing.sm }}>
+              <View style={styles.timeRow}>
+                <View style={styles.timePicker}>
                   <CustomDateTimePicker
                     label="Opening Time"
                     mode="time"
@@ -377,7 +341,7 @@ const LocationHours: React.FC = () => {
                     placeholder="Select opening time"
                   />
                 </View>
-                <View style={{ flex: 1, marginLeft: theme.spacing.sm }}>
+                <View style={styles.timePickerLast}>
                   <CustomDateTimePicker
                     label="Closing Time"
                     mode="time"
@@ -391,10 +355,7 @@ const LocationHours: React.FC = () => {
               {/* Delivery Radius */}
               <Text 
                 variant="subtitle" 
-                style={{ 
-                  marginBottom: theme.spacing.md,
-                  color: theme.colors.text 
-                }}
+                style={styles.sectionTitle}
               >
                 Delivery Radius
               </Text>
@@ -414,31 +375,14 @@ const LocationHours: React.FC = () => {
                   }
                 }}
                 placeholder="Enter delivery radius (1-50 km)"
-                type="numeric"
+                keyboardType="numeric"
                 error={errors.deliveryRadius}
-                style={{ marginBottom: theme.spacing.md }}
+                containerStyle={styles.inputMargin}
               />
               
-              <View style={{ 
-                height: 6, 
-                backgroundColor: theme.colors.border, 
-                borderRadius: 3,
-                marginBottom: theme.spacing.lg,
-                position: 'relative'
-              }}>
-                <View style={{ 
-                  height: '100%', 
-                  backgroundColor: theme.colors.primary, 
-                  borderRadius: 3,
-                  width: `${Math.min((localData.deliveryRadius / 50) * 100, 100)}%`
-                }} />
-                <Text style={{
-                  position: 'absolute',
-                  right: 0,
-                  top: -20,
-                  fontSize: 12,
-                  color: theme.colors.textSecondary
-                }}>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: `${Math.min((localData.deliveryRadius / 50) * 100, 100)}%` }]} />
+                <Text style={styles.progressText}>
                   Max: 50km
                 </Text>
               </View>
@@ -449,7 +393,7 @@ const LocationHours: React.FC = () => {
                 onPress={handleContinue}
                 disabled={!isFormValid}
                 fullWidth
-                style={{ marginBottom: theme.spacing.md }}
+                style={styles.buttonMargin}
               />
             </Card>
           </Container>
@@ -457,6 +401,145 @@ const LocationHours: React.FC = () => {
       </KeyboardAvoidingView>
     </Screen>
   );
-};
+}
 
-export default LocationHours;
+const styles = StyleSheet.create({
+  keyboardView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  backButton: {
+    marginTop: 16,
+    marginLeft: 16,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  title: {
+    textAlign: 'center',
+    marginBottom: 8,
+    fontSize: 24,
+    fontFamily: 'Poppins-Bold',
+    color: '#1A1A1A',
+  },
+  subtitle: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+    lineHeight: 22,
+  },
+  card: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    marginBottom: 16,
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#1A1A1A',
+  },
+  sectionDescription: {
+    marginBottom: 8,
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+  },
+  inputMargin: {
+    marginBottom: 16,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  inputHalf: {
+    flex: 1,
+    marginRight: 8,
+  },
+  inputTwoThirds: {
+    flex: 2,
+  },
+  inputHalfLast: {
+    marginLeft: 8,
+  },
+  inputOneThird: {
+    flex: 1,
+  },
+  dayTag: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  dayTagSelected: {
+    borderColor: '#FF9B42',
+    backgroundColor: '#FFF8F0',
+  },
+  dayTagUnselected: {
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFAF0',
+  },
+  dayTagText: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+  },
+  dayTagTextSelected: {
+    color: '#FF9B42',
+  },
+  dayTagTextUnselected: {
+    color: '#666',
+  },
+  errorText: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: '#EF4444',
+    marginBottom: 16,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    marginBottom: 24,
+  },
+  timePicker: {
+    flex: 1,
+    marginRight: 8,
+  },
+  timePickerLast: {
+    marginRight: 0,
+    marginLeft: 8,
+  },
+  progressBar: {
+    height: 6,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 3,
+    marginBottom: 24,
+    position: 'relative',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#FF9B42',
+    borderRadius: 3,
+  },
+  progressText: {
+    position: 'absolute',
+    right: 0,
+    top: -20,
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+  },
+  buttonMargin: {
+    marginBottom: 16,
+  },
+  dayContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 16,
+  },
+});

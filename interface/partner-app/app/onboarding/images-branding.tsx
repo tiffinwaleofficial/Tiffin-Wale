@@ -1,22 +1,20 @@
 import React, { useState } from 'react';
-import { View, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, Image, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '../../components/layout/Screen';
 import { Container } from '../../components/layout/Container';
 import { Card } from '../../components/layout/Card';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
 import { Text } from '../../components/ui/Text';
 import { Icon } from '../../components/ui/Icon';
 import UploadComponent from '../../components/ui/UploadComponent';
 import ProgressIndicator from '../../components/onboarding/ProgressIndicator';
 import BackButton from '../../components/navigation/BackButton';
 import { useOnboardingStore, ImagesBrandingData } from '../../store/onboardingStore';
-import { useTheme } from '../../store/themeStore';
 import { UploadType, cloudinaryUploadService } from '../../services/cloudinaryUploadService';
 
-const ImagesBranding: React.FC = () => {
-  const { theme } = useTheme();
+export default function ImagesBranding() {
   const { 
     currentStep, 
     totalSteps, 
@@ -26,7 +24,7 @@ const ImagesBranding: React.FC = () => {
   } = useOnboardingStore();
 
   const [localData, setLocalData] = useState<ImagesBrandingData>(
-    formData.step6 || {
+    (formData.step6 as unknown as ImagesBrandingData) || {
       logoUrl: '',
       bannerUrl: '',
       socialMedia: {
@@ -84,9 +82,9 @@ const ImagesBranding: React.FC = () => {
   const isFormValid = true; // Images are optional
 
   return (
-    <Screen backgroundColor={theme.colors.background}>
+    <Screen backgroundColor="#FFFAF0">
       <KeyboardAvoidingView 
-        style={{ flex: 1 }} 
+        style={styles.keyboardView} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ProgressIndicator currentStep={currentStep} totalSteps={totalSteps} />
@@ -94,41 +92,33 @@ const ImagesBranding: React.FC = () => {
         {/* Back Button */}
         <BackButton 
           onPress={handleBack} 
-          style={{ marginTop: 16, marginLeft: 16 }}
+          style={styles.backButton}
         />
         
         <ScrollView 
-          style={{ flex: 1 }}
-          contentContainerStyle={{ flexGrow: 1 }}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <Container padding="lg">
             {/* Header */}
-            <View style={{ alignItems: 'center', marginBottom: theme.spacing.xl }}>
+            <View style={styles.header}>
               <Text 
                 variant="title" 
-                style={{ 
-                  textAlign: 'center', 
-                  marginBottom: theme.spacing.sm,
-                  color: theme.colors.text 
-                }}
+                style={styles.title}
               >
                 Showcase your business
               </Text>
               <Text 
                 variant="body" 
-                style={{ 
-                  textAlign: 'center', 
-                  color: theme.colors.textSecondary,
-                  lineHeight: 22 
-                }}
+                style={styles.subtitle}
               >
                 Add images and social media links to make your business stand out
               </Text>
             </View>
 
             {/* Form Card */}
-            <Card variant="elevated" style={{ marginBottom: theme.spacing.lg }}>
+            <Card variant="elevated" style={styles.card}>
               {/* Business Logo */}
               <UploadComponent
                 title="Business Logo"
@@ -156,53 +146,50 @@ const ImagesBranding: React.FC = () => {
               {/* Social Media Links */}
               <Text 
                 variant="subtitle" 
-                style={{ 
-                  marginBottom: theme.spacing.md,
-                  color: theme.colors.text 
-                }}
+                style={styles.sectionTitle}
               >
                 Social Media Links (Optional)
               </Text>
 
               {/* Instagram */}
-              <View style={{ marginBottom: theme.spacing.md }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.sm }}>
-                  <Text style={{ fontSize: 20, marginRight: theme.spacing.sm }}>📷</Text>
-                  <Text variant="body" style={{ color: theme.colors.text }}>Instagram</Text>
+              <View style={styles.socialSection}>
+                <View style={styles.socialHeader}>
+                  <Text style={styles.socialIcon}>📷</Text>
+                  <Text variant="body" style={styles.socialLabel}>Instagram</Text>
                 </View>
                 <Input
                   value={localData.socialMedia.instagram || ''}
-                  onChangeText={(value) => handleSocialMediaChange('instagram', value)}
+                  onChangeText={(value: string) => handleSocialMediaChange('instagram', value)}
                   placeholder="@your_instagram_handle"
-                  style={{ marginBottom: theme.spacing.sm }}
+                  containerStyle={styles.inputMargin}
                 />
               </View>
 
               {/* Facebook */}
-              <View style={{ marginBottom: theme.spacing.md }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.sm }}>
-                  <Text style={{ fontSize: 20, marginRight: theme.spacing.sm }}>📘</Text>
-                  <Text variant="body" style={{ color: theme.colors.text }}>Facebook</Text>
+              <View style={styles.socialSection}>
+                <View style={styles.socialHeader}>
+                  <Text style={styles.socialIcon}>📘</Text>
+                  <Text variant="body" style={styles.socialLabel}>Facebook</Text>
                 </View>
                 <Input
                   value={localData.socialMedia.facebook || ''}
-                  onChangeText={(value) => handleSocialMediaChange('facebook', value)}
+                  onChangeText={(value: string) => handleSocialMediaChange('facebook', value)}
                   placeholder="facebook.com/your-page"
-                  style={{ marginBottom: theme.spacing.sm }}
+                  containerStyle={styles.inputMargin}
                 />
               </View>
 
               {/* Twitter */}
-              <View style={{ marginBottom: theme.spacing.lg }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.sm }}>
-                  <Text style={{ fontSize: 20, marginRight: theme.spacing.sm }}>🐦</Text>
-                  <Text variant="body" style={{ color: theme.colors.text }}>Twitter</Text>
+              <View style={styles.socialSectionLast}>
+                <View style={styles.socialHeader}>
+                  <Text style={styles.socialIcon}>🐦</Text>
+                  <Text variant="body" style={styles.socialLabel}>Twitter</Text>
                 </View>
                 <Input
                   value={localData.socialMedia.twitter || ''}
-                  onChangeText={(value) => handleSocialMediaChange('twitter', value)}
+                  onChangeText={(value: string) => handleSocialMediaChange('twitter', value)}
                   placeholder="@your_twitter_handle"
-                  style={{ marginBottom: theme.spacing.sm }}
+                  containerStyle={styles.inputMargin}
                 />
               </View>
 
@@ -212,7 +199,7 @@ const ImagesBranding: React.FC = () => {
                 onPress={handleContinue}
                 disabled={!isFormValid}
                 fullWidth
-                style={{ marginBottom: theme.spacing.md }}
+                style={styles.buttonMargin}
               />
             </Card>
           </Container>
@@ -220,6 +207,73 @@ const ImagesBranding: React.FC = () => {
       </KeyboardAvoidingView>
     </Screen>
   );
-};
+}
 
-export default ImagesBranding;
+const styles = StyleSheet.create({
+  keyboardView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  backButton: {
+    marginTop: 16,
+    marginLeft: 16,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  title: {
+    textAlign: 'center',
+    marginBottom: 8,
+    fontSize: 24,
+    fontFamily: 'Poppins-Bold',
+    color: '#1A1A1A',
+  },
+  subtitle: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+    lineHeight: 22,
+  },
+  card: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    marginBottom: 16,
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#1A1A1A',
+  },
+  socialSection: {
+    marginBottom: 16,
+  },
+  socialSectionLast: {
+    marginBottom: 24,
+  },
+  socialHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  socialIcon: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  socialLabel: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Medium',
+    color: '#1A1A1A',
+  },
+  inputMargin: {
+    marginBottom: 8,
+  },
+  buttonMargin: {
+    marginBottom: 16,
+  },
+});

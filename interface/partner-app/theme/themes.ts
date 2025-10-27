@@ -62,6 +62,12 @@ export interface ThemeTypography {
     tight: number;
     normal: number;
     relaxed: number;
+    xs: number;
+    sm: number;
+    md: number;
+    lg: number;
+    xl: number;
+    '2xl': number;
   };
 }
 
@@ -91,12 +97,43 @@ export interface ThemeBorderRadius {
   full: number;
 }
 
+export interface ThemeComponents {
+  button: {
+    height: {
+      small: number;
+      medium: number;
+      large: number;
+    };
+    padding: {
+      small: { horizontal: number; vertical: number };
+      medium: { horizontal: number; vertical: number };
+      large: { horizontal: number; vertical: number };
+    };
+  };
+  input: {
+    height: {
+      small: number;
+      medium: number;
+      large: number;
+    };
+    padding: {
+      horizontal: number;
+      vertical: number;
+    };
+  };
+  card: {
+    padding: number;
+    margin: number;
+  };
+}
+
 export interface Theme {
   colors: ThemeColors;
   typography: ThemeTypography;
   spacing: ThemeSpacing;
   shadows: ThemeShadows;
   borderRadius: ThemeBorderRadius;
+  components: ThemeComponents;
 }
 
 export const lightTheme: Theme = {
@@ -163,6 +200,12 @@ export const lightTheme: Theme = {
       tight: 1.2,
       normal: 1.5,
       relaxed: 1.75,
+      xs: 16,
+      sm: 20,
+      md: 24,
+      lg: 28,
+      xl: 32,
+      '2xl': 36,
     },
   },
   spacing: {
@@ -187,6 +230,35 @@ export const lightTheme: Theme = {
     lg: 12,
     xl: 16,
     full: 9999,
+  },
+  components: {
+    button: {
+      height: {
+        small: 32,
+        medium: 40,
+        large: 48,
+      },
+      padding: {
+        small: { horizontal: 12, vertical: 6 },
+        medium: { horizontal: 16, vertical: 8 },
+        large: { horizontal: 20, vertical: 12 },
+      },
+    },
+    input: {
+      height: {
+        small: 36,
+        medium: 44,
+        large: 52,
+      },
+      padding: {
+        horizontal: 12,
+        vertical: 8,
+      },
+    },
+    card: {
+      padding: 16,
+      margin: 8,
+    },
   },
 };
 
@@ -254,6 +326,12 @@ export const darkTheme: Theme = {
       tight: 1.2,
       normal: 1.5,
       relaxed: 1.75,
+      xs: 16,
+      sm: 20,
+      md: 24,
+      lg: 28,
+      xl: 32,
+      '2xl': 36,
     },
   },
   spacing: {
@@ -278,6 +356,35 @@ export const darkTheme: Theme = {
     lg: 12,
     xl: 16,
     full: 9999,
+  },
+  components: {
+    button: {
+      height: {
+        small: 32,
+        medium: 40,
+        large: 48,
+      },
+      padding: {
+        small: { horizontal: 12, vertical: 6 },
+        medium: { horizontal: 16, vertical: 8 },
+        large: { horizontal: 20, vertical: 12 },
+      },
+    },
+    input: {
+      height: {
+        small: 36,
+        medium: 44,
+        large: 52,
+      },
+      padding: {
+        horizontal: 12,
+        vertical: 8,
+      },
+    },
+    card: {
+      padding: 16,
+      margin: 8,
+    },
   },
 };
 

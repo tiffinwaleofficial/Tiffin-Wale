@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import api from '../utils/apiClient';
-import { Notification, NotificationType } from '../types/partner';
+import { api } from '../lib/api';
+import type { Notification } from '../lib/api/services/notification.service';
+import { NotificationType } from '../types/partner';
 
 interface NotificationState {
   notifications: Notification[];

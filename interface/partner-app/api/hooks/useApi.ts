@@ -1,11 +1,11 @@
 import { useMutation, useQuery, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
 import { Api } from '../generated/api';
 import { customInstance } from '../custom-instance';
-import { ENV } from '../../config/env';
+import { config } from '../../config';
 
 // Initialize API client with custom instance
 const api = new Api({
-  baseURL: ENV.API_BASE_URL,
+  baseURL: config.api.baseUrl,
 });
 
 // Export the API client for direct usage

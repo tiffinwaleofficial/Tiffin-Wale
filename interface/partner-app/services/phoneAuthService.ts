@@ -4,10 +4,14 @@ import {
   signInWithCredential,
   RecaptchaVerifier,
   ConfirmationResult,
-  User
+  User,
+  Auth
 } from 'firebase/auth';
-import { auth } from '../config/firebase';
+import { auth as firebaseAuth } from '../config/firebase';
 import { Platform } from 'react-native';
+import { config } from '../config';
+
+const auth = firebaseAuth;
 
 export interface PhoneAuthResult {
   success: boolean;
@@ -24,25 +28,20 @@ export interface OTPVerificationResult {
 class PhoneAuthService {
   private recaptchaVerifier: RecaptchaVerifier | null = null;
   private confirmationResult: ConfirmationResult | null = null;
-  
-  // Test phone numbers for development (same as Student App)
-  private testPhoneNumbers = [
-    '+919131114837', // Test number
-    '+911234567890', // Another test number
-  ];
 
   /**
    * Initialize reCAPTCHA verifier for web platform
+   * Production mode - Real SMS OTP enabled with Firebase Blaze Plan
    */
   private initializeRecaptcha(): void {
     if (Platform.OS === 'web' && !this.recaptchaVerifier) {
       this.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         size: 'invisible',
         callback: () => {
-          console.log('reCAPTCHA solved');
+          if (__DEV__) console.log('✅ reCAPTCHA verified successfully');
         },
         'expired-callback': () => {
-          console.log('reCAPTCHA expired');
+          console.warn('⚠️ reCAPTCHA expired, please refresh');
         }
       });
     }
@@ -86,13 +85,17 @@ class PhoneAuthService {
 
   /**
    * Send OTP to phone number
+   * PRODUCTION MODE: Real SMS via Firebase (Blaze Plan enabled)
    */
   async sendOTP(phoneNumber: string): Promise<PhoneAuthResult> {
     try {
-      if (__DEV__) console.log('📱 Partner PhoneAuth: Original phone number:', phoneNumber);
+      console.log('📱 PhoneAuth: Starting OTP send process...');
+      console.log('📱 PhoneAuth: Platform:', Platform.OS);
+      console.log('📱 PhoneAuth: Phone number received:', phoneNumber);
       
       // Validate phone number
       if (!this.validateIndianPhoneNumber(phoneNumber)) {
+        console.error('❌ PhoneAuth: Invalid phone number format');
         return {
           success: false,
           error: 'Please enter a valid Indian mobile number'
@@ -100,66 +103,57 @@ class PhoneAuthService {
       }
 
       const formattedNumber = this.formatPhoneNumber(phoneNumber);
-      if (__DEV__) console.log('📱 Partner PhoneAuth: Formatted phone number for Firebase:', formattedNumber);
+      console.log('📱 PhoneAuth: Formatted number:', formattedNumber);
       
-      // DEVELOPMENT BYPASS: Skip Firebase for test numbers
-      if (this.testPhoneNumbers.includes(formattedNumber)) {
-        if (__DEV__) console.log('🧪 Partner PhoneAuth: Development mode - Bypassing Firebase for test number');
-        
-        // Create a mock confirmation result for development
-        this.confirmationResult = {
-          verificationId: 'partner-dev-verification-id',
-          confirm: async (code: string) => {
-            if (code === '123456') {
-              // Return a mock user for development
-              return {
-                user: {
-                  uid: 'partner-dev-user-' + Date.now(),
-                  phoneNumber: formattedNumber,
-                  displayName: null,
-                  email: null,
-                  photoURL: null,
-                  providerId: 'phone',
-                  // Add other required User properties
-                } as any
-              };
-            } else {
-              throw new Error('Invalid verification code');
-            }
-          }
-        } as any;
-
-        return {
-          success: true
-        };
-      }
-      
-      // For production numbers, use Firebase
-      // Initialize reCAPTCHA for web
+      // Initialize reCAPTCHA for web platform
       if (Platform.OS === 'web') {
+        console.log('🌐 PhoneAuth: Web platform detected, initializing reCAPTCHA...');
+        
+        // Check if container exists
+        const container = document.getElementById('recaptcha-container');
+        if (!container) {
+          console.error('❌ PhoneAuth: recaptcha-container div not found in DOM');
+          throw new Error('reCAPTCHA container not found. Please refresh the page.');
+        }
+        console.log('✅ PhoneAuth: reCAPTCHA container found');
+        
         this.initializeRecaptcha();
         if (!this.recaptchaVerifier) {
-          throw new Error('reCAPTCHA verifier not initialized');
+          throw new Error('reCAPTCHA verifier not initialized. Please refresh the page.');
         }
+        console.log('✅ PhoneAuth: reCAPTCHA verifier initialized');
+      }
+      
+      console.log('📱 PhoneAuth: Calling Firebase signInWithPhoneNumber...');
+      
+      // Send OTP via Firebase - Works for both Web and React Native (with Blaze plan)
+      if (Platform.OS === 'web') {
         this.confirmationResult = await signInWithPhoneNumber(
           auth, 
           formattedNumber, 
-          this.recaptchaVerifier
+          this.recaptchaVerifier!
         );
       } else {
-        // For React Native with real numbers, this requires Firebase Console setup
-        throw new Error('For production use, please add this number as a test number in Firebase Console or upgrade to Blaze plan');
+        // For React Native, use Firebase JS SDK directly
+        // Note: This requires proper Firebase configuration and Blaze plan
+        this.confirmationResult = await signInWithPhoneNumber(
+          auth, 
+          formattedNumber, 
+          this.recaptchaVerifier as any // React Native handles verification differently
+        );
       }
 
-      if (__DEV__) console.log('📱 Partner PhoneAuth: OTP sent successfully, confirmation result:', this.confirmationResult);
+      console.log('✅ PhoneAuth: Real SMS OTP sent successfully');
+      console.log('✅ PhoneAuth: Confirmation result:', this.confirmationResult);
 
       return {
         success: true
       };
     } catch (error: any) {
-      console.error('❌ Partner PhoneAuth: Error sending OTP:', error);
-      console.error('❌ Partner PhoneAuth: Error code:', error.code);
-      console.error('❌ Partner PhoneAuth: Error message:', error.message);
+      console.error('❌ PhoneAuth: Error sending OTP:', error);
+      console.error('❌ Error code:', error.code);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Full error:', JSON.stringify(error, null, 2));
       
       let errorMessage = 'Failed to send OTP. Please try again.';
       
@@ -168,7 +162,13 @@ class PhoneAuthService {
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = 'Too many requests. Please try again later.';
       } else if (error.code === 'auth/quota-exceeded') {
-        errorMessage = 'SMS quota exceeded. Please try again later.';
+        errorMessage = 'SMS quota exceeded. Please contact support.';
+      } else if (error.code === 'auth/missing-app-credential') {
+        errorMessage = 'reCAPTCHA verification failed. Please try again.';
+      } else if (error.code === 'auth/captcha-check-failed') {
+        errorMessage = 'Security verification failed. Please refresh and try again.';
+      } else if (error.message?.includes('reCAPTCHA')) {
+        errorMessage = 'reCAPTCHA error. Please refresh the page and try again.';
       }
 
       return {

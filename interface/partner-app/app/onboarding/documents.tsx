@@ -1,22 +1,20 @@
 import React, { useState } from 'react';
-import { View, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '../../components/layout/Screen';
 import { Container } from '../../components/layout/Container';
 import { Card } from '../../components/layout/Card';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
 import { Text } from '../../components/ui/Text';
 import { Icon } from '../../components/ui/Icon';
 import UploadComponent from '../../components/ui/UploadComponent';
 import ProgressIndicator from '../../components/onboarding/ProgressIndicator';
 import BackButton from '../../components/navigation/BackButton';
 import { useOnboardingStore, DocumentsData } from '../../store/onboardingStore';
-import { useTheme } from '../../store/themeStore';
 import { UploadType } from '../../services/cloudinaryUploadService';
 
-const Documents: React.FC = () => {
-  const { theme } = useTheme();
+export default function Documents() {
   const { 
     currentStep, 
     totalSteps, 
@@ -28,7 +26,7 @@ const Documents: React.FC = () => {
   } = useOnboardingStore();
 
   const [localData, setLocalData] = useState<DocumentsData>(
-    formData.step7 || {
+    (formData.step7 as unknown as DocumentsData) || {
       fssaiLicense: '',
       gstNumber: '',
       panNumber: '',
@@ -70,19 +68,14 @@ const Documents: React.FC = () => {
     const newData = { ...localData, [field]: value.toUpperCase() };
     setLocalData(newData);
     
-    // Validate field
-    const error = validateField(field, value);
-    if (error) {
-      setLocalErrors(prev => ({ ...prev, [field]: error }));
-      setError(field, error);
-    } else {
-      setLocalErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-      clearError(field);
-    }
+    // For now, validation is optional - don't show errors
+    // Clear any existing errors for this field
+    setLocalErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[field];
+      return newErrors;
+    });
+    clearError(field);
   };
 
   const handleDocumentChange = (docType: keyof DocumentsData['documents'], files: any[]) => {
@@ -100,42 +93,21 @@ const Documents: React.FC = () => {
   };
 
   const handleContinue = () => {
-    // Validate all fields
-    const newErrors: Record<string, string> = {};
-    let hasErrors = false;
-
-    Object.keys(localData).forEach((field) => {
-      if (field !== 'documents') {
-        const error = validateField(field, localData[field as keyof Omit<DocumentsData, 'documents'>]);
-        if (error) {
-          newErrors[field] = error;
-          hasErrors = true;
-        }
-      }
-    });
-
-    if (hasErrors) {
-      setLocalErrors(newErrors);
-      return;
-    }
-
+    // For now, validation is optional - allow proceeding without fields
     // Save data and proceed
     updateFormData('step7', localData);
     setCurrentStep(8);
     router.push('./payment-setup');
   };
 
-  const isFormValid = Object.keys(errors).length === 0 && 
-    localData.fssaiLicense.trim() && 
-    localData.gstNumber.trim() && 
-    localData.panNumber.trim() && 
-    localData.licenseNumber.trim();
+  // For now, make validations optional - component internally
+  const isFormValid = true; // Allow proceeding without fields filled
 
 
   return (
-    <Screen backgroundColor={theme.colors.background}>
+    <Screen backgroundColor="#FFFAF0">
       <KeyboardAvoidingView 
-        style={{ flex: 1 }} 
+        style={styles.keyboardView} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ProgressIndicator currentStep={currentStep} totalSteps={totalSteps} />
@@ -143,48 +115,37 @@ const Documents: React.FC = () => {
         {/* Back Button */}
         <BackButton 
           onPress={() => router.back()} 
-          style={{ marginTop: 16, marginLeft: 16 }}
+          style={styles.backButton}
         />
         
         <ScrollView 
-          style={{ flex: 1 }}
-          contentContainerStyle={{ flexGrow: 1 }}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <Container padding="lg">
             {/* Header */}
-            <View style={{ alignItems: 'center', marginBottom: theme.spacing.xl }}>
+            <View style={styles.header}>
               <Text 
                 variant="title" 
-                style={{ 
-                  textAlign: 'center', 
-                  marginBottom: theme.spacing.sm,
-                  color: theme.colors.text 
-                }}
+                style={styles.title}
               >
                 Verify your business
               </Text>
               <Text 
                 variant="body" 
-                style={{ 
-                  textAlign: 'center', 
-                  color: theme.colors.textSecondary,
-                  lineHeight: 22 
-                }}
+                style={styles.subtitle}
               >
                 Upload required documents to verify your business
               </Text>
             </View>
 
             {/* Form Card */}
-            <Card variant="elevated" style={{ marginBottom: theme.spacing.lg }}>
+            <Card variant="elevated" style={styles.card}>
               {/* License Numbers */}
               <Text 
                 variant="subtitle" 
-                style={{ 
-                  marginBottom: theme.spacing.md,
-                  color: theme.colors.text 
-                }}
+                style={styles.sectionTitle}
               >
                 License Information
               </Text>
@@ -192,46 +153,43 @@ const Documents: React.FC = () => {
               <Input
                 label="FSSAI License Number"
                 value={localData.fssaiLicense}
-                onChangeText={(value) => handleFieldChange('fssaiLicense', value.replace(/\D/g, '').slice(0, 14))}
+                onChangeText={(value: string) => handleFieldChange('fssaiLicense', value.replace(/\D/g, '').slice(0, 14))}
                 placeholder="Enter 14-digit FSSAI license number"
                 error={errors.fssaiLicense}
-                style={{ marginBottom: theme.spacing.md }}
+                containerStyle={styles.inputMargin}
               />
 
               <Input
                 label="GST Number"
                 value={localData.gstNumber}
-                onChangeText={(value) => handleFieldChange('gstNumber', value.toUpperCase())}
+                onChangeText={(value: string) => handleFieldChange('gstNumber', value.toUpperCase())}
                 placeholder="Enter GST number (e.g., 22AAAAA0000A1Z5)"
                 error={errors.gstNumber}
-                style={{ marginBottom: theme.spacing.md }}
+                containerStyle={styles.inputMargin}
               />
 
               <Input
                 label="PAN Number"
                 value={localData.panNumber}
-                onChangeText={(value) => handleFieldChange('panNumber', value.toUpperCase())}
+                onChangeText={(value: string) => handleFieldChange('panNumber', value.toUpperCase())}
                 placeholder="Enter PAN number (e.g., ABCDE1234F)"
                 error={errors.panNumber}
-                style={{ marginBottom: theme.spacing.md }}
+                containerStyle={styles.inputMargin}
               />
 
               <Input
                 label="Business License Number"
                 value={localData.licenseNumber}
-                onChangeText={(value) => handleFieldChange('licenseNumber', value)}
+                onChangeText={(value: string) => handleFieldChange('licenseNumber', value)}
                 placeholder="Enter business license number"
                 error={errors.licenseNumber}
-                style={{ marginBottom: theme.spacing.lg }}
+                containerStyle={styles.inputMargin}
               />
 
               {/* Document Uploads */}
               <Text 
                 variant="subtitle" 
-                style={{ 
-                  marginBottom: theme.spacing.md,
-                  color: theme.colors.text 
-                }}
+                style={styles.sectionTitle}
               >
                 Document Uploads
               </Text>
@@ -243,7 +201,7 @@ const Documents: React.FC = () => {
                 maxFiles={3}
                 allowedTypes={['image', 'document']}
                 onFilesChange={(files) => handleDocumentChange('licenseDocuments', files)}
-                files={localData.documents?.licenseDocuments?.map(url => ({ uri: url, cloudinaryUrl: url, uploading: false })) || []}
+                files={localData.documents?.licenseDocuments?.map(url => ({ uri: url, cloudinaryUrl: url, uploading: false, status: 'completed' as const, progress: 100 })) || []}
                 folder="partner-documents/licenses"
               />
 
@@ -254,7 +212,7 @@ const Documents: React.FC = () => {
                 maxFiles={3}
                 allowedTypes={['image', 'document']}
                 onFilesChange={(files) => handleDocumentChange('certificationDocuments', files)}
-                files={localData.documents?.certificationDocuments?.map(url => ({ uri: url, cloudinaryUrl: url, uploading: false })) || []}
+                files={localData.documents?.certificationDocuments?.map(url => ({ uri: url, cloudinaryUrl: url, uploading: false, status: 'completed' as const, progress: 100 })) || []}
                 folder="partner-documents/certifications"
               />
 
@@ -265,7 +223,7 @@ const Documents: React.FC = () => {
                 maxFiles={3}
                 allowedTypes={['image', 'document']}
                 onFilesChange={(files) => handleDocumentChange('identityDocuments', files)}
-                files={localData.documents?.identityDocuments?.map(url => ({ uri: url, cloudinaryUrl: url, uploading: false })) || []}
+                files={localData.documents?.identityDocuments?.map(url => ({ uri: url, cloudinaryUrl: url, uploading: false, status: 'completed' as const, progress: 100 })) || []}
                 folder="partner-documents/identity"
               />
 
@@ -276,7 +234,7 @@ const Documents: React.FC = () => {
                 maxFiles={5}
                 allowedTypes={['image', 'document']}
                 onFilesChange={(files) => handleDocumentChange('otherDocuments', files)}
-                files={localData.documents?.otherDocuments?.map(url => ({ uri: url, cloudinaryUrl: url, uploading: false })) || []}
+                files={localData.documents?.otherDocuments?.map(url => ({ uri: url, cloudinaryUrl: url, uploading: false, status: 'completed' as const, progress: 100 })) || []}
                 folder="partner-documents/other"
               />
 
@@ -286,7 +244,7 @@ const Documents: React.FC = () => {
                 onPress={handleContinue}
                 disabled={!isFormValid}
                 fullWidth
-                style={{ marginBottom: theme.spacing.md }}
+                style={styles.buttonMargin}
               />
             </Card>
           </Container>
@@ -294,6 +252,53 @@ const Documents: React.FC = () => {
       </KeyboardAvoidingView>
     </Screen>
   );
-};
+}
 
-export default Documents;
+const styles = StyleSheet.create({
+  keyboardView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  backButton: {
+    marginTop: 16,
+    marginLeft: 16,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  title: {
+    textAlign: 'center',
+    marginBottom: 8,
+    fontSize: 24,
+    fontFamily: 'Poppins-Bold',
+    color: '#1A1A1A',
+  },
+  subtitle: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+    lineHeight: 22,
+  },
+  card: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    marginBottom: 16,
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#1A1A1A',
+  },
+  inputMargin: {
+    marginBottom: 16,
+  },
+  buttonMargin: {
+    marginBottom: 16,
+  },
+});

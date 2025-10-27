@@ -1,528 +1,412 @@
+/**
+ * Authentication Store
+ * Centralized authentication state management with Zustand
+ * 
+ * Features:
+ * - Phone-based authentication with Firebase
+ * - Automatic token management
+ * - Session persistence
+ * - Profile management
+ */
+
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DeviceEventEmitter } from 'react-native';
-import api from '../utils/apiClient';
-import { secureTokenManager } from '../auth/SecureTokenManager';
-import { 
-  AuthUser, 
-  LoginCredentials, 
-  PhoneLoginCredentials,
-  LoginResponse 
-} from '../auth/types';
-import { PartnerProfile, CreatePartnerData } from '../types/auth';
+import { api } from '../lib/api';
+import { tokenManager } from '../lib/auth/TokenManager';
+import type { RegisterPartnerData, LoginResponse } from '../lib/api';
 
-interface AuthState {
-  isAuthenticated: boolean;
-  user: AuthUser | null;
-  partner: PartnerProfile | null;
-  token: string | null;
-  refreshToken: string | null;
-  isLoading: boolean;
-  error: string | null;
-  isInitialized: boolean;
-  isLoggingOut: boolean;
+/**
+ * User Data Interface
+ */
+interface User {
+  id: string;
+  email?: string;
+  phoneNumber?: string;
+  role: string;
+  firstName?: string;
+  lastName?: string;
+  [key: string]: any;
 }
 
+/**
+ * Partner Profile Interface
+ */
+interface Partner {
+  _id?: string;
+  id?: string;
+  userId: string;
+  businessName: string;
+  description?: string;
+  phoneNumber?: string;
+  address?: string;
+  isAcceptingOrders?: boolean;
+  [key: string]: any;
+}
+
+/**
+ * Authentication State
+ */
+interface AuthState {
+  // Core state
+  isAuthenticated: boolean;
+  isInitialized: boolean;
+  isLoading: boolean;
+  user: User | null;
+  partner: Partner | null;
+  error: string | null;
+}
+
+/**
+ * Authentication Actions
+ */
 interface AuthActions {
-  // Authentication actions
-  login: (email: string, password: string) => Promise<void>;
-  loginWithPhone: (phoneNumber: string, firebaseUid: string) => Promise<void>;
+  // Initialization
+  initialize: () => Promise<void>;
+  
+  // Phone authentication flow
   checkUserExists: (phoneNumber: string) => Promise<boolean>;
-  register: (partnerData: CreatePartnerData) => Promise<void>;
-  registerWithOnboarding: (onboardingData: any) => Promise<void>;
-  logout: () => Promise<void>;
-  changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
+  loginWithPhone: (phoneNumber: string, firebaseUid: string) => Promise<void>;
+  registerPartner: (data: RegisterPartnerData) => Promise<void>;
   
   // Session management
-  initializeAuth: () => Promise<void>;
-  refreshAuthToken: () => Promise<void>;
-  clearError: () => void;
+  logout: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
   
-  // Partner profile actions
-  updatePartnerProfile: (data: Partial<PartnerProfile>) => Promise<void>;
-  refreshPartnerProfile: () => Promise<void>;
-  fetchUserProfile: () => Promise<void>;
-  updateUserProfile: (data: Partial<PartnerProfile>) => Promise<void>;
-  
-  // State setters
+  // State management
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
-  setUser: (user: AuthUser | null) => void;
-  setPartner: (partner: PartnerProfile | null) => void;
+  clearError: () => void;
 }
 
+/**
+ * Initial State
+ */
 const initialState: AuthState = {
   isAuthenticated: false,
+  isInitialized: false,
+  isLoading: false,
   user: null,
   partner: null,
-  token: null,
-  refreshToken: null,
-  isLoading: false,
   error: null,
-  isInitialized: false,
-  isLoggingOut: false,
 };
 
+/**
+ * Auth Store
+ */
 export const useAuthStore = create<AuthState & AuthActions>()(
   persist(
     (set, get) => ({
       ...initialState,
 
-      // Initialize authentication using SecureTokenManager
-      initializeAuth: async () => {
-        if (__DEV__) console.log('🔍 Partner AuthStore: Starting authentication initialization');
-        set({ isLoading: true, error: null });
+      /**
+       * Initialize authentication on app start
+       * Check stored tokens and restore session
+       */
+      initialize: async () => {
+        if (get().isInitialized) return;
         
+        if (__DEV__) console.log('🔍 AuthStore: Initializing authentication...');
+        set({ isLoading: true });
+
         try {
-          // Initialize SecureTokenManager
-          await secureTokenManager.initialize();
+          // Initialize token manager
+          await tokenManager.initialize();
           
-          // Check authentication status
-          const isAuthenticated = await secureTokenManager.isAuthenticated();
-          if (__DEV__) console.log('🔍 Partner AuthStore: Auth status:', isAuthenticated);
+          // Check if user is authenticated
+          const isAuthenticated = await tokenManager.isAuthenticated();
           
           if (isAuthenticated) {
-            // Get stored user data
-            const storedUser = await secureTokenManager.getUserData();
-            if (__DEV__) console.log('🔍 Partner AuthStore: Stored user:', storedUser ? 'Found' : 'Not found');
+            if (__DEV__) console.log('✅ AuthStore: Valid session found');
             
-            if (storedUser) {
-              // Check if token is expired
-              const isTokenExpired = await secureTokenManager.isTokenExpired();
-              if (__DEV__) console.log('🔍 Partner AuthStore: Token expired:', isTokenExpired);
-              
-              if (!isTokenExpired) {
-                // Token is valid, set authenticated state
-                if (__DEV__) console.log('✅ Partner AuthStore: Auth initialized successfully with valid user');
-                set({ 
-                  user: storedUser, 
-                  isAuthenticated: true, 
-                  isLoading: false,
+            // Get stored user data
+            const userData = await tokenManager.getUserData();
+            
+            if (userData) {
+              // Fetch fresh profile from API
+              try {
+                const profile = await api.partner.getCurrentProfile();
+                
+                set({
+                  isAuthenticated: true,
                   isInitialized: true,
-                  error: null
+                  isLoading: false,
+                  user: userData,
+                  partner: profile,
+                  error: null,
                 });
-                return;
-              } else {
-                // Try to refresh token
-                try {
-                  if (__DEV__) console.log('🔄 Partner AuthStore: Attempting token refresh...');
-                  await secureTokenManager.refreshAccessToken();
-                  
-                  set({ 
-                    user: storedUser, 
-                    isAuthenticated: true, 
-                    isLoading: false,
-                    isInitialized: true,
-                    error: null
-                  });
-                  return;
-                } catch (refreshError) {
-                  if (__DEV__) console.log('⚠️ Partner AuthStore: Token refresh failed, clearing auth');
-                  await secureTokenManager.clearAll();
-                }
+                
+                if (__DEV__) console.log('✅ AuthStore: Session restored successfully');
+              } catch (error) {
+                // If profile fetch fails, clear session
+                console.error('❌ AuthStore: Failed to fetch profile, clearing session');
+                await tokenManager.clearAll();
+                
+                set({
+                  isAuthenticated: false,
+                  isInitialized: true,
+                  isLoading: false,
+                  user: null,
+                  partner: null,
+                  error: null,
+                });
               }
             } else {
-              if (__DEV__) console.log('⚠️ Partner AuthStore: No stored user found, clearing auth');
-              await secureTokenManager.clearAll();
+              // No user data, clear tokens
+              await tokenManager.clearAll();
+              set({
+                isAuthenticated: false,
+                isInitialized: true,
+                isLoading: false,
+                error: null,
+              });
             }
-          }
-          
-          // If we reach here, user is not authenticated
-          if (__DEV__) console.log('🔍 Partner AuthStore: User not authenticated, setting initial state');
-          set({ 
-            user: null,
-            partner: null,
-            isAuthenticated: false, 
-            isLoading: false,
-            isInitialized: true,
-            error: null
-          });
-          
-        } catch (error) {
-          console.error('❌ Partner AuthStore: Auth initialization error:', error);
-          set({ 
-            user: null,
-            partner: null,
-            isAuthenticated: false, 
-            isLoading: false,
-            isInitialized: true,
-            error: error instanceof Error ? error.message : 'Authentication initialization failed'
-          });
-        }
-      },
-
-      // Login with email and password
-      login: async (email: string, password: string) => {
-        set({ isLoading: true, error: null });
-        try {
-          if (__DEV__) console.log('🔐 Partner AuthStore: Attempting login for:', email);
-          
-          const credentials: LoginCredentials = { email, password };
-          const response: LoginResponse = await api.auth.login(credentials);
-          
-          // Store tokens and user data securely
-          await secureTokenManager.storeTokens({
-            accessToken: response.accessToken,
-            refreshToken: response.refreshToken,
-          });
-          
-          await secureTokenManager.storeUserData(response.user);
-          
-          set({ 
-            user: response.user,
-            partner: response.partner || null,
-            token: response.accessToken,
-            refreshToken: response.refreshToken,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null
-          });
-          
-          if (__DEV__) console.log('✅ Partner AuthStore: Login successful');
-        } catch (error: any) {
-          console.error('❌ Partner AuthStore: Login error:', error);
-          const errorMessage = error.message || 'Login failed. Please try again.';
-          set({ 
-            error: errorMessage, 
-            isLoading: false 
-          });
-          throw error;
-        }
-      },
-
-      // Login with phone number
-      loginWithPhone: async (phoneNumber: string, firebaseUid: string) => {
-        set({ isLoading: true, error: null });
-        try {
-          if (__DEV__) console.log('📱 Partner AuthStore: Attempting phone login for:', phoneNumber);
-          
-          const credentials: PhoneLoginCredentials = { phoneNumber, firebaseUid };
-          const response: LoginResponse = await api.auth.loginWithPhone(credentials);
-          
-          // Store tokens and user data securely
-          await secureTokenManager.storeTokens({
-            accessToken: response.accessToken,
-            refreshToken: response.refreshToken,
-          });
-          
-          await secureTokenManager.storeUserData(response.user);
-          
-          set({ 
-            user: response.user,
-            partner: response.partner || null,
-            token: response.accessToken,
-            refreshToken: response.refreshToken,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null
-          });
-          
-          if (__DEV__) console.log('✅ Partner AuthStore: Phone login successful');
-        } catch (error: any) {
-          console.error('❌ Partner AuthStore: Phone login error:', error);
-          const errorMessage = error.message || 'Phone login failed. Please try again.';
-          set({ 
-            error: errorMessage, 
-            isLoading: false 
-          });
-          throw error;
-        }
-      },
-
-      // Check if user exists
-      checkUserExists: async (phoneNumber: string): Promise<boolean> => {
-        try {
-          if (__DEV__) console.log('🔍 Partner AuthStore: Checking if partner exists for phone:', phoneNumber);
-          return await api.auth.checkUserExists(phoneNumber);
-        } catch (error) {
-          console.error('❌ Partner AuthStore: Error checking user existence:', error);
-          return false;
-        }
-      },
-
-      // Register new partner
-      register: async (partnerData: CreatePartnerData) => {
-        set({ isLoading: true, error: null });
-        try {
-          if (__DEV__) console.log('🏪 Partner AuthStore: Attempting registration');
-          
-          const response: LoginResponse = await api.auth.register(partnerData);
-          
-          // Store tokens and user data securely
-          await secureTokenManager.storeTokens({
-            accessToken: response.accessToken,
-            refreshToken: response.refreshToken,
-          });
-          
-          await secureTokenManager.storeUserData(response.user);
-          
-          set({ 
-            user: response.user,
-            partner: response.partner || null,
-            token: response.accessToken,
-            refreshToken: response.refreshToken,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null
-          });
-          
-          if (__DEV__) console.log('✅ Partner AuthStore: Registration successful');
-        } catch (error: any) {
-          console.error('❌ Partner AuthStore: Registration error:', error);
-          const errorMessage = error.message || 'Registration failed. Please try again.';
-          set({ 
-            error: errorMessage, 
-            isLoading: false 
-          });
-          throw error;
-        }
-      },
-
-      // Register with onboarding data
-      registerWithOnboarding: async (onboardingData: any) => {
-        if (__DEV__) console.log('🏪 Partner AuthStore: registerWithOnboarding called');
-        set({ isLoading: true, error: null });
-        try {
-          // Map onboarding data to registration format for partners
-          const registrationData: CreatePartnerData = {
-            // Personal info
-            firstName: onboardingData.personalInfo?.firstName,
-            lastName: onboardingData.personalInfo?.lastName,
-            email: onboardingData.personalInfo?.email,
-            phoneNumber: onboardingData.phoneVerification?.phoneNumber,
-            password: onboardingData.personalInfo?.password,
-            
-            // Business info
-            businessName: onboardingData.businessProfile?.businessName,
-            description: onboardingData.businessProfile?.description,
-            
-            // Location & Hours
-            address: onboardingData.locationHours?.address,
-            businessHours: onboardingData.locationHours?.businessHours,
-            
-            // Cuisine & Services
-            cuisineTypes: onboardingData.cuisineServices?.cuisineTypes || [],
-            
-            // Images & Branding
-            logoUrl: onboardingData.imagesBranding?.logoUrl,
-            bannerUrl: onboardingData.imagesBranding?.bannerUrl,
-          };
-
-          if (__DEV__) console.log('🏪 Partner AuthStore: Mapped registration data');
-          
-          await get().register(registrationData);
-          
-          if (__DEV__) console.log('✅ Partner AuthStore: Registration with onboarding successful');
-        } catch (error: any) {
-          console.error('❌ Partner AuthStore: Registration with onboarding error:', error);
-          const errorMessage = error.message || 'Registration failed. Please try again.';
-          set({ 
-            error: errorMessage, 
-            isLoading: false 
-          });
-          throw error;
-        }
-      },
-
-      // Logout
-      logout: async () => {
-        const currentState = get();
-        
-        // Prevent double logout calls
-        if (currentState.isLoggingOut) {
-          if (__DEV__) console.log('🚪 Partner AuthStore: Logout already in progress, skipping');
-          return;
-        }
-        
-        if (__DEV__) console.log('🚪 Partner AuthStore: Starting logout process');
-        set({ isLoggingOut: true, isLoading: true, error: null });
-        
-        try {
-          // Call logout API (this also clears tokens)
-          await api.auth.logout();
-          if (__DEV__) console.log('✅ Partner AuthStore: Logout completed');
-          
-          set({ 
-            user: null,
-            partner: null,
-            token: null,
-            refreshToken: null,
-            isAuthenticated: false, 
-            isLoading: false,
-            isLoggingOut: false,
-            error: null
-          });
-        } catch (error: any) {
-          console.error('❌ Partner AuthStore: Logout error:', error);
-          
-          // Even if logout API fails, clear local state
-          await secureTokenManager.clearAll();
-          
-          set({ 
-            user: null,
-            partner: null,
-            token: null,
-            refreshToken: null,
-            isAuthenticated: false,
-            isLoading: false,
-            isLoggingOut: false,
-            error: null
-          });
-        }
-      },
-
-      // Change password
-      changePassword: async (oldPassword: string, newPassword: string) => {
-        set({ isLoading: true, error: null });
-        try {
-          await api.auth.changePassword(oldPassword, newPassword);
-          set({
-            isLoading: false,
-            error: null,
-          });
-        } catch (error: any) {
-          console.error('❌ Partner AuthStore: Change password error:', error);
-          const errorMessage = error.message || 'Failed to change password. Please try again.';
-          set({
-            isLoading: false,
-            error: errorMessage,
-          });
-          throw error;
-        }
-      },
-
-      // Refresh auth token
-      refreshAuthToken: async () => {
-        try {
-          const newToken = await secureTokenManager.refreshAccessToken();
-          if (newToken) {
-            set({ token: newToken });
-            if (__DEV__) console.log('✅ Partner AuthStore: Token refreshed successfully');
-          }
-        } catch (error: any) {
-          console.error('❌ Partner AuthStore: Token refresh error:', error);
-          // If refresh fails, logout user
-          await get().logout();
-          throw error;
-        }
-      },
-
-      // Clear error
-      clearError: () => {
-        set({ error: null });
-      },
-
-      // Partner profile actions
-      updatePartnerProfile: async (data: Partial<PartnerProfile>) => {
-        set({ isLoading: true, error: null });
-        try {
-          const updatedPartner = await api.partner.updateProfile(data);
-          
-          // Update stored user data
-          const currentUser = get().user;
-          if (currentUser) {
-            const updatedUser = { ...currentUser, ...updatedPartner };
-            await secureTokenManager.storeUserData(updatedUser);
-            
+          } else {
+            // Not authenticated
+            if (__DEV__) console.log('🔍 AuthStore: No valid session found');
             set({
-              partner: updatedPartner,
-              user: updatedUser,
+              isAuthenticated: false,
+              isInitialized: true,
               isLoading: false,
               error: null,
             });
           }
+        } catch (error) {
+          console.error('❌ AuthStore: Initialization failed:', error);
+          set({
+            isAuthenticated: false,
+            isInitialized: true,
+            isLoading: false,
+            error: 'Failed to initialize authentication',
+          });
+        }
+      },
+
+      /**
+       * Check if user exists by phone number
+       */
+      checkUserExists: async (phoneNumber: string): Promise<boolean> => {
+        try {
+          if (__DEV__) console.log('🔍 AuthStore: Checking if user exists as partner:', phoneNumber);
+          
+          const response = await api.auth.checkPhone(phoneNumber);
+          const exists = response.exists || false;
+          
+          if (__DEV__) console.log('🔍 AuthStore: Partner user exists:', exists);
+          
+          // If user doesn't exist as partner but has a message, it means they exist with different role
+          if (!exists && response.message) {
+            if (__DEV__) console.log('🔍 AuthStore: Role mismatch:', response.message);
+            // Store the role mismatch message for UI display
+            set({ error: response.message });
+          }
+          
+          return exists;
         } catch (error: any) {
-          console.error('❌ Partner AuthStore: Update partner profile error:', error);
-          const errorMessage = error.message || 'Failed to update profile. Please try again.';
+          console.error('❌ AuthStore: Error checking user existence:', error);
+          // Handle role-specific error messages
+          if (error.message && error.message.includes('registered as a')) {
+            set({ error: error.message });
+          }
+          return false;
+        }
+      },
+
+      /**
+       * Login with phone number and Firebase UID
+       */
+      loginWithPhone: async (phoneNumber: string, firebaseUid: string): Promise<void> => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          if (__DEV__) console.log('🔐 AuthStore: Logging in with phone:', phoneNumber);
+          
+          // Call login API
+          const response: LoginResponse = await api.auth.loginWithPhone(phoneNumber, firebaseUid);
+          
+          // Store tokens securely
+          await tokenManager.storeTokens(response.accessToken, response.refreshToken);
+          
+          // Store user data
+          await tokenManager.storeUserData(response.user);
+          
+          // Update state
+          set({
+            isAuthenticated: true,
+            isLoading: false,
+            user: response.user,
+            partner: response.partner || null,
+            error: null,
+          });
+          
+          if (__DEV__) console.log('✅ AuthStore: Login successful');
+        } catch (error: any) {
+          console.error('❌ AuthStore: Login failed:', error);
+          let errorMessage = error.message || 'Login failed. Please try again.';
+          
+          // Handle role-specific error messages
+          if (error.message && error.message.includes('registered as a')) {
+            errorMessage = error.message;
+          } else if (error.message && error.message.includes('correct app')) {
+            errorMessage = error.message;
+          }
+          
           set({
             isLoading: false,
             error: errorMessage,
           });
+          
           throw error;
         }
       },
 
-      // Refresh partner profile
-      refreshPartnerProfile: async () => {
+      /**
+       * Register new partner with onboarding data
+       */
+      registerPartner: async (data: RegisterPartnerData): Promise<void> => {
+        set({ isLoading: true, error: null });
+        
         try {
-          const partner = await api.partner.getCurrentProfile();
+          if (__DEV__) console.log('🏪 AuthStore: Registering partner...');
           
-          // Update stored user data
+          // Call registration API
+          const response: LoginResponse = await api.auth.registerPartner(data);
+          
+          // Store tokens securely (auto-login after registration)
+          await tokenManager.storeTokens(response.accessToken, response.refreshToken);
+          
+          // Store user data
+          await tokenManager.storeUserData(response.user);
+          
+          // Update state
+          set({
+            isAuthenticated: true,
+            isLoading: false,
+            user: response.user,
+            partner: response.partner || null,
+            error: null,
+          });
+          
+          if (__DEV__) console.log('✅ AuthStore: Registration successful');
+        } catch (error: any) {
+          console.error('❌ AuthStore: Registration failed:', error);
+          const errorMessage = error.message || 'Registration failed. Please try again.';
+          
+          set({
+            isLoading: false,
+            error: errorMessage,
+          });
+          
+          throw error;
+        }
+      },
+
+      /**
+       * Logout user
+       */
+      logout: async (): Promise<void> => {
+        if (__DEV__) console.log('🚪 AuthStore: Logging out...');
+        set({ isLoading: true });
+        
+        try {
+          // Call logout API (best effort)
+          try {
+            await api.auth.logout();
+          } catch (error) {
+            if (__DEV__) console.warn('⚠️ AuthStore: Logout API failed, continuing...');
+          }
+          
+          // Clear tokens and user data
+          await tokenManager.clearAll();
+          
+          // Reset state
+          set({
+            isAuthenticated: false,
+            isLoading: false,
+            user: null,
+            partner: null,
+            error: null,
+          });
+          
+          if (__DEV__) console.log('✅ AuthStore: Logout successful');
+        } catch (error) {
+          console.error('❌ AuthStore: Logout error:', error);
+          
+          // Force logout even if error
+          await tokenManager.clearAll();
+          set({
+            isAuthenticated: false,
+            isLoading: false,
+            user: null,
+            partner: null,
+            error: null,
+          });
+        }
+      },
+
+      /**
+       * Refresh partner profile from API
+       */
+      refreshProfile: async (): Promise<void> => {
+        try {
+          if (__DEV__) console.log('🔄 AuthStore: Refreshing profile...');
+          
+          const profile = await api.partner.getCurrentProfile();
+          
+          // Update user data
           const currentUser = get().user;
           if (currentUser) {
-            const updatedUser = { ...currentUser, ...partner };
-            await secureTokenManager.storeUserData(updatedUser);
-            
-            set({ partner, user: updatedUser });
+            const updatedUser = { ...currentUser, ...profile };
+            await tokenManager.storeUserData(updatedUser);
           }
-        } catch (error: any) {
-          console.error('❌ Partner AuthStore: Refresh partner profile error:', error);
-          // Don't set error state for silent refresh
+          
+          set({ partner: profile });
+          
+          if (__DEV__) console.log('✅ AuthStore: Profile refreshed');
+        } catch (error) {
+          console.error('❌ AuthStore: Profile refresh failed:', error);
         }
       },
 
-      // Fetch user profile
-      fetchUserProfile: async () => {
-        if (__DEV__) console.log('🔍 Partner AuthStore: fetchUserProfile called');
-        set({ isLoading: true, error: null });
-        try {
-          const profileData = await api.partner.getCurrentProfile();
-          if (__DEV__) console.log('✅ Partner AuthStore: Profile fetched from API');
-          
-          // Update stored user data
-          await secureTokenManager.storeUserData(profileData as AuthUser);
-          
-          set({ 
-            user: profileData as AuthUser, 
-            partner: profileData, 
-            isLoading: false,
-            error: null
-          });
-        } catch (error: any) {
-          console.error('❌ Partner AuthStore: Error in fetchUserProfile:', error);
-          const errorMessage = error.message || 'Failed to fetch profile';
-          set({ 
-            error: errorMessage, 
-            isLoading: false 
-          });
-          throw error;
-        }
+      /**
+       * Set loading state
+       */
+      setLoading: (loading: boolean) => {
+        set({ isLoading: loading });
       },
 
-      // Update user profile
-      updateUserProfile: async (data: Partial<PartnerProfile>) => {
-        await get().updatePartnerProfile(data);
+      /**
+       * Set error
+       */
+      setError: (error: string | null) => {
+        set({ error });
       },
 
-      // State setters
-      setLoading: (loading: boolean) => set({ isLoading: loading }),
-      setError: (error: string | null) => set({ error }),
-      setUser: (user: AuthUser | null) => set({ user }),
-      setPartner: (partner: PartnerProfile | null) => set({ partner }),
+      /**
+       * Clear error
+       */
+      clearError: () => {
+        set({ error: null });
+      },
     }),
     {
       name: 'partner-auth-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      // Only persist essential data, not loading/error states
+      // Only persist essential data
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
-        // Don't persist user/partner data here - SecureTokenManager handles it
-        token: null, // Don't persist tokens in Zustand
-        refreshToken: null, // Don't persist tokens in Zustand
+        // Don't persist user/partner/tokens here - TokenManager handles secure storage
       }),
     }
   )
 );
 
-// Set up auth error event listener
-DeviceEventEmitter.addListener('partner_auth_error', (event) => {
-  if (__DEV__) console.log('🚨 Partner AuthStore: Auth error event received:', event);
-  useAuthStore.getState().logout();
-});
-
-DeviceEventEmitter.addListener('partner_auth:token-expired', () => {
-  if (__DEV__) console.log('🚨 Partner AuthStore: Token expired event received');
+/**
+ * Listen for session expiry events
+ */
+DeviceEventEmitter.addListener('auth:session-expired', () => {
+  if (__DEV__) console.log('🚨 AuthStore: Session expired event received');
   useAuthStore.getState().logout();
 });
 

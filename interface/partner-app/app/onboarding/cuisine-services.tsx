@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
-import { View, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '../../components/layout/Screen';
 import { Container } from '../../components/layout/Container';
 import { Card } from '../../components/layout/Card';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
 import { Text } from '../../components/ui/Text';
 import { Switch } from '../../components/ui/Switch';
 import { Icon } from '../../components/ui/Icon';
 import ProgressIndicator from '../../components/onboarding/ProgressIndicator';
 import BackButton from '../../components/navigation/BackButton';
 import { useOnboardingStore, CuisineServicesData } from '../../store/onboardingStore';
-import { useTheme } from '../../store/themeStore';
 
 const cuisineTypes = [
   'Indian', 'Chinese', 'Italian', 'Mexican', 'Thai', 'Japanese', 'American',
@@ -21,8 +20,7 @@ const cuisineTypes = [
   'Healthy', 'Vegan', 'Keto', 'Gluten Free', 'Desserts', 'Beverages'
 ];
 
-const CuisineServices: React.FC = () => {
-  const { theme } = useTheme();
+export default function CuisineServices() {
   const { 
     currentStep, 
     totalSteps, 
@@ -34,7 +32,7 @@ const CuisineServices: React.FC = () => {
   } = useOnboardingStore();
 
   const [localData, setLocalData] = useState<CuisineServicesData>(
-    formData.step5 || {
+    (formData.step5 as unknown as CuisineServicesData) || {
       cuisineTypes: [],
       isVegetarian: false,
       hasDelivery: true,
@@ -84,9 +82,10 @@ const CuisineServices: React.FC = () => {
     
     const newData = { ...localData, cuisineTypes: newCuisineTypes };
     setLocalData(newData);
+    updateFormData('step5', newData);
     
-    // Validate cuisine types
-    const error = validateField('cuisineTypes', '');
+    // Validate cuisine types with new data
+    const error = !newCuisineTypes.length ? 'Please select at least one cuisine type' : '';
     if (error) {
       setLocalErrors(prev => ({ ...prev, cuisineTypes: error }));
       setError('cuisineTypes', error);
@@ -215,9 +214,9 @@ const CuisineServices: React.FC = () => {
     (localData.acceptsCash || localData.acceptsCard);
 
   return (
-    <Screen backgroundColor={theme.colors.background}>
+    <Screen backgroundColor="#FFFAF0">
       <KeyboardAvoidingView 
-        style={{ flex: 1 }} 
+        style={styles.keyboardView} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ProgressIndicator currentStep={currentStep} totalSteps={totalSteps} />
@@ -225,90 +224,57 @@ const CuisineServices: React.FC = () => {
         {/* Back Button */}
         <BackButton 
           onPress={() => router.back()} 
-          style={{ marginTop: 16, marginLeft: 16 }}
+          style={styles.backButton}
         />
         
         <ScrollView 
-          style={{ flex: 1 }}
-          contentContainerStyle={{ flexGrow: 1 }}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <Container padding="lg">
             {/* Header */}
-            <View style={{ alignItems: 'center', marginBottom: theme.spacing.xl }}>
+            <View style={styles.header}>
               <Text 
                 variant="title" 
-                style={{ 
-                  textAlign: 'center', 
-                  marginBottom: theme.spacing.sm,
-                  color: theme.colors.text 
-                }}
+                style={styles.title}
               >
                 What do you serve?
               </Text>
               <Text 
                 variant="body" 
-                style={{ 
-                  textAlign: 'center', 
-                  color: theme.colors.textSecondary,
-                  lineHeight: 22 
-                }}
+                style={styles.subtitle}
               >
                 Tell us about your cuisine and service options
               </Text>
             </View>
 
             {/* Form Card */}
-            <Card variant="elevated" style={{ marginBottom: theme.spacing.lg }}>
+            <Card variant="elevated" style={styles.card}>
               {/* Cuisine Types */}
               <Text 
                 variant="subtitle" 
-                style={{ 
-                  marginBottom: theme.spacing.md,
-                  color: theme.colors.text 
-                }}
+                style={styles.sectionTitle}
               >
                 Cuisine Types
               </Text>
               <Text 
                 variant="body" 
-                style={{ 
-                  marginBottom: theme.spacing.sm,
-                  color: theme.colors.textSecondary 
-                }}
+                style={styles.sectionDescription}
               >
                 Select all that apply
               </Text>
-              <View style={{ 
-                flexDirection: 'row', 
-                flexWrap: 'wrap', 
-                marginBottom: theme.spacing.md 
-              }}>
+              <View style={styles.cuisineContainer}>
                 {cuisineTypes.map((cuisine) => (
                   <TouchableOpacity
                     key={cuisine}
                     onPress={() => handleCuisineToggle(cuisine)}
-                    style={{
-                      paddingHorizontal: theme.spacing.md,
-                      paddingVertical: theme.spacing.sm,
-                      marginRight: theme.spacing.sm,
-                      marginBottom: theme.spacing.sm,
-                      borderWidth: 1,
-                      borderColor: localData.cuisineTypes.includes(cuisine) 
-                        ? theme.colors.primary 
-                        : theme.colors.border,
-                      borderRadius: theme.borderRadius.md,
-                      backgroundColor: localData.cuisineTypes.includes(cuisine) 
-                        ? theme.colors.primary + '10' 
-                        : theme.colors.background,
-                    }}
+                    style={localData.cuisineTypes.includes(cuisine) ? styles.cuisineTagSelected : styles.cuisineTagUnselected}
                   >
                     <Text 
-                      variant="caption" 
                       style={{ 
-                        color: localData.cuisineTypes.includes(cuisine) 
-                          ? theme.colors.primary 
-                          : theme.colors.textSecondary 
+                        ...styles.cuisineTagText,
+                        ...(localData.cuisineTypes.includes(cuisine) ? styles.cuisineTagTextSelected : styles.cuisineTagTextUnselected)
                       }}
                     >
                       {cuisine}
@@ -317,23 +283,18 @@ const CuisineServices: React.FC = () => {
                 ))}
               </View>
               {errors.cuisineTypes && (
-                <Text variant="caption" style={{ color: theme.colors.error, marginBottom: theme.spacing.lg }}>
+                <Text variant="caption" style={styles.errorText}>
                   {errors.cuisineTypes}
                 </Text>
               )}
 
               {/* Vegetarian Option */}
-              <View style={{ 
-                flexDirection: 'row', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginBottom: theme.spacing.lg 
-              }}>
-                <View style={{ flex: 1 }}>
-                  <Text variant="subtitle" style={{ color: theme.colors.text, marginBottom: theme.spacing.xs }}>
+              <View style={styles.switchContainer}>
+                <View style={styles.switchContent}>
+                  <Text variant="subtitle" style={styles.switchLabel}>
                     Vegetarian Only
                   </Text>
-                  <Text variant="caption" style={{ color: theme.colors.textSecondary }}>
+                  <Text variant="caption" style={styles.switchDescription}>
                     Check if you serve only vegetarian food
                   </Text>
                 </View>
@@ -346,25 +307,17 @@ const CuisineServices: React.FC = () => {
               {/* Service Options */}
               <Text 
                 variant="subtitle" 
-                style={{ 
-                  marginBottom: theme.spacing.md,
-                  color: theme.colors.text 
-                }}
+                style={styles.sectionTitle}
               >
                 Service Options
               </Text>
               
-              <View style={{ 
-                flexDirection: 'row', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginBottom: theme.spacing.md 
-              }}>
-                <View style={{ flex: 1 }}>
-                  <Text variant="body" style={{ color: theme.colors.text, marginBottom: theme.spacing.xs }}>
+              <View style={styles.switchRow}>
+                <View style={styles.switchContent}>
+                  <Text variant="body" style={styles.switchLabel}>
                     🚚 Delivery
                   </Text>
-                  <Text variant="caption" style={{ color: theme.colors.textSecondary }}>
+                  <Text variant="caption" style={styles.switchDescription}>
                     Deliver food to customers
                   </Text>
                 </View>
@@ -374,17 +327,12 @@ const CuisineServices: React.FC = () => {
                 />
               </View>
 
-              <View style={{ 
-                flexDirection: 'row', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginBottom: theme.spacing.lg 
-              }}>
-                <View style={{ flex: 1 }}>
-                  <Text variant="body" style={{ color: theme.colors.text, marginBottom: theme.spacing.xs }}>
+              <View style={styles.switchRow}>
+                <View style={styles.switchContent}>
+                  <Text variant="body" style={styles.switchLabel}>
                     🏪 Pickup
                   </Text>
-                  <Text variant="caption" style={{ color: theme.colors.textSecondary }}>
+                  <Text variant="caption" style={styles.switchDescription}>
                     Allow customers to pick up orders
                   </Text>
                 </View>
@@ -394,7 +342,7 @@ const CuisineServices: React.FC = () => {
                 />
               </View>
               {errors.services && (
-                <Text variant="caption" style={{ color: theme.colors.error, marginBottom: theme.spacing.lg }}>
+                <Text variant="caption" style={styles.errorText}>
                   {errors.services}
                 </Text>
               )}
@@ -402,25 +350,17 @@ const CuisineServices: React.FC = () => {
               {/* Payment Methods */}
               <Text 
                 variant="subtitle" 
-                style={{ 
-                  marginBottom: theme.spacing.md,
-                  color: theme.colors.text 
-                }}
+                style={styles.sectionTitle}
               >
                 Payment Methods
               </Text>
               
-              <View style={{ 
-                flexDirection: 'row', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginBottom: theme.spacing.md 
-              }}>
-                <View style={{ flex: 1 }}>
-                  <Text variant="body" style={{ color: theme.colors.text, marginBottom: theme.spacing.xs }}>
+              <View style={styles.switchRow}>
+                <View style={styles.switchContent}>
+                  <Text variant="body" style={styles.switchLabel}>
                     💵 Cash
                   </Text>
-                  <Text variant="caption" style={{ color: theme.colors.textSecondary }}>
+                  <Text variant="caption" style={styles.switchDescription}>
                     Accept cash payments
                   </Text>
                 </View>
@@ -430,17 +370,12 @@ const CuisineServices: React.FC = () => {
                 />
               </View>
 
-              <View style={{ 
-                flexDirection: 'row', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginBottom: theme.spacing.lg 
-              }}>
-                <View style={{ flex: 1 }}>
-                  <Text variant="body" style={{ color: theme.colors.text, marginBottom: theme.spacing.xs }}>
+              <View style={styles.switchRow}>
+                <View style={styles.switchContent}>
+                  <Text variant="body" style={styles.switchLabel}>
                     💳 Card/UPI
                   </Text>
-                  <Text variant="caption" style={{ color: theme.colors.textSecondary }}>
+                  <Text variant="caption" style={styles.switchDescription}>
                     Accept digital payments
                   </Text>
                 </View>
@@ -450,7 +385,7 @@ const CuisineServices: React.FC = () => {
                 />
               </View>
               {errors.paymentMethods && (
-                <Text variant="caption" style={{ color: theme.colors.error, marginBottom: theme.spacing.lg }}>
+                <Text variant="caption" style={styles.errorText}>
                   {errors.paymentMethods}
                 </Text>
               )}
@@ -458,32 +393,29 @@ const CuisineServices: React.FC = () => {
               {/* Pricing & Delivery */}
               <Text 
                 variant="subtitle" 
-                style={{ 
-                  marginBottom: theme.spacing.md,
-                  color: theme.colors.text 
-                }}
+                style={styles.sectionTitle}
               >
                 Pricing & Delivery
               </Text>
 
-              <View style={{ flexDirection: 'row', marginBottom: theme.spacing.md }}>
-                <View style={{ flex: 1, marginRight: theme.spacing.sm }}>
+              <View style={styles.inputRow}>
+                <View style={styles.inputHalf}>
                   <Input
                     label="Minimum Order (₹)"
                     value={localData.minimumOrderAmount.toString()}
-                    onChangeText={(value) => handleNumericChange('minimumOrderAmount', value)}
+                    onChangeText={(value: string) => handleNumericChange('minimumOrderAmount', value)}
                     placeholder="100"
-                    type="numeric"
+                    keyboardType="numeric"
                     error={errors.minimumOrderAmount}
                   />
                 </View>
-                <View style={{ flex: 1, marginLeft: theme.spacing.sm }}>
+                <View style={styles.inputHalfLast}>
                   <Input
                     label="Delivery Fee (₹)"
                     value={localData.deliveryFee.toString()}
-                    onChangeText={(value) => handleNumericChange('deliveryFee', value)}
+                    onChangeText={(value: string) => handleNumericChange('deliveryFee', value)}
                     placeholder="0"
-                    type="numeric"
+                    keyboardType="numeric"
                     error={errors.deliveryFee}
                   />
                 </View>
@@ -492,11 +424,11 @@ const CuisineServices: React.FC = () => {
               <Input
                 label="Estimated Delivery Time (minutes)"
                 value={localData.estimatedDeliveryTime.toString()}
-                onChangeText={(value) => handleNumericChange('estimatedDeliveryTime', value)}
+                onChangeText={(value: string) => handleNumericChange('estimatedDeliveryTime', value)}
                 placeholder="30"
-                type="numeric"
+                keyboardType="numeric"
                 error={errors.estimatedDeliveryTime}
-                style={{ marginBottom: theme.spacing.lg }}
+                containerStyle={styles.inputMargin}
               />
 
               {/* Continue Button */}
@@ -505,7 +437,7 @@ const CuisineServices: React.FC = () => {
                 onPress={handleContinue}
                 disabled={!isFormValid}
                 fullWidth
-                style={{ marginBottom: theme.spacing.md }}
+                style={styles.buttonMargin}
               />
             </Card>
           </Container>
@@ -513,6 +445,138 @@ const CuisineServices: React.FC = () => {
       </KeyboardAvoidingView>
     </Screen>
   );
-};
+}
 
-export default CuisineServices;
+const styles = StyleSheet.create({
+  keyboardView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  backButton: {
+    marginTop: 16,
+    marginLeft: 16,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  title: {
+    textAlign: 'center',
+    marginBottom: 8,
+    fontSize: 24,
+    fontFamily: 'Poppins-Bold',
+    color: '#1A1A1A',
+  },
+  subtitle: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+    lineHeight: 22,
+  },
+  card: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    marginBottom: 16,
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#1A1A1A',
+  },
+  sectionDescription: {
+    marginBottom: 8,
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+  },
+  cuisineContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 16,
+  },
+  cuisineTagSelected: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#FF9B42',
+    borderRadius: 12,
+    backgroundColor: '#FFF8F0',
+  },
+  cuisineTagUnselected: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    backgroundColor: '#FFFAF0',
+  },
+  cuisineTagText: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+  },
+  cuisineTagTextSelected: {
+    color: '#FF9B42',
+  },
+  cuisineTagTextUnselected: {
+    color: '#666',
+  },
+  errorText: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: '#EF4444',
+    marginBottom: 24,
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  switchContent: {
+    flex: 1,
+  },
+  switchLabel: {
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  switchDescription: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  inputHalf: {
+    flex: 1,
+    marginRight: 8,
+  },
+  inputHalfLast: {
+    marginRight: 0,
+    marginLeft: 8,
+  },
+  inputMargin: {
+    marginBottom: 24,
+  },
+  buttonMargin: {
+    marginBottom: 16,
+  },
+});

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { useAuthContext } from '@/context/AuthProvider';
+import { useAuthContext } from '@/lib/auth/AuthProvider';
 
 export default function IndexScreen() {
   const router = useRouter();

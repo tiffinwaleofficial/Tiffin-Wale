@@ -12,7 +12,8 @@ export class MailjetService {
   private isServiceEnabled: boolean;
 
   constructor(private configService: ConfigService) {
-    this.mailjetConfig = this.configService.get<MailjetConfig>("email.mailjet")!;
+    this.mailjetConfig =
+      this.configService.get<MailjetConfig>("email.mailjet")!;
     this.isServiceEnabled = this.mailjetConfig?.enabled || false;
 
     if (!this.isServiceEnabled) {
@@ -38,7 +39,9 @@ export class MailjetService {
         apiSecret: secretKey,
       });
       this.logger.log("Mailjet email service initialized successfully.");
-      this.logger.debug(`Mailjet initialized with API Key: ${apiKey.substring(0, 8)}...`);
+      this.logger.debug(
+        `Mailjet initialized with API Key: ${apiKey.substring(0, 8)}...`,
+      );
     } catch (error) {
       this.logger.error("Failed to initialize Mailjet:", error);
       this.isServiceEnabled = false;
@@ -63,13 +66,16 @@ export class MailjetService {
       // For testing: Use verified sender if domain is not verified
       let senderEmail = emailData.from;
       const testSender = process.env.MAILJET_TEST_SENDER;
-      
-      if (testSender && emailData.from.includes('tiffin-wale.com')) {
+
+      if (testSender && emailData.from.includes("tiffin-wale.com")) {
         senderEmail = `Tiffin-Wale <${testSender}>`;
-        this.logger.warn(`Using test sender ${testSender} instead of ${emailData.from} for domain verification`);
+        this.logger.warn(
+          `Using test sender ${testSender} instead of ${emailData.from} for domain verification`,
+        );
       }
-      
-      const { name: fromName, email: fromEmail } = this.parseEmailAddress(senderEmail);
+
+      const { name: fromName, email: fromEmail } =
+        this.parseEmailAddress(senderEmail);
 
       const toRecipients = Array.isArray(emailData.to)
         ? emailData.to.map((email) => ({ Email: email }))
@@ -100,13 +106,19 @@ export class MailjetService {
       };
 
       this.logger.debug(`Sending email via Mailjet to ${emailData.to}`);
-      this.logger.debug(`Mailjet payload:`, JSON.stringify(mailjetData, null, 2));
+      this.logger.debug(
+        `Mailjet payload:`,
+        JSON.stringify(mailjetData, null, 2),
+      );
 
       const response = await this.mailjet
         .post("send", { version: "v3.1" })
         .request(mailjetData);
 
-      this.logger.debug(`Mailjet response:`, JSON.stringify(response.body, null, 2));
+      this.logger.debug(
+        `Mailjet response:`,
+        JSON.stringify(response.body, null, 2),
+      );
 
       if (
         response.body &&
@@ -122,9 +134,9 @@ export class MailjetService {
             messageId: messageInfo.To[0].MessageID?.toString(),
           };
         } else {
-          const errorMsg = messageInfo.Errors 
-            ? JSON.stringify(messageInfo.Errors) 
-            : 'Unknown error';
+          const errorMsg = messageInfo.Errors
+            ? JSON.stringify(messageInfo.Errors)
+            : "Unknown error";
           throw new Error(`Mailjet send failed: ${errorMsg}`);
         }
       } else {

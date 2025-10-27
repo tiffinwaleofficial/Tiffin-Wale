@@ -190,6 +190,24 @@ export class UserService {
   }
 
   /**
+   * Update phone verification status for a user
+   */
+  async updatePhoneVerification(
+    userId: string,
+    phoneVerified: boolean,
+  ): Promise<User> {
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(userId, { phoneVerified }, { new: true })
+      .exec();
+
+    if (!updatedUser) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    return updatedUser;
+  }
+
+  /**
    * Find user by email (safe method that doesn't throw if not found)
    */
   async findByEmailSafe(email: string): Promise<User | null> {

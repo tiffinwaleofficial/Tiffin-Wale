@@ -1,14 +1,8 @@
 import { Platform } from 'react-native';
-import { ENV } from '../config/env';
+import { config } from '../config';
 
 export const getPlatformSpecificApiUrl = (): string => {
-  // For web, use localhost
-  if (Platform.OS === 'web') {
-    return ENV.API_BASE_URL || 'http://localhost:3001';
-  }
-  
-  // For mobile (Android/iOS), use production URL
-  return ENV.PROD_API_BASE_URL || ENV.API_BASE_URL || 'http://localhost:3001';
+  return config.api.baseUrl; // Already handles platform-specific logic
 };
 
 export const isWebPlatform = (): boolean => {

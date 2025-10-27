@@ -4,3 +4,4 @@ export * from "./order-stats.dto";
 export * from "./partner-stats.dto";
 export * from "./revenue-stats.dto";
 export * from "./system-settings.dto";
+export * from "./database-management.dto";

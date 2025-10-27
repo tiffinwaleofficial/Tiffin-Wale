@@ -9,7 +9,7 @@ import { Text } from '../../components/ui/Text';
 import { Icon } from '../../components/ui/Icon';
 import { useOnboardingStore } from '../../store/onboardingStore';
 import { useTheme } from '../../store/themeStore';
-import { useAuthContext } from '../../context/AuthProvider';
+import { useAuthContext } from '../../lib/auth/AuthProvider';
 
 const Success: React.FC = () => {
   const { theme } = useTheme();

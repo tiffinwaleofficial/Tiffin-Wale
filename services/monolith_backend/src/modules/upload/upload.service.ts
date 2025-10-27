@@ -19,41 +19,50 @@ export class UploadService {
       }
 
       // Validate file type
-      const allowedMimeTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+      const allowedMimeTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/webp",
+      ];
       if (!allowedMimeTypes.includes(file.mimetype)) {
         throw new BadRequestException(
-          "Invalid file type. Only JPEG, PNG, and WebP images are allowed."
+          "Invalid file type. Only JPEG, PNG, and WebP images are allowed.",
         );
       }
 
       // Validate file size (5MB limit)
       const maxSize = 5 * 1024 * 1024; // 5MB
       if (file.size > maxSize) {
-        throw new BadRequestException("File size too large. Maximum size is 5MB.");
+        throw new BadRequestException(
+          "File size too large. Maximum size is 5MB.",
+        );
       }
 
       // Generate folder path based on type
       const folderPath = this.getFolderPath(type);
-      
+
       // Upload to Cloudinary
       const result = await new Promise((resolve, reject) => {
-        cloudinary.uploader.upload_stream(
-          {
-            folder: folderPath,
-            resource_type: "image",
-            transformation: [
-              { quality: "auto", fetch_format: "auto" },
-              { width: 1200, height: 1200, crop: "limit" }, // Limit max dimensions
-            ],
-          },
-          (error, result) => {
-            if (error) {
-              reject(error);
-            } else {
-              resolve(result);
-            }
-          }
-        ).end(file.buffer);
+        cloudinary.uploader
+          .upload_stream(
+            {
+              folder: folderPath,
+              resource_type: "image",
+              transformation: [
+                { quality: "auto", fetch_format: "auto" },
+                { width: 1200, height: 1200, crop: "limit" }, // Limit max dimensions
+              ],
+            },
+            (error, result) => {
+              if (error) {
+                reject(error);
+              } else {
+                resolve(result);
+              }
+            },
+          )
+          .end(file.buffer);
       });
 
       return {
@@ -80,15 +89,17 @@ export class UploadService {
       }
 
       const result = await cloudinary.uploader.destroy(publicId);
-      
+
       if (result.result === "ok") {
-        return { 
-          deleted: true, 
+        return {
+          deleted: true,
           publicId,
-          message: "Image deleted successfully"
+          message: "Image deleted successfully",
         };
       } else {
-        throw new BadRequestException(`Failed to delete image: ${result.result}`);
+        throw new BadRequestException(
+          `Failed to delete image: ${result.result}`,
+        );
       }
     } catch (error) {
       if (error instanceof BadRequestException) {
@@ -111,10 +122,10 @@ export class UploadService {
 
   // Additional utility method for getting optimized image URLs
   getOptimizedImageUrl(
-    publicId: string, 
-    width?: number, 
-    height?: number, 
-    quality: string = "auto"
+    publicId: string,
+    width?: number,
+    height?: number,
+    quality: string = "auto",
   ): string {
     if (!publicId) return "";
 

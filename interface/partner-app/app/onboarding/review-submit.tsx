@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, ScrollView, TouchableOpacity, Image, Alert, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '../../components/layout/Screen';
 import { Container } from '../../components/layout/Container';
 import { Card } from '../../components/layout/Card';
-import { Button } from '../../components/ui/Button';
+import Button from '../../components/ui/Button';
 import { Text } from '../../components/ui/Text';
 import { Checkbox } from '../../components/ui/Checkbox';
 import { Icon } from '../../components/ui/Icon';
@@ -12,10 +12,8 @@ import ProgressIndicator from '../../components/onboarding/ProgressIndicator';
 import BackButton from '../../components/navigation/BackButton';
 import { PolicyModal, TermsAndConditions, PrivacyPolicy } from '../../components/policies';
 import { useOnboardingStore } from '../../store/onboardingStore';
-import { useTheme } from '../../store/themeStore';
 
-const ReviewSubmit: React.FC = () => {
-  const { theme } = useTheme();
+export default function ReviewSubmit() {
   const { 
     currentStep, 
     totalSteps, 
@@ -76,13 +74,13 @@ const ReviewSubmit: React.FC = () => {
   };
 
   const renderSummaryCard = (title: string, step: number, data: any, fields: string[]) => (
-    <Card variant="elevated" style={{ marginBottom: theme.spacing.md }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.md }}>
-        <Text variant="subtitle" style={{ color: theme.colors.text }}>
+    <Card variant="elevated" style={styles.summaryCard}>
+      <View style={styles.cardHeader}>
+        <Text variant="subtitle" style={styles.cardTitle}>
           {title}
         </Text>
         <TouchableOpacity onPress={() => handleEditStep(step)}>
-          <Text variant="body" style={{ color: theme.colors.primary }}>
+          <Text variant="body" style={styles.editText}>
             Edit
           </Text>
         </TouchableOpacity>
@@ -93,12 +91,12 @@ const ReviewSubmit: React.FC = () => {
         if (!value) return null;
         
         return (
-          <View key={field} style={{ marginBottom: theme.spacing.sm }}>
-            <Text variant="caption" style={{ color: theme.colors.textSecondary, textTransform: 'capitalize' }}>
+          <View key={field} style={styles.fieldContainer}>
+            <Text variant="caption" style={styles.fieldLabel}>
               {field.replace(/([A-Z])/g, ' $1').trim()}:
             </Text>
             {typeof formatValue(field, value) === 'string' ? (
-              <Text variant="body" style={{ color: theme.colors.text }}>
+              <Text variant="body" style={styles.fieldValue}>
                 {formatValue(field, value)}
               </Text>
             ) : (
@@ -118,22 +116,16 @@ const ReviewSubmit: React.FC = () => {
     // Handle image URLs specially
     if ((field === 'logoUrl' || field === 'bannerUrl') && typeof value === 'string' && value.includes('cloudinary.com')) {
       return (
-        <View style={{ marginTop: theme.spacing.sm }}>
+        <View style={styles.imageContainer}>
           <Image
             source={{ uri: value }}
-            style={{
-              width: field === 'logoUrl' ? 80 : 120,
-              height: field === 'logoUrl' ? 80 : 60,
-              borderRadius: theme.borderRadius.sm,
-              backgroundColor: theme.colors.surface,
-            }}
+            style={[
+              styles.image,
+              field === 'logoUrl' ? styles.logoImage : styles.bannerImage
+            ]}
             resizeMode="cover"
           />
-          <Text style={{
-            fontSize: 10,
-            color: theme.colors.textSecondary,
-            marginTop: theme.spacing.xs,
-          }}>
+          <Text style={styles.imageLabel}>
             {field === 'logoUrl' ? 'Logo' : 'Banner'}
           </Text>
         </View>
@@ -179,40 +171,32 @@ const ReviewSubmit: React.FC = () => {
   };
 
   return (
-    <Screen backgroundColor={theme.colors.background}>
+    <Screen backgroundColor="#FFFAF0">
       <ProgressIndicator currentStep={currentStep} totalSteps={totalSteps} />
       
       {/* Back Button */}
       <BackButton 
         onPress={() => router.back()} 
-        style={{ marginTop: 16, marginLeft: 16 }}
+        style={styles.backButton}
       />
       
       <ScrollView 
-        style={{ flex: 1 }}
-        contentContainerStyle={{ flexGrow: 1 }}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         <Container padding="lg">
           {/* Header */}
-          <View style={{ alignItems: 'center', marginBottom: theme.spacing.xl }}>
+          <View style={styles.header}>
             <Text 
               variant="title" 
-              style={{ 
-                textAlign: 'center', 
-                marginBottom: theme.spacing.sm,
-                color: theme.colors.text 
-              }}
+              style={styles.title}
             >
               Review your information
             </Text>
             <Text 
               variant="body" 
-              style={{ 
-                textAlign: 'center', 
-                color: theme.colors.textSecondary,
-                lineHeight: 22 
-              }}
+              style={styles.subtitle}
             >
               Please review all your information before submitting your application
             </Text>
@@ -247,7 +231,7 @@ const ReviewSubmit: React.FC = () => {
             ['cuisineTypes', 'isVegetarian', 'hasDelivery', 'hasPickup', 'acceptsCash', 'acceptsCard', 'minimumOrderAmount', 'deliveryFee']
           )}
 
-          {formData.step6 && (formData.step6.logoUrl || formData.step6.bannerUrl || Object.values(formData.step6.socialMedia).some(v => v)) && renderSummaryCard(
+          {(formData.step6 as any)?.logoUrl || (formData.step6 as any)?.bannerUrl || Object.values((formData.step6 as any)?.socialMedia || {}).some(v => v) && renderSummaryCard(
             'Images & Branding',
             6,
             formData.step6,
@@ -261,29 +245,26 @@ const ReviewSubmit: React.FC = () => {
             ['fssaiLicense', 'gstNumber', 'panNumber', 'licenseNumber']
           )}
 
-          {formData.step8 && renderSummaryCard(
+          {(formData as any).step8 && renderSummaryCard(
             'Payment Setup',
             8,
-            formData.step8,
+            (formData as any).step8,
             ['bankDetails.accountHolderName', 'bankDetails.bankName', 'upiId', 'commissionRate']
           )}
 
           {/* Terms and Conditions */}
-          <Card variant="elevated" style={{ marginBottom: theme.spacing.lg }}>
+          <Card variant="elevated" style={styles.termsCard}>
             <Checkbox
               checked={agreeToSubmit}
               onPress={() => setAgreeToSubmit(!agreeToSubmit)}
-              style={{ marginBottom: theme.spacing.md }}
+              style={styles.checkboxMargin}
             >
-              <Text variant="body" style={{ color: theme.colors.text }}>
+              <Text variant="body" style={styles.checkboxText}>
                 I confirm that all the information provided is accurate and complete. I agree to the{' '}
                 <TouchableOpacity onPress={() => setShowTermsModal(true)}>
                   <Text 
                     variant="body" 
-                    style={{ 
-                      color: theme.colors.primary,
-                      textDecorationLine: 'underline' 
-                    }}
+                    style={styles.linkText}
                   >
                     Terms and Conditions
                   </Text>
@@ -292,10 +273,7 @@ const ReviewSubmit: React.FC = () => {
                 <TouchableOpacity onPress={() => setShowPrivacyModal(true)}>
                   <Text 
                     variant="body" 
-                    style={{ 
-                      color: theme.colors.primary,
-                      textDecorationLine: 'underline' 
-                    }}
+                    style={styles.linkText}
                   >
                     Privacy Policy
                   </Text>
@@ -307,25 +285,18 @@ const ReviewSubmit: React.FC = () => {
             <Checkbox
               checked={agreeToMarketing}
               onPress={() => setAgreeToMarketing(!agreeToMarketing)}
-              style={{ marginBottom: theme.spacing.lg }}
+              style={styles.checkboxMarginLast}
             >
-              <Text variant="body" style={{ color: theme.colors.text }}>
+              <Text variant="body" style={styles.checkboxText}>
                 I would like to receive marketing emails and updates about new features
               </Text>
             </Checkbox>
 
             {/* Error Message */}
             {errors.submit && (
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                padding: theme.spacing.sm,
-                backgroundColor: theme.colors.error + '10',
-                borderRadius: theme.borderRadius.md,
-                marginBottom: theme.spacing.md,
-              }}>
-                <Icon name="alert-circle" size={16} color={theme.colors.error} />
-                <Text variant="caption" style={{ color: theme.colors.error, marginLeft: theme.spacing.sm }}>
+              <View style={styles.errorContainer}>
+                <Icon name="alert-circle" size={16} color="#EF4444" />
+                <Text variant="caption" style={styles.errorText}>
                   {errors.submit}
                 </Text>
               </View>
@@ -338,9 +309,9 @@ const ReviewSubmit: React.FC = () => {
               disabled={!agreeToSubmit || isSubmitting}
               loading={isSubmitting}
               fullWidth
-              style={{ marginBottom: theme.spacing.md }}
+              style={styles.buttonMargin}
             />
-            </Card>
+          </Card>
         </Container>
       </ScrollView>
 
@@ -362,6 +333,125 @@ const ReviewSubmit: React.FC = () => {
       </PolicyModal>
     </Screen>
   );
-};
+}
 
-export default ReviewSubmit;
+const styles = StyleSheet.create({
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  backButton: {
+    marginTop: 16,
+    marginLeft: 16,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  title: {
+    textAlign: 'center',
+    marginBottom: 8,
+    fontSize: 24,
+    fontFamily: 'Poppins-Bold',
+    color: '#1A1A1A',
+  },
+  subtitle: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+    lineHeight: 22,
+  },
+  summaryCard: {
+    marginBottom: 16,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#1A1A1A',
+  },
+  editText: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#FF9B42',
+  },
+  fieldContainer: {
+    marginBottom: 8,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+    textTransform: 'capitalize',
+  },
+  fieldValue: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#1A1A1A',
+  },
+  imageContainer: {
+    marginTop: 8,
+  },
+  image: {
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+  },
+  logoImage: {
+    width: 80,
+    height: 80,
+  },
+  bannerImage: {
+    width: 120,
+    height: 60,
+  },
+  imageLabel: {
+    fontSize: 10,
+    color: '#666',
+    marginTop: 4,
+  },
+  termsCard: {
+    marginBottom: 24,
+  },
+  checkboxMargin: {
+    marginBottom: 16,
+  },
+  checkboxMarginLast: {
+    marginBottom: 24,
+  },
+  checkboxText: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#1A1A1A',
+  },
+  linkText: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#FF9B42',
+    textDecorationLine: 'underline',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: '#EF4444',
+    marginLeft: 8,
+  },
+  buttonMargin: {
+    marginBottom: 16,
+  },
+});

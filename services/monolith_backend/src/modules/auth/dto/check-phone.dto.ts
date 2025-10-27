@@ -3,9 +3,10 @@ import {
   IsString,
   IsNotEmpty,
   Matches,
-  IsOptional,
   IsEnum,
+  IsOptional,
 } from "class-validator";
+import { UserRole } from "../../../common/interfaces/user.interface";
 
 export class CheckPhoneDto {
   @ApiProperty({
@@ -21,13 +22,13 @@ export class CheckPhoneDto {
 
   @ApiProperty({
     example: "customer",
-    description: "Role to check for (customer or business)",
-    enum: ["customer", "business"],
-    required: false,
+    description: "Role to check for (customer or partner)",
+    enum: [UserRole.CUSTOMER, UserRole.PARTNER],
+    required: true,
   })
-  @IsOptional()
-  @IsEnum(["customer", "business"], {
-    message: "Role must be either 'customer' or 'business'",
+  @IsNotEmpty({ message: "Role is required" })
+  @IsEnum([UserRole.CUSTOMER, UserRole.PARTNER], {
+    message: "Role must be either 'customer' or 'partner'",
   })
-  role?: "customer" | "business";
+  role: UserRole.CUSTOMER | UserRole.PARTNER;
 }

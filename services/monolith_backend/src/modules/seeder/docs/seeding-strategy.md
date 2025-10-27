@@ -403,7 +403,7 @@ businessPartner: partner.user as ObjectId,
 #### Relationship Validation
 ```typescript
 // Verify all partners have business users
-const businessUsers = users.filter(u => u.role === UserRole.BUSINESS);
+const businessUsers = users.filter(u => u.role === UserRole.PARTNER);
 const partnersCount = partners.length;
 assert(businessUsers.length >= partnersCount, "Partner-User mismatch");
 

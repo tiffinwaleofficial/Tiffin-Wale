@@ -7,7 +7,6 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import { useTheme } from '../../store/themeStore';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
 export type ButtonSize = 'small' | 'medium' | 'large';
@@ -25,10 +24,10 @@ interface ButtonProps {
 }
 
 /**
- * Theme-based Button component
- * All styling comes from the theme store - no hardcoded values
+ * Button component with hardcoded theme values
+ * Matches the styling pattern used in otp-verification and welcome screens
  */
-export const Button: React.FC<ButtonProps> = ({
+export default function Button({
   title,
   onPress,
   variant = 'primary',
@@ -38,33 +37,34 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   textStyle,
   fullWidth = false,
-}) => {
-  const { theme } = useTheme();
-
-  const getVariantStyles = (): { container: ViewStyle; text: TextStyle } => {
+}: ButtonProps) {
+  
+  const getVariantStyles = (): { container: ViewStyle; text: TextStyle; loadingColor: string } => {
     switch (variant) {
       case 'primary':
         return {
           container: {
-            backgroundColor: disabled ? theme.colors.border : theme.colors.primary,
+            backgroundColor: disabled ? '#CCC' : '#FF9B42',
             borderWidth: 0,
           },
           text: {
-            color: theme.colors.white,
-            fontFamily: theme.typography.fontFamily.semiBold,
+            color: '#FFF',
+            fontFamily: 'Poppins-SemiBold',
           },
+          loadingColor: '#FFF',
         };
       
       case 'secondary':
         return {
           container: {
-            backgroundColor: disabled ? theme.colors.border : theme.colors.secondary,
+            backgroundColor: disabled ? '#CCC' : '#10B981',
             borderWidth: 0,
           },
           text: {
-            color: theme.colors.white,
-            fontFamily: theme.typography.fontFamily.semiBold,
+            color: '#FFF',
+            fontFamily: 'Poppins-SemiBold',
           },
+          loadingColor: '#FFF',
         };
       
       case 'outline':
@@ -72,12 +72,13 @@ export const Button: React.FC<ButtonProps> = ({
           container: {
             backgroundColor: 'transparent',
             borderWidth: 1,
-            borderColor: disabled ? theme.colors.border : theme.colors.primary,
+            borderColor: disabled ? '#CCC' : '#FF9B42',
           },
           text: {
-            color: disabled ? theme.colors.textTertiary : theme.colors.primary,
-            fontFamily: theme.typography.fontFamily.medium,
+            color: disabled ? '#999' : '#FF9B42',
+            fontFamily: 'Poppins-Medium',
           },
+          loadingColor: disabled ? '#999' : '#FF9B42',
         };
       
       case 'ghost':
@@ -87,94 +88,95 @@ export const Button: React.FC<ButtonProps> = ({
             borderWidth: 0,
           },
           text: {
-            color: disabled ? theme.colors.textTertiary : theme.colors.primary,
-            fontFamily: theme.typography.fontFamily.medium,
+            color: disabled ? '#999' : '#FF9B42',
+            fontFamily: 'Poppins-Medium',
           },
+          loadingColor: disabled ? '#999' : '#FF9B42',
         };
       
       case 'danger':
         return {
           container: {
-            backgroundColor: disabled ? theme.colors.border : theme.colors.error,
+            backgroundColor: disabled ? '#CCC' : '#EF4444',
             borderWidth: 0,
           },
           text: {
-            color: theme.colors.white,
-            fontFamily: theme.typography.fontFamily.semiBold,
+            color: '#FFF',
+            fontFamily: 'Poppins-SemiBold',
           },
+          loadingColor: '#FFF',
         };
       
       default:
         return {
           container: {
-            backgroundColor: disabled ? theme.colors.border : theme.colors.primary,
+            backgroundColor: disabled ? '#CCC' : '#FF9B42',
             borderWidth: 0,
           },
           text: {
-            color: theme.colors.white,
-            fontFamily: theme.typography.fontFamily.semiBold,
+            color: '#FFF',
+            fontFamily: 'Poppins-SemiBold',
           },
+          loadingColor: '#FFF',
         };
     }
   };
 
   const getSizeStyles = (): { container: ViewStyle; text: TextStyle } => {
-    const componentConfig = theme.components.button;
-    
     switch (size) {
       case 'small':
         return {
           container: {
-            height: componentConfig.height.small,
-            paddingHorizontal: componentConfig.padding.small.horizontal,
-            paddingVertical: componentConfig.padding.small.vertical,
-            borderRadius: theme.borderRadius.sm,
+            height: 32,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 8,
           },
           text: {
-            fontSize: theme.typography.fontSize.sm,
-            lineHeight: theme.typography.lineHeight.sm,
+            fontSize: 14,
+            lineHeight: 20,
           },
         };
       
       case 'medium':
         return {
           container: {
-            height: componentConfig.height.medium,
-            paddingHorizontal: componentConfig.padding.medium.horizontal,
-            paddingVertical: componentConfig.padding.medium.vertical,
-            borderRadius: theme.borderRadius.md,
+            height: 44,
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            borderRadius: 12,
           },
           text: {
-            fontSize: theme.typography.fontSize.md,
-            lineHeight: theme.typography.lineHeight.md,
+            fontSize: 16,
+            lineHeight: 22,
           },
         };
       
       case 'large':
         return {
           container: {
-            height: componentConfig.height.large,
-            paddingHorizontal: componentConfig.padding.large.horizontal,
-            paddingVertical: componentConfig.padding.large.vertical,
-            borderRadius: theme.borderRadius.lg,
+            height: 52,
+            paddingHorizontal: 20,
+            paddingVertical: 12,
+            borderRadius: 16,
           },
           text: {
-            fontSize: theme.typography.fontSize.lg,
-            lineHeight: theme.typography.lineHeight.lg,
+            fontSize: 18,
+            lineHeight: 24,
           },
         };
       
       default:
         return {
           container: {
-            height: componentConfig.height.medium,
-            paddingHorizontal: componentConfig.padding.medium.horizontal,
-            paddingVertical: componentConfig.padding.medium.vertical,
-            borderRadius: theme.borderRadius.md,
+            height: 44,
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            borderRadius: 12,
           },
           text: {
-            fontSize: theme.typography.fontSize.md,
-            lineHeight: theme.typography.lineHeight.md,
+            fontSize: 16,
+            lineHeight: 22,
           },
         };
     }
@@ -209,14 +211,14 @@ export const Button: React.FC<ButtonProps> = ({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variantStyles.text.color}
+          color={variantStyles.loadingColor}
         />
       ) : (
         <Text style={textStyleCombined}>{title}</Text>
       )}
     </TouchableOpacity>
   );
-};
+}
 
 const styles = StyleSheet.create({
   baseContainer: {
@@ -228,5 +230,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-
-export default Button;

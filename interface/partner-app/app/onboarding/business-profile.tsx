@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
-import { View, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '../../components/layout/Screen';
 import { Container } from '../../components/layout/Container';
 import { Card } from '../../components/layout/Card';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
 import { Text } from '../../components/ui/Text';
 import { Icon } from '../../components/ui/Icon';
 import CustomDateTimePicker from '../../components/ui/DateTimePicker';
 import ProgressIndicator from '../../components/onboarding/ProgressIndicator';
 import BackButton from '../../components/navigation/BackButton';
 import { useOnboardingStore, BusinessProfileData } from '../../store/onboardingStore';
-import { useTheme } from '../../store/themeStore';
 
 const businessTypes = [
   {
@@ -41,8 +40,7 @@ const businessTypes = [
   },
 ];
 
-const BusinessProfile: React.FC = () => {
-  const { theme } = useTheme();
+export default function BusinessProfile() {
   const { 
     currentStep, 
     totalSteps, 
@@ -57,7 +55,7 @@ const BusinessProfile: React.FC = () => {
     const defaultDate = new Date();
     defaultDate.setFullYear(defaultDate.getFullYear() - 1); // Default to 1 year ago
     
-    return formData.step3 || {
+    return formData.step2 || {
       businessName: '',
       businessType: ['restaurant'],
       description: '',
@@ -98,7 +96,7 @@ const BusinessProfile: React.FC = () => {
     setLocalData(newData);
     
     // Immediately update store for real-time persistence
-    updateFormData('step3', newData);
+    updateFormData('step2', newData);
     
     // Validate field
     const error = validateField(field, value);
@@ -141,7 +139,7 @@ const BusinessProfile: React.FC = () => {
   };
 
   const handleBack = () => {
-    setCurrentStep(2);
+    setCurrentStep(1);
     router.back();
   };
 
@@ -164,8 +162,8 @@ const BusinessProfile: React.FC = () => {
     }
 
     // Save data and proceed
-    updateFormData('step3', localData);
-    setCurrentStep(4);
+    updateFormData('step2', localData);
+    setCurrentStep(3);
     router.push('./location-hours');
   };
 
@@ -178,9 +176,9 @@ const BusinessProfile: React.FC = () => {
     new Date(localData.establishedDate) <= new Date();
 
   return (
-    <Screen backgroundColor={theme.colors.background}>
+    <Screen backgroundColor="#FFFAF0">
       <KeyboardAvoidingView 
-        style={{ flex: 1 }} 
+        style={styles.keyboardView} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ProgressIndicator currentStep={currentStep} totalSteps={totalSteps} />
@@ -188,112 +186,85 @@ const BusinessProfile: React.FC = () => {
         {/* Back Button */}
         <BackButton 
           onPress={() => router.back()} 
-          style={{ marginTop: 16, marginLeft: 16 }}
+          style={styles.backButton}
         />
         
         <ScrollView 
-          style={{ flex: 1 }}
-          contentContainerStyle={{ flexGrow: 1 }}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <Container padding="lg">
             {/* Header */}
-            <View style={{ alignItems: 'center', marginBottom: theme.spacing.xl }}>
+            <View style={styles.header}>
               <Text 
                 variant="title" 
-                style={{ 
-                  textAlign: 'center', 
-                  marginBottom: theme.spacing.sm,
-                  color: theme.colors.text 
-                }}
+                style={styles.title}
               >
                 Tell us about your business
               </Text>
               <Text 
                 variant="body" 
-                style={{ 
-                  textAlign: 'center', 
-                  color: theme.colors.textSecondary,
-                  lineHeight: 22 
-                }}
+                style={styles.subtitle}
               >
                 Help us understand your business better to provide you with the best experience
               </Text>
             </View>
 
             {/* Form Card */}
-            <Card variant="elevated" style={{ marginBottom: theme.spacing.lg }}>
+            <Card variant="elevated" style={styles.card}>
               {/* Business Name */}
               <Input
                 label="Business Name"
                 value={localData.businessName}
-                onChangeText={(value) => handleFieldChange('businessName', value)}
+                onChangeText={(value: string) => handleFieldChange('businessName', value)}
                 placeholder="Enter your business name"
                 error={errors.businessName}
-                style={{ marginBottom: theme.spacing.lg }}
+                containerStyle={styles.inputMargin}
               />
 
               {/* Business Type */}
               <Text 
                 variant="subtitle" 
-                style={{ 
-                  marginBottom: theme.spacing.sm,
-                  color: theme.colors.text 
-                }}
+                style={styles.sectionTitle}
               >
                 Business Type
               </Text>
               <Text 
                 variant="caption" 
-                style={{ 
-                  marginBottom: theme.spacing.md,
-                  color: theme.colors.textSecondary 
-                }}
+                style={styles.sectionDescription}
               >
                 Select all that apply to your business
               </Text>
-              <View style={{ marginBottom: theme.spacing.lg }}>
+              <View style={styles.businessTypeContainer}>
                 {businessTypes.map((type) => {
                   const isSelected = localData.businessType.includes(type.id as 'restaurant' | 'cloud_kitchen' | 'catering' | 'home_chef');
                   return (
                     <TouchableOpacity
                       key={type.id}
                       onPress={() => handleBusinessTypeSelect(type.id as 'restaurant' | 'cloud_kitchen' | 'catering' | 'home_chef')}
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        padding: theme.spacing.md,
-                        borderWidth: 2,
-                        borderColor: isSelected ? theme.colors.primary : theme.colors.border,
-                        borderRadius: theme.borderRadius.md,
-                        backgroundColor: isSelected ? theme.colors.primary + '10' : theme.colors.background,
-                        marginBottom: theme.spacing.sm,
-                      }}
+                      style={[
+                        styles.businessTypeCard,
+                        isSelected && styles.businessTypeCardSelected
+                      ]}
                     >
-                      <Text style={{ fontSize: 24, marginRight: theme.spacing.md }}>
+                      <Text style={styles.businessTypeIcon}>
                         {type.icon}
                       </Text>
-                      <View style={{ flex: 1 }}>
+                      <View style={styles.businessTypeContent}>
                         <Text 
-                          variant="subtitle" 
-                          style={{ 
-                            color: isSelected ? theme.colors.primary : theme.colors.text,
-                            marginBottom: theme.spacing.xs 
-                          }}
+                          style={isSelected ? styles.businessTypeTitleSelected : styles.businessTypeTitle}
                         >
                           {type.title}
                         </Text>
                         <Text 
-                          variant="caption" 
-                          style={{ 
-                            color: isSelected ? theme.colors.primary : theme.colors.textSecondary 
-                          }}
+                          style={isSelected ? styles.businessTypeDescriptionSelected : styles.businessTypeDescription}
                         >
                           {type.description}
                         </Text>
                       </View>
                       {isSelected && (
-                        <Icon name="check" size={20} color={theme.colors.primary} />
+                        <Icon name="check" size={20} color="#FF9B42" />
                       )}
                     </TouchableOpacity>
                   );
@@ -304,22 +275,18 @@ const BusinessProfile: React.FC = () => {
               <Input
                 label="Business Description"
                 value={localData.description}
-                onChangeText={(value) => handleFieldChange('description', value)}
+                onChangeText={(value: string) => handleFieldChange('description', value)}
                 placeholder="Describe your business, cuisine, specialties..."
                 multiline
                 numberOfLines={4}
                 error={errors.description}
-                style={{ marginBottom: theme.spacing.md }}
+                containerStyle={styles.inputMargin}
               />
               
               {/* Character count */}
               <Text 
                 variant="caption" 
-                style={{ 
-                  textAlign: 'right',
-                  color: localData.description.length > 500 ? theme.colors.error : theme.colors.textSecondary,
-                  marginBottom: theme.spacing.lg 
-                }}
+                style={localData.description.length > 500 ? styles.characterCountError : styles.characterCount}
               >
                 {localData.description.length}/500 characters
               </Text>
@@ -334,7 +301,7 @@ const BusinessProfile: React.FC = () => {
                 error={errors.establishedDate}
                 minimumDate={new Date(1900, 0, 1)}
                 maximumDate={new Date()}
-                style={{ marginBottom: theme.spacing.lg }}
+                style={styles.datePickerMargin}
               />
 
               {/* Continue Button */}
@@ -343,7 +310,7 @@ const BusinessProfile: React.FC = () => {
                 onPress={handleContinue}
                 disabled={!isFormValid}
                 fullWidth
-                style={{ marginBottom: theme.spacing.md }}
+                style={styles.buttonMargin}
               />
             </Card>
           </Container>
@@ -351,6 +318,117 @@ const BusinessProfile: React.FC = () => {
       </KeyboardAvoidingView>
     </Screen>
   );
-};
+}
 
-export default BusinessProfile;
+const styles = StyleSheet.create({
+  keyboardView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  backButton: {
+    marginTop: 16,
+    marginLeft: 16,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  title: {
+    textAlign: 'center',
+    marginBottom: 8,
+    fontSize: 24,
+    fontFamily: 'Poppins-Bold',
+    color: '#1A1A1A',
+  },
+  subtitle: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+    lineHeight: 22,
+  },
+  card: {
+    marginBottom: 24,
+  },
+  inputMargin: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    marginBottom: 8,
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#1A1A1A',
+  },
+  sectionDescription: {
+    marginBottom: 16,
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+  },
+  businessTypeContainer: {
+    marginBottom: 24,
+  },
+  businessTypeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    backgroundColor: '#FFF',
+    marginBottom: 8,
+  },
+  businessTypeCardSelected: {
+    borderColor: '#FF9B42',
+    backgroundColor: '#FFF8F0',
+  },
+  businessTypeIcon: {
+    fontSize: 24,
+    marginRight: 16,
+  },
+  businessTypeContent: {
+    flex: 1,
+  },
+  businessTypeTitle: {
+    marginBottom: 4,
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#1A1A1A',
+  },
+  businessTypeTitleSelected: {
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#FF9B42',
+  },
+  businessTypeDescription: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+  },
+  businessTypeDescriptionSelected: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: '#FF9B42',
+  },
+  characterCount: {
+    textAlign: 'right',
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+    marginBottom: 24,
+  },
+  characterCountError: {
+    color: '#EF4444',
+  },
+  datePickerMargin: {
+    marginBottom: 24,
+  },
+  buttonMargin: {
+    marginBottom: 16,
+  },
+});

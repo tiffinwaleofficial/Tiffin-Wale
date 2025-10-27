@@ -170,11 +170,14 @@ export class OrderController {
   // Partner-specific order action endpoints
   @Patch(":id/accept")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.BUSINESS, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.PARTNER, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Accept an order (Partner only)" })
   @ApiResponse({ status: 200, description: "Order has been accepted" })
-  @ApiResponse({ status: 400, description: "Bad request or invalid status transition" })
+  @ApiResponse({
+    status: 400,
+    description: "Bad request or invalid status transition",
+  })
   @ApiResponse({ status: 403, description: "Forbidden - not a partner" })
   @ApiResponse({ status: 404, description: "Order not found" })
   acceptOrder(
@@ -187,11 +190,14 @@ export class OrderController {
 
   @Patch(":id/reject")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.BUSINESS, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.PARTNER, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Reject an order (Partner only)" })
   @ApiResponse({ status: 200, description: "Order has been rejected" })
-  @ApiResponse({ status: 400, description: "Bad request or invalid status transition" })
+  @ApiResponse({
+    status: 400,
+    description: "Bad request or invalid status transition",
+  })
   @ApiResponse({ status: 403, description: "Forbidden - not a partner" })
   @ApiResponse({ status: 404, description: "Order not found" })
   rejectOrder(
@@ -204,11 +210,14 @@ export class OrderController {
 
   @Patch(":id/ready")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.BUSINESS, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.PARTNER, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Mark order as ready (Partner only)" })
   @ApiResponse({ status: 200, description: "Order has been marked as ready" })
-  @ApiResponse({ status: 400, description: "Bad request or invalid status transition" })
+  @ApiResponse({
+    status: 400,
+    description: "Bad request or invalid status transition",
+  })
   @ApiResponse({ status: 403, description: "Forbidden - not a partner" })
   @ApiResponse({ status: 404, description: "Order not found" })
   markOrderReady(

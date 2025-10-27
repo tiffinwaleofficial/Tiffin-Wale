@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../utils/apiClient';
-import { Order, OrderStatus, OrdersResponse, OrderFilter, OrderStats } from '../types/order';
+import { api } from '../lib/api';
+import type { Order, OrderStatus, OrdersResponse, OrderFilter } from '../lib/api/services/order.service';
+import type { OrderStats } from '../types/order';
 
 interface OrderState {
   // Order data
@@ -120,8 +121,8 @@ export const useOrderStore = create<OrderState & OrderActions>()(
 
       fetchTodayOrders: async () => {
         try {
-          const orders = await api.orders.getTodayOrders();
-          set({ todayOrders: orders });
+          const response = await api.orders.getTodayOrders();
+          set({ todayOrders: response.orders });
         } catch (error: any) {
           console.error('Fetch today orders error:', error);
           // Don't set error for background fetches
@@ -155,10 +156,10 @@ export const useOrderStore = create<OrderState & OrderActions>()(
           
           const stats: OrderStats = {
             totalOrders: orders.length,
-            pendingOrders: orders.filter(o => o.status === 'PENDING').length,
-            inProgressOrders: orders.filter(o => ['CONFIRMED', 'PREPARING'].includes(o.status)).length,
-            completedOrders: orders.filter(o => o.status === 'DELIVERED').length,
-            cancelledOrders: orders.filter(o => o.status === 'CANCELLED').length,
+            pendingOrders: orders.filter(o => o.status === 'pending').length,
+            inProgressOrders: orders.filter(o => ['confirmed', 'preparing'].includes(o.status)).length,
+            completedOrders: orders.filter(o => o.status === 'delivered').length,
+            cancelledOrders: orders.filter(o => o.status === 'cancelled').length,
             todayOrders: todayOrders.length,
             thisWeekOrders: 0, // Will be calculated from API
             thisMonthOrders: 0, // Will be calculated from API
@@ -303,7 +304,7 @@ export const useOrderStore = create<OrderState & OrderActions>()(
       },
 
       startPreparingOrder: async (orderId: string) => {
-        await get().updateOrderStatus(orderId, 'PREPARING');
+        await get().updateOrderStatus(orderId, 'preparing');
       },
 
       // Real-time store update methods
@@ -325,11 +326,17 @@ export const useOrderStore = create<OrderState & OrderActions>()(
       addOrderToStore: (order: Order) => {
         const { orders, todayOrders } = get();
         
+        const orderId = order.id || order._id;
+        if (!orderId) {
+          console.error('Order missing ID, cannot add to store');
+          return;
+        }
+        
         // Check if order already exists
-        const orderExists = orders.some(o => o.id === order.id);
+        const orderExists = orders.some(o => (o.id || o._id) === orderId);
         if (orderExists) {
           // Update existing order instead
-          get().updateOrderInStore(order.id, order);
+          get().updateOrderInStore(orderId, order);
           return;
         }
         

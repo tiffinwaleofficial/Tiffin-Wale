@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Put,
+  Delete,
   Query,
   UseGuards,
 } from "@nestjs/common";
@@ -18,7 +19,15 @@ import {
   ApiResponse,
   ApiQuery,
   ApiParam,
+  ApiBody,
 } from "@nestjs/swagger";
+import {
+  DatabaseStatsResponseDto,
+  CleanCollectionDto,
+  CleanCollectionResponseDto,
+  CleanDatabaseDto,
+  CleanDatabaseResponseDto,
+} from "./dto";
 
 @ApiTags("Admin")
 @Controller("admin")
@@ -157,5 +166,115 @@ export class AdminController {
   @ApiResponse({ status: 200, description: "Revenue history returned" })
   async getRevenueHistory() {
     return this.adminService.getRevenueStats();
+  }
+
+  // ========== DATABASE MANAGEMENT ENDPOINTS ==========
+
+  @Get("database/collections")
+  @ApiOperation({
+    summary: "Get database collection statistics",
+    description:
+      "Returns document count for all collections in the database. Useful for monitoring data distribution and database health.",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Collection statistics returned successfully",
+    type: DatabaseStatsResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Failed to fetch collection statistics",
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Unauthorized - Admin access required",
+  })
+  @ApiResponse({
+    status: 403,
+    description: "Forbidden - Insufficient permissions",
+  })
+  async getDatabaseCollectionStats(): Promise<DatabaseStatsResponseDto> {
+    return this.adminService.getDatabaseCollectionStats();
+  }
+
+  @Delete("database/collections/:collectionName")
+  @ApiOperation({
+    summary: "Clean specific collection",
+    description:
+      "⚠️ DESTRUCTIVE OPERATION: Deletes ALL documents from the specified collection. Requires confirmation and is blocked in production.",
+  })
+  @ApiParam({
+    name: "collectionName",
+    description: "Name of the collection to clean (e.g., 'users', 'orders')",
+    example: "users",
+  })
+  @ApiBody({
+    type: CleanCollectionDto,
+    description: "Confirmation and optional reason for cleaning the collection",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Collection cleaned successfully",
+    type: CleanCollectionResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Invalid collection name or confirmation",
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Unauthorized - Admin access required",
+  })
+  @ApiResponse({
+    status: 403,
+    description: "Forbidden - Operation not allowed in production",
+  })
+  async cleanSpecificCollection(
+    @Param("collectionName") collectionName: string,
+    @Body() cleanCollectionDto: CleanCollectionDto,
+  ): Promise<CleanCollectionResponseDto> {
+    return this.adminService.cleanSpecificCollection(
+      collectionName,
+      cleanCollectionDto.confirmDelete,
+      cleanCollectionDto.reason,
+    );
+  }
+
+  @Delete("database/clean-all")
+  @ApiOperation({
+    summary: "Clean entire database",
+    description:
+      "🚨 EXTREMELY DESTRUCTIVE OPERATION: Deletes ALL documents from ALL collections. Requires multiple confirmations and is blocked in production. Use with extreme caution!",
+  })
+  @ApiBody({
+    type: CleanDatabaseDto,
+    description:
+      "Multiple confirmations required for this destructive operation",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Database cleaned successfully",
+    type: CleanDatabaseResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Invalid confirmation or environment mismatch",
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Unauthorized - Admin access required",
+  })
+  @ApiResponse({
+    status: 403,
+    description: "Forbidden - Operation not allowed in production",
+  })
+  async cleanEntireDatabase(
+    @Body() cleanDatabaseDto: CleanDatabaseDto,
+  ): Promise<CleanDatabaseResponseDto> {
+    return this.adminService.cleanEntireDatabase(
+      cleanDatabaseDto.confirmDestroy,
+      cleanDatabaseDto.environment,
+      cleanDatabaseDto.reason,
+    );
   }
 }

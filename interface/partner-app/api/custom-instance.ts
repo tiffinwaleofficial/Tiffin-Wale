@@ -1,11 +1,11 @@
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ENV } from '../config/env';
+import { config } from '../config';
 import NavigationService from '../services/navigationService';
 
 // Create axios instance
 const axiosInstance = axios.create({
-  baseURL: ENV.API_BASE_URL,
+  baseURL: config.api.baseUrl,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

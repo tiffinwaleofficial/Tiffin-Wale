@@ -1,16 +1,15 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../utils/apiClient';
+import { api } from '../lib/api';
+import type { PartnerProfile, PartnerStats as APIPartnerStats } from '../lib/api/services/partner.service';
+import type { MenuItem, MenuCategory } from '../lib/api/services/menu.service';
+import type { Review } from '../lib/api/services/review.service';
 import { 
   PartnerStats, 
   Earnings, 
-  MenuItem, 
-  MenuCategory, 
-  Review, 
   PartnerSettings
 } from '../types/partner';
-import { PartnerProfile } from '../types/auth';
 
 interface PartnerState {
   // Partner data
@@ -196,7 +195,27 @@ export const usePartnerStore = create<PartnerState & PartnerActions>()(
         try {
           set({ isLoading: true, error: null });
 
-          const stats = await api.partner.getStats();
+          const apiStats = await api.partner.getStats();
+          
+          // Map API stats to store stats (they have different structures)
+          const stats: PartnerStats = {
+            totalOrders: apiStats.totalOrders || 0,
+            totalRevenue: apiStats.totalRevenue || 0,
+            averageRating: apiStats.averageRating || 0,
+            totalReviews: 0,
+            activeMenuItems: 0,
+            todayOrders: 0,
+            todayRevenue: 0,
+            weeklyStats: {
+              orders: 0,
+              revenue: 0,
+            },
+            monthlyStats: {
+              orders: 0,
+              revenue: 0,
+            },
+            recentOrderTrend: [],
+          };
           
           set({
             stats,
@@ -292,7 +311,7 @@ export const usePartnerStore = create<PartnerState & PartnerActions>()(
           const updatedItem = await api.menu.updateMenuItem(id, item);
           set({
             menuItems: get().menuItems.map(menuItem =>
-              menuItem.id === id ? updatedItem : menuItem
+              (menuItem.id || menuItem._id) === id ? updatedItem : menuItem
             ),
             isLoading: false,
             error: null,
@@ -313,7 +332,7 @@ export const usePartnerStore = create<PartnerState & PartnerActions>()(
           
           await api.menu.deleteMenuItem(id);
           set({
-            menuItems: get().menuItems.filter(item => item.id !== id),
+            menuItems: get().menuItems.filter(item => (item.id || item._id) !== id),
             isLoading: false,
             error: null,
           });

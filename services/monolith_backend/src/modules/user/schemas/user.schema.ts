@@ -22,6 +22,9 @@ export class User extends Document {
   @Prop()
   phoneNumber: string;
 
+  @Prop({ default: false })
+  phoneVerified: boolean;
+
   @Prop()
   firebaseUid: string;
 

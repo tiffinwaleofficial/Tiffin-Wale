@@ -1,6 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
-import { useTheme } from '../../hooks/useTheme';
+import { View, StyleSheet } from 'react-native';
 import { Text } from '../ui/Text';
 
 export interface ProgressIndicatorProps {
@@ -8,49 +7,59 @@ export interface ProgressIndicatorProps {
   totalSteps: number;
 }
 
-export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
+export default function ProgressIndicator({
   currentStep,
   totalSteps,
-}) => {
-  const { theme } = useTheme();
-
+}: ProgressIndicatorProps) {
   return (
-    <View style={{
-      paddingHorizontal: theme.spacing.lg,
-      paddingVertical: theme.spacing.md,
-      backgroundColor: theme.colors.background,
-    }}>
-      <View style={{
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: theme.spacing.sm,
-      }}>
-        <Text variant="caption" style={{ color: theme.colors.textSecondary }}>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text variant="caption" style={styles.text}>
           Step {currentStep} of {totalSteps}
         </Text>
-        <Text variant="caption" style={{ color: theme.colors.textSecondary }}>
+        <Text variant="caption" style={styles.text}>
           {Math.round((currentStep / totalSteps) * 100)}%
         </Text>
       </View>
       
-      <View style={{
-        height: 4,
-        backgroundColor: theme.colors.border,
-        borderRadius: 2,
-        overflow: 'hidden',
-      }}>
+      <View style={styles.progressTrack}>
         <View
-          style={{
-            height: '100%',
-            width: `${(currentStep / totalSteps) * 100}%`,
-            backgroundColor: theme.colors.primary,
-            borderRadius: 2,
-          }}
+          style={[
+            styles.progressFill,
+            { width: `${(currentStep / totalSteps) * 100}%` }
+          ]}
         />
       </View>
     </View>
   );
-};
+}
 
-export default ProgressIndicator;
+const styles = StyleSheet.create({
+  container: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    backgroundColor: '#FFFAF0',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  text: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+  },
+  progressTrack: {
+    height: 4,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#FF9B42',
+    borderRadius: 2,
+  },
+});

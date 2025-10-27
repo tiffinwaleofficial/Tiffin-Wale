@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, ScrollViewProps, View, ViewStyle } from 'react-native';
+import { ScrollView, ScrollViewProps, View, ViewStyle, RefreshControl } from 'react-native';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { useTheme } from '../store/themeStore';
 
@@ -25,7 +25,14 @@ export const RefreshableScreen: React.FC<RefreshableScreenProps> = ({
   ...scrollViewProps
 }) => {
   const { theme } = useTheme();
-  const { refreshControl } = usePullToRefresh({ onRefresh, enabled });
+  const { refreshControlProps } = usePullToRefresh({ onRefresh, enabled });
+  
+  const refreshControl = (
+    <RefreshControl
+      {...refreshControlProps}
+      style={{ backgroundColor: theme.colors.background }}
+    />
+  );
 
   const defaultContainerStyle: ViewStyle = {
     flex: 1,
