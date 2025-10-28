@@ -23,8 +23,12 @@ export default function ImagesBranding() {
     setCurrentStep 
   } = useOnboardingStore();
 
-  const [localData, setLocalData] = useState<ImagesBrandingData>(
-    (formData.step6 as unknown as ImagesBrandingData) || {
+  const [localData, setLocalData] = useState<ImagesBrandingData>(() => {
+    const step5Data = formData.step5 as any;
+    if (step5Data && typeof step5Data === 'object' && step5Data.socialMedia) {
+      return step5Data as ImagesBrandingData;
+    }
+    return {
       logoUrl: '',
       bannerUrl: '',
       socialMedia: {
@@ -32,8 +36,8 @@ export default function ImagesBranding() {
         facebook: '',
         twitter: '',
       },
-    }
-  );
+    };
+  });
 
   const [logoFiles, setLogoFiles] = useState<any[]>([]);
   const [bannerFiles, setBannerFiles] = useState<any[]>([]);
@@ -42,7 +46,7 @@ export default function ImagesBranding() {
     if (files.length > 0 && files[0].cloudinaryUrl) {
       const newData = { ...localData, logoUrl: files[0].cloudinaryUrl };
       setLocalData(newData);
-      updateFormData('step6', newData);
+      updateFormData('step5', newData);
     }
   };
 
@@ -50,21 +54,21 @@ export default function ImagesBranding() {
     if (files.length > 0 && files[0].cloudinaryUrl) {
       const newData = { ...localData, bannerUrl: files[0].cloudinaryUrl };
       setLocalData(newData);
-      updateFormData('step6', newData);
+      updateFormData('step5', newData);
     }
   };
 
   const handleFieldChange = (field: keyof ImagesBrandingData, value: string) => {
     const newData = { ...localData, [field]: value };
     setLocalData(newData);
-    updateFormData('step6', newData);
+    updateFormData('step5', newData);
   };
 
   const handleSocialMediaChange = (platform: keyof ImagesBrandingData['socialMedia'], value: string) => {
     const newSocialMedia = { ...localData.socialMedia, [platform]: value };
     const newData = { ...localData, socialMedia: newSocialMedia };
     setLocalData(newData);
-    updateFormData('step6', newData);
+    updateFormData('step5', newData);
   };
 
   const handleBack = () => {
@@ -74,7 +78,7 @@ export default function ImagesBranding() {
 
   const handleContinue = () => {
     // Images are optional, so we can proceed without validation
-    updateFormData('step6', localData);
+    updateFormData('step5', localData);
     setCurrentStep(7);
     router.push('./documents');
   };
@@ -128,7 +132,7 @@ export default function ImagesBranding() {
                 allowedTypes={['image']}
                 onFilesChange={handleLogoFilesChange}
                 files={logoFiles}
-                folder="partner-images/logos"
+                folder="partner-app/profile-images"
               />
 
               {/* Business Banner */}
@@ -140,7 +144,7 @@ export default function ImagesBranding() {
                 allowedTypes={['image']}
                 onFilesChange={handleBannerFilesChange}
                 files={bannerFiles}
-                folder="partner-images/banners"
+                folder="partner-app/meal-images"
               />
 
               {/* Social Media Links */}

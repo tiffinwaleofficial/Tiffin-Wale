@@ -24,7 +24,7 @@ export default function PaymentSetup() {
   } = useOnboardingStore();
 
   const [localData, setLocalData] = useState<PaymentSetupData>(() => {
-    const step7Data = (formData.step7 as unknown as PaymentSetupData);
+      const step7Data = (formData.step7 as unknown as PaymentSetupData) || (formData.step6 as unknown as PaymentSetupData);
     if (step7Data && step7Data.bankDetails) {
       return step7Data;
     }

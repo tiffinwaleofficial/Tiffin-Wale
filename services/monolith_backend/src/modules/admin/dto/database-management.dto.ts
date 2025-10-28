@@ -166,6 +166,3 @@ export class CleanDatabaseResponseDto {
   })
   timestamp: Date;
 }
-
-
-

@@ -1,6 +1,6 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { ChevronRight, Award, Users, Store, MapPin, Target, Heart, Shield, TrendingUp, ChefHat, Star, Clock, Zap } from "lucide-react";
+import { ChevronRight, Award, Users, Store, MapPin, Target, Heart, Shield, TrendingUp, ChefHat, Star, Clock, Zap, IndianRupee } from "lucide-react";
 import { Link } from "wouter";
 import MobileAppBanner from "@/components/MobileAppBanner";
 import AppStoreButtons from "@/components/AppStoreButtons";
@@ -319,7 +319,7 @@ export default function AboutPage() {
         </section>
         
         {/* Team */}
-        <section className="py-20 md:py-28 bg-white">
+        <section id="meet-our-leadership" className="py-20 md:py-28 bg-white">
           <div className="container mx-auto px-4">
             <div className="text-center mb-16 max-w-3xl mx-auto">
               <h2 className="font-bold text-4xl md:text-5xl mb-6 text-foreground">Meet Our Leadership</h2>
@@ -328,69 +328,45 @@ export default function AboutPage() {
               </p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
               <div className="text-center group">
                 <div className="relative inline-block mb-4">
-                <img 
-                  src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&h=200&q=80" 
-                    alt="Rohit Sharma, CEO & Founder" 
-                    className="w-40 h-40 rounded-full mx-auto object-cover border-4 border-primary/20 group-hover:border-primary transition-all duration-300 shadow-lg" 
-                  />
-                  <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center shadow-lg">
-                    <Users className="h-6 w-6 text-white" />
-                  </div>
+                <Link href="/rahul-vishwakarma">
+                  <a>
+                    <img 
+                      src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&h=200&q=80" 
+                      alt="Rahul Vishwakarma, Founder & CEO" 
+                      className="w-40 h-40 rounded-full mx-auto object-cover border-4 border-primary/20 group-hover:border-primary transition-all duration-300 shadow-lg cursor-pointer" 
+                    />
+                    <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center shadow-lg">
+                      <Users className="h-6 w-6 text-white" />
+                    </div>
+                  </a>
+                </Link>
                 </div>
-                <h3 className="font-bold text-xl text-foreground">Rohit Sharma</h3>
-                <p className="text-primary font-semibold mb-2">CEO & Founder</p>
-                <p className="text-sm text-muted-foreground">Visionary behind marketplace</p>
+                <h3 className="font-bold text-xl text-foreground">Rahul Vishwakarma</h3>
+                <p className="text-primary font-semibold mb-2">Founder & CEO</p>
+                <p className="text-sm text-muted-foreground">The Visionary Leader</p>
               </div>
-              
+
               <div className="text-center group">
                 <div className="relative inline-block mb-4">
-                <img 
-                  src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&h=200&q=80" 
-                  alt="Priya Patel, COO" 
-                    className="w-40 h-40 rounded-full mx-auto object-cover border-4 border-primary/20 group-hover:border-primary transition-all duration-300 shadow-lg" 
-                  />
-                  <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center shadow-lg">
-                    <TrendingUp className="h-6 w-6 text-white" />
-                  </div>
+                <Link href="/riya-tiwari">
+                  <a>
+                    <img 
+                      src="https://res.cloudinary.com/dols3w27e/image/upload/v1761637006/qvmwdrprx2gciejp0awi.jpg" 
+                      alt="Riya Tiwari, Founder & CFO" 
+                      className="w-40 h-40 rounded-full mx-auto object-cover border-4 border-primary/20 group-hover:border-primary transition-all duration-300 shadow-lg cursor-pointer" 
+                    />
+                    <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center shadow-lg">
+                      <IndianRupee className="h-6 w-6 text-white" />
+                    </div>
+                  </a>
+                </Link>
                 </div>
-                <h3 className="font-bold text-xl text-foreground">Priya Patel</h3>
-                <p className="text-primary font-semibold mb-2">COO</p>
-                <p className="text-sm text-muted-foreground">Operations & Partner Relations</p>
-              </div>
-              
-              <div className="text-center group">
-                <div className="relative inline-block mb-4">
-                <img 
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&h=200&q=80" 
-                  alt="Vikram Mehta, CTO" 
-                    className="w-40 h-40 rounded-full mx-auto object-cover border-4 border-primary/20 group-hover:border-primary transition-all duration-300 shadow-lg" 
-                  />
-                  <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center shadow-lg">
-                    <Zap className="h-6 w-6 text-white" />
-                  </div>
-                </div>
-                <h3 className="font-bold text-xl text-foreground">Vikram Mehta</h3>
-                <p className="text-primary font-semibold mb-2">CTO</p>
-                <p className="text-sm text-muted-foreground">Technology & Innovation</p>
-              </div>
-              
-              <div className="text-center group">
-                <div className="relative inline-block mb-4">
-                <img 
-                  src="https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&h=200&q=80" 
-                    alt="Neha Singh, Head of Quality" 
-                    className="w-40 h-40 rounded-full mx-auto object-cover border-4 border-primary/20 group-hover:border-primary transition-all duration-300 shadow-lg" 
-                  />
-                  <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center shadow-lg">
-                    <Shield className="h-6 w-6 text-white" />
-                  </div>
-                </div>
-                <h3 className="font-bold text-xl text-foreground">Neha Singh</h3>
-                <p className="text-primary font-semibold mb-2">Head of Quality</p>
-                <p className="text-sm text-muted-foreground">Quality Assurance & Standards</p>
+                <h3 className="font-bold text-xl text-foreground">Riya Tiwari</h3>
+                <p className="text-primary font-semibold mb-2">Founder & CFO</p>
+                <p className="text-sm text-muted-foreground">The Financial Architect</p>
               </div>
             </div>
           </div>

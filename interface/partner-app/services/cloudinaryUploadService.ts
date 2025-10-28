@@ -340,7 +340,7 @@ export class CloudinaryUploadService {
       } else {
         // For mobile, use the original format with hardcoded types
         file = {
-          uri: optimizedUri,
+        uri: optimizedUri,
           type: isVideo ? 'video/mp4' : 'image/jpeg',
           name: `${uploadType}_${Date.now()}.${isVideo ? 'mp4' : 'jpg'}`,
         } as any;
@@ -401,15 +401,15 @@ export class CloudinaryUploadService {
 
       const result = await response.json();
 
-      console.log(`✅ ${uploadType} uploaded successfully:`, {
-        url: result.secure_url,
-        publicId: result.public_id,
-      });
+            console.log(`✅ ${uploadType} uploaded successfully:`, {
+              url: result.secure_url,
+              publicId: result.public_id,
+            });
 
       return {
-        success: true,
-        url: result.secure_url,
-        publicId: result.public_id,
+              success: true,
+              url: result.secure_url,
+              publicId: result.public_id,
         metadata: {
           width: result.width,
           height: result.height,
@@ -559,6 +559,7 @@ export class CloudinaryUploadService {
       throw new Error('Permission to access camera roll is required');
     }
 
+    try {
     return await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: options?.allowsEditing ?? true,
@@ -566,6 +567,13 @@ export class CloudinaryUploadService {
       quality: options?.quality || 0.8,
       allowsMultipleSelection: options?.allowsMultipleSelection || false,
     });
+    } catch (error: any) {
+      // Re-throw with a more user-friendly message
+      if (error?.message?.includes('Unsupported file type')) {
+        throw new Error(`Unsupported file type: ${error.message}`);
+      }
+      throw error;
+    }
   }
 
   /**

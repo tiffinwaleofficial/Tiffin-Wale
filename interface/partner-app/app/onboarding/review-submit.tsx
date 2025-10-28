@@ -98,10 +98,45 @@ export default function ReviewSubmit() {
           return null;
         }
         
+        // Format field label for display
+        const formatLabel = (fieldPath: string): string => {
+          // Handle nested paths like "documents.licenseDocuments"
+          const parts = fieldPath.split('.');
+          const lastPart = parts[parts.length - 1];
+          
+          // Convert camelCase to Title Case
+          let label = lastPart.replace(/([A-Z])/g, ' $1').trim();
+          
+          // Capitalize first letter
+          label = label.charAt(0).toUpperCase() + label.slice(1);
+          
+          // Remove redundant "Documents" suffix if present
+          if (label.endsWith(' Documents')) {
+            label = label.replace(' Documents', '');
+          }
+          
+          // Remove "Url" suffix for image fields
+          if (label.endsWith(' Url')) {
+            label = label.replace(' Url', '');
+          }
+          
+          // Handle business hours labels
+          if (label === 'Open') label = 'Opening Time';
+          if (label === 'Close') label = 'Closing Time';
+          if (label === 'Days') label = 'Operating Days';
+          
+          // Handle acronyms - uppercase common acronyms
+          label = label.replace(/\bIfsc\b/gi, 'IFSC');
+          label = label.replace(/\bGst\b/gi, 'GST');
+          label = label.replace(/\bPan\b/gi, 'PAN');
+          
+          return label;
+        };
+        
         return (
           <View key={field} style={styles.fieldContainer}>
             <Text variant="caption" style={styles.fieldLabel}>
-              {field.replace(/([A-Z])/g, ' $1').trim()}:
+              {formatLabel(field)}:
             </Text>
             {typeof formatValue(field, value) === 'string' ? (
               <Text variant="body" style={styles.fieldValue}>
@@ -122,7 +157,7 @@ export default function ReviewSubmit() {
 
   const formatValue = (field: string, value: any): string | React.ReactNode => {
     // Handle image URLs specially
-    if ((field === 'logoUrl' || field === 'bannerUrl') && typeof value === 'string' && value.includes('cloudinary.com')) {
+    if ((field.includes('logoUrl') || field.includes('bannerUrl')) && typeof value === 'string' && value.length > 0 && value.includes('cloudinary.com')) {
       return (
         <View style={styles.imageContainer}>
           <Image
@@ -133,11 +168,13 @@ export default function ReviewSubmit() {
             ]}
             resizeMode="cover"
           />
-          <Text style={styles.imageLabel}>
-            {field === 'logoUrl' ? 'Logo' : 'Banner'}
-          </Text>
         </View>
       );
+    }
+    
+    // Handle empty string or undefined
+    if (value === undefined || value === null || value === '') {
+      return 'Not provided';
     }
     
     // Handle business types array specially
@@ -161,6 +198,7 @@ export default function ReviewSubmit() {
           day: 'numeric'
         });
       }
+      return value;
     }
     
     // Handle cuisine types array
@@ -169,22 +207,83 @@ export default function ReviewSubmit() {
     }
     
     // Handle days array for business hours
-    if (field === 'days' && Array.isArray(value)) {
-      return value.length > 0 ? value.join(', ') : 'Not set';
+    if ((field === 'days' || field.includes('businessHours.days')) && Array.isArray(value)) {
+      const dayLabels: Record<string, string> = {
+        'monday': 'Monday',
+        'tuesday': 'Tuesday',
+        'wednesday': 'Wednesday',
+        'thursday': 'Thursday',
+        'friday': 'Friday',
+        'saturday': 'Saturday',
+        'sunday': 'Sunday'
+      };
+      return value.length > 0 ? value.map(day => dayLabels[day] || day).join(', ') : 'Not set';
     }
     
-    if (Array.isArray(value)) {
-      return value.length > 0 ? value.join(', ') : 'Not selected';
+    // Handle business hours open/close
+    if (field.includes('businessHours.open') || field.includes('businessHours.close')) {
+      return value ? value : 'Not set';
     }
+    
+    // Handle social media handles (instagram, facebook, twitter)
+    if ((field.includes('instagram') || field.includes('facebook') || field.includes('twitter')) && typeof value === 'string') {
+      return value ? `@${value.replace('@', '')}` : 'Not provided';
+    }
+    
+    // Handle numbers
+    if (typeof value === 'number') {
+      if (field.includes('Amount') || field.includes('Fee') || field.includes('Rate')) {
+        return `₹${value}`;
+      }
+      if (field.includes('Time')) {
+        return `${value} minutes`;
+      }
+      if (field.includes('Radius')) {
+        return `${value} km`;
+      }
+      return value.toString();
+    }
+    
+    // Handle arrays - check if they contain Cloudinary URLs (document uploads)
+    if (Array.isArray(value)) {
+      if (value.length > 0) {
+        // Check if array contains Cloudinary URLs (document uploads)
+        const hasCloudinaryUrls = value.some(item => typeof item === 'string' && item.includes('cloudinary.com'));
+        
+        if (hasCloudinaryUrls) {
+          // Render as images without labels
+          return (
+            <View style={styles.imageGrid}>
+              {value.map((url, index) => (
+                <Image
+                  key={index}
+                  source={{ uri: url }}
+                  style={styles.documentImage}
+                  resizeMode="cover"
+                />
+              ))}
+            </View>
+          );
+        }
+        
+      return value.join(', ');
+      }
+      return 'Not selected';
+    }
+    
+    // Handle objects
     if (typeof value === 'object' && value !== null) {
       return Object.entries(value)
-        .filter(([_, v]) => v)
+        .filter(([_, v]) => v !== undefined && v !== null && v !== '')
         .map(([k, v]) => `${k}: ${v}`)
         .join(', ') || 'Not provided';
     }
+    
+    // Handle booleans
     if (typeof value === 'boolean') {
       return value ? 'Yes' : 'No';
     }
+    
     return String(value);
   };
 
@@ -239,7 +338,7 @@ export default function ReviewSubmit() {
             'Location & Hours',
             3,
             formData.step3,
-            ['address.street', 'address.city', 'address.state', 'address.postalCode', 'businessHours.days', 'businessHours.open', 'businessHours.close', 'deliveryRadius']
+            ['address.street', 'address.city', 'address.state', 'address.postalCode', 'address.country', 'businessHours.days', 'businessHours.open', 'businessHours.close', 'deliveryRadius']
           )}
 
           {formData.step4 && renderSummaryCard(
@@ -253,14 +352,14 @@ export default function ReviewSubmit() {
             'Images & Branding',
             5,
             formData.step5,
-            ['logoUrl', 'bannerUrl', 'socialMedia']
+            ['logoUrl', 'bannerUrl', 'socialMedia.instagram', 'socialMedia.facebook', 'socialMedia.twitter']
           )}
 
           {formData.step6 && renderSummaryCard(
             'Documents & Verification',
             6,
             formData.step6,
-            ['fssaiLicense', 'gstNumber', 'panNumber', 'licenseNumber']
+            ['fssaiLicense', 'gstNumber', 'panNumber', 'licenseNumber', 'documents.licenseDocuments', 'documents.certificationDocuments', 'documents.identityDocuments', 'documents.otherDocuments']
           )}
 
           {formData.step7 && renderSummaryCard(
@@ -329,7 +428,7 @@ export default function ReviewSubmit() {
               fullWidth
               style={styles.buttonMargin}
             />
-          </Card>
+            </Card>
         </Container>
       </ScrollView>
 
@@ -418,7 +517,19 @@ const styles = StyleSheet.create({
   imageContainer: {
     marginTop: 8,
   },
+  imageGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 8,
+  },
   image: {
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+  },
+  documentImage: {
+    width: 100,
+    height: 100,
     borderRadius: 8,
     backgroundColor: '#F3F4F6',
   },

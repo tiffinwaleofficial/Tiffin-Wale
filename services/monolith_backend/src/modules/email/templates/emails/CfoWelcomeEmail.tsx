@@ -3,7 +3,7 @@ import { Text, Hr } from '@react-email/components';
 import EmailLayout from '../components/EmailLayout';
 import Button from '../components/Button';
 import CfoAvatar from '../components/CfoAvatar';
-import { MealIcon } from '../components/Icons';
+import { UserIcon } from '../components/Icons';
 
 interface CfoWelcomeEmailProps {
   user: {
@@ -69,12 +69,12 @@ export const CfoWelcomeEmail = ({
         <tr>
           <td align="center">
             <Button
-              href={dashboardUrl}
+              href={`https://www.tiffin-wale.com/riya-tiwari`}
               variant="primary"
               size="lg"
-              icon={<MealIcon size={39} color="#ffffff" />}
+              icon={<UserIcon size={20} color="#ffffff" />}
             >
-              Explore Your First Meal
+              About Me
             </Button>
           </td>
         </tr>

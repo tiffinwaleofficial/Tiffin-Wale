@@ -82,7 +82,6 @@ export class UploadService {
     }
   }
 
-
   async deleteImage(publicId: string) {
     try {
       if (!publicId) {

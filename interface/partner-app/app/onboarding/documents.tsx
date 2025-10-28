@@ -26,7 +26,7 @@ export default function Documents() {
   } = useOnboardingStore();
 
   const [localData, setLocalData] = useState<DocumentsData>(
-    (formData.step7 as unknown as DocumentsData) || {
+    (formData.step6 as unknown as DocumentsData) || {
       fssaiLicense: '',
       gstNumber: '',
       panNumber: '',
@@ -95,7 +95,7 @@ export default function Documents() {
   const handleContinue = () => {
     // For now, validation is optional - allow proceeding without fields
     // Save data and proceed
-    updateFormData('step7', localData);
+    updateFormData('step6', localData);
     setCurrentStep(8);
     router.push('./payment-setup');
   };

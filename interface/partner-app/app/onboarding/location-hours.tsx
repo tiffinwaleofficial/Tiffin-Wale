@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '../../components/layout/Screen';
@@ -43,7 +43,7 @@ export default function LocationHours() {
   } = useOnboardingStore();
 
   const [localData, setLocalData] = useState<LocationHoursData>(
-    (formData.step4 as unknown as LocationHoursData) || {
+    (formData.step3 as unknown as LocationHoursData) || {
       address: {
         street: '',
         city: '',
@@ -61,6 +61,11 @@ export default function LocationHours() {
   );
 
   const [errors, setLocalErrors] = useState<Record<string, string>>({});
+
+  // Ensure we're on step 3 when this component loads
+  useEffect(() => {
+    setCurrentStep(3);
+  }, [setCurrentStep]);
 
   const validateField = (field: string, value: string | number): string => {
     switch (field) {
@@ -134,13 +139,13 @@ export default function LocationHours() {
     const newBusinessHours = { ...localData.businessHours, [type]: timeString };
     const newData = { ...localData, businessHours: newBusinessHours };
     setLocalData(newData);
-    updateFormData('step4', newData);
+    updateFormData('step3', newData);
   };
 
   const handleDeliveryRadiusChange = (radius: number) => {
     const newData = { ...localData, deliveryRadius: radius };
     setLocalData(newData);
-    updateFormData('step4', newData);
+    updateFormData('step3', newData);
     
     // Validate delivery radius
     if (radius <= 0) {
@@ -157,7 +162,7 @@ export default function LocationHours() {
   };
 
   const handleBack = () => {
-    setCurrentStep(3);
+    setCurrentStep(2);
     router.back();
   };
 
@@ -190,8 +195,8 @@ export default function LocationHours() {
     }
 
     // Save data and proceed
-    updateFormData('step4', localData);
-    setCurrentStep(5);
+    updateFormData('step3', localData);
+    setCurrentStep(4);
     router.push('./cuisine-services');
   };
 

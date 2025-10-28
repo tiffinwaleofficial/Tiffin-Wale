@@ -31,8 +31,12 @@ export default function CuisineServices() {
     setCurrentStep 
   } = useOnboardingStore();
 
-  const [localData, setLocalData] = useState<CuisineServicesData>(
-    (formData.step5 as unknown as CuisineServicesData) || {
+  const [localData, setLocalData] = useState<CuisineServicesData>(() => {
+    const step4Data = formData.step4 as any;
+    if (step4Data && typeof step4Data === 'object' && Array.isArray(step4Data.cuisineTypes)) {
+      return step4Data as CuisineServicesData;
+    }
+    return {
       cuisineTypes: [],
       isVegetarian: false,
       hasDelivery: true,
@@ -42,8 +46,8 @@ export default function CuisineServices() {
       minimumOrderAmount: 100,
       deliveryFee: 0,
       estimatedDeliveryTime: 30,
-    }
-  );
+    };
+  });
 
   const [errors, setLocalErrors] = useState<Record<string, string>>({});
 
@@ -82,7 +86,7 @@ export default function CuisineServices() {
     
     const newData = { ...localData, cuisineTypes: newCuisineTypes };
     setLocalData(newData);
-    updateFormData('step5', newData);
+    updateFormData('step4', newData);
     
     // Validate cuisine types with new data
     const error = !newCuisineTypes.length ? 'Please select at least one cuisine type' : '';
@@ -203,7 +207,7 @@ export default function CuisineServices() {
     }
 
     // Save data and proceed
-    updateFormData('step5', localData);
+    updateFormData('step4', localData);
     setCurrentStep(6);
     router.push('./images-branding');
   };

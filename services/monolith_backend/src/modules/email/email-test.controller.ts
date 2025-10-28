@@ -100,14 +100,15 @@ export class EmailTestController {
   @Post("send-cfo-welcome")
   @ApiOperation({ summary: "Send CFO welcome email" })
   @ApiResponse({ status: 200, description: "CFO welcome email sent" })
-  async sendCfoWelcomeEmail(
-    @Body() request: { to: string; name: string },
-  ) {
+  async sendCfoWelcomeEmail(@Body() request: { to: string; name: string }) {
     try {
-      const result = await this.emailService.sendCfoWelcomeEmail("test-user-id", {
-        email: request.to,
-        name: request.name || "Valued Customer",
-      });
+      const result = await this.emailService.sendCfoWelcomeEmail(
+        "test-user-id",
+        {
+          email: request.to,
+          name: request.name || "Valued Customer",
+        },
+      );
 
       return {
         success: true,
@@ -161,7 +162,7 @@ export class EmailTestController {
     const templateToEmailType = {
       // Welcome and auth emails - info@
       welcome: "info",
-      "cfo-welcome": "info",
+      "cfo-welcome": "cfo",
       "email-verification": "info",
       "password-reset": "info",
 
@@ -191,6 +192,7 @@ export class EmailTestController {
     // Get the appropriate email address from environment variables
     const emailAddresses = {
       info: process.env.INFO_EMAIL || "Tiffin-Wale <info@tiffin-wale.com>",
+      cfo: process.env.CFO_EMAIL || "Riya Tiwari <riya.tiwari@tiffin-wale.com>",
       sales:
         process.env.SALES_EMAIL || "Tiffin-Wale Sales <sales@tiffin-wale.com>",
       orders:
@@ -232,9 +234,7 @@ export class EmailTestController {
       "order-preparing": `Your Order is Being Prepared #${
         data.order?.orderNumber || "N/A"
       }`,
-      "order-ready": `Your Order is Ready #${
-        data.order?.orderNumber || "N/A"
-      }`,
+      "order-ready": `Your Order is Ready #${data.order?.orderNumber || "N/A"}`,
       "order-delivered": `Order Delivered #${
         data.order?.orderNumber || "N/A"
       } - Rate Your Experience`,
@@ -261,9 +261,7 @@ export class EmailTestController {
         data.appName || "Tiffin-Wale"
       }`,
       "payment-failed": `Payment Failed - Action Required`,
-      "refund-processed": `Refund Processed - ${
-        data.appName || "Tiffin-Wale"
-      }`,
+      "refund-processed": `Refund Processed - ${data.appName || "Tiffin-Wale"}`,
     };
 
     return (

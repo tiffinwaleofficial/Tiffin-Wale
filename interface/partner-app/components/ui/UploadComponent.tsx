@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,10 +17,11 @@ import { cloudinaryUploadService, UploadType } from '../../services/cloudinaryUp
 export interface UploadedFile {
   uri: string;
   cloudinaryUrl?: string;
-  publicId?: string; // For Cloudinary deletion
+  publicId?: string;
   status: 'pending' | 'optimizing' | 'uploading' | 'completed' | 'error';
   error?: string;
   progress: number;
+  fileType?: 'image' | 'video' | 'document'; // Track file type explicitly
 }
 
 interface UploadComponentProps {
@@ -35,6 +36,23 @@ interface UploadComponentProps {
   disabled?: boolean;
 }
 
+// Helper to determine file type label
+const getFileTypeLabel = (allowedTypes: string[]): string => {
+  if (allowedTypes.includes('image')) {
+    if (allowedTypes.length === 1) return 'Image';
+    return 'Image, Video, Document';
+  }
+  if (allowedTypes.includes('video')) {
+    if (allowedTypes.length === 1) return 'Video';
+    return 'Video';
+  }
+  if (allowedTypes.includes('document')) {
+    if (allowedTypes.length === 1) return 'PDF/Document';
+    return 'Document';
+  }
+  return 'File';
+};
+
 export const UploadComponent: React.FC<UploadComponentProps> = ({
   title,
   description,
@@ -42,17 +60,30 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
   maxFiles = 5,
   allowedTypes = ['image'],
   onFilesChange,
-  files = [],
+  files: externalFiles = [],
   folder,
   disabled = false,
 }) => {
+  const [internalFiles, setInternalFiles] = useState<UploadedFile[]>(externalFiles);
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
   const [previewFile, setPreviewFile] = useState<UploadedFile | null>(null);
+  const isInitialMount = useRef(true);
+
+  // Only sync external files on initial mount or when they significantly change
+  useEffect(() => {
+    if (isInitialMount.current) {
+      setInternalFiles(externalFiles);
+      isInitialMount.current = false;
+    }
+  }, []);
 
   const updateFileStatus = (uri: string, updates: Partial<UploadedFile>) => {
-    onFilesChange(
-      files.map((f) => (f.uri === uri ? { ...f, ...updates } : f)),
-    );
+    setInternalFiles((currentFiles) => {
+      const updated = currentFiles.map((f) => (f.uri === uri ? { ...f, ...updates } : f));
+      // Notify parent of changes
+      setTimeout(() => onFilesChange(updated), 0);
+      return updated;
+    });
   };
 
   const handleFilePreview = (file: UploadedFile) => {
@@ -63,7 +94,7 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
   };
 
   const handleFileSelection = async () => {
-    if (disabled || files.length >= maxFiles) {
+    if (disabled || internalFiles.length >= maxFiles) {
       Alert.alert('Maximum Files Reached', `You can only upload up to ${maxFiles} files.`);
       return;
     }
@@ -78,8 +109,154 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
         return;
       }
 
-      const result: any = await (allowedTypes.includes('document')
+      // Create hidden file input for web to intercept file selection
+      if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.style.display = 'none';
+        
+        // Set accept attribute based on allowed types
+        if (allowedTypes.includes('image')) {
+          input.accept = 'image/*';
+        } else if (allowedTypes.includes('video')) {
+          input.accept = 'video/*';
+        } else if (allowedTypes.includes('document')) {
+          input.accept = '.pdf,.doc,.docx,.txt,.rtf,.xls,.xlsx,.ppt,.pptx';
+        }
+        
+        if (maxFiles > 1) {
+          input.multiple = true;
+        }
+
+        // Wrap file picker in a Promise with error handling
+        let result: any;
+        try {
+          result = await new Promise<any>((resolve, reject) => {
+          input.onchange = (e: any) => {
+            const files = e.target.files;
+            
+            if (!files || files.length === 0) {
+              resolve({ canceled: true });
+              return;
+            }
+
+            // PRE-CHECK: Validate each file immediately
+            const validFiles: File[] = [];
+            for (let i = 0; i < files.length; i++) {
+              const file = files[i];
+              const fileName = file.name;
+              const mimeType = file.type;
+
+              // Check if file matches allowed types
+              let isValid = false;
+              
+              if (allowedTypes.includes('image')) {
+                isValid = mimeType.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(fileName);
+              }
+              if (!isValid && allowedTypes.includes('video')) {
+                isValid = mimeType.startsWith('video/') || /\.(mp4|mov|avi|mkv|webm)$/i.test(fileName);
+              }
+              if (!isValid && allowedTypes.includes('document')) {
+                isValid = /\.(pdf|doc|docx|txt|rtf|xls|xlsx|ppt|pptx)$/i.test(fileName);
+              }
+
+              if (!isValid) {
+                Alert.alert(
+                  'Wrong File Type',
+                  `${fileName || 'This file'} is not a ${getFileTypeLabel(allowedTypes)} file. Please upload ${getFileTypeLabel(allowedTypes)} files only.`,
+                );
+                reject(new Error(`UNSUPPORTED_FILE: ${fileName}`));
+                return;
+              }
+
+              validFiles.push(file);
+            }
+
+            // Convert files to URI format for processing
+            const assets = validFiles.map((file) => ({
+              uri: URL.createObjectURL(file),
+              type: file.type,
+              name: file.name,
+              mimeType: file.type,
+              fileName: file.name,
+            }));
+
+            resolve({ canceled: false, assets });
+          };
+
+          input.oncancel = () => {
+            resolve({ canceled: true });
+          };
+
+          // Trigger file picker
+          input.click();
+        });
+        } catch (error: any) {
+          // Handle UNSUPPORTED_FILE error - alert already shown in validation
+          if (error?.message?.includes('UNSUPPORTED_FILE')) {
+            return; // Already shown alert to user
+          }
+          Alert.alert('Error', 'Failed to select files. Please try again.');
+          return;
+        }
+
+        if (result.canceled || !result.assets) {
+          return;
+        }
+
+        // Files already validated above, create newFiles directly
+        const newFiles: UploadedFile[] = result.assets.map((asset: any) => ({
+          uri: asset.uri,
+          status: 'pending',
+          progress: 0,
+          fileType: allowedTypes[0] as 'image' | 'video' | 'document',
+        }));
+
+        const updatedFiles = [...internalFiles, ...newFiles].slice(0, maxFiles);
+        setInternalFiles(updatedFiles);
+        onFilesChange(updatedFiles);
+
+        // Upload each new file
+        for (const file of newFiles) {
+          try {
+            updateFileStatus(file.uri, { status: 'optimizing' });
+
+            const uploadResult = await cloudinaryUploadService.uploadFile(
+              file.uri,
+              uploadType,
+              { folder },
+              (progress) => {
+                updateFileStatus(file.uri, {
+                  status: 'uploading',
+                  progress: progress * 100,
+                });
+              },
+            );
+
+            if (uploadResult.success && uploadResult.url) {
+              updateFileStatus(file.uri, {
+                status: 'completed',
+                cloudinaryUrl: uploadResult.url,
+                publicId: uploadResult.publicId,
+                progress: 100,
+              });
+            } else {
+              throw new Error(uploadResult.error || 'Upload failed');
+            }
+          } catch (error: any) {
+            updateFileStatus(file.uri, {
+              status: 'error',
+              error: error.message,
+            });
+          }
+        }
+      } else {
+        // Mobile fallback - use Expo pickers
+        try {
+          const result = await (allowedTypes.includes('document')
         ? cloudinaryUploadService.pickDocuments({ allowsMultipleSelection: maxFiles > 1 })
+            : allowedTypes.includes('video')
+            ? cloudinaryUploadService.pickVideos({ allowsMultipleSelection: maxFiles > 1 })
         : cloudinaryUploadService.pickImage({
             allowsMultipleSelection: maxFiles > 1,
             allowsEditing: false,
@@ -90,21 +267,19 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
       }
       
       const newFiles: UploadedFile[] = result.assets.map((asset: any) => ({
-        uri: asset.uri,
+            uri: asset.uri || asset.fileUri,
         status: 'pending',
         progress: 0,
+            fileType: allowedTypes[0] as 'image' | 'video' | 'document',
       }));
 
-      const updatedFiles = [...files, ...newFiles].slice(0, maxFiles);
+          const updatedFiles = [...internalFiles, ...newFiles].slice(0, maxFiles);
+          setInternalFiles(updatedFiles);
       onFilesChange(updatedFiles);
 
-      // Upload each new file (using for...of for proper async handling)
-      for (const file of newFiles) {
+      // Upload each new file
+          for (const file of newFiles) {
         try {
-          console.log('🚀 Starting upload for file:', file.uri);
-          console.log('📦 Upload type:', uploadType);
-          console.log('📁 Folder:', folder);
-          
           updateFileStatus(file.uri, { status: 'optimizing' });
 
           const uploadResult = await cloudinaryUploadService.uploadFile(
@@ -112,7 +287,6 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
             uploadType,
             { folder },
             (progress) => {
-              console.log('📊 Upload progress:', progress * 100, '%');
               updateFileStatus(file.uri, {
                 status: 'uploading',
                 progress: progress * 100,
@@ -120,64 +294,68 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
             },
           );
 
-          console.log('✅ Upload result:', uploadResult);
-
           if (uploadResult.success && uploadResult.url) {
-            console.log('🎉 Upload completed successfully!', uploadResult.url);
             updateFileStatus(file.uri, {
               status: 'completed',
               cloudinaryUrl: uploadResult.url,
-              publicId: uploadResult.publicId,
+                  publicId: uploadResult.publicId,
               progress: 100,
             });
           } else {
-            console.error('❌ Upload failed:', uploadResult.error);
             throw new Error(uploadResult.error || 'Upload failed');
           }
         } catch (error: any) {
-          console.error('❌ Upload error for', file.uri, error);
           updateFileStatus(file.uri, {
             status: 'error',
             error: error.message,
           });
         }
+          }
+        } catch (pickerError: any) {
+          if (pickerError?.message?.includes('UNSUPPORTED_FILE')) {
+            // Already handled by alert in web path
+            return;
+          }
+          Alert.alert('Error', 'Failed to select files. Please try again.');
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('File selection error:', error);
-      Alert.alert('Error', 'Failed to select files.');
+      
+      if (error?.message?.includes('UNSUPPORTED_FILE')) {
+        // Already handled by alert in web path
+        return;
+      }
+      
+      Alert.alert('Error', 'Something went wrong. Please try again.');
     }
   };
 
   const removeFile = async (file: UploadedFile) => {
     if (disabled) return;
-    
-    // Show confirmation dialog
+
     Alert.alert(
       'Delete Asset',
-      'Are you sure you want to delete this asset? This action cannot be undone.',
+      'Are you sure you want to delete this asset?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            // If file is uploaded to Cloudinary, delete it there first
             if (file.publicId && file.status === 'completed') {
               try {
-                const deleteResult = await cloudinaryUploadService.deleteImage(file.publicId);
-                if (!deleteResult.success) {
-                  Alert.alert('Error', 'Failed to delete asset from server.');
-                  return;
-                }
+                await cloudinaryUploadService.deleteImage(file.publicId);
               } catch (error) {
                 console.error('Delete error:', error);
-                Alert.alert('Error', 'Failed to delete asset from server.');
-                return;
               }
             }
-            
-            // Remove from local state
-            onFilesChange(files.filter((f) => f.uri !== file.uri));
+
+            setInternalFiles((currentFiles) => {
+              const updated = currentFiles.filter((f) => f.uri !== file.uri);
+              onFilesChange(updated);
+              return updated;
+            });
           },
         },
       ],
@@ -185,7 +363,9 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
   };
 
   const renderFilePreview = (file: UploadedFile, index: number) => {
-    const isImage = file.uri.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i);
+    const isImage = file.fileType === 'image' || allowedTypes.includes('image');
+    const isVideo = file.fileType === 'video' || allowedTypes.includes('video');
+    const hasValidUrl = file.cloudinaryUrl || file.uri;
 
     return (
       <TouchableOpacity
@@ -193,35 +373,28 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
         onPress={() => handleFilePreview(file)}
         style={styles.previewContainer}
       >
-        {isImage ? (
+        {isImage && hasValidUrl ? (
           <Image
             source={{ uri: file.cloudinaryUrl || file.uri }}
             style={styles.previewImage}
+            onError={() => console.log('Image load error:', file.uri)}
           />
-        ) : (() => {
-          const isVideo = file.uri.match(/\.(mp4|mov|avi|mkv|webm|flv|wmv)$/i);
-          return isVideo ? (
-            <View style={styles.videoPreview}>
-              <Image
-                source={{ uri: file.cloudinaryUrl || file.uri }}
-                style={styles.previewImage}
-              />
-              <View style={styles.playButtonOverlay}>
-                <Ionicons name="play-circle" size={32} color="white" />
-              </View>
+        ) : isVideo && hasValidUrl ? (
+          <View style={styles.videoPreview}>
+            <Image source={{ uri: file.cloudinaryUrl || file.uri }} style={styles.previewImage} />
+            <View style={styles.playButtonOverlay}>
+              <Ionicons name="play-circle" size={32} color="white" />
             </View>
-          ) : (
-            <View style={styles.documentPreview}>
-              <Ionicons name="document-text-outline" size={24} color="#FF9B42" />
-            </View>
-          );
-        })()}
+          </View>
+        ) : (
+          <View style={styles.documentPreview}>
+            <Ionicons name="document-text-outline" size={24} color="#FF9B42" />
+          </View>
+        )}
 
         {file.status === 'uploading' && (
           <View style={styles.progressOverlay}>
-            <View style={styles.progressBarContainer}>
-              <View style={[styles.progressBar, { width: `${file.progress}%` }]} />
-            </View>
+            <ActivityIndicator size="small" color="#fff" />
             <Text style={styles.progressText}>{Math.round(file.progress)}%</Text>
           </View>
         )}
@@ -229,7 +402,6 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
         {file.status === 'optimizing' && (
           <View style={styles.statusOverlay}>
             <ActivityIndicator size="small" color="#fff" />
-            <Text style={styles.statusText}>Optimizing...</Text>
           </View>
         )}
         
@@ -250,47 +422,48 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
       </TouchableOpacity>
     );
   };
+
+  const canAddMore = internalFiles.length < maxFiles && !disabled;
+  const displayFiles = maxFiles === 1 ? internalFiles.slice(0, 1) : internalFiles;
   
   return (
-    <View style={{ marginBottom: 24 }}>
+    <View style={styles.container}>
       <Text style={styles.title}>{title}</Text>
+      {description && <Text style={styles.description}>{description}</Text>}
 
-      {description && (
-        <Text style={styles.description}>{description}</Text>
+      {/* Initial Upload Button */}
+      {internalFiles.length === 0 && canAddMore && (
+        <TouchableOpacity onPress={handleFileSelection} style={styles.uploadButton}>
+          <Ionicons name="cloud-upload-outline" size={48} color="#FF9B42" />
+          <Text style={styles.uploadButtonText}>{`Tap to upload ${title.toLowerCase()}`}</Text>
+            <Text style={styles.uploadButtonSubText}>
+            {getFileTypeLabel(allowedTypes)} up to 5MB
+            </Text>
+        </TouchableOpacity>
       )}
 
-      {files.length < maxFiles && !disabled ? (
-        <TouchableOpacity
-          onPress={handleFileSelection}
-          style={styles.uploadButton}
-        >
-          <Ionicons 
-            name="cloud-upload-outline" 
-            size={48} 
-            color="#FF9B42" 
-          />
-          <View style={{ alignItems: 'center', marginTop: 16 }}>
-            <Text style={styles.uploadButtonText}>
-              {`Tap to upload ${title.toLowerCase()}`}
-            </Text>
-            <Text style={styles.uploadButtonSubText}>
-              {allowedTypes.join(', ').toUpperCase()} up to 5MB
-            </Text>
-          </View>
-        </TouchableOpacity>
-      ) : null}
-
-      {files.length > 0 && (
-        <View style={{ marginTop: 16 }}>
+      {/* Existing Files Display */}
+      {internalFiles.length > 0 && (
+        <View style={styles.filesContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {files.map(renderFilePreview)}
+            <View style={styles.filesRow}>
+              {displayFiles.map(renderFilePreview)}
+
+              {/* Add More Button */}
+              {canAddMore && (
+                <TouchableOpacity
+                  onPress={handleFileSelection}
+                  style={styles.addMoreButton}
+                >
+                  <Ionicons name="add" size={24} color="#FF9B42" />
+                </TouchableOpacity>
+              )}
             </View>
           </ScrollView>
         </View>
       )}
 
-      {/* File Preview Modal */}
+      {/* Preview Modal */}
       <Modal
         visible={previewModalVisible}
         transparent={true}
@@ -307,33 +480,28 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
 
           {previewFile && (
             <View style={styles.modalContent}>
-              {previewFile.uri.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i) ? (
+              {previewFile.fileType === 'image' && previewFile.cloudinaryUrl ? (
                 <Image
-                  source={{ uri: previewFile.cloudinaryUrl || previewFile.uri }}
+                  source={{ uri: previewFile.cloudinaryUrl }}
                   style={styles.modalImage}
+                  resizeMode="contain"
                 />
-              ) : previewFile.uri.match(/\.(mp4|mov|avi|mkv|webm|flv|wmv)$/i) ? (
+              ) : previewFile.fileType === 'video' ? (
                 <View style={styles.modalDocumentView}>
                   <Ionicons name="videocam" size={64} color="#FF9B42" />
-                  <Text style={styles.modalDocumentTitle}>
-                    {previewFile.uri.split('/').pop() || 'Video'}
-                  </Text>
+                  <Text style={styles.modalDocumentTitle}>Video</Text>
                   <Text style={styles.modalDocumentStatus}>
-                    Video uploaded successfully
+                    {previewFile.status === 'completed' ? 'Uploaded successfully' : 'Processing...'}
                   </Text>
                 </View>
               ) : (
                 <View style={styles.modalDocumentView}>
-                  <Ionicons 
-                    name="document-text" 
-                    size={64} 
-                    color="#FF9B42" 
-                  />
+                  <Ionicons name="document-text" size={64} color="#FF9B42" />
                   <Text style={styles.modalDocumentTitle}>
                     {previewFile.uri.split('/').pop() || 'Document'}
                   </Text>
                   <Text style={styles.modalDocumentStatus}>
-                    {previewFile.status === 'completed' ? 'Uploaded successfully' : 'Pending upload'}
+                    {previewFile.status === 'completed' ? 'Uploaded successfully' : 'Processing...'}
                   </Text>
                 </View>
               )}
@@ -346,17 +514,22 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
 };
 
 const styles = StyleSheet.create({
+  container: {
+    marginBottom: 24,
+    position: 'relative',
+  },
   title: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
     marginBottom: 8,
+    fontFamily: 'Poppins-SemiBold',
   },
   description: {
     fontSize: 14,
     color: '#666',
     marginBottom: 16,
-    lineHeight: 20,
+    fontFamily: 'Poppins-Regular',
   },
   uploadButton: {
     borderWidth: 2,
@@ -371,18 +544,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FF9B42',
-    textAlign: 'center',
+    marginTop: 16,
     fontFamily: 'Poppins-SemiBold',
   },
   uploadButtonSubText: {
     color: '#666',
     marginTop: 4,
     fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+  },
+  filesContainer: {
+    marginTop: 16,
+  },
+  filesRow: {
+    flexDirection: 'row',
+    gap: 8,
   },
   previewContainer: {
     width: 80,
     height: 80,
-    margin: 4,
     borderRadius: 8,
     backgroundColor: '#f0f0f0',
     borderWidth: 1,
@@ -404,7 +584,6 @@ const styles = StyleSheet.create({
   videoPreview: {
     width: '100%',
     height: '100%',
-    position: 'relative',
   },
   playButtonOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -414,37 +593,22 @@ const styles = StyleSheet.create({
   },
   progressOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  progressBarContainer: {
-    width: '80%',
-    height: 4,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: '#fff',
   },
   progressText: {
     color: '#fff',
     fontSize: 12,
     fontWeight: 'bold',
     marginTop: 4,
+    fontFamily: 'Poppins-SemiBold',
   },
   statusOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  statusText: {
-    color: '#fff',
-    fontSize: 10,
-    marginTop: 4,
   },
   errorOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -460,6 +624,17 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     width: 20,
     height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addMoreButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#FF9B42',
+    borderStyle: 'dashed',
+    backgroundColor: '#FFF8F0',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -485,7 +660,6 @@ const styles = StyleSheet.create({
   modalImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'contain',
   },
   modalDocumentView: {
     backgroundColor: 'white',
@@ -499,13 +673,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     marginTop: 16,
-    textAlign: 'center',
+    fontFamily: 'Poppins-SemiBold',
   },
   modalDocumentStatus: {
     fontSize: 14,
     color: '#666',
     marginTop: 8,
-    textAlign: 'center',
+    fontFamily: 'Poppins-Regular',
   },
 });
 

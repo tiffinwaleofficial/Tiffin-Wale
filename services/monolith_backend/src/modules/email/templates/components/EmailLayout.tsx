@@ -23,6 +23,8 @@ export const EmailLayout: React.FC<EmailLayoutProps> = ({
     <Html>
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="color-scheme" content="light only" />
+        <meta name="supported-color-schemes" content="light only" />
         <title>{preview}</title>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -53,6 +55,14 @@ export const EmailLayout: React.FC<EmailLayoutProps> = ({
             font-size: 12px;
             color: #9ca3af;
           }
+          .logo-bg {
+            background-color: #ffffff;
+          }
+          @media (prefers-color-scheme: dark) {
+            .logo-bg {
+              background-color: #ffffff !important;
+            }
+          }
         `}</style>
       </Head>
       <Body>
@@ -60,8 +70,7 @@ export const EmailLayout: React.FC<EmailLayoutProps> = ({
           <Section className="header" style={{ background: headerGradient, borderRadius: '16px 16px 0 0' }}>
             <table cellPadding="0" cellSpacing="0" style={{ margin: '0 auto 24px' }}>
               <tr>
-                <td style={{
-                  backgroundColor: '#ffffff',
+                <td className="logo-bg" style={{
                   borderRadius: '50%',
                   width: '96px',
                   height: '96px',
@@ -81,8 +90,7 @@ export const EmailLayout: React.FC<EmailLayoutProps> = ({
 
             <table cellPadding="0" cellSpacing="0" style={{ margin: '0 auto' }}>
               <tr>
-                <td style={{
-                  backgroundColor: '#ffffff',
+                <td className="logo-bg" style={{
                   borderRadius: '12px',
                 }}>
                   <Img

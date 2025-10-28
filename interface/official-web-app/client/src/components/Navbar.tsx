@@ -50,14 +50,14 @@ export default function Navbar() {
       }`} role="banner">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           {/* Logo */}
-          <Link href="/" className="flex items-center group">
+          <a href="https://www.tiffin-wale.com" className="flex items-center group" target="_blank" rel="noopener noreferrer">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300">
-                <span className="text-white font-bold text-lg">T</span>
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300">
+                <img src="/icon.png" alt="TiffinWale Logo" className="w-full h-full object-contain" />
               </div>
-              <span className="text-primary font-bold text-2xl group-hover:text-accent transition-colors duration-300">TiffinWale</span>
+              <span className="text-primary font-bold text-2xl group-hover:text-accent transition-colors duration-300">Tiffin Wale</span>
             </div>
-          </Link>
+          </a>
           
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-8" aria-label="Main Navigation">
@@ -125,8 +125,8 @@ export default function Navbar() {
               {/* Mobile Menu Header */}
               <div className="flex items-center justify-between p-6 border-b border-gray-100">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-r from-primary to-accent rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">T</span>
+                  <div className="w-10 h-10 rounded-md flex items-center justify-center">
+                    <img src="/icon.png" alt="TiffinWale Logo" className="w-full h-full object-contain" />
                   </div>
                   <span className="text-primary font-bold text-lg">TiffinWale</span>
                 </div>

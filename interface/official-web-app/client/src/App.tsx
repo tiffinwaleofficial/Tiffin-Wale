@@ -24,6 +24,8 @@ import TiffinWaleServicePage from "@/pages/tiffin-wale-service";
 import FoodDeliveryServicePage from "@/pages/food-delivery-service";
 import DailyMealServicePage from "@/pages/daily-meal-service";
 import ContactUsPage from "@/pages/contact-us";
+import RiyaTiwariPage from "@/pages/riya-tiwari";
+import RahulVishwakarmaPage from "@/pages/rahul-vishwakarma";
 import { logApiConfig, checkBackendHealth } from "./lib/api";
 
 // This component ensures the page scrolls to top on route changes
@@ -31,6 +33,18 @@ function ScrollResetter() {
   const [location] = useLocation();
   
   useEffect(() => {
+    const hash = window.location.hash;
+    if (hash) {
+      const element = document.querySelector(hash);
+      if (element) {
+        // Delay scroll to allow page to render
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+        return;
+      }
+    }
+
     // First, try the smooth approach with behavior option
     try {
       window.scrollTo({
@@ -88,6 +102,8 @@ function Router() {
           <Route path="/submit-testimonial" component={SubmitTestimonialPage} />
           <Route path="/faq" component={FAQPage} />
           <Route path="/about" component={AboutPage} />
+          <Route path="/riya-tiwari" component={RiyaTiwariPage} />
+          <Route path="/rahul-vishwakarma" component={RahulVishwakarmaPage} />
           <Route path="/terms" component={TermsPage} />
           <Route path="/privacy-policy" component={PrivacyPolicyPage} />
           <Route path="/refund-policy" component={RefundPolicyPage} />

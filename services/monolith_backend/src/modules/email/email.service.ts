@@ -277,7 +277,7 @@ export class EmailService {
         email: userData.email,
         id: userId,
       },
-      dashboardUrl: `${this.appUrl}/dashboard`,
+      // dashboardUrl is no longer needed as the URL is hardcoded in the template
     };
 
     return this.sendTemplateEmail(
