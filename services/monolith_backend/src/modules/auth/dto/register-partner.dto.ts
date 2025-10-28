@@ -150,6 +150,39 @@ export class DocumentsDto {
   otherDocuments?: string[];
 }
 
+// Bank Details DTO
+export class BankDetailsDto {
+  @ApiPropertyOptional({
+    example: "John Doe",
+    description: "Account holder name",
+  })
+  @IsOptional()
+  @IsString({ message: "Account holder name must be a string" })
+  @MaxLength(100, { message: "Account holder name is too long" })
+  accountHolderName?: string;
+
+  @ApiPropertyOptional({ example: "1234567890", description: "Account number" })
+  @IsOptional()
+  @IsString({ message: "Account number must be a string" })
+  @MaxLength(50, { message: "Account number is too long" })
+  accountNumber?: string;
+
+  @ApiPropertyOptional({ example: "SBIN0001234", description: "IFSC code" })
+  @IsOptional()
+  @IsString({ message: "IFSC code must be a string" })
+  @MaxLength(20, { message: "IFSC code is too long" })
+  ifscCode?: string;
+
+  @ApiPropertyOptional({
+    example: "State Bank of India",
+    description: "Bank name",
+  })
+  @IsOptional()
+  @IsString({ message: "Bank name must be a string" })
+  @MaxLength(100, { message: "Bank name is too long" })
+  bankName?: string;
+}
+
 // Social Media DTO
 export class SocialMediaDto {
   @ApiPropertyOptional({
@@ -188,13 +221,13 @@ export class RegisterPartnerDto {
   @MaxLength(255, { message: "Email is too long" })
   email: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: "Password123!",
     description:
       "Password (min 8 characters, must include uppercase, lowercase, number, and special character)",
   })
+  @IsOptional()
   @IsString({ message: "Password must be a string" })
-  @IsNotEmpty({ message: "Password is required" })
   @MinLength(8, { message: "Password must be at least 8 characters long" })
   @Matches(
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
@@ -203,7 +236,7 @@ export class RegisterPartnerDto {
         "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
     },
   )
-  password: string;
+  password?: string;
 
   @ApiProperty({
     enum: UserRole,
@@ -273,12 +306,12 @@ export class RegisterPartnerDto {
   @IsString({ each: true, message: "Each cuisine type must be a string" })
   cuisineTypes: string[];
 
-  // Address
-  @ApiProperty({ description: "Business address" })
-  @IsNotEmpty({ message: "Address is required" })
-  @ValidateNested()
-  @Type(() => AddressDto)
-  address: AddressDto;
+  // Address - can be either object or string
+  @ApiPropertyOptional({
+    description: "Business address (can be object or string)",
+  })
+  @IsOptional()
+  address?: any;
 
   // Business Hours
   @ApiProperty({ description: "Business operating hours" })
@@ -338,6 +371,17 @@ export class RegisterPartnerDto {
   @IsOptional()
   @IsNumber({}, { message: "Established year must be a number" })
   establishedYear?: number;
+
+  @ApiPropertyOptional({
+    example: "2024-01-15",
+    description: "Date established (ISO format)",
+  })
+  @IsOptional()
+  @IsString({ message: "Established date must be a string" })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: "Established date must be in YYYY-MM-DD format",
+  })
+  establishedDate?: string;
 
   // Delivery Information
   @ApiPropertyOptional({
@@ -479,4 +523,78 @@ export class RegisterPartnerDto {
   @IsOptional()
   @IsBoolean({ message: "Marketing preference must be a boolean" })
   agreeToMarketing?: boolean;
+
+  @ApiPropertyOptional({
+    example: true,
+    description: "Agree to terms and conditions",
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean({ message: "Agree to terms must be a boolean" })
+  agreeToTerms?: boolean;
+
+  // Additional business images
+  @ApiPropertyOptional({
+    example: ["https://cloudinary.com/image1.jpg"],
+    description: "Business images",
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray({ message: "Images must be an array" })
+  @IsString({ each: true, message: "Each image URL must be a string" })
+  images?: string[];
+
+  // FSSAI License
+  @ApiPropertyOptional({
+    example: "FSSAI123456789",
+    description: "FSSAI license number",
+  })
+  @IsOptional()
+  @IsString({ message: "FSSAI license must be a string" })
+  @MaxLength(50, { message: "FSSAI license is too long" })
+  fssaiLicense?: string;
+
+  // Bank Details
+  @ApiPropertyOptional({ description: "Bank account details" })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => BankDetailsDto)
+  bankDetails?: BankDetailsDto;
+
+  // UPI ID
+  @ApiPropertyOptional({ example: "partner@upi", description: "UPI ID" })
+  @IsOptional()
+  @IsString({ message: "UPI ID must be a string" })
+  @MaxLength(255, { message: "UPI ID is too long" })
+  upiId?: string;
+
+  // Also accept address as a flat string for backward compatibility
+  @ApiPropertyOptional({
+    example: "123 Main Street, City, State 12345",
+    description: "Full address as string",
+  })
+  @IsOptional()
+  @IsString({ message: "Address string must be a string" })
+  addressString?: string;
+
+  // Flat address fields (for flexibility)
+  @ApiPropertyOptional({ example: "New York", description: "City" })
+  @IsOptional()
+  @IsString({ message: "City must be a string" })
+  city?: string;
+
+  @ApiPropertyOptional({ example: "NY", description: "State" })
+  @IsOptional()
+  @IsString({ message: "State must be a string" })
+  state?: string;
+
+  @ApiPropertyOptional({ example: "10001", description: "Postal code" })
+  @IsOptional()
+  @IsString({ message: "Postal code must be a string" })
+  pincode?: string;
+
+  @ApiPropertyOptional({ example: "USA", description: "Country" })
+  @IsOptional()
+  @IsString({ message: "Country must be a string" })
+  country?: string;
 }

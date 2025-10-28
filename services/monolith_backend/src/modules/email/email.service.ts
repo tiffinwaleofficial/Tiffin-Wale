@@ -38,6 +38,7 @@ export class EmailService {
     careers: string;
     marketing: string;
     admin: string;
+    cfo: string;
   };
 
   constructor(
@@ -84,6 +85,7 @@ export class EmailService {
       careers: "Tiffin-Wale Careers <careers@tiffin-wale.com>",
       marketing: "Tiffin-Wale Marketing <marketing@tiffin-wale.com>",
       admin: "Tiffin-Wale Admin <admin@tiffin-wale.com>",
+      cfo: "Riya Tiwari <riya.tiwari@tiffin-wale.com>",
     };
 
     // Log comprehensive email service status
@@ -190,6 +192,7 @@ export class EmailService {
   private getSenderEmail(
     type:
       | "welcome"
+      | "cfo-welcome"
       | "password-reset"
       | "verification"
       | "order"
@@ -202,6 +205,8 @@ export class EmailService {
     switch (type) {
       case "welcome":
         return this.emailAddresses.info;
+      case "cfo-welcome":
+        return this.emailAddresses.cfo;
       case "password-reset":
       case "verification":
         return this.emailAddresses.info;
@@ -251,6 +256,37 @@ export class EmailService {
         data: templateData,
         subject: `Welcome to Tiffin-Wale, ${userData.name}!`,
         from: this.getSenderEmail("welcome"),
+      },
+      userId,
+    );
+  }
+
+  /**
+   * Send CFO welcome email to new users
+   */
+  async sendCfoWelcomeEmail(
+    userId: string,
+    userData: {
+      name: string;
+      email: string;
+    },
+  ): Promise<EmailResult> {
+    const templateData: TemplateData = {
+      user: {
+        name: userData.name,
+        email: userData.email,
+        id: userId,
+      },
+      dashboardUrl: `${this.appUrl}/dashboard`,
+    };
+
+    return this.sendTemplateEmail(
+      {
+        to: userData.email,
+        template: "cfo-welcome",
+        data: templateData,
+        subject: `A personal welcome from our CFO, Riya Tiwari!`,
+        from: this.getSenderEmail("cfo-welcome"),
       },
       userId,
     );
@@ -874,6 +910,7 @@ export class EmailService {
       // Map templates to preference categories
       const templateCategories = {
         welcome: "securityAlerts",
+        "cfo-welcome": "securityAlerts",
         "password-reset": "securityAlerts",
         "email-verification": "securityAlerts",
         "order-confirmation": "orderUpdates",

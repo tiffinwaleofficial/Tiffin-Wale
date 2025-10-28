@@ -126,6 +126,7 @@ export class TemplateService {
     const templateMap = {
       // Auth templates
       welcome: "./templates/emails/WelcomeEmail",
+      "cfo-welcome": "./templates/emails/CfoWelcomeEmail",
       "password-reset": "./templates/emails/PasswordResetEmail",
       "password-change-confirmation":
         "./templates/emails/PasswordChangeConfirmationEmail",
@@ -245,6 +246,9 @@ export class TemplateService {
     // Default subjects for different template types
     const defaultSubjects = {
       welcome: `Welcome to ${data.appName || "Tiffin-Wale"}!`,
+      "cfo-welcome": `A personal welcome from Riya Tiwari, CFO of ${
+        data.appName || "Tiffin-Wale"
+      }`,
       "password-reset": `Reset Your Password - ${data.appName || "Tiffin-Wale"}`,
       "email-verification": `Verify Your Email - ${data.appName || "Tiffin-Wale"}`,
       "order-confirmation": `Order Confirmed #${data.order?.orderNumber || "N/A"} - ${data.appName || "Tiffin-Wale"}`,
@@ -284,6 +288,7 @@ export class TemplateService {
     return [
       // Auth templates
       "welcome",
+      "cfo-welcome",
       "password-reset",
       "email-verification",
 

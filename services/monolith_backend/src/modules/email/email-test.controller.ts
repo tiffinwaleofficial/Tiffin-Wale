@@ -97,12 +97,39 @@ export class EmailTestController {
     }
   }
 
+  @Post("send-cfo-welcome")
+  @ApiOperation({ summary: "Send CFO welcome email" })
+  @ApiResponse({ status: 200, description: "CFO welcome email sent" })
+  async sendCfoWelcomeEmail(
+    @Body() request: { to: string; name: string },
+  ) {
+    try {
+      const result = await this.emailService.sendCfoWelcomeEmail("test-user-id", {
+        email: request.to,
+        name: request.name || "Valued Customer",
+      });
+
+      return {
+        success: true,
+        message: `CFO welcome email sent to ${request.to}`,
+        result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to send CFO welcome email: ${error.message}`,
+        error: error.message,
+      };
+    }
+  }
+
   @Get("templates")
   @ApiOperation({ summary: "Get available templates for testing" })
   @ApiResponse({ status: 200, description: "List of available templates" })
   async getAvailableTemplates() {
     const templates = [
       "welcome",
+      "cfo-welcome",
       "password-reset",
       "email-verification",
       "order-confirmation",
@@ -134,6 +161,7 @@ export class EmailTestController {
     const templateToEmailType = {
       // Welcome and auth emails - info@
       welcome: "info",
+      "cfo-welcome": "info",
       "email-verification": "info",
       "password-reset": "info",
 
@@ -193,22 +221,49 @@ export class EmailTestController {
   ): Promise<string> {
     const defaultSubjects = {
       welcome: `Welcome to ${data.appName || "Tiffin-Wale"}!`,
+      "cfo-welcome": `A personal welcome from Riya Tiwari, CFO of ${
+        data.appName || "Tiffin-Wale"
+      }`,
       "password-reset": `Reset Your Password - ${data.appName || "Tiffin-Wale"}`,
       "email-verification": `Verify Your Email - ${data.appName || "Tiffin-Wale"}`,
-      "order-confirmation": `Order Confirmed #${data.order?.orderNumber || "N/A"} - ${data.appName || "Tiffin-Wale"}`,
-      "order-preparing": `Your Order is Being Prepared #${data.order?.orderNumber || "N/A"}`,
-      "order-ready": `Your Order is Ready #${data.order?.orderNumber || "N/A"}`,
-      "order-delivered": `Order Delivered #${data.order?.orderNumber || "N/A"} - Rate Your Experience`,
-      "subscription-created": `Subscription Activated - ${data.appName || "Tiffin-Wale"}`,
-      "subscription-renewed": `Subscription Renewed - ${data.appName || "Tiffin-Wale"}`,
-      "subscription-expiring": `Subscription Expiring Soon - ${data.appName || "Tiffin-Wale"}`,
-      "subscription-cancelled": `Subscription Cancelled - ${data.appName || "Tiffin-Wale"}`,
+      "order-confirmation": `Order Confirmed #${
+        data.order?.orderNumber || "N/A"
+      } - ${data.appName || "Tiffin-Wale"}`,
+      "order-preparing": `Your Order is Being Prepared #${
+        data.order?.orderNumber || "N/A"
+      }`,
+      "order-ready": `Your Order is Ready #${
+        data.order?.orderNumber || "N/A"
+      }`,
+      "order-delivered": `Order Delivered #${
+        data.order?.orderNumber || "N/A"
+      } - Rate Your Experience`,
+      "subscription-created": `Subscription Activated - ${
+        data.appName || "Tiffin-Wale"
+      }`,
+      "subscription-renewed": `Subscription Renewed - ${
+        data.appName || "Tiffin-Wale"
+      }`,
+      "subscription-expiring": `Subscription Expiring Soon - ${
+        data.appName || "Tiffin-Wale"
+      }`,
+      "subscription-cancelled": `Subscription Cancelled - ${
+        data.appName || "Tiffin-Wale"
+      }`,
       "partner-welcome": `Welcome to ${data.appName || "Tiffin-Wale"} Partner Program!`,
-      "new-order-notification": `New Order Received #${data.order?.orderNumber || "N/A"}`,
-      "earnings-summary": `Your Earnings Summary - ${data.earnings?.period || "This Week"}`,
-      "payment-success": `Payment Successful - ${data.appName || "Tiffin-Wale"}`,
+      "new-order-notification": `New Order Received #${
+        data.order?.orderNumber || "N/A"
+      }`,
+      "earnings-summary": `Your Earnings Summary - ${
+        data.earnings?.period || "This Week"
+      }`,
+      "payment-success": `Payment Successful - ${
+        data.appName || "Tiffin-Wale"
+      }`,
       "payment-failed": `Payment Failed - Action Required`,
-      "refund-processed": `Refund Processed - ${data.appName || "Tiffin-Wale"}`,
+      "refund-processed": `Refund Processed - ${
+        data.appName || "Tiffin-Wale"
+      }`,
     };
 
     return (

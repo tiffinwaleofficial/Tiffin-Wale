@@ -33,6 +33,7 @@ export interface EmailConfig {
     careers: string;
     marketing: string;
     admin: string;
+    cfo: string;
   };
 }
 
@@ -90,6 +91,7 @@ export const emailConfig = registerAs(
         "Tiffin-Wale Marketing <marketing@tiffin-wale.com>",
       admin:
         process.env.ADMIN_EMAIL || "Tiffin-Wale Admin <admin@tiffin-wale.com>",
+      cfo: process.env.CFO_EMAIL || "Riya Tiwari <riya.tiwari@tiffin-wale.com>",
     },
   }),
 );
