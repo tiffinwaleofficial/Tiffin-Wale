@@ -27,6 +27,7 @@ import {
 import { useAuthStore } from '../../store/authStore';
 import { useOrderStore } from '../../store/orderStore';
 import { usePartnerStore } from '../../store/partnerStore';
+import { useNotificationStore } from '../../store/notificationStore';
 import { NotificationsModal } from '../../components/NotificationsModal';
 
 export default function DashboardScreen() {
@@ -56,11 +57,13 @@ export default function DashboardScreen() {
     refreshStats,
     toggleAcceptingOrders 
   } = usePartnerStore();
+  const { unreadCount, fetchNotifications } = useNotificationStore();
 
   // Load data on component mount
   useEffect(() => {
     if (isAuthenticated) {
       loadDashboardData();
+      fetchNotifications(); // Load notifications for unread count
     }
   }, [isAuthenticated]);
 
@@ -92,13 +95,14 @@ export default function DashboardScreen() {
         refreshProfile(),
         refreshStats(),
         fetchTodayOrders(),
+        fetchNotifications(),
       ]);
     } catch (error) {
       console.error('Failed to refresh data:', error);
     } finally {
       setRefreshing(false);
     }
-  }, [refreshProfile, refreshStats, fetchTodayOrders]);
+  }, [refreshProfile, refreshStats, fetchTodayOrders, fetchNotifications]);
 
   const handleToggleAcceptingOrders = async () => {
     try {
@@ -260,12 +264,16 @@ export default function DashboardScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.notificationButton}
-            onPress={() => router.push('/notifications')}
+            onPress={() => setShowNotifications(true)}
           >
             <Bell size={24} color="#333" />
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationCount}>3</Text>
-            </View>
+            {unreadCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationCount}>
+                  {unreadCount > 99 ? '99+' : unreadCount.toString()}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -400,6 +408,15 @@ export default function DashboardScreen() {
           </Text>
         </View>
       )}
+
+      {/* Notifications Modal */}
+      <NotificationsModal
+        visible={showNotifications}
+        onClose={() => {
+          setShowNotifications(false);
+          fetchNotifications(); // Refresh count when modal closes
+        }}
+      />
     </ScrollView>
   );
 }

@@ -49,8 +49,8 @@ export default function ProfileScreen() {
         pushEnabled: value,
       });
       console.log(`✅ Push notifications ${value ? 'enabled' : 'disabled'}`);
-      // Refresh profile to get updated preferences
-      await fetchProfile();
+      // No need to fetch profile - notification preferences are updated via API
+      // The state is already updated optimistically
     } catch (error) {
       console.error('❌ Failed to update push notification preference:', error);
       // Revert on error
@@ -103,7 +103,14 @@ export default function ProfileScreen() {
       icon: MessageSquare,
       color: '#EC4899',
       action: () => {
-        // Open chat with support
+        router.push({
+          pathname: '/pages/chat',
+          params: {
+            recipientId: 'support_team',
+            recipientName: 'Support Team',
+            conversationType: 'support',
+          },
+        } as any);
       },
     },
     {
@@ -112,7 +119,7 @@ export default function ProfileScreen() {
       icon: ShieldCheck,
       color: '#6B7280',
       action: () => {
-        // Navigate to privacy policy
+        router.push('/pages/privacy-policy');
       },
     },
     {
@@ -121,7 +128,7 @@ export default function ProfileScreen() {
       icon: FileText,
       color: '#6B7280',
       action: () => {
-        // Navigate to terms & conditions
+        router.push('/pages/terms-conditions');
       },
     },
   ];
@@ -133,28 +140,24 @@ export default function ProfileScreen() {
     >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Profile</Text>
-        <TouchableOpacity
-          style={styles.settingsButton}
-          onPress={() => {
-            // Navigate to settings
-          }}
-        >
-          <Settings size={22} color="#333" />
-        </TouchableOpacity>
       </View>
 
       <View style={styles.profileCard}>
         <View style={styles.profileImageContainer}>
-          <Image
-            source={{
-              uri: 'https://images.pexels.com/photos/845457/pexels-photo-845457.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-            }}
-            style={styles.profileImage}
-          />
+          {profile?.logoUrl ? (
+            <Image
+              source={{ uri: profile.logoUrl }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
+              <User size={40} color="#CCC" />
+            </View>
+          )}
           <TouchableOpacity
             style={styles.cameraButton}
             onPress={() => {
-              // Handle image change
+              router.push('/pages/edit-profile');
             }}
           >
             <Camera size={16} color="#FFF" />
@@ -176,7 +179,7 @@ export default function ProfileScreen() {
         <TouchableOpacity
           style={styles.editButton}
           onPress={() => {
-            // Navigate to edit profile
+            router.push('/pages/edit-profile');
           }}
         >
           <Text style={styles.editButtonText}>Edit Profile</Text>
@@ -186,13 +189,19 @@ export default function ProfileScreen() {
       <View style={styles.businessStats}>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>
-            {stats?.averageRating ? stats.averageRating.toFixed(1) : '0.0'}
+            {(profile?.averageRating ?? 0) > 0 
+              ? profile.averageRating.toFixed(1) 
+              : (stats?.averageRating ?? 0) > 0
+              ? stats.averageRating.toFixed(1) 
+              : '0.0'}
           </Text>
           <Text style={styles.statLabel}>Rating</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats?.totalReviews || 0}</Text>
+          <Text style={styles.statValue}>
+            {(profile?.totalReviews ?? 0) || (stats?.totalReviews ?? 0) || 0}
+          </Text>
           <Text style={styles.statLabel}>Reviews</Text>
         </View>
         <View style={styles.statDivider} />
@@ -272,19 +281,6 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: '#333',
   },
-  settingsButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
   profileCard: {
     backgroundColor: '#FFF',
     borderRadius: 16,
@@ -306,6 +302,12 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
+    backgroundColor: '#F5F5F5',
+  },
+  profileImagePlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
   },
   cameraButton: {
     position: 'absolute',

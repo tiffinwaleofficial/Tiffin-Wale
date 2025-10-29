@@ -1,141 +1,167 @@
-# 🚀 Quick Reference - Auto-Generated API
+# API Client - Quick Reference
 
-## One-Line Summary
-**Zero manual code** - Just import and use auto-generated hooks from `@tiffinwale/api`
+## 🎯 TL;DR
+
+**Problem**: API requests were hitting Next.js (port 9002) instead of backend (port 3001)
+
+**Solution**: Permanent configuration that survives regeneration
 
 ---
 
-## 📦 Import Pattern
+## ✅ What We Fixed
 
-```typescript
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  superAdminControllerGetAllPartnersOptions,
-  superAdminControllerUpdatePartnerStatusMutation 
-} from '@tiffinwale/api';
+1. ✅ Created custom client with hardcoded backend URL
+2. ✅ Wrapped all SDK functions to use configured client
+3. ✅ Added post-generation script to prevent config loss
+4. ✅ Updated package.json to run post-processing automatically
+
+---
+
+## 🚀 Daily Usage
+
+### Switch Between Local and Production
+
+Edit `.env` and comment/uncomment the URL you want:
+
+```env
+# LOCAL DEVELOPMENT
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:3001
+
+# PRODUCTION
+# NEXT_PUBLIC_API_BASE_URL=https://api.tiffin-wale.com
 ```
 
----
+Then **restart Next.js**: `npm run dev`
 
-## 🔄 Common Patterns
-
-### GET (Query)
-```typescript
-const { data, isLoading, error, refetch } = useQuery(
-  superAdminControllerGetAllPartnersOptions({ 
-    query: { page, limit, status: 'active' } 
-  })
-);
-```
-
-### PATCH/POST/DELETE (Mutation)
-```typescript
-const queryClient = useQueryClient();
-
-const updateStatus = useMutation({
-  ...superAdminControllerUpdatePartnerStatusMutation(),
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['superAdminControllerGetAllPartners'] });
-    toast({ title: 'Success!' });
-  },
-  onError: (err: any) => {
-    toast({ title: 'Error', description: err.message, variant: 'destructive' });
-  },
-});
-
-// Call it
-updateStatus.mutate({
-  path: { id: '123' },
-  body: { status: 'active' }
-});
-
-// Check state
-if (updateStatus.isPending) { /* show spinner */ }
-```
-
----
-
-## 📋 All Super Admin Hooks
-
-| Endpoint | Hook | Parameters |
-|----------|------|------------|
-| Dashboard Stats | `superAdminControllerGetDashboardStatsOptions()` | - |
-| Dashboard Activities | `superAdminControllerGetDashboardActivitiesOptions()` | `{ query: { limit } }` |
-| Revenue History | `superAdminControllerGetRevenueHistoryOptions()` | `{ query: { months } }` |
-| Partners List | `superAdminControllerGetAllPartnersOptions()` | `{ query: { page, limit } }` |
-| Update Partner Status | `superAdminControllerUpdatePartnerStatusMutation()` | `{ path: { id }, body: { status } }` |
-| Customers List | `superAdminControllerGetAllCustomersOptions()` | `{ query: { page, limit } }` |
-| Orders List | `superAdminControllerGetAllOrdersOptions()` | `{ query: { page, limit } }` |
-| Update Order Status | `superAdminControllerUpdateOrderStatusMutation()` | `{ path: { id }, body: { status } }` |
-| Subscriptions List | `superAdminControllerGetAllSubscriptionsOptions()` | `{ query: { page, limit } }` |
-| Active Subscriptions | `superAdminControllerGetActiveSubscriptionsOptions()` | - |
-| Update Subscription | `superAdminControllerUpdateSubscriptionStatusMutation()` | `{ path: { id }, body: { status } }` |
-
----
-
-## 🔄 Regenerate Types (When Backend Changes)
+### Regenerate API Client (after backend changes)
 
 ```bash
-# One command does everything:
-bun run api:generate
+npm run api:generate
+```
 
-# Output:
-# ✅ All types updated
-# ✅ All hooks updated
-# ✅ All SDK functions updated
+That's it! ✨ Post-processing runs automatically.
+
+### Import API Functions
+
+```typescript
+// ✅ CORRECT
+import { authControllerLogin, userControllerGetProfile } from '@/lib/api';
+
+// ❌ WRONG
+import { authControllerLogin } from '@tiffinwale/sdk';  // Bypasses config!
 ```
 
 ---
 
-## 🎯 Pro Tips
+## 🔧 Files You Should Never Edit
 
-1. **Use useMemo for derived data:**
-```typescript
-const partners = useMemo(() => (data as any)?.partners || [], [data]);
+These files are auto-generated and will be overwritten:
+
+- `src/lib/api/generated/**/*` - ALL files in this folder
+
+---
+
+## 📝 Files You CAN Edit
+
+These files are safe to customize:
+
+- `src/lib/api/client.ts` - Custom axios configuration
+- `src/lib/api/index.ts` - SDK function wrappers
+- `scripts/post-generate-api.js` - Post-processing script
+- `openapi-ts.config.ts` - Generator configuration
+
+---
+
+## 🐛 Debugging Checklist
+
+If API requests aren't working:
+
+1. ☑️ Check `.env` file:
+   ```env
+   NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:3001  # ✅ Correct
+   ```
+
+2. ☑️ Check browser console for:
+   ```
+   🔧 API Client Configuration:
+      - Environment: development
+      - Base URL: http://127.0.0.1:3001
+      - Source: .env file
+      - Mode: LOCAL DEVELOPMENT
+   📡 API Request: POST http://127.0.0.1:3001/api/auth/login
+   ```
+
+3. ☑️ Verify imports use `@/lib/api`:
+   ```typescript
+   import { xxx } from '@/lib/api';  // ✅ Good
+   ```
+
+4. ☑️ Ensure backend is running on port 3001
+
+5. ☑️ Restart Next.js after changing `.env`
+
+6. ☑️ Check for CORS errors (backend needs CORS for localhost:9002)
+
+---
+
+## 📦 Key Files
+
 ```
-
-2. **Invalidate queries after mutations:**
-```typescript
-onSuccess: () => {
-  queryClient.invalidateQueries({ queryKey: ['superAdminControllerGetAllPartners'] });
-}
-```
-
-3. **Handle loading states:**
-```typescript
-if (isLoading) return <Skeleton />;
-if (error) return <div>Error: {error.message}</div>;
-```
-
-4. **Optimistic updates:**
-```typescript
-onMutate: async (newData) => {
-  await queryClient.cancelQueries({ queryKey: ['partners'] });
-  const previous = queryClient.getQueryData(['partners']);
-  queryClient.setQueryData(['partners'], newData);
-  return { previous };
-},
-onError: (err, variables, context) => {
-  queryClient.setQueryData(['partners'], context?.previous);
-},
+interface/super-admin/
+├── .env                       ← Backend URL config (EDIT THIS!)
+├── .env.example               ← Template for .env
+├── src/lib/api/
+│   ├── client.ts              ← Custom Axios config (EDIT SAFE)
+│   ├── index.ts               ← SDK wrappers (EDIT SAFE)
+│   └── generated/             ← Auto-generated (DON'T EDIT)
+│       ├── client.gen.ts
+│       ├── sdk.gen.ts
+│       └── @tanstack/react-query.gen.ts
+├── scripts/
+│   └── post-generate-api.js   ← Post-processing (EDIT SAFE)
+├── openapi-ts.config.ts       ← Generator config (EDIT SAFE)
+└── package.json               ← Scripts
 ```
 
 ---
 
-## 📁 Files You'll Touch
+## 🎓 Architecture Summary
 
-**ONLY 2 files for 99% of work:**
-1. Import hooks from `@tiffinwale/api`
-2. Use them in your components
-
-**Rarely edit:**
-- `src/lib/api/client.ts` - Only if changing auth logic
-
-**Never edit:**
-- `src/lib/api/generated/*` - Auto-generated!
+```
+Your Code
+    ↓ import from '@/lib/api'
+index.ts (wraps SDK with configured client)
+    ↓
+client.ts (custom Axios with baseURL: 3001)
+    ↓
+sdk.gen.ts (auto-generated functions)
+    ↓
+Backend API (port 3001) ✅
+```
 
 ---
 
-**Happy Coding!** 🎉
+## 💡 Pro Tips
 
+1. **Always restart Next.js after changing `.env.local`**
+2. **Use React Query hooks for better caching**
+3. **Check console logs to verify request URLs**
+4. **Don't import from `@tiffinwale/sdk` - it bypasses config**
 
+---
+
+## 🆘 Emergency Fix
+
+If things break after regeneration:
+
+```bash
+# Run post-processing manually
+node scripts/post-generate-api.js
+
+# Restart Next.js
+npm run dev
+```
+
+---
+
+For detailed documentation, see: `doc/API_CLIENT_GUIDE.md`

@@ -21,6 +21,7 @@ import {
   Package,
 } from 'lucide-react-native';
 import { api } from '../lib/api';
+import { useNotificationStore } from '../store/notificationStore';
 
 interface Notification {
   _id?: string;
@@ -43,6 +44,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
 }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const { fetchNotifications: refreshStoreNotifications } = useNotificationStore();
   
   useEffect(() => {
     if (visible) {
@@ -70,17 +72,21 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
           (notif._id || notif.id) === id ? { ...notif, isRead: true } : notif
         )
       );
+      // Refresh store to update unread count in dashboard
+      await refreshStoreNotifications();
     } catch (error) {
       console.error('Failed to mark as read:', error);
     }
   };
-  
+
   const handleMarkAllAsRead = async () => {
     try {
       await api.notifications.markAllAsRead();
       setNotifications(prev =>
         prev.map(notif => ({ ...notif, isRead: true }))
       );
+      // Refresh store to update unread count in dashboard
+      await refreshStoreNotifications();
     } catch (error) {
       console.error('Failed to mark all as read:', error);
     }

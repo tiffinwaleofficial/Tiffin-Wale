@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 9002",
-    "api:generate": "openapi-ts -i http://localhost:3001/api-docs-json -o ./src/lib/api/generated -c @hey-api/client-axios --plugins @hey-api/typescript @hey-api/schemas @hey-api/sdk @tanstack/react-query",
+    "api:generate": "openapi-ts -i http://localhost:3001/api-docs-json -o ./src/lib/api/generated -c @hey-api/client-axios --plugins @hey-api/typescript @hey-api/schemas @hey-api/sdk @tanstack/react-query && node scripts/post-generate-api.js",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",

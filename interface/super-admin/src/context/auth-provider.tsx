@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { authControllerLogin, authControllerLogout, userControllerGetProfile } from '@tiffinwale/sdk';
+import { authControllerLogin, authControllerLogout, userControllerGetProfile } from '@/lib/api';
 
 // Helper to get token from localStorage
 const getToken = (): string | null => {
@@ -36,12 +36,20 @@ type User = {
   email: string;
   username?: string;
   role: 'admin' | 'super_admin';
-  isActive: boolean;
+  isActive?: boolean;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
   profile?: {
     firstName?: string;
     lastName?: string;
     phoneNumber?: string;
+    dietaryPreferences?: any[];
+    favoriteCuisines?: any[];
+    deliveryAddresses?: any[];
   };
+  subscription?: any;
+  meals?: any;
 };
 
 type AuthContextType = {
@@ -109,8 +117,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(error ? 'Invalid email or password' : 'Login failed');
       }
 
-      // Parse the response
+      // Parse the response - Backend returns accessToken, token, and user
       const auth = authData as any;
+      console.log('🔑 Login response:', auth);
       
       // Check if user has admin or super_admin role
       if (!auth?.user?.role || !['admin', 'super_admin'].includes(auth.user.role)) {
@@ -118,20 +127,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Store JWT tokens in localStorage
-      if (auth.token) {
-        setToken(auth.token, auth.refreshToken);
+      // Backend returns: accessToken, token, refreshToken
+      const tokenToStore = auth.token || auth.accessToken;
+      
+      if (tokenToStore) {
+        console.log('✅ Storing tokens in localStorage');
+        setToken(tokenToStore, auth.refreshToken);
         
         // Also store user data for quick access
         if (typeof window !== 'undefined') {
           localStorage.setItem('user', JSON.stringify(auth.user));
+          console.log('✅ User data stored:', auth.user.email);
         }
       } else {
         throw new Error('No authentication token received from server');
       }
 
+      // Update auth state
       setUser(auth.user as User);
+      console.log('✅ Login successful, user set:', auth.user.email);
     } catch (error: any) {
-      console.error('Login failed:', error);
+      console.error('❌ Login failed:', error);
       clearAuth();
       throw error;
     }

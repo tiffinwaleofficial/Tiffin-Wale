@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Alert, Text } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { ChatScreen } from '../../components/chat/ChatScreen';
 import { useChatMessages } from '../../hooks/useWebSocket';
 import { wsService, ChatMessage } from '../../services/websocket.service';
-import { TokenManager } from '../../lib/auth/TokenManager';
+import { tokenManager } from '../../lib/auth/TokenManager';
 import { api } from '../../lib/api';
 import { useRouter } from 'expo-router';
 
@@ -31,14 +31,14 @@ export default function ChatPage() {
     try {
       setIsLoading(true);
       
-      // Get current user ID
-      const userId = await TokenManager.getUserId();
-      if (!userId) {
+      // Get current user ID from token
+      const userData = await tokenManager.getUserData();
+      if (!userData?.id) {
         Alert.alert('Error', 'Please log in to chat');
         router.back();
         return;
       }
-      setCurrentUserId(userId);
+      setCurrentUserId(userData.id);
       
       // Create or get conversation
       // TODO: Replace with actual API call
@@ -47,32 +47,47 @@ export default function ChatPage() {
       //   type: params.conversationType,
       // });
       
-      // Mock conversation for now
-      const mockConversationId = `${userId}_${params.recipientId}_${params.conversationType}`;
-      setConversationId(mockConversationId);
+      // Create conversation ID
+      const conversationIdStr = `${userData.id}_${params.recipientId}_${params.conversationType}`;
+      setConversationId(conversationIdStr);
       
-      // Load historical messages
-      // TODO: Replace with actual API call
-      // const history = await api.chat.getMessages(mockConversationId);
-      // setHistoricalMessages(history);
+      // Load historical messages (if API exists)
+      try {
+        // TODO: Replace with actual API call when available
+        // const history = await api.chat.getMessages(conversationIdStr);
+        // setHistoricalMessages(history || []);
+        setHistoricalMessages([]);
+      } catch (historyError) {
+        console.log('No chat history API available, starting fresh');
+        setHistoricalMessages([]);
+      }
       
-      // For now, just initialize with empty messages
+      // Initialize messages state
       setMessages([]);
       
-    } catch (error) {
-      console.error('Failed to initialize chat:', error);
-      Alert.alert('Error', 'Failed to load chat');
+      console.log('✅ Chat initialized:', {
+        conversationId: conversationIdStr,
+        recipientId: params.recipientId,
+        recipientName: params.recipientName,
+        type: params.conversationType,
+      });
+      
+    } catch (error: any) {
+      console.error('❌ Failed to initialize chat:', error);
+      Alert.alert('Error', error.message || 'Failed to load chat. Please try again.');
+      router.back();
     } finally {
       setIsLoading(false);
     }
   };
   
   const handleSendMessage = async (content: string) => {
-    if (!conversationId || !currentUserId) return;
+    const finalConvId = conversationId || `${currentUserId}_${params.recipientId}_${params.conversationType}`;
+    if (!finalConvId || !currentUserId) return;
     
     const tempMessage: ChatMessage = {
       _id: `temp_${Date.now()}`,
-      conversationId,
+      conversationId: finalConvId,
       senderId: currentUserId,
       senderName: 'You',
       messageType: 'text',
@@ -87,7 +102,7 @@ export default function ChatPage() {
     try {
       // Send via WebSocket
       wsService.sendChatMessage({
-        conversationId,
+        conversationId: finalConvId,
         content,
         messageType: 'text',
       });
@@ -114,14 +129,16 @@ export default function ChatPage() {
   };
   
   const handleTypingStart = () => {
-    if (conversationId) {
-      wsService.startTyping(conversationId);
+    const finalConvId = conversationId || `${currentUserId}_${params.recipientId}_${params.conversationType}`;
+    if (finalConvId && currentUserId) {
+      wsService.startTyping(finalConvId);
     }
   };
-  
+
   const handleTypingStop = () => {
-    if (conversationId) {
-      wsService.stopTyping(conversationId);
+    const finalConvId = conversationId || `${currentUserId}_${params.recipientId}_${params.conversationType}`;
+    if (finalConvId && currentUserId) {
+      wsService.stopTyping(finalConvId);
     }
   };
   
@@ -131,20 +148,39 @@ export default function ChatPage() {
   
   // Combine historical and live messages
   const allMessages = [...historicalMessages, ...liveMessages];
-  
-  if (isLoading || !conversationId || !currentUserId) {
+
+  // Show loading only during initial setup
+  if (isLoading) {
     return (
       <View style={[styles.container, styles.center]}>
         <ActivityIndicator size="large" color="#FF9F43" />
+        <Text style={{ marginTop: 12, color: '#666', fontFamily: 'Poppins-Regular' }}>
+          Loading chat...
+        </Text>
       </View>
     );
   }
+
+  // Show chat even if conversationId is generated (for new chats)
+  if (!currentUserId) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#FF9F43" />
+        <Text style={{ marginTop: 12, color: '#666', fontFamily: 'Poppins-Regular' }}>
+          Initializing...
+        </Text>
+      </View>
+    );
+  }
+
+  // Use generated conversationId if available, otherwise create one
+  const finalConversationId = conversationId || `${currentUserId}_${params.recipientId}_${params.conversationType}`;
   
   return (
     <View style={styles.container}>
       <ChatScreen
-        conversationId={conversationId}
-        recipientName={params.recipientName || 'Unknown'}
+        conversationId={finalConversationId}
+        recipientName={params.recipientName || 'Support Team'}
         messages={allMessages}
         typingUsers={typingUsers}
         currentUserId={currentUserId}

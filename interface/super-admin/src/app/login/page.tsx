@@ -44,16 +44,22 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
+      console.log('🔐 Attempting login for:', data.email);
+      
       await login(data.email, data.password);
+      
+      console.log('✅ Login successful, redirecting to dashboard...');
       
       toast({
         title: 'Login Successful',
         description: 'Welcome to the admin dashboard!',
       });
       
-      router.push('/dashboard');
+      // Use replace instead of push to avoid back button issues
+      router.replace('/dashboard');
+      
     } catch (error: any) {
-      console.error('Login failed:', error);
+      console.error('❌ Login failed:', error);
       
       let errorMessage = 'An unexpected error occurred.';
       if (error.response?.status === 401) {

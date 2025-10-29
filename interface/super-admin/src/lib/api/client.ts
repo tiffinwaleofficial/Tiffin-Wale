@@ -1,12 +1,21 @@
 import axios from 'axios';
-import { client as generatedClient } from './generated/client.gen';
+import { createClient, createConfig } from './generated/client';
 
-// Configure the base URL - MUST point to backend API, not Next.js!
-const API_BASE_URL = 'http://localhost:3001'; // HARDCODED for now
+// Configure the base URL from environment variable
+// This allows switching between local and production without code changes
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:3001';
 
-console.log('🔧 API Client initialized with Base URL:', API_BASE_URL);
+console.log('🔧 API Client Configuration:');
+console.log('   - Environment:', process.env.NODE_ENV || 'development');
+console.log('   - Base URL:', API_BASE_URL);
+console.log('   - Source:', process.env.NEXT_PUBLIC_API_BASE_URL ? '.env file' : 'fallback (hardcoded)');
+if (API_BASE_URL.includes('localhost') || API_BASE_URL.includes('127.0.0.1')) {
+  console.log('   - Mode: LOCAL DEVELOPMENT');
+} else {
+  console.log('   - Mode: PRODUCTION');
+}
 
-// Create custom axios instance
+// Create custom axios instance with our baseURL
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,
@@ -63,12 +72,12 @@ axiosInstance.interceptors.response.use(
   }
 );
 
-// Set the custom axios instance on the generated client
-generatedClient.setConfig({
+// CREATE OUR OWN CLIENT with the configured axios instance
+// This is the KEY fix - pass axios instance when creating the client!
+export const client = createClient(createConfig({
   axios: axiosInstance,
   baseURL: API_BASE_URL,
-});
+}));
 
-export const client = generatedClient;
 export default client;
 

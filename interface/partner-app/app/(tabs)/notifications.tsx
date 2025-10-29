@@ -163,15 +163,6 @@ export default function NotificationsScreen() {
               />
             </View>
           ))}
-
-          <View style={styles.actionButtonContainer}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => setShowSettings(false)}
-            >
-              <Text style={styles.actionButtonText}>Save Preferences</Text>
-            </TouchableOpacity>
-          </View>
         </ScrollView>
       ) : (
         <ScrollView style={styles.notificationsContainer}>
@@ -407,20 +398,5 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Regular',
     fontSize: 14,
     color: '#666',
-  },
-  actionButtonContainer: {
-    marginTop: 16,
-    marginBottom: 32,
-  },
-  actionButton: {
-    backgroundColor: '#FF9F43',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  actionButtonText: {
-    fontFamily: 'Poppins-SemiBold',
-    fontSize: 16,
-    color: '#FFF',
   },
 });
