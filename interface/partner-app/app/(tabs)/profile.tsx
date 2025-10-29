@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,16 +7,57 @@ import {
   Image,
   ScrollView,
   Switch,
+  ActivityIndicator,
 } from 'react-native';
 import { User, Settings, LogOut, MapPin, CreditCard, Bell, CircleHelp as HelpCircle, ChevronRight, Camera, MessageSquare, ShieldCheck, FileText } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { usePartnerStore } from '../../store/partnerStore';
+import { useAuthStore } from '../../store/authStore';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [updatingNotifications, setUpdatingNotifications] = useState(false);
+  const { profile, stats, fetchProfile, fetchStats } = usePartnerStore();
+  const { user } = useAuthStore();
+
+  useEffect(() => {
+    if (!profile) {
+      fetchProfile();
+    }
+    if (!stats) {
+      fetchStats();
+    }
+    // Load notification preferences
+    if (profile?.notificationPreferences) {
+      setNotificationsEnabled(profile.notificationPreferences.pushEnabled !== false);
+    }
+  }, [profile]);
 
   const handleLogout = () => {
-    router.replace('/login');
+    router.replace('/(auth)/login' as any);
+  };
+
+  const handleNotificationToggle = async (value: boolean) => {
+    // Optimistically update UI
+    setNotificationsEnabled(value);
+    setUpdatingNotifications(true);
+
+    try {
+      const { api } = await import('../../lib/api');
+      await api.partner.updateNotificationPreferences({
+        pushEnabled: value,
+      });
+      console.log(`✅ Push notifications ${value ? 'enabled' : 'disabled'}`);
+      // Refresh profile to get updated preferences
+      await fetchProfile();
+    } catch (error) {
+      console.error('❌ Failed to update push notification preference:', error);
+      // Revert on error
+      setNotificationsEnabled(!value);
+    } finally {
+      setUpdatingNotifications(false);
+    }
   };
 
   const menuItems = [
@@ -26,7 +67,7 @@ export default function ProfileScreen() {
       icon: User,
       color: '#3B82F6',
       action: () => {
-        // Navigate to business profile
+        router.push('/pages/business-profile');
       },
     },
     {
@@ -35,7 +76,7 @@ export default function ProfileScreen() {
       icon: CreditCard,
       color: '#10B981',
       action: () => {
-        // Navigate to bank account
+        router.push('/pages/bank-account');
       },
     },
     {
@@ -44,7 +85,7 @@ export default function ProfileScreen() {
       icon: MapPin,
       color: '#F59E0B',
       action: () => {
-        // Navigate to address
+        router.push('/pages/address');
       },
     },
     {
@@ -53,7 +94,7 @@ export default function ProfileScreen() {
       icon: HelpCircle,
       color: '#8B5CF6',
       action: () => {
-        // Navigate to help & support
+        router.push('/pages/help-support');
       },
     },
     {
@@ -121,9 +162,15 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.profileInfo}>
-          <Text style={styles.businessName}>Spice Garden</Text>
-          <Text style={styles.businessEmail}>spicegarden@example.com</Text>
-          <Text style={styles.businessType}>Home Food Partner</Text>
+          <Text style={styles.businessName}>
+            {profile?.businessName || user?.partner?.businessName || 'Loading...'}
+          </Text>
+          <Text style={styles.businessEmail}>
+            {profile?.user?.email || user?.email || 'No email'}
+          </Text>
+          <Text style={styles.businessType}>
+            {profile?.serviceType?.[0] || 'Partner'}
+          </Text>
         </View>
 
         <TouchableOpacity
@@ -138,17 +185,21 @@ export default function ProfileScreen() {
 
       <View style={styles.businessStats}>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>4.8</Text>
+          <Text style={styles.statValue}>
+            {stats?.averageRating ? stats.averageRating.toFixed(1) : '0.0'}
+          </Text>
           <Text style={styles.statLabel}>Rating</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>142</Text>
+          <Text style={styles.statValue}>{stats?.totalReviews || 0}</Text>
           <Text style={styles.statLabel}>Reviews</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>3,240</Text>
+          <Text style={styles.statValue}>
+            {stats?.totalOrders ? stats.totalOrders.toLocaleString() : '0'}
+          </Text>
           <Text style={styles.statLabel}>Orders</Text>
         </View>
       </View>
@@ -160,7 +211,8 @@ export default function ProfileScreen() {
         </View>
         <Switch
           value={notificationsEnabled}
-          onValueChange={setNotificationsEnabled}
+          onValueChange={handleNotificationToggle}
+          disabled={updatingNotifications}
           trackColor={{ false: '#D1D5DB', true: '#FF9F43' }}
           thumbColor={notificationsEnabled ? '#FFF' : '#FFF'}
         />

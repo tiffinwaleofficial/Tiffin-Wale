@@ -8,6 +8,10 @@ import { DeliveryAddress } from "./schemas/delivery-address.schema";
 import { UpdateCustomerProfileDto } from "./dto/update-customer-profile.dto";
 import { CreateDeliveryAddressDto } from "./dto/create-delivery-address.dto";
 import { UpdateDeliveryAddressDto } from "./dto/update-delivery-address.dto";
+import {
+  UpdateCustomerStatusDto,
+  CustomerStatus,
+} from "../super-admin/dto/update-customer-status.dto";
 
 @Injectable()
 export class CustomerService {
@@ -118,5 +122,52 @@ export class CustomerService {
       .find({ customerId: userId })
       .sort({ createdAt: -1 })
       .exec();
+  }
+
+  async countAllCustomers(): Promise<number> {
+    return this.userModel.countDocuments({ role: "customer" }).exec();
+  }
+
+  async findAllForSuperAdmin(page: number, limit: number) {
+    const skip = (page - 1) * limit;
+    const [customers, total] = await Promise.all([
+      this.userModel
+        .find({ role: "customer" })
+        .skip(skip)
+        .limit(limit)
+        .select("-password")
+        .exec(),
+      this.userModel.countDocuments({ role: "customer" }),
+    ]);
+
+    return {
+      data: customers,
+      total,
+      page,
+      limit,
+    };
+  }
+
+  async delete(id: string) {
+    const result = await this.userModel.findByIdAndDelete(id).exec();
+
+    if (!result) {
+      throw new NotFoundException(`Customer with ID ${id} not found`);
+    }
+
+    return { deleted: true };
+  }
+
+  async updateStatus(id: string, status: CustomerStatus) {
+    const updatedCustomer = await this.userModel
+      .findByIdAndUpdate(id, { status }, { new: true })
+      .select("-password")
+      .exec();
+
+    if (!updatedCustomer) {
+      throw new NotFoundException(`Customer with ID ${id} not found`);
+    }
+
+    return updatedCustomer;
   }
 }

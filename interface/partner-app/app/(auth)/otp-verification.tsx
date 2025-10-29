@@ -20,6 +20,7 @@ import { CheckCircle, ArrowLeft } from 'lucide-react-native';
 import phoneAuthService from '../../services/phoneAuthService';
 import { useAuthStore } from '../../store/authStore';
 import { useOnboardingStore } from '../../store/onboardingStore';
+import { tokenManager } from '../../lib/auth/TokenManager';
 
 export default function OTPVerificationScreen() {
   const router = useRouter();
@@ -32,7 +33,19 @@ export default function OTPVerificationScreen() {
   
   const inputRefs = useRef<(TextInput | null)[]>([]);
   
-  const { checkUserExists, loginWithPhone } = useAuthStore();
+  const { checkUserExists, loginWithPhone, isAuthenticated } = useAuthStore();
+
+  // Redirect authenticated users
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = await tokenManager.getAccessToken();
+      if (isAuthenticated && token) {
+        console.log('⚠️ Already authenticated, redirecting to dashboard');
+        router.replace('/(tabs)/dashboard');
+      }
+    };
+    checkAuth();
+  }, [isAuthenticated]);
 
   /**
    * Countdown timer for resend OTP

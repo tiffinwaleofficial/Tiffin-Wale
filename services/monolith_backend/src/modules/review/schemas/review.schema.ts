@@ -27,6 +27,13 @@ export class Review extends Document {
   @Prop({ default: 0 })
   helpfulCount: number;
 
+  // Partner response to review
+  @Prop()
+  partnerResponse?: string;
+
+  @Prop()
+  respondedAt?: Date;
+
   createdAt: Date;
   updatedAt: Date;
 }

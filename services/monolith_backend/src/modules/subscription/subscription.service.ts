@@ -236,4 +236,56 @@ export class SubscriptionService {
       console.error("Failed to send subscription cancellation email:", error);
     }
   }
+
+  /**
+   * Find subscriptions by partner
+   */
+  async findByPartner(
+    partnerId: string,
+    status?: string,
+  ): Promise<Subscription[]> {
+    const query: any = {};
+
+    // Filter by status if provided
+    if (status) {
+      query.status = status;
+    }
+
+    // Get all subscription plans for this partner
+    const subscriptions = await this.subscriptionModel
+      .find(query)
+      .populate({
+        path: "plan",
+        match: { partner: partnerId },
+      })
+      .populate("customer")
+      .sort({ createdAt: -1 })
+      .exec();
+
+    // Filter out subscriptions where plan is null (not belonging to this partner)
+    return subscriptions.filter((sub) => sub.plan !== null);
+  }
+
+  /**
+   * Find subscription by customer and partner
+   */
+  async findByCustomerAndPartner(
+    customerId: string,
+    partnerId: string,
+  ): Promise<Subscription | null> {
+    const subscription = await this.subscriptionModel
+      .findOne({ customer: customerId })
+      .populate({
+        path: "plan",
+        match: { partner: partnerId },
+      })
+      .exec();
+
+    // Return null if plan doesn't match (not this partner's plan)
+    if (!subscription || !subscription.plan) {
+      return null;
+    }
+
+    return subscription;
+  }
 }

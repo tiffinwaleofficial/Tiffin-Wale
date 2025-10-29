@@ -5,8 +5,8 @@ export default function IndexScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to home tab immediately
-    router.replace('/(tabs)/home');
+    // Redirect to dashboard tab immediately
+    router.replace('/(tabs)/dashboard');
   }, []);
 
   // Return null since we're redirecting

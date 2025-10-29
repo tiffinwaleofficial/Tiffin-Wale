@@ -14,24 +14,183 @@ import {
   ChevronDown,
   ChevronUp,
   TrendingUp,
+  TrendingDown,
   Download,
   ArrowRight,
+  Package,
+  Percent,
+  CreditCard,
+  BarChart3,
 } from 'lucide-react-native';
 import { useTheme } from '../../store/themeStore';
-
-// TODO: Create these hooks once the backend is ready
-const useGetEarningsSummary = () => ({ data: null, isLoading: true, error: null });
-const useGetTransactions = () => ({ data: null, isLoading: true, error: null });
+import { usePartnerStore } from '../../store/partnerStore';
+import { api } from '../../lib/api';
+import { useEffect } from 'react';
 
 
 export default function EarningsScreen() {
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState('today');
+  const [activeTab, setActiveTab] = useState<'today' | 'weekly' | 'monthly' | 'custom' | 'allTime'>('allTime');
   const [chartExpanded, setChartExpanded] = useState(true);
   const [activeFilter, setActiveFilter] = useState('last30Days');
+  const [earningsData, setEarningsData] = useState<any>(null);
+  const [transactionsData, setTransactionsData] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [earningsLoading, setEarningsLoading] = useState(true);
+  const [transactionsLoading, setTransactionsLoading] = useState(true);
 
-  const { data: earningsData, isLoading: earningsLoading, error: earningsError } = useGetEarningsSummary();
-  const { data: transactionsData, isLoading: transactionsLoading, error: transactionsError } = useGetTransactions();
+  const { stats } = usePartnerStore();
+
+  useEffect(() => {
+    loadEarningsData();
+  }, [activeTab, activeFilter]);
+
+  const mapPeriod = (tab: string): string => {
+    switch (tab) {
+      case 'today':
+        return 'today';
+      case 'weekly':
+        return 'week';
+      case 'monthly':
+        return 'month';
+      case 'custom':
+        return 'custom';
+      case 'allTime':
+      default:
+        return 'all'; // Get all time data
+    }
+  };
+
+  const loadEarningsData = async () => {
+    try {
+      setEarningsLoading(true);
+      setTransactionsLoading(true);
+
+      const period = mapPeriod(activeTab);
+      
+      // For all time, fetch comprehensive data without period restriction
+      // For specific periods, fetch period-specific data
+      const fetchPromises = activeTab === 'allTime' 
+        ? [
+            api.analytics.getEarnings('all').catch(() => ({ totalEarnings: stats?.totalRevenue || 0, totalOrders: stats?.totalOrders || 0 })),
+            api.analytics.getRevenueHistory(12).catch(() => ({ data: [], totalRevenue: stats?.totalRevenue || 0, totalOrders: stats?.totalOrders || 0 })),
+          ]
+        : [
+            api.analytics.getEarnings(period),
+            api.analytics.getOrderAnalytics(period === 'custom' ? 'week' : period),
+            api.analytics.getRevenueHistory(period === 'today' ? 1 : period === 'weekly' ? 4 : 6),
+          ];
+
+      const results = await Promise.all(fetchPromises);
+      const earningsRes = results[0] as any;
+      const orderAnalyticsRes = results[1] as any;
+      const revenueHistoryRes = results[2] || results[1] as any;
+
+      // Map to UI structure with comprehensive financial data
+      const totalEarnings = earningsRes?.totalEarnings ?? earningsRes?.totalRevenue ?? stats?.totalRevenue ?? 0;
+      const totalOrders = earningsRes?.totalOrders ?? stats?.totalOrders ?? 0;
+      const averageOrderValue = earningsRes?.averageOrderValue ?? (totalOrders > 0 ? totalEarnings / totalOrders : 0);
+      const commission = earningsRes?.commission ?? (totalEarnings * 0.2); // Default 20% commission
+      const netEarnings = earningsRes?.netEarnings ?? (totalEarnings - commission);
+
+      // Compute comparison from breakdown or trend
+      let comparison = { status: 'increase', percent: 0 } as any;
+      const breakdown = earningsRes?.breakdown as Array<{ date: string; earnings: number; orders: number }> | undefined;
+      
+      if (breakdown && breakdown.length >= 2) {
+        const last = breakdown[breakdown.length - 1]?.earnings || 0;
+        const prev = breakdown[breakdown.length - 2]?.earnings || 0;
+        const diff = last - prev;
+        comparison = {
+          status: diff >= 0 ? 'increase' : 'decrease',
+          percent: prev === 0 ? (last > 0 ? 100 : 0) : Math.round((Math.abs(diff) / prev) * 100),
+        };
+      } else if (orderAnalyticsRes?.trend && orderAnalyticsRes.trend.length >= 2) {
+        // Use order trend as fallback
+        const lastOrders = orderAnalyticsRes.trend[orderAnalyticsRes.trend.length - 1]?.orders || 0;
+        const prevOrders = orderAnalyticsRes.trend[orderAnalyticsRes.trend.length - 2]?.orders || 0;
+        const diff = lastOrders - prevOrders;
+        comparison = {
+          status: diff >= 0 ? 'increase' : 'decrease',
+          percent: prevOrders === 0 ? (lastOrders > 0 ? 100 : 0) : Math.round((Math.abs(diff) / prevOrders) * 100),
+        };
+      }
+
+      // Chart data from breakdown
+      if (breakdown && breakdown.length > 0) {
+        const maxEarnings = Math.max(...breakdown.map(b => b.earnings || 0));
+        setChartData(breakdown.map(b => ({
+          date: b.date,
+          earnings: b.earnings || 0,
+          orders: b.orders || 0,
+          heightPercent: maxEarnings > 0 ? ((b.earnings || 0) / maxEarnings) * 100 : 0,
+        })));
+      } else {
+        // Use revenue history for chart if no breakdown
+        const historyRes = revenueHistoryRes as any;
+        const historyData = historyRes?.data || [];
+        if (historyData.length > 0) {
+          const maxRevenue = Math.max(...historyData.map((h: any) => h.revenue || 0));
+          setChartData(historyData.slice(-7).map((h: any) => ({
+            date: h.month,
+            earnings: h.revenue || 0,
+            orders: h.orders || 0,
+            heightPercent: maxRevenue > 0 ? ((h.revenue || 0) / maxRevenue) * 100 : 0,
+          })));
+        }
+      }
+
+      setEarningsData({
+        totalEarnings,
+        totalOrders,
+        averageOrderValue,
+        commission,
+        netEarnings,
+        comparison,
+        orderAnalytics: orderAnalyticsRes,
+        breakdown: breakdown,
+      });
+
+      // Transactions from revenue history or orders
+      let transactions: any[] = [];
+      const historyRes = revenueHistoryRes as any;
+      if (historyRes?.data && Array.isArray(historyRes.data)) {
+        transactions = historyRes.data.slice(0, 10).map((m: any, idx: number) => ({
+          id: `${m.month}-${idx}`,
+          date: m.month,
+          description: `${m.orders || 0} orders completed`,
+          amount: m.revenue || 0,
+          status: 'Paid',
+          orders: m.orders || 0,
+        }));
+      }
+
+      // Filter transactions based on activeFilter
+      if (activeFilter === 'last30Days') {
+        transactions = transactions.slice(0, 1); // Last month
+      } else if (activeFilter === 'last3Months') {
+        transactions = transactions.slice(0, 3);
+      }
+      // allTime shows all
+
+      setTransactionsData(transactions);
+    } catch (error) {
+      console.error('Failed to load earnings:', error);
+      setEarningsData({
+        totalEarnings: 0,
+        totalOrders: 0,
+        averageOrderValue: 0,
+        commission: 0,
+        netEarnings: 0,
+        comparison: { status: 'increase', percent: 0 },
+      });
+      setChartData([]);
+      setTransactionsData([]);
+    } finally {
+      setEarningsLoading(false);
+      setTransactionsLoading(false);
+    }
+  };
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -151,6 +310,22 @@ export default function EarningsScreen() {
               Custom
             </Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.periodTab,
+              activeTab === 'allTime' && styles.activePeriodTab,
+            ]}
+            onPress={() => setActiveTab('allTime')}
+          >
+            <Text
+              style={[
+                styles.periodTabText,
+                activeTab === 'allTime' && styles.activePeriodTabText,
+              ]}
+            >
+              All Time
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
       </View>
 
@@ -165,7 +340,7 @@ export default function EarningsScreen() {
             <TouchableOpacity
               style={styles.dateSelector}
               onPress={() => {
-                // Date picker logic
+                // Date picker logic for custom range
               }}
             >
               <Calendar size={18} color="#666" />
@@ -174,41 +349,99 @@ export default function EarningsScreen() {
                   ? 'Today'
                   : activeTab === 'weekly'
                   ? 'This Week'
-                  : 'This Month'}
+                  : activeTab === 'monthly'
+                  ? 'This Month'
+                  : activeTab === 'allTime'
+                  ? 'All Time'
+                  : 'Custom Range'}
               </Text>
-              <ChevronDown size={18} color="#666" />
+              {activeTab === 'custom' && <ChevronDown size={18} color="#666" />}
             </TouchableOpacity>
           </View>
 
           <Text style={styles.totalEarnings}>
-            {formatCurrency(earningsData[activeTab].total)}
+            {formatCurrency(earningsData?.totalEarnings || 0)}
           </Text>
           <View style={styles.earningMetaContainer}>
             <Text style={styles.earningsSubtext}>
-              {earningsData[activeTab].orderCount} orders
+              {earningsData?.totalOrders || 0} orders
             </Text>
             <View style={styles.comparisonContainer}>
+              {earningsData?.comparison?.status === 'increase' ? (
               <TrendingUp
                 size={14}
-                color={
-                  earningsData[activeTab].comparison.status === 'increase'
-                    ? '#10B981'
-                    : '#EF4444'
-                }
-              />
+                  color="#10B981"
+                />
+              ) : (
+                <TrendingDown
+                  size={14}
+                  color="#EF4444"
+                />
+              )}
               <Text
                 style={[
                   styles.comparisonText,
                   {
                     color:
-                      earningsData[activeTab].comparison.status === 'increase'
+                      earningsData?.comparison?.status === 'increase'
                         ? '#10B981'
                         : '#EF4444',
                   },
                 ]}
               >
-                {earningsData[activeTab].comparison.percent}%
+                {earningsData?.comparison?.percent || 0}%
               </Text>
+            </View>
+          </View>
+
+          {/* Financial Breakdown Cards */}
+          <View style={styles.breakdownGrid}>
+            <View style={styles.metricCard}>
+              <View style={styles.metricIconContainer}>
+                <CreditCard size={18} color="#10B981" />
+              </View>
+              <View style={styles.metricContent}>
+                <Text style={styles.metricLabel}>Net Earnings</Text>
+                <Text style={styles.metricValue}>
+                  {formatCurrency(earningsData?.netEarnings || 0)}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.metricCard}>
+              <View style={styles.metricIconContainer}>
+                <Percent size={18} color="#F59E0B" />
+              </View>
+              <View style={styles.metricContent}>
+                <Text style={styles.metricLabel}>Commission</Text>
+                <Text style={styles.metricValue}>
+                  {formatCurrency(earningsData?.commission || 0)}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.metricCard}>
+              <View style={styles.metricIconContainer}>
+                <Package size={18} color="#3B82F6" />
+              </View>
+              <View style={styles.metricContent}>
+                <Text style={styles.metricLabel}>Avg Order</Text>
+                <Text style={styles.metricValue}>
+                  {formatCurrency(earningsData?.averageOrderValue || 0)}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.metricCard}>
+              <View style={styles.metricIconContainer}>
+                <BarChart3 size={18} color="#8B5CF6" />
+              </View>
+              <View style={styles.metricContent}>
+                <Text style={styles.metricLabel}>Completion</Text>
+                <Text style={styles.metricValue}>
+                  {earningsData?.orderAnalytics?.completedOrders || 0} orders
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -228,16 +461,40 @@ export default function EarningsScreen() {
 
             {chartExpanded && (
               <View style={styles.chart}>
-                {/* This would be replaced with an actual chart component */}
-                <View style={styles.mockChart}>
-                  <View style={[styles.mockBar, { height: 100 }]} />
-                  <View style={[styles.mockBar, { height: 80 }]} />
-                  <View style={[styles.mockBar, { height: 120 }]} />
-                  <View style={[styles.mockBar, { height: 90 }]} />
-                  <View style={[styles.mockBar, { height: 110 }]} />
-                  <View style={[styles.mockBar, { height: 70 }]} />
-                  <View style={[styles.mockBar, { height: 130 }]} />
+                {chartData.length > 0 ? (
+                  <View style={styles.chartContainerInner}>
+                    <View style={styles.chartBars}>
+                      {chartData.map((item, index) => {
+                        const barHeight = Math.max((item.heightPercent / 100) * 160, 20);
+                        return (
+                          <View key={index} style={styles.chartBarWrapper}>
+                            <View
+                              style={[
+                                styles.chartBar,
+                                {
+                                  height: barHeight,
+                                },
+                              ]}
+                            />
+                            <Text style={styles.chartBarLabel} numberOfLines={1}>
+                              {item.date?.split('T')[0]?.split('-')[2] || item.date?.substring(0, 7) || ''}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                    <View style={styles.chartLegend}>
+                      <View style={styles.legendItem}>
+                        <View style={[styles.legendDot, { backgroundColor: '#FF9F43' }]} />
+                        <Text style={styles.legendText}>Earnings</Text>
+                      </View>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.emptyChart}>
+                    <Text style={styles.emptyChartText}>No data available for selected period</Text>
                 </View>
+                )}
               </View>
             )}
           </View>
@@ -306,7 +563,13 @@ export default function EarningsScreen() {
           </View>
 
           {/* Transactions List */}
-          {transactionsLoading ? <ActivityIndicator style={{ marginVertical: 40 }} /> :
+          {transactionsLoading ? (
+            <ActivityIndicator style={{ marginVertical: 40 }} />
+          ) : transactionsData.length === 0 ? (
+            <View style={styles.emptyTransactions}>
+              <Text style={styles.emptyTransactionsText}>No transactions found</Text>
+            </View>
+          ) : (
           <FlatList
             data={transactionsData}
             renderItem={renderTransactionItem}
@@ -314,7 +577,7 @@ export default function EarningsScreen() {
             scrollEnabled={false}
             contentContainerStyle={styles.transactionsList}
           />
-          }
+          )}
         </View>
       </ScrollView>
     </View>
@@ -552,6 +815,114 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Regular',
     fontSize: 12,
     color: '#666',
+  },
+  breakdownGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 20,
+    marginBottom: 16,
+    gap: 12,
+  },
+  metricCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 12,
+    width: '48%',
+    minWidth: 140,
+  },
+  metricIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  metricContent: {
+    flex: 1,
+  },
+  metricLabel: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 11,
+    color: '#666',
+    marginBottom: 2,
+  },
+  metricValue: {
+    fontFamily: 'Poppins-SemiBold',
+    fontSize: 14,
+    color: '#333',
+  },
+  chartContainerInner: {
+    height: 200,
+  },
+  chartBars: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'flex-end',
+    height: 160,
+    paddingHorizontal: 8,
+  },
+  chartBarWrapper: {
+    flex: 1,
+    alignItems: 'center',
+    maxWidth: 50,
+  },
+  chartBar: {
+    width: 30,
+    backgroundColor: '#FF9F43',
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  chartBarLabel: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 10,
+    color: '#666',
+    textAlign: 'center',
+  },
+  chartLegend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 12,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  legendText: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 12,
+    color: '#666',
+  },
+  emptyChart: {
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyChartText: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 14,
+    color: '#999',
+  },
+  emptyTransactions: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyTransactionsText: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 14,
+    color: '#999',
   },
   transactionAmountContainer: {
     alignItems: 'flex-end',

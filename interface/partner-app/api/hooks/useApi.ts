@@ -68,9 +68,12 @@ export const useUpdateProfile = (options?: UseMutationOptions<any, any, any>) =>
 // ==========================================
 
 export const useGetOrders = (options?: UseQueryOptions<any>) => {
+  // Import the orders API service
+  const { orderApi } = require('../../lib/api/services/order.service');
+  
   return useQuery({
-    queryKey: ['orders'],
-    queryFn: () => api.api.orderControllerFindAll(),
+    queryKey: ['orders', 'my'],
+    queryFn: () => orderApi.getMyOrders(options?.page || 1, options?.limit || 10, options?.status),
     ...options,
   });
 };
@@ -110,9 +113,12 @@ export const useCancelOrder = (options?: UseMutationOptions<any, any, string>) =
 // ==========================================
 
 export const useGetMenus = (options?: UseQueryOptions<any>) => {
+  // Import the menu API service
+  const { menuApi } = require('../../lib/api/services/menu.service');
+  
   return useQuery({
-    queryKey: ['menus'],
-    queryFn: () => api.api.menuControllerFindAllMenuItems(),
+    queryKey: ['menu', 'my'],
+    queryFn: () => menuApi.getMyMenu(),
     ...options,
   });
 };

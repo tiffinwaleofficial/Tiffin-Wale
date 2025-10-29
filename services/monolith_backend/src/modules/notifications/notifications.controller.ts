@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   Request,
+  BadRequestException,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -35,8 +36,13 @@ export class NotificationsController {
   @ApiResponse({ status: 201, description: "Device registered successfully" })
   async registerDevice(@Body() dto: RegisterDeviceDto, @Request() req) {
     // Auto-assign user ID from authenticated request
-    if (req.user?.id) {
-      dto.userId = req.user.id;
+    const user = req.user;
+    if (user) {
+      const userId =
+        user._id?.toString() || user.id?.toString() || (user as any).sub;
+      if (userId) {
+        dto.userId = userId;
+      }
     }
 
     return this.notificationsService.registerDevice(dto);
@@ -141,7 +147,13 @@ export class NotificationsController {
     @Query("page") page = 1,
     @Query("limit") limit = 20,
   ) {
-    const userId = req.user.id;
+    // Handle both _id (from Mongoose) and id (from transformed JWT)
+    const user = req.user;
+    const userId =
+      user._id?.toString() || user.id?.toString() || (user as any).sub;
+    if (!userId) {
+      throw new BadRequestException("User ID not found in token");
+    }
     return this.notificationsService.getNotificationHistory(
       userId,
       page,
@@ -156,7 +168,13 @@ export class NotificationsController {
     description: "Pending notifications retrieved successfully",
   })
   async getPendingNotifications(@Request() req) {
-    const userId = req.user.id;
+    // Handle both _id (from Mongoose) and id (from transformed JWT)
+    const user = req.user;
+    const userId =
+      user._id?.toString() || user.id?.toString() || (user as any).sub;
+    if (!userId) {
+      throw new BadRequestException("User ID not found in token");
+    }
     return this.notificationsService.getPendingNotifications(userId);
   }
 
@@ -164,7 +182,13 @@ export class NotificationsController {
   @ApiOperation({ summary: "Mark notification as read" })
   @ApiResponse({ status: 200, description: "Notification marked as read" })
   async markAsRead(@Param("id") notificationId: string, @Request() req) {
-    const userId = req.user.id;
+    // Handle both _id (from Mongoose) and id (from transformed JWT)
+    const user = req.user;
+    const userId =
+      user._id?.toString() || user.id?.toString() || (user as any).sub;
+    if (!userId) {
+      throw new BadRequestException("User ID not found in token");
+    }
     await this.notificationsService.markAsRead(notificationId, userId);
     return { message: "Notification marked as read" };
   }

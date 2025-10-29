@@ -1,141 +1,162 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { DeviceEventEmitter } from 'react-native';
-import { websocketManager, ConnectionState, OrderStatusUpdate, NotificationData } from '../utils/websocketManager';
-import { useAuthStore } from '../store/authStore';
+/**
+ * React Hook for WebSocket connection
+ * Manages connection lifecycle and provides chat functionality
+ */
 
-interface UseWebSocketOptions {
-  autoConnect?: boolean;
-  reconnectOnAuth?: boolean;
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { wsService, WebSocketEvent, ChatMessage, TypingIndicator } from '../services/websocket.service';
+import { TokenManager } from '../lib/auth/TokenManager';
+
+export interface UseWebSocketReturn {
+  isConnected: boolean;
+  sendMessage: (message: Partial<ChatMessage>) => void;
+  joinConversation: (conversationId: string) => void;
+  leaveConversation: (conversationId: string) => void;
+  startTyping: (conversationId: string) => void;
+  stopTyping: (conversationId: string) => void;
+  error: string | null;
 }
 
-interface UseWebSocketReturn {
-  connectionState: ConnectionState;
-  isConnected: boolean;
-  isConnecting: boolean;
-  isReconnecting: boolean;
-  lastError: string | null;
-  connect: () => Promise<void>;
-  disconnect: () => void;
-  emit: (event: string, data?: any) => void;
-  joinRoom: (room: string) => void;
-  leaveRoom: (room: string) => void;
+export function useWebSocket(): UseWebSocketReturn {
+  const [isConnected, setIsConnected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const hasInitialized = useRef(false);
+  
+  useEffect(() => {
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+    
+    const initializeWebSocket = async () => {
+      try {
+        const token = await TokenManager.getAccessToken();
+        const userId = await TokenManager.getUserId();
+        
+        if (!token || !userId) {
+          console.warn('⚠️ No token or userId, skipping WebSocket connection');
+          return;
+        }
+        
+        // Connect to WebSocket
+        await wsService.connect(token, userId);
+        
+        // Listen for connection events
+        const unsubConnect = wsService.on(WebSocketEvent.CONNECT, () => {
+          console.log('✅ WebSocket connected in hook');
+          setIsConnected(true);
+          setError(null);
+        });
+        
+        const unsubDisconnect = wsService.on(WebSocketEvent.DISCONNECT, () => {
+          console.log('🔌 WebSocket disconnected in hook');
+          setIsConnected(false);
+        });
+        
+        const unsubError = wsService.on(WebSocketEvent.ERROR, (data) => {
+          console.error('❌ WebSocket error in hook:', data);
+          setError('Connection error');
+        });
+        
+        // Cleanup on unmount
+        return () => {
+          unsubConnect();
+          unsubDisconnect();
+          unsubError();
+        };
+      } catch (err) {
+        console.error('❌ Failed to initialize WebSocket:', err);
+        setError('Failed to connect');
+      }
+    };
+    
+    initializeWebSocket();
+  }, []);
+  
+  const sendMessage = useCallback((message: Partial<ChatMessage>) => {
+    wsService.sendChatMessage(message);
+  }, []);
+  
+  const joinConversation = useCallback((conversationId: string) => {
+    wsService.joinConversation(conversationId);
+  }, []);
+  
+  const leaveConversation = useCallback((conversationId: string) => {
+    wsService.leaveConversation(conversationId);
+  }, []);
+  
+  const startTyping = useCallback((conversationId: string) => {
+    wsService.startTyping(conversationId);
+  }, []);
+  
+  const stopTyping = useCallback((conversationId: string) => {
+    wsService.stopTyping(conversationId);
+  }, []);
+  
+  return {
+    isConnected,
+    sendMessage,
+    joinConversation,
+    leaveConversation,
+    startTyping,
+    stopTyping,
+    error,
+  };
 }
 
 /**
- * React hook for WebSocket connection management
- * Provides real-time connection state and methods for WebSocket operations
+ * Hook for listening to chat messages in a specific conversation
  */
-export const useWebSocket = (options: UseWebSocketOptions = {}): UseWebSocketReturn => {
-  const { autoConnect = false, reconnectOnAuth = true } = options;
-  const { isAuthenticated } = useAuthStore();
-  const [connectionState, setConnectionState] = useState<ConnectionState>(
-    websocketManager.getConnectionState()
-  );
-  const isInitializedRef = useRef(false);
-  const lastAuthStateRef = useRef(isAuthenticated);
-
-  // Update connection state when WebSocket events occur
+export function useChatMessages(conversationId: string | null) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [typingUsers, setTypingUsers] = useState<TypingIndicator[]>([]);
+  
   useEffect(() => {
-    const updateConnectionState = () => {
-      setConnectionState(websocketManager.getConnectionState());
-    };
-
-    const listeners = [
-      DeviceEventEmitter.addListener('websocket:connected', updateConnectionState),
-      DeviceEventEmitter.addListener('websocket:disconnected', updateConnectionState),
-      DeviceEventEmitter.addListener('websocket:error', updateConnectionState),
-      DeviceEventEmitter.addListener('websocket:reconnecting', updateConnectionState),
-      DeviceEventEmitter.addListener('websocket:reconnected', updateConnectionState),
-      DeviceEventEmitter.addListener('websocket:reconnect_failed', updateConnectionState),
-    ];
-
-    // Initial state update
-    updateConnectionState();
-
-    return () => {
-      listeners.forEach(listener => listener.remove());
-    };
-  }, []);
-
-  // Handle authentication state changes
-  useEffect(() => {
-    const handleAuthChange = async () => {
-      if (isAuthenticated && !lastAuthStateRef.current && reconnectOnAuth) {
-        // User just logged in, connect WebSocket
-        if (__DEV__) console.log('🔌 useWebSocket: User authenticated, connecting...');
-        try {
-          await connect();
-        } catch (error) {
-          console.error('❌ useWebSocket: Failed to connect after authentication:', error);
-        }
-      } else if (!isAuthenticated && lastAuthStateRef.current) {
-        // User just logged out, disconnect WebSocket
-        if (__DEV__) console.log('🔌 useWebSocket: User logged out, disconnecting...');
-        disconnect();
+    if (!conversationId) return;
+    
+    // Join conversation
+    wsService.joinConversation(conversationId);
+    
+    // Listen for new messages
+    const unsubMessages = wsService.onNewMessage((message) => {
+      if (message.conversationId === conversationId) {
+        setMessages(prev => [...prev, message]);
       }
-      
-      lastAuthStateRef.current = isAuthenticated;
+    });
+    
+    // Listen for typing indicators
+    const unsubTyping = wsService.onUserTyping((typing) => {
+      if (typing.conversationId === conversationId) {
+        setTypingUsers(prev => {
+          // Remove existing entry for this user
+          const filtered = prev.filter(t => t.userId !== typing.userId);
+          // Add new entry if typing
+          return typing.isTyping ? [...filtered, typing] : filtered;
+        });
+      }
+    });
+    
+    // Listen for message status updates
+    const unsubStatus = wsService.onMessageStatus((data) => {
+      setMessages(prev => prev.map(msg =>
+        msg._id === data.messageId
+          ? { ...msg, status: data.status as any }
+          : msg
+      ));
+    });
+    
+    // Cleanup
+    return () => {
+      wsService.leaveConversation(conversationId);
+      unsubMessages();
+      unsubTyping();
+      unsubStatus();
     };
-
-    handleAuthChange();
-  }, [isAuthenticated, reconnectOnAuth]);
-
-  // Auto-connect on mount if enabled and authenticated
-  useEffect(() => {
-    if (autoConnect && isAuthenticated && !isInitializedRef.current) {
-      isInitializedRef.current = true;
-      connect().catch(error => {
-        console.error('❌ useWebSocket: Auto-connect failed:', error);
-      });
-    }
-  }, [autoConnect, isAuthenticated]);
-
-  // Connect to WebSocket
-  const connect = useCallback(async (): Promise<void> => {
-    if (!isAuthenticated) {
-      throw new Error('Cannot connect WebSocket: User not authenticated');
-    }
-
-    try {
-      await websocketManager.connect();
-    } catch (error) {
-      console.error('❌ useWebSocket: Connection failed:', error);
-      throw error;
-    }
-  }, [isAuthenticated]);
-
-  // Disconnect from WebSocket
-  const disconnect = useCallback((): void => {
-    websocketManager.disconnect();
-  }, []);
-
-  // Emit event to server
-  const emit = useCallback((event: string, data?: any): void => {
-    websocketManager.emit(event, data);
-  }, []);
-
-  // Join a room for targeted notifications
-  const joinRoom = useCallback((room: string): void => {
-    websocketManager.joinRoom(room);
-  }, []);
-
-  // Leave a room
-  const leaveRoom = useCallback((room: string): void => {
-    websocketManager.leaveRoom(room);
-  }, []);
-
+  }, [conversationId]);
+  
   return {
-    connectionState,
-    isConnected: connectionState.isConnected,
-    isConnecting: connectionState.isConnecting,
-    isReconnecting: connectionState.isReconnecting,
-    lastError: connectionState.lastError,
-    connect,
-    disconnect,
-    emit,
-    joinRoom,
-    leaveRoom,
+    messages,
+    setMessages,
+    typingUsers,
   };
-};
+}
 
 export default useWebSocket;

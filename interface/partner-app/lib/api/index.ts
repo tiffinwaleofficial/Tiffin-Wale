@@ -11,6 +11,9 @@ import { menuApi } from './services/menu.service';
 import { reviewApi } from './services/review.service';
 import { analyticsApi } from './services/analytics.service';
 import { uploadApi } from './services/upload.service';
+import { subscriptionPlanApi } from './services/subscription-plan.service';
+import { supportApi } from './services/support.service';
+import { customerApi } from './services/customer.service';
 
 /**
  * Unified API Object
@@ -54,6 +57,9 @@ export const api = {
   reviews: reviewApi,
   analytics: analyticsApi,
   upload: uploadApi,
+  plans: subscriptionPlanApi,
+  support: supportApi,
+  customers: customerApi,
 };
 
 // Export individual services for direct access if needed
@@ -65,6 +71,9 @@ export { menuApi } from './services/menu.service';
 export { reviewApi } from './services/review.service';
 export { analyticsApi } from './services/analytics.service';
 export { uploadApi } from './services/upload.service';
+export { subscriptionPlanApi } from './services/subscription-plan.service';
+export { supportApi } from './services/support.service';
+export { customerApi } from './services/customer.service';
 
 // Export types
 export type {
@@ -76,6 +85,9 @@ export type {
 export type {
   PartnerProfile,
   PartnerStats,
+  Address,
+  BankAccount,
+  NotificationPreferences,
 } from './services/partner.service';
 
 export type {
@@ -85,6 +97,7 @@ export type {
   OrderFilter,
   OrdersResponse,
   TodayOrdersResponse,
+  ProductionSummary,
 } from './services/order.service';
 
 export type {
@@ -94,6 +107,7 @@ export type {
 export type {
   MenuItem,
   MenuCategory,
+  Menu,
 } from './services/menu.service';
 
 export type {
@@ -111,6 +125,26 @@ export type {
   UploadResponse,
   UploadType,
 } from './services/upload.service';
+
+export type {
+  SubscriptionPlan,
+  MealSpecification,
+  CreateSubscriptionPlanDto,
+} from './services/subscription-plan.service';
+
+export type {
+  SupportTicket,
+  CreateSupportTicketDto,
+  SupportTicketResponse,
+} from './services/support.service';
+
+export type {
+  CustomerProfileDetail,
+  CustomerOrdersResponse,
+} from './services/customer.service';
+
+// Export enums as values (not types) so they can be used in runtime code
+export { DurationType, MealFrequency } from './services/subscription-plan.service';
 
 // Export client utilities
 export { apiClient, handleApiError, retryRequest, isNetworkError, isAuthError, isServerError } from './client';

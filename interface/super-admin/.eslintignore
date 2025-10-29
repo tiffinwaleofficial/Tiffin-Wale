@@ -1,0 +1,12 @@
+# Auto-generated API files
+src/lib/api/generated/
+src/lib/api/schema.ts
+
+# Build outputs
+.next/
+out/
+
+# Dependencies
+node_modules/
+
+

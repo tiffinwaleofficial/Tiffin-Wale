@@ -1,14 +1,28 @@
-import { EventStepConfig, Handlers } from 'motia'
-import { orderStatusSchema } from '../streams/order-status.stream'
+import { EventConfig, EventHandler } from 'motia'
+import { z } from 'zod'
+import { orderStatusSchema } from '../../streams/order-status.stream'
 
-export const config: EventStepConfig = {
+export const config: EventConfig = {
   type: 'event',
   name: 'OrderStatusUpdateStream',
   emits: ['order_status_updated'],
-  listens: ['order_status_changed'],
+  subscribes: ['order_status_changed'],
+  input: z.object({
+    orderId: z.string(),
+    status: z.enum(['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled']),
+    userId: z.string(),
+    partnerId: z.string(),
+    message: z.string().optional(),
+    estimatedTime: z.number().optional(),
+    location: z.object({
+      latitude: z.number(),
+      longitude: z.number(),
+    }).optional(),
+  }),
 }
 
-export const handler: Handlers.EventHandler = async (event, { streams, emit }) => {
+export const handler: EventHandler<any, any> = async (event: any, context: any) => {
+  const { streams, emit } = context
   const { orderId, status, userId, partnerId, message, estimatedTime, location } = event.data
 
   // Update order status in Motia stream
@@ -24,13 +38,14 @@ export const handler: Handlers.EventHandler = async (event, { streams, emit }) =
   })
 
   // Emit event to trigger NestJS WebSocket broadcast
-  await emit('order_status_updated', {
-    orderStatus,
-    targetUsers: [userId, partnerId],
-    broadcastType: 'order_update',
+  await emit({
+    topic: 'order_status_updated',
+    data: {
+      orderStatus,
+      targetUsers: [userId, partnerId],
+      broadcastType: 'order_update',
+    }
   })
-
-  return { success: true, orderStatus }
 }
 
 

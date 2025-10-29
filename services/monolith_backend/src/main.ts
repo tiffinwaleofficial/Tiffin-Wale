@@ -113,6 +113,7 @@ async function bootstrap() {
     )
     .setVersion(configService.get<string>("SWAGGER_VERSION") || "1.0")
     .addBearerAuth()
+    .addTag("super-admin", "Endpoints for super-admin management")
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);

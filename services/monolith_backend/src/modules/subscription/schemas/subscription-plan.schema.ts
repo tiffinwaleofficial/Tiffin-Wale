@@ -89,6 +89,45 @@ export class SubscriptionPlan extends Document {
   imageUrl?: string;
 
   @Prop({
+    type: [String],
+    default: [],
+  })
+  images?: string[]; // Multiple images for the plan
+
+  @Prop({
+    type: Object,
+    required: false,
+  })
+  mealSpecification?: {
+    rotis?: number;
+    sabzis?: Array<{
+      name: string;
+      quantity: string;
+    }>;
+    dal?: {
+      type: string;
+      quantity: string;
+    };
+    rice?: {
+      quantity: string;
+      type?: string;
+    };
+    extras?: Array<{
+      name: string;
+      included: boolean;
+      cost?: number;
+    }>;
+    salad?: boolean;
+    curd?: boolean;
+  };
+
+  @Prop({
+    type: String,
+    required: false,
+  })
+  partner?: string; // Partner ID who owns this plan
+
+  @Prop({
     default: 0,
     min: 0,
   })
@@ -113,6 +152,57 @@ export class SubscriptionPlan extends Document {
     default: true,
   })
   isActive: boolean;
+
+  // Day-wise meal menu scheduling
+  @Prop({
+    type: Object,
+    required: false,
+  })
+  weeklyMenu?: {
+    monday?: { breakfast?: string[]; lunch?: string[]; dinner?: string[] };
+    tuesday?: { breakfast?: string[]; lunch?: string[]; dinner?: string[] };
+    wednesday?: { breakfast?: string[]; lunch?: string[]; dinner?: string[] };
+    thursday?: { breakfast?: string[]; lunch?: string[]; dinner?: string[] };
+    friday?: { breakfast?: string[]; lunch?: string[]; dinner?: string[] };
+    saturday?: { breakfast?: string[]; lunch?: string[]; dinner?: string[] };
+    sunday?: { breakfast?: string[]; lunch?: string[]; dinner?: string[] };
+  };
+
+  // Operational days
+  @Prop({
+    type: [String],
+    default: [
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+      "sunday",
+    ],
+  })
+  operationalDays?: string[];
+
+  // Delivery slots configuration
+  @Prop({
+    type: Object,
+    default: {
+      morning: { enabled: true, timeRange: "8-10 AM" },
+      afternoon: { enabled: true, timeRange: "12-2 PM" },
+      evening: { enabled: true, timeRange: "6-8 PM" },
+    },
+  })
+  deliverySlots?: {
+    morning?: { enabled: boolean; timeRange: string };
+    afternoon?: { enabled: boolean; timeRange: string };
+    evening?: { enabled: boolean; timeRange: string };
+  };
+
+  // Monthly menu variation
+  @Prop({
+    default: false,
+  })
+  monthlyMenuVariation?: boolean;
 }
 
 export const SubscriptionPlanSchema =

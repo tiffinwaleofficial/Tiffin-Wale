@@ -102,6 +102,62 @@ export class OrderService {
     return this.orderModel.find({ businessPartner: partnerId }).exec();
   }
 
+  async findAllForSuperAdmin(
+    page: number = 1,
+    limit: number = 10,
+    status?: string,
+  ): Promise<{ orders: Order[]; total: number; page: number; limit: number }> {
+    try {
+      const query: any = {};
+
+      if (status) {
+        query.status = status;
+      }
+
+      const skip = (page - 1) * limit;
+
+      const [orders, total] = await Promise.all([
+        this.orderModel
+          .find(query)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .populate("customer", "firstName lastName phoneNumber email")
+          .populate("businessPartner", "businessName")
+          .exec(),
+        this.orderModel.countDocuments(query),
+      ]);
+
+      return {
+        orders,
+        total,
+        page,
+        limit,
+      };
+    } catch (error) {
+      throw new BadRequestException(
+        `Failed to retrieve orders: ${error.message}`,
+      );
+    }
+  }
+
+  async countAllOrders(): Promise<number> {
+    return this.orderModel.countDocuments().exec();
+  }
+
+  async calculateTotalRevenue(): Promise<number> {
+    const result = await this.orderModel.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: "$totalAmount" },
+        },
+      },
+    ]);
+
+    return result.length > 0 ? result[0].totalRevenue : 0;
+  }
+
   async findByPartnerId(
     partnerId: string,
     page: number = 1,
@@ -652,5 +708,27 @@ export class OrderService {
         `Failed to mark order ready: ${error.message}`,
       );
     }
+  }
+
+  /**
+   * Find orders by customer and partner
+   */
+  async findByCustomerAndPartner(
+    customerId: string,
+    partnerId: string,
+    options?: { page?: number; limit?: number },
+  ): Promise<Order[]> {
+    const query = this.orderModel.find({
+      customer: customerId,
+      businessPartner: partnerId,
+    });
+
+    // Apply pagination if provided
+    if (options?.page && options?.limit) {
+      const skip = (options.page - 1) * options.limit;
+      query.skip(skip).limit(options.limit);
+    }
+
+    return query.sort({ createdAt: -1 }).exec();
   }
 }

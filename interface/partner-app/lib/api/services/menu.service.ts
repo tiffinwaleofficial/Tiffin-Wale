@@ -11,11 +11,14 @@ export interface MenuItem {
   name: string;
   description: string;
   price: number;
-  categoryId: string;
+  categoryId?: string;
+  category?: string;
   partnerId?: string;
+  menu?: string; // Menu ID this item belongs to
   imageUrl?: string;
+  images?: string[]; // Multiple images for menu item
   isAvailable: boolean;
-  preparationTime: number;
+  preparationTime?: number;
   ingredients?: string[];
   allergens?: string[];
   nutritionalInfo?: {
@@ -55,7 +58,7 @@ export const menuApi = {
   getMyMenu: async (): Promise<MenuItem[]> => {
     try {
       const response = await retryRequest(() =>
-        apiClient.get<MenuItem[]>('/partners/menu/me')
+        apiClient.get<MenuItem[]>('/partners/my-menu')
       );
       return response.data;
     } catch (error) {
@@ -106,10 +109,13 @@ export const menuApi = {
   },
 
   /**
-   * Get all menu items
+   * Get all menu items (Admin/Public endpoint - Partners should use getMyMenu instead)
+   * @deprecated For partners, use getMyMenu() instead
    */
   getAllMenuItems: async (): Promise<MenuItem[]> => {
     try {
+      // This requires admin authentication - partners should not use this
+      // Keeping for backward compatibility but partners should use getMyMenu
       const response = await retryRequest(() =>
         apiClient.get<MenuItem[]>('/menu')
       );
@@ -135,11 +141,14 @@ export const menuApi = {
 
   /**
    * Create menu item
+   * Note: businessPartner is auto-set from JWT, don't send it
    */
-  createMenuItem: async (item: Omit<MenuItem, 'id' | '_id'>): Promise<MenuItem> => {
+  createMenuItem: async (item: Omit<MenuItem, 'id' | '_id' | 'businessPartner'>): Promise<MenuItem> => {
     try {
+      // Remove businessPartner if provided, backend will set it
+      const { businessPartner, ...itemData } = item as any;
       const response = await retryRequest(() =>
-        apiClient.post<MenuItem>('/menu', item)
+        apiClient.post<MenuItem>('/menu', itemData)
       );
       return response.data;
     } catch (error) {
@@ -214,7 +223,95 @@ export const menuApi = {
       return handleApiError(error, 'deleteCategory');
     }
   },
+
+  /**
+   * Menu Management (Multiple Menus)
+   */
+  
+  /**
+   * Get current partner's menus
+   */
+  getMyMenus: async (): Promise<Menu[]> => {
+    try {
+      const response = await retryRequest(() =>
+        apiClient.get<Menu[]>('/menu/menus')
+      );
+      return response.data || [];
+    } catch (error) {
+      return handleApiError(error, 'getMyMenus');
+    }
+  },
+
+  /**
+   * Get menu by ID with items
+   */
+  getMenuById: async (id: string): Promise<Menu> => {
+    try {
+      const response = await retryRequest(() =>
+        apiClient.get<Menu>(`/menu/menus/${id}`)
+      );
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, 'getMenuById');
+    }
+  },
+
+  /**
+   * Create a new menu
+   */
+  createMenu: async (menu: Omit<Menu, 'id' | '_id'>): Promise<Menu> => {
+    try {
+      const response = await retryRequest(() =>
+        apiClient.post<Menu>('/menu/menus', menu)
+      );
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, 'createMenu');
+    }
+  },
+
+  /**
+   * Update menu
+   */
+  updateMenu: async (id: string, menu: Partial<Menu>): Promise<Menu> => {
+    try {
+      const response = await retryRequest(() =>
+        apiClient.patch<Menu>(`/menu/menus/${id}`, menu)
+      );
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, 'updateMenu');
+    }
+  },
+
+  /**
+   * Delete menu
+   */
+  deleteMenu: async (id: string): Promise<void> => {
+    try {
+      await retryRequest(() =>
+        apiClient.delete(`/menu/menus/${id}`)
+      );
+    } catch (error) {
+      return handleApiError(error, 'deleteMenu');
+    }
+  },
 };
+
+export interface Menu {
+  _id?: string;
+  id?: string;
+  name: string;
+  description?: string;
+  restaurant?: string;
+  images?: string[];
+  isActive: boolean;
+  availableFrom?: string;
+  availableTo?: string;
+  items?: MenuItem[]; // Items belonging to this menu, filtered by partner
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export default menuApi;
 

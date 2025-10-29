@@ -428,14 +428,16 @@ export const UploadComponent: React.FC<UploadComponentProps> = ({
   
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
+      {title && <Text style={styles.title}>{title}</Text>}
       {description && <Text style={styles.description}>{description}</Text>}
 
       {/* Initial Upload Button */}
       {internalFiles.length === 0 && canAddMore && (
         <TouchableOpacity onPress={handleFileSelection} style={styles.uploadButton}>
           <Ionicons name="cloud-upload-outline" size={48} color="#FF9B42" />
-          <Text style={styles.uploadButtonText}>{`Tap to upload ${title.toLowerCase()}`}</Text>
+          <Text style={styles.uploadButtonText}>
+            {title ? `Tap to upload ${title.toLowerCase()}` : 'Tap to upload plan images'}
+          </Text>
             <Text style={styles.uploadButtonSubText}>
             {getFileTypeLabel(allowedTypes)} up to 5MB
             </Text>

@@ -27,11 +27,13 @@ import {
 import { useAuthStore } from '../../store/authStore';
 import { useOrderStore } from '../../store/orderStore';
 import { usePartnerStore } from '../../store/partnerStore';
+import { NotificationsModal } from '../../components/NotificationsModal';
 
 export default function DashboardScreen() {
   const router = useRouter();
   const [currentDate] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   // Store hooks
   const { user, partner, isAuthenticated } = useAuthStore();
@@ -344,7 +346,7 @@ export default function DashboardScreen() {
         <FlatList
           data={todayOrders.slice(0, 3)}
           renderItem={renderOrderCard}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id || item._id || `order-${Math.random()}`}
           scrollEnabled={false}
         />
       ) : (

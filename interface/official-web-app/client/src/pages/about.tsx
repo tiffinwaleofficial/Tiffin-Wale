@@ -4,8 +4,24 @@ import { ChevronRight, Award, Users, Store, MapPin, Target, Heart, Shield, Trend
 import { Link } from "wouter";
 import MobileAppBanner from "@/components/MobileAppBanner";
 import AppStoreButtons from "@/components/AppStoreButtons";
+import { useAnalytics } from "@/hooks/useAnalytics";
+import { trackButtonClick, trackLinkClick, trackEngagement } from "@/services/analytics";
 
 export default function AboutPage() {
+  // Initialize analytics tracking
+  const { trackClick, trackLink, currentSection } = useAnalytics({
+    pageName: 'About Page',
+    trackScroll: true,
+    trackTime: true,
+    sections: [
+      { name: 'Hero Section' },
+      { name: 'Mission & Vision', elementId: 'mission-vision' },
+      { name: 'Our Journey', elementId: 'journey' },
+      { name: 'Leadership', elementId: 'meet-our-leadership' },
+      { name: 'CTA Section', elementId: 'cta-section' }
+    ]
+  });
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -15,7 +31,12 @@ export default function AboutPage() {
         <div className="container mx-auto px-4">
           <div className="flex items-center text-sm">
             <Link href="/">
-              <span className="text-gray-500 hover:text-primary cursor-pointer transition-colors">Home</span>
+              <span 
+                className="text-gray-500 hover:text-primary cursor-pointer transition-colors"
+                onClick={() => trackLink('Home (Breadcrumb)', '/')}
+              >
+                Home
+              </span>
             </Link>
             <ChevronRight className="h-4 w-4 mx-2 text-gray-400" />
             <span className="text-primary font-semibold">About Us</span>
@@ -105,7 +126,7 @@ export default function AboutPage() {
         </section>
         
         {/* Mission & Vision */}
-        <section className="py-20 md:py-28 bg-white relative overflow-hidden">
+        <section id="mission-vision" className="py-20 md:py-28 bg-white relative overflow-hidden">
           <div className="container mx-auto px-4">
             <div className="text-center mb-16 max-w-3xl mx-auto">
               <h2 className="font-bold text-4xl md:text-5xl mb-6 text-foreground">Our Mission & Vision</h2>
@@ -189,7 +210,7 @@ export default function AboutPage() {
         </section>
         
         {/* Our Journey */}
-        <section className="py-20 md:py-28 bg-gradient-to-b from-gray-50 via-white to-gray-50">
+        <section id="journey" className="py-20 md:py-28 bg-gradient-to-b from-gray-50 via-white to-gray-50">
           <div className="container mx-auto px-4">
             <div className="text-center mb-16 max-w-3xl mx-auto">
               <h2 className="font-bold text-4xl md:text-5xl mb-6 text-foreground">Our Journey</h2>
@@ -332,7 +353,7 @@ export default function AboutPage() {
               <div className="text-center group">
                 <div className="relative inline-block mb-4">
                 <Link href="/rahul-vishwakarma">
-                  <a>
+                  <a onClick={() => trackClick('Rahul Vishwakarma Profile', 'Leadership Section')}>
                     <img 
                       src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&h=200&q=80" 
                       alt="Rahul Vishwakarma, Founder & CEO" 
@@ -352,7 +373,7 @@ export default function AboutPage() {
               <div className="text-center group">
                 <div className="relative inline-block mb-4">
                 <Link href="/riya-tiwari">
-                  <a>
+                  <a onClick={() => trackClick('Riya Tiwari Profile', 'Leadership Section')}>
                     <img 
                       src="https://res.cloudinary.com/dols3w27e/image/upload/v1761637006/qvmwdrprx2gciejp0awi.jpg" 
                       alt="Riya Tiwari, Founder & CFO" 
@@ -373,7 +394,7 @@ export default function AboutPage() {
         </section>
         
         {/* CTA Section */}
-        <section className="py-20 md:py-28 bg-gradient-to-br from-primary via-accent to-primary relative overflow-hidden">
+        <section id="cta-section" className="py-20 md:py-28 bg-gradient-to-br from-primary via-accent to-primary relative overflow-hidden">
           {/* Background decorations */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-10 left-10 w-64 h-64 bg-white rounded-full blur-3xl animate-pulse-slow"></div>

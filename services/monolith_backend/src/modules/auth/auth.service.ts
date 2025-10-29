@@ -185,25 +185,68 @@ export class AuthService {
       }
 
       // Create user with partner role
+      // Clean and normalize phone number
+      const cleanPhoneNumber = registerPartnerDto.phoneNumber
+        .replace(/^\+91/, "")
+        .replace(/\D/g, "")
+        .slice(-10);
+
+      console.log("📝 Partner Registration - Phone normalization:", {
+        original: registerPartnerDto.phoneNumber,
+        clean: cleanPhoneNumber,
+      });
+
       const userData = {
         email: registerPartnerDto.email,
-        password: registerPartnerDto.password,
+        password: registerPartnerDto.password || undefined, // Optional password
         role: UserRole.PARTNER,
         firstName: registerPartnerDto.firstName,
         lastName: registerPartnerDto.lastName,
-        phoneNumber: registerPartnerDto.phoneNumber,
+        phoneNumber: cleanPhoneNumber, // Store normalized phone number
         phoneVerified: false, // Will be set to true after phone verification
       };
 
       const user = await this.userService.create(userData);
 
+      // Handle address transformation - can be object or string
+      let addressData = registerPartnerDto.address;
+      if (typeof addressData === "string") {
+        // If address is a string, parse it into an address object
+        const addressParts = addressData.split("\n");
+        const street = addressParts[0] || "";
+        const cityLine = addressParts[1] || "";
+        const cityParts = cityLine.includes(",")
+          ? cityLine.split(",")
+          : [cityLine];
+
+        addressData = {
+          street: street,
+          city: registerPartnerDto.city || cityParts[0]?.trim() || "",
+          state:
+            registerPartnerDto.state ||
+            cityParts[1]?.trim().split("-")[0]?.trim() ||
+            "",
+          postalCode:
+            registerPartnerDto.pincode || cityLine.match(/\d{5,6}/)?.[0] || "",
+          country: registerPartnerDto.country || "India",
+        };
+      }
+
+      // Handle establishedYear from establishedDate if provided
+      let establishedYear = registerPartnerDto.establishedYear;
+      if (!establishedYear && registerPartnerDto.establishedDate) {
+        const date = new Date(registerPartnerDto.establishedDate);
+        establishedYear = date.getFullYear();
+      }
+
       // Create partner profile with all business data
       const partnerData = {
+        user: user._id, // Link the partner to the user - THIS IS REQUIRED!
         businessName: registerPartnerDto.businessName,
         businessType: registerPartnerDto.businessType,
         description: registerPartnerDto.description,
         cuisineTypes: registerPartnerDto.cuisineTypes,
-        address: registerPartnerDto.address,
+        address: addressData,
         businessHours: registerPartnerDto.businessHours,
         contactEmail:
           registerPartnerDto.contactEmail || registerPartnerDto.email,
@@ -212,7 +255,7 @@ export class AuthService {
         whatsappNumber: registerPartnerDto.whatsappNumber,
         gstNumber: registerPartnerDto.gstNumber,
         licenseNumber: registerPartnerDto.licenseNumber,
-        establishedYear: registerPartnerDto.establishedYear,
+        establishedYear: establishedYear,
         deliveryRadius: registerPartnerDto.deliveryRadius || 5,
         minimumOrderAmount: registerPartnerDto.minimumOrderAmount || 100,
         deliveryFee: registerPartnerDto.deliveryFee || 0,
@@ -272,10 +315,15 @@ export class AuthService {
         throw new ConflictException("Email already in use");
       }
 
+      // Clean and normalize phone number
+      const cleanPhoneNumber = registerCustomerDto.phoneNumber
+        .replace(/^\+91/, "")
+        .replace(/\D/g, "")
+        .slice(-10);
+
       // Check if user with phone number already exists
-      const existingUserByPhone = await this.userService.findByPhoneNumber(
-        registerCustomerDto.phoneNumber,
-      );
+      const existingUserByPhone =
+        await this.userService.findByPhoneNumber(cleanPhoneNumber);
       if (existingUserByPhone) {
         throw new ConflictException("Phone number already in use");
       }
@@ -286,9 +334,9 @@ export class AuthService {
         role: UserRole.CUSTOMER,
         firstName: registerCustomerDto.firstName,
         lastName: registerCustomerDto.lastName,
-        phoneNumber: registerCustomerDto.phoneNumber,
+        phoneNumber: cleanPhoneNumber, // Store normalized phone number
         isActive: true,
-        // Note: firebaseUid will be set during phone login
+        // Note: fire-helpUid will be set during phone login
       };
 
       const user = await this.userService.create(userData);
@@ -506,6 +554,40 @@ export class AuthService {
   private async generateToken(user: any) {
     const payload = { email: user.email, sub: user._id, role: user.role };
 
+    // Partner-specific token generation (simpler response)
+    if (user.role === UserRole.PARTNER) {
+      let partner = null;
+      try {
+        partner = await this.partnerService.findByUserId(user._id);
+      } catch (error) {
+        // Partner not found yet, that's okay for fresh registration
+        console.log("Partner profile not yet available");
+      }
+
+      return {
+        accessToken: this.jwtService.sign(payload),
+        token: this.jwtService.sign(payload), // Backward compatibility
+        refreshToken: this.jwtService.sign(payload, { expiresIn: "30d" }),
+        user: {
+          id: user._id,
+          email: user.email,
+          role: user.role,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          phoneNumber: user.phoneNumber,
+        },
+        partner: partner
+          ? {
+              id: partner._id,
+              businessName: partner.businessName,
+              description: partner.description,
+              status: partner.status,
+            }
+          : null,
+      };
+    }
+
+    // Customer-specific token generation
     // Get active subscription details
     const activeSubscription = await this.subscriptionService
       .findByCustomer(user._id)
@@ -553,7 +635,8 @@ export class AuthService {
     const todaysMeals = await this.mealService.getTodayMeals(user._id);
 
     return {
-      token: this.jwtService.sign(payload),
+      accessToken: this.jwtService.sign(payload), // Changed from 'token' to 'accessToken' for consistency
+      token: this.jwtService.sign(payload), // Keep 'token' for backward compatibility
       refreshToken: this.jwtService.sign(payload, { expiresIn: "30d" }),
       user: {
         id: user._id,
@@ -597,7 +680,65 @@ export class AuthService {
     role: UserRole.CUSTOMER | UserRole.PARTNER,
   ) {
     try {
-      const user = await this.userService.findByPhoneNumber(phoneNumber);
+      // Clean phone number - remove +91 prefix and non-digits, take last 10 digits
+      const cleanPhone = phoneNumber
+        .replace(/^\+91/, "")
+        .replace(/\D/g, "")
+        .slice(-10);
+
+      console.log("🔍 checkPhoneExists:", {
+        original: phoneNumber,
+        cleanPhone,
+        requestedRole: role,
+      });
+
+      // For PARTNER role: Check in Partner collection by contactPhone
+      if (role === UserRole.PARTNER) {
+        const partner =
+          await this.partnerService.findByContactPhone(cleanPhone);
+
+        console.log(
+          "🔍 Partner found:",
+          partner
+            ? {
+                id: partner._id,
+                businessName: partner.businessName,
+                contactPhone: partner.contactPhone,
+              }
+            : "NOT FOUND",
+        );
+
+        if (partner) {
+          // Get the associated user
+          const user = await this.userService.findById(partner.user.toString());
+          return {
+            exists: true,
+            userId: user._id,
+            role: "partner",
+          };
+        } else {
+          return {
+            exists: false,
+            userId: null,
+            role: null,
+          };
+        }
+      }
+
+      // For CUSTOMER role: Check in User collection by phoneNumber
+      const user = await this.userService.findByPhoneNumber(cleanPhone);
+
+      console.log(
+        "🔍 User found:",
+        user
+          ? {
+              id: user._id,
+              email: user.email,
+              role: user.role,
+              phoneNumber: user.phoneNumber,
+            }
+          : "NOT FOUND",
+      );
 
       if (!user) {
         return {
@@ -634,18 +775,57 @@ export class AuthService {
     role: UserRole.CUSTOMER | UserRole.PARTNER,
   ) {
     try {
-      // Find user by phone number
-      const user = await this.userService.findByPhoneNumber(phoneNumber);
+      // Clean phone number - remove +91 prefix and non-digits, take last 10 digits
+      const cleanPhone = phoneNumber
+        .replace(/^\+91/, "")
+        .replace(/\D/g, "")
+        .slice(-10);
 
-      if (!user) {
-        throw new NotFoundException("User not found with this phone number");
-      }
+      let user;
 
-      // Check if user has the specified role (role is now required)
-      if (user.role !== role) {
-        throw new UnauthorizedException(
-          `This phone number is registered as a ${user.role}. Please use the correct app for your account type.`,
-        );
+      // For PARTNER role: Check in Partner collection by contactPhone
+      if (role === UserRole.PARTNER) {
+        console.log("🔑 loginWithPhone - Partner role:", {
+          phoneNumber,
+          cleanPhone,
+        });
+
+        const partner =
+          await this.partnerService.findByContactPhone(cleanPhone);
+
+        if (!partner) {
+          throw new NotFoundException(
+            "Partner not found with this phone number",
+          );
+        }
+
+        // Get the associated user
+        user = await this.userService.findById(partner.user.toString());
+
+        if (!user) {
+          throw new NotFoundException(
+            "User account not found for this partner",
+          );
+        }
+      } else {
+        // For CUSTOMER role: Check in User collection by phoneNumber
+        console.log("🔑 loginWithPhone - Customer role:", {
+          phoneNumber,
+          cleanPhone,
+        });
+
+        user = await this.userService.findByPhoneNumber(cleanPhone);
+
+        if (!user) {
+          throw new NotFoundException("User not found with this phone number");
+        }
+
+        // Check if user has the specified role (role is now required)
+        if (user.role !== role) {
+          throw new UnauthorizedException(
+            `This phone number is registered as a ${user.role}. Please use the correct app for your account type.`,
+          );
+        }
       }
 
       if (!user.isActive) {

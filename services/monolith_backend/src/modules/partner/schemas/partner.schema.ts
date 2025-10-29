@@ -130,12 +130,46 @@ export class Partner extends Document {
   @Prop({ default: 20 })
   commissionRate: number;
 
+  // Bank Account Details
+  @Prop({ type: Object, default: {} })
+  bankAccount: {
+    accountHolderName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+    bankName?: string;
+    branch?: string;
+    accountType?: string; // Savings, Current
+    upiId?: string;
+    panNumber?: string;
+  };
+
   // Social media
   @Prop({ type: Object, default: {} })
   socialMedia: {
     instagram?: string;
     facebook?: string;
     twitter?: string;
+  };
+
+  // Notification Preferences
+  @Prop({
+    type: Object,
+    default: {
+      pushEnabled: true,
+      orders: true,
+      payments: true,
+      reminders: true,
+      updates: false,
+      marketing: false,
+    },
+  })
+  notificationPreferences: {
+    pushEnabled?: boolean;
+    orders?: boolean;
+    payments?: boolean;
+    reminders?: boolean;
+    updates?: boolean;
+    marketing?: boolean;
   };
 
   // Documents

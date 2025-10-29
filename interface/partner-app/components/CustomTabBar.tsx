@@ -1,14 +1,14 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
-import { Chrome as Home, ClipboardList, BookText, ChartBar as BarChart3, Bell, User } from 'lucide-react-native';
+import { Chrome as Home, ClipboardList, BookText, ChartBar as BarChart3, Users, User } from 'lucide-react-native';
 
 const tabs = [
   { name: 'dashboard', path: '/(tabs)/dashboard', title: 'Dashboard', Icon: Home },
   { name: 'orders', path: '/(tabs)/orders', title: 'Orders', Icon: ClipboardList },
   { name: 'menu', path: '/(tabs)/menu', title: 'Menu', Icon: BookText },
   { name: 'earnings', path: '/(tabs)/earnings', title: 'Earnings', Icon: BarChart3 },
-  { name: 'notifications', path: '/(tabs)/notifications', title: 'Alerts', Icon: Bell },
+  { name: 'customers', path: '/(tabs)/customers', title: 'Customers', Icon: Users },
   { name: 'profile', path: '/(tabs)/profile', title: 'Profile', Icon: User },
 ];
 
@@ -26,7 +26,7 @@ export default function CustomTabBar() {
           <TouchableOpacity
             key={tab.name}
             style={styles.tab}
-            onPress={() => router.push(tab.path)}
+            onPress={() => router.push(tab.path as any)}
           >
             <View style={styles.tabContent}>
               <Icon
@@ -63,13 +63,14 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    minWidth: 64,
-    maxWidth: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 4,
   },
   tabContent: {
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
   },
   tabText: {
     fontFamily: 'Poppins-Medium',

@@ -3,7 +3,7 @@
  * First step of authentication - enter phone number and receive OTP
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,11 +21,26 @@ import { useRouter } from 'expo-router';
 import { Phone, ArrowRight } from 'lucide-react-native';
 import phoneAuthService from '../../services/phoneAuthService';
 import FirebaseRecaptchaContainer from '../../components/FirebaseRecaptchaContainer';
+import { useAuthStore } from '../../store/authStore';
+import { tokenManager } from '../../lib/auth/TokenManager';
 
 export default function PhoneInputScreen() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
+
+  // Redirect authenticated users
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = await tokenManager.getAccessToken();
+      if (isAuthenticated && token) {
+        console.log('⚠️ Already authenticated, redirecting to dashboard');
+        router.replace('/(tabs)/dashboard');
+      }
+    };
+    checkAuth();
+  }, [isAuthenticated]);
 
   /**
    * Validate Indian phone number

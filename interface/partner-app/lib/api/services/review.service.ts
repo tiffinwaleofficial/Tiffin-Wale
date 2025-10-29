@@ -45,7 +45,7 @@ export const reviewApi = {
   getMyReviews: async (page: number = 1, limit: number = 10): Promise<ReviewResponse> => {
     try {
       const response = await retryRequest(() =>
-        apiClient.get<ReviewResponse>('/partners/reviews/me', {
+        apiClient.get<ReviewResponse>('/partners/my-reviews', {
           params: { page, limit },
         })
       );
@@ -118,20 +118,27 @@ export const reviewApi = {
   },
 
   /**
-   * Respond to a review (partner only)
+   * Reply to a review (partner only)
+   */
+  replyToReview: async (reviewId: string, response: string): Promise<Review> => {
+    try {
+      const result = await retryRequest(() =>
+        apiClient.post<Review>(`/reviews/${reviewId}/reply`, { response })
+      );
+      return result.data;
+    } catch (error) {
+      return handleApiError(error, 'replyToReview');
+    }
+  },
+
+  /**
+   * Respond to a review (deprecated - use replyToReview)
    */
   respondToReview: async (
     reviewId: string,
     response: { partnerResponse: string }
   ): Promise<Review> => {
-    try {
-      const result = await retryRequest(() =>
-        apiClient.put<Review>(`/reviews/${reviewId}`, response)
-      );
-      return result.data;
-    } catch (error) {
-      return handleApiError(error, 'respondToReview');
-    }
+    return reviewApi.replyToReview(reviewId, response.partnerResponse);
   },
 
   /**

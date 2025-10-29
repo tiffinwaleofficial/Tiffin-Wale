@@ -145,6 +145,68 @@ export class UpdateMenuItemDto {
   allergens?: string[];
 
   @ApiProperty({
+    description: "Spice level of the menu item",
+    example: "Mild",
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  spiceLevel?: string;
+
+  @ApiProperty({
+    description: "Whether the menu item is vegetarian",
+    example: true,
+    default: false,
+    required: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  isVegetarian?: boolean;
+
+  @ApiProperty({
+    description: "Whether the menu item is vegan",
+    example: false,
+    default: false,
+    required: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  isVegan?: boolean;
+
+  @ApiProperty({
+    description: "Whether the menu item is gluten-free",
+    example: false,
+    default: false,
+    required: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  isGlutenFree?: boolean;
+
+  @ApiProperty({
+    description: "Array of image URLs for the menu item",
+    example: [
+      "https://example.com/image1.jpg",
+      "https://example.com/image2.jpg",
+    ],
+    type: [String],
+    required: false,
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  images?: string[];
+
+  @ApiProperty({
+    description: "ID of the menu this item belongs to",
+    example: "6507e9ce0cb7ea2d3c9d10b2",
+    required: false,
+  })
+  @IsMongoId()
+  @IsOptional()
+  menu?: string;
+
+  @ApiProperty({
     description: "Nutritional information of the menu item",
     type: UpdateNutritionalInfoDto,
     required: false,

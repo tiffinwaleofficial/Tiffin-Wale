@@ -40,6 +40,7 @@ export class UserService {
     const newUser = new this.userModel({
       ...createUserDto,
       password: hashedPassword,
+      role: createUserDto.role, // Explicitly set role to prevent default
     });
 
     return newUser.save();

@@ -1,0 +1,387 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+  Put,
+} from "@nestjs/common";
+import { SuperAdminService } from "./super-admin.service";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiQuery,
+  ApiBearerAuth,
+} from "@nestjs/swagger";
+import { Roles } from "src/common/decorators/roles.decorator";
+import { UserRole } from "src/common/interfaces/user.interface";
+import { UpdatePartnerStatusDto } from "./dto/update-partner-status.dto";
+import { UpdatePartnerDto } from "./dto/update-partner.dto";
+import { UpdateCustomerStatusDto } from "./dto/update-customer-status.dto";
+import { UpdateCustomerProfileDto } from "../customer/dto/update-customer-profile.dto";
+
+@ApiTags("Super Admin")
+@ApiBearerAuth()
+@Roles(UserRole.SUPER_ADMIN)
+@Controller("super-admin")
+export class SuperAdminController {
+  constructor(private readonly superAdminService: SuperAdminService) {}
+
+  @Get("dashboard-stats")
+  @ApiOperation({ summary: "Get dashboard stats" })
+  @ApiResponse({
+    status: 200,
+    description: "Dashboard stats retrieved successfully",
+  })
+  getDashboardStats() {
+    return this.superAdminService.getDashboardStats();
+  }
+
+  // Partner Management
+  @Get("partners")
+  @ApiOperation({ summary: "Get all partners" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiQuery({ name: "status", required: false, type: String })
+  @ApiResponse({ status: 200, description: "Partners retrieved successfully" })
+  getAllPartners(
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10,
+    @Query("status") status: string,
+  ) {
+    return this.superAdminService.getAllPartners(page, limit, status);
+  }
+
+  @Get("partners/:id")
+  @ApiOperation({ summary: "Get partner by ID" })
+  @ApiResponse({ status: 200, description: "Partner retrieved successfully" })
+  @ApiResponse({ status: 404, description: "Partner not found" })
+  getPartnerById(@Param("id") id: string) {
+    return this.superAdminService.getPartnerById(id);
+  }
+
+  @Put("partners/:id")
+  @ApiOperation({ summary: "Update a partner" })
+  @ApiResponse({ status: 200, description: "Partner updated successfully" })
+  @ApiResponse({ status: 404, description: "Partner not found" })
+  updatePartner(
+    @Param("id") id: string,
+    @Body() updatePartnerDto: UpdatePartnerDto,
+  ) {
+    return this.superAdminService.updatePartner(id, updatePartnerDto);
+  }
+
+  @Delete("partners/:id")
+  @ApiOperation({ summary: "Delete a partner" })
+  @ApiResponse({ status: 200, description: "Partner deleted successfully" })
+  @ApiResponse({ status: 404, description: "Partner not found" })
+  deletePartner(@Param("id") id: string) {
+    return this.superAdminService.deletePartner(id);
+  }
+
+  @Patch("partners/:id/status")
+  @ApiOperation({ summary: "Update partner status" })
+  @ApiResponse({
+    status: 200,
+    description: "Partner status updated successfully",
+  })
+  @ApiResponse({ status: 404, description: "Partner not found" })
+  updatePartnerStatus(
+    @Param("id") id: string,
+    @Body() updatePartnerStatusDto: UpdatePartnerStatusDto,
+  ) {
+    return this.superAdminService.updatePartnerStatus(
+      id,
+      updatePartnerStatusDto,
+    );
+  }
+
+  // Customer Management
+  @Get("customers")
+  @ApiOperation({ summary: "Get all customers" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiResponse({ status: 200, description: "Customers retrieved successfully" })
+  getAllCustomers(
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10,
+  ) {
+    return this.superAdminService.getAllCustomers(page, limit);
+  }
+
+  @Get("customers/:id")
+  @ApiOperation({ summary: "Get customer by ID" })
+  @ApiResponse({ status: 200, description: "Customer retrieved successfully" })
+  @ApiResponse({ status: 404, description: "Customer not found" })
+  getCustomerById(@Param("id") id: string) {
+    return this.superAdminService.getCustomerById(id);
+  }
+
+  @Put("customers/:id")
+  @ApiOperation({ summary: "Update a customer" })
+  @ApiResponse({ status: 200, description: "Customer updated successfully" })
+  @ApiResponse({ status: 404, description: "Customer not found" })
+  updateCustomer(
+    @Param("id") id: string,
+    @Body() updateCustomerDto: UpdateCustomerProfileDto,
+  ) {
+    return this.superAdminService.updateCustomer(id, updateCustomerDto);
+  }
+
+  @Delete("customers/:id")
+  @ApiOperation({ summary: "Delete a customer" })
+  @ApiResponse({ status: 200, description: "Customer deleted successfully" })
+  @ApiResponse({ status: 404, description: "Customer not found" })
+  deleteCustomer(@Param("id") id: string) {
+    return this.superAdminService.deleteCustomer(id);
+  }
+
+  @Patch("customers/:id/status")
+  @ApiOperation({ summary: "Update customer status" })
+  @ApiResponse({
+    status: 200,
+    description: "Customer status updated successfully",
+  })
+  @ApiResponse({ status: 404, description: "Customer not found" })
+  updateCustomerStatus(
+    @Param("id") id: string,
+    @Body() updateCustomerStatusDto: UpdateCustomerStatusDto,
+  ) {
+    return this.superAdminService.updateCustomerStatus(
+      id,
+      updateCustomerStatusDto,
+    );
+  }
+
+  // Order Management
+  @Get("orders")
+  @ApiOperation({ summary: "Get all orders" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiQuery({ name: "status", required: false, type: String })
+  @ApiResponse({ status: 200, description: "Orders retrieved successfully" })
+  getAllOrders(
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10,
+    @Query("status") status: string,
+  ) {
+    return this.superAdminService.getAllOrders(page, limit, status);
+  }
+
+  @Get("orders/:id")
+  @ApiOperation({ summary: "Get order by ID" })
+  @ApiResponse({ status: 200, description: "Order retrieved successfully" })
+  @ApiResponse({ status: 404, description: "Order not found" })
+  getOrderById(@Param("id") id: string) {
+    return this.superAdminService.getOrderById(id);
+  }
+
+  @Patch("orders/:id/status")
+  @ApiOperation({ summary: "Update order status" })
+  @ApiResponse({
+    status: 200,
+    description: "Order status updated successfully",
+  })
+  @ApiResponse({ status: 404, description: "Order not found" })
+  updateOrderStatus(@Param("id") id: string, @Body() body: { status: string }) {
+    return this.superAdminService.updateOrderStatus(id, body.status);
+  }
+
+  // Subscription Management
+  @Get("subscriptions")
+  @ApiOperation({ summary: "Get all subscriptions" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiQuery({ name: "status", required: false, type: String })
+  @ApiResponse({
+    status: 200,
+    description: "Subscriptions retrieved successfully",
+  })
+  getAllSubscriptions(
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10,
+    @Query("status") status: string,
+  ) {
+    return this.superAdminService.getAllSubscriptions(page, limit, status);
+  }
+
+  @Get("subscriptions/active")
+  @ApiOperation({ summary: "Get active subscriptions" })
+  @ApiResponse({
+    status: 200,
+    description: "Active subscriptions retrieved successfully",
+  })
+  getActiveSubscriptions() {
+    return this.superAdminService.getActiveSubscriptions();
+  }
+
+  @Get("subscriptions/:id")
+  @ApiOperation({ summary: "Get subscription by ID" })
+  @ApiResponse({
+    status: 200,
+    description: "Subscription retrieved successfully",
+  })
+  @ApiResponse({ status: 404, description: "Subscription not found" })
+  getSubscriptionById(@Param("id") id: string) {
+    return this.superAdminService.getSubscriptionById(id);
+  }
+
+  @Patch("subscriptions/:id/status")
+  @ApiOperation({ summary: "Update subscription status" })
+  @ApiResponse({
+    status: 200,
+    description: "Subscription status updated successfully",
+  })
+  @ApiResponse({ status: 404, description: "Subscription not found" })
+  updateSubscriptionStatus(
+    @Param("id") id: string,
+    @Body() body: { status: string },
+  ) {
+    return this.superAdminService.updateSubscriptionStatus(id, body.status);
+  }
+
+  // Support/Ticket Management
+  @Get("support/tickets")
+  @ApiOperation({ summary: "Get all support tickets" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiQuery({ name: "status", required: false, type: String })
+  @ApiQuery({ name: "priority", required: false, type: String })
+  @ApiResponse({ status: 200, description: "Tickets retrieved successfully" })
+  getAllSupportTickets(
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10,
+    @Query("status") status: string,
+    @Query("priority") priority: string,
+  ) {
+    const filters = { status, priority };
+    return this.superAdminService.getAllSupportTickets(page, limit, filters);
+  }
+
+  @Get("support/tickets/:id")
+  @ApiOperation({ summary: "Get support ticket by ID" })
+  @ApiResponse({ status: 200, description: "Ticket retrieved successfully" })
+  @ApiResponse({ status: 404, description: "Ticket not found" })
+  getTicketById(@Param("id") id: string) {
+    return this.superAdminService.getTicketById(id);
+  }
+
+  @Patch("support/tickets/:id")
+  @ApiOperation({ summary: "Update support ticket" })
+  @ApiResponse({ status: 200, description: "Ticket updated successfully" })
+  @ApiResponse({ status: 404, description: "Ticket not found" })
+  updateTicket(@Param("id") id: string, @Body() updates: any) {
+    return this.superAdminService.updateTicket(id, updates);
+  }
+
+  @Patch("support/tickets/:id/status")
+  @ApiOperation({ summary: "Update support ticket status" })
+  @ApiResponse({
+    status: 200,
+    description: "Ticket status updated successfully",
+  })
+  @ApiResponse({ status: 404, description: "Ticket not found" })
+  updateTicketStatus(
+    @Param("id") id: string,
+    @Body() body: { status: string },
+  ) {
+    return this.superAdminService.updateTicketStatus(id, body.status);
+  }
+
+  // Menu Management
+  @Get("menu/items")
+  @ApiOperation({ summary: "Get all menu items" })
+  @ApiQuery({ name: "partnerId", required: false, type: String })
+  @ApiResponse({
+    status: 200,
+    description: "Menu items retrieved successfully",
+  })
+  getAllMenuItems(@Query("partnerId") partnerId: string) {
+    const filters = partnerId ? { partnerId } : undefined;
+    return this.superAdminService.getAllMenuItems(filters);
+  }
+
+  @Post("menu/items")
+  @ApiOperation({ summary: "Create menu item" })
+  @ApiResponse({ status: 201, description: "Menu item created successfully" })
+  @ApiResponse({ status: 400, description: "Invalid input" })
+  createMenuItem(@Body() data: any) {
+    return this.superAdminService.createMenuItem(data);
+  }
+
+  @Put("menu/items/:id")
+  @ApiOperation({ summary: "Update menu item" })
+  @ApiResponse({ status: 200, description: "Menu item updated successfully" })
+  @ApiResponse({ status: 404, description: "Menu item not found" })
+  updateMenuItem(@Param("id") id: string, @Body() data: any) {
+    return this.superAdminService.updateMenuItem(id, data);
+  }
+
+  @Delete("menu/items/:id")
+  @ApiOperation({ summary: "Delete menu item" })
+  @ApiResponse({ status: 200, description: "Menu item deleted successfully" })
+  @ApiResponse({ status: 404, description: "Menu item not found" })
+  deleteMenuItem(@Param("id") id: string) {
+    return this.superAdminService.deleteMenuItem(id);
+  }
+
+  @Get("menu/menus")
+  @ApiOperation({ summary: "Get all menus" })
+  @ApiQuery({ name: "partnerId", required: false, type: String })
+  @ApiQuery({ name: "restaurantId", required: false, type: String })
+  @ApiResponse({ status: 200, description: "Menus retrieved successfully" })
+  getAllMenus(
+    @Query("partnerId") partnerId: string,
+    @Query("restaurantId") restaurantId: string,
+  ) {
+    const filters = { partnerId, restaurantId };
+    return this.superAdminService.getAllMenus(filters);
+  }
+
+  @Get("menu/menus/:id")
+  @ApiOperation({ summary: "Get menu with items by ID" })
+  @ApiResponse({ status: 200, description: "Menu retrieved successfully" })
+  @ApiResponse({ status: 404, description: "Menu not found" })
+  getMenuWithItems(@Param("id") id: string) {
+    return this.superAdminService.getMenuWithItems(id);
+  }
+
+  // Dashboard & Analytics
+  @Get("dashboard/activities")
+  @ApiOperation({ summary: "Get recent dashboard activities" })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiResponse({
+    status: 200,
+    description: "Dashboard activities retrieved successfully",
+  })
+  getDashboardActivities(@Query("limit") limit: number = 10) {
+    return this.superAdminService.getDashboardActivities(Number(limit));
+  }
+
+  @Get("analytics/revenue-history")
+  @ApiOperation({ summary: "Get revenue history" })
+  @ApiQuery({ name: "months", required: false, type: Number })
+  @ApiResponse({
+    status: 200,
+    description: "Revenue history retrieved successfully",
+  })
+  getRevenueHistory(@Query("months") months: number = 6) {
+    return this.superAdminService.getRevenueHistory(Number(months));
+  }
+
+  @Get("analytics/earnings")
+  @ApiOperation({ summary: "Get earnings data" })
+  @ApiQuery({ name: "period", required: false, type: String })
+  @ApiResponse({
+    status: 200,
+    description: "Earnings data retrieved successfully",
+  })
+  getEarnings(@Query("period") period: string = "month") {
+    return this.superAdminService.getEarningsData(period);
+  }
+}

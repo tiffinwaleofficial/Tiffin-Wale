@@ -285,7 +285,7 @@ export class EmailService {
         to: userData.email,
         template: "cfo-welcome",
         data: templateData,
-        subject: `A personal welcome from our CFO, Riya Tiwari!`,
+        subject: `Tiffin Wale, CFO Riya Tiwari`,
         from: this.getSenderEmail("cfo-welcome"),
       },
       userId,

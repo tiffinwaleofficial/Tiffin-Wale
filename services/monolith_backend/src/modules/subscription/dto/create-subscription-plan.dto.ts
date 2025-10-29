@@ -86,4 +86,64 @@ export class CreateSubscriptionPlanDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean = true;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  images?: string[];
+
+  @IsOptional()
+  mealSpecification?: {
+    rotis?: number;
+    sabzis?: Array<{
+      name: string;
+      quantity: string;
+    }>;
+    dal?: {
+      type: string;
+      quantity: string;
+    };
+    rice?: {
+      quantity: string;
+      type?: string;
+    };
+    extras?: Array<{
+      name: string;
+      included: boolean;
+      cost?: number;
+    }>;
+    salad?: boolean;
+    curd?: boolean;
+  };
+
+  @IsOptional()
+  @IsString()
+  partner?: string;
+
+  @IsOptional()
+  weeklyMenu?: {
+    monday?: { breakfast?: string[]; lunch?: string[]; dinner?: string[] };
+    tuesday?: { breakfast?: string[]; lunch?: string[]; dinner?: string[] };
+    wednesday?: { breakfast?: string[]; lunch?: string[]; dinner?: string[] };
+    thursday?: { breakfast?: string[]; lunch?: string[]; dinner?: string[] };
+    friday?: { breakfast?: string[]; lunch?: string[]; dinner?: string[] };
+    saturday?: { breakfast?: string[]; lunch?: string[]; dinner?: string[] };
+    sunday?: { breakfast?: string[]; lunch?: string[]; dinner?: string[] };
+  };
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  operationalDays?: string[];
+
+  @IsOptional()
+  deliverySlots?: {
+    morning?: { enabled: boolean; timeRange: string };
+    afternoon?: { enabled: boolean; timeRange: string };
+    evening?: { enabled: boolean; timeRange: string };
+  };
+
+  @IsOptional()
+  @IsBoolean()
+  monthlyMenuVariation?: boolean;
 }

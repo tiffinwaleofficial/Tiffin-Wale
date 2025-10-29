@@ -74,6 +74,34 @@ export class Order extends Document {
   @Prop()
   review: string;
 
+  // New fields for tiffin center operations
+  @Prop({
+    type: String,
+    enum: ["breakfast", "lunch", "dinner"],
+  })
+  mealType?: string;
+
+  @Prop({
+    type: String,
+    enum: ["morning", "afternoon", "evening"],
+  })
+  deliverySlot?: string;
+
+  @Prop()
+  deliveryTimeRange?: string; // "8-10 AM"
+
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: "SubscriptionPlan" })
+  subscriptionPlan?: string;
+
+  @Prop()
+  dayOfWeek?: string; // "monday", "tuesday", etc.
+
+  @Prop()
+  preparedAt?: Date;
+
+  @Prop()
+  outForDeliveryAt?: Date;
+
   @Prop()
   createdAt: Date;
 

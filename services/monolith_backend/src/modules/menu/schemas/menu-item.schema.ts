@@ -43,6 +43,18 @@ export class MenuItem extends Document {
   @Prop()
   allergens: string[];
 
+  @Prop()
+  spiceLevel?: string;
+
+  @Prop({ default: false })
+  isVegetarian?: boolean;
+
+  @Prop({ default: false })
+  isVegan?: boolean;
+
+  @Prop({ default: false })
+  isGlutenFree?: boolean;
+
   @Prop({ type: Object })
   nutritionalInfo: {
     calories: number;

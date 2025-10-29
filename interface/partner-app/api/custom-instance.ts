@@ -16,7 +16,9 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   async (config) => {
     try {
-      const token = await AsyncStorage.getItem('partner_auth_token');
+      // Use TokenManager to get the access token
+      const { tokenManager } = await import('../lib/auth/TokenManager');
+      const token = await tokenManager.getAccessToken();
       
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -42,35 +44,24 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
       
       try {
-        // Try to refresh token
-        const refreshToken = await AsyncStorage.getItem('partner_refresh_token');
+        // Use TokenManager to refresh token
+        const { tokenManager } = await import('../lib/auth/TokenManager');
+        const newToken = await tokenManager.refreshAccessToken();
         
-        if (refreshToken) {
-          // Make refresh request
-          const refreshResponse = await axios.post(`${ENV.API_BASE_URL}/auth/refresh`, {
-            refreshToken,
-          });
-          
-          const { accessToken, refreshToken: newRefreshToken } = refreshResponse.data;
-          
-          // Store new tokens
-          await AsyncStorage.setItem('partner_auth_token', accessToken);
-          if (newRefreshToken) {
-            await AsyncStorage.setItem('partner_refresh_token', newRefreshToken);
-          }
-          
+        if (newToken) {
           // Retry original request with new token
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return axiosInstance(originalRequest);
         }
       } catch (refreshError) {
         // Refresh failed, clear tokens and logout
-        await AsyncStorage.removeItem('partner_auth_token');
-        await AsyncStorage.removeItem('partner_refresh_token');
-        await AsyncStorage.removeItem('user_data');
+        const { tokenManager } = await import('../lib/auth/TokenManager');
+        await tokenManager.clearAll();
         
         // Navigate to login screen
-        NavigationService.navigateToLogin();
+        if (NavigationService) {
+          NavigationService.navigateToLogin();
+        }
         console.warn('Token refresh failed, redirecting to login');
       }
     }

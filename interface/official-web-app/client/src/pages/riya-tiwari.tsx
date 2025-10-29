@@ -3,8 +3,24 @@ import Footer from "@/components/Footer";
 import { ChevronRight, Award, IndianRupee, Target, Linkedin, Twitter } from "lucide-react";
 import { Link } from "wouter";
 import MobileAppBanner from "@/components/MobileAppBanner";
+import { useAnalytics } from "@/hooks/useAnalytics";
+import { trackButtonClick, trackLinkClick, trackSocialMediaClick, trackEngagement } from "@/services/analytics";
 
 export default function RiyaTiwariPage() {
+  // Initialize analytics tracking
+  const { trackClick, trackLink, currentSection } = useAnalytics({
+    pageName: 'Riya Tiwari Profile Page',
+    trackScroll: true,
+    trackTime: true,
+    sections: [
+      { name: 'Hero Section' },
+      { name: 'Profile Section', elementId: 'profile-section' },
+      { name: 'Key Contributions', elementId: 'contributions' },
+      { name: 'Vision & Mission', elementId: 'vision-mission' },
+      { name: 'CTA Section', elementId: 'cta-section' }
+    ]
+  });
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -14,11 +30,21 @@ export default function RiyaTiwariPage() {
         <div className="container mx-auto px-4">
           <div className="flex items-center text-sm">
             <Link href="/">
-              <a className="text-gray-500 hover:text-primary cursor-pointer transition-colors">Home</a>
+              <a 
+                className="text-gray-500 hover:text-primary cursor-pointer transition-colors"
+                onClick={() => trackLink('Home (Breadcrumb)', '/')}
+              >
+                Home
+              </a>
             </Link>
             <ChevronRight className="h-4 w-4 mx-2 text-gray-400" />
             <Link href="/about">
-              <a className="text-gray-500 hover:text-primary cursor-pointer transition-colors">About Us</a>
+              <a 
+                className="text-gray-500 hover:text-primary cursor-pointer transition-colors"
+                onClick={() => trackLink('About Us (Breadcrumb)', '/about')}
+              >
+                About Us
+              </a>
             </Link>
             <ChevronRight className="h-4 w-4 mx-2 text-gray-400" />
             <span className="text-primary font-semibold">Riya Tiwari</span>
@@ -52,7 +78,7 @@ export default function RiyaTiwariPage() {
         </section>
 
         {/* Profile Section */}
-        <section className="py-20 md:py-28 bg-white">
+        <section id="profile-section" className="py-20 md:py-28 bg-white">
           <div className="container mx-auto px-4">
             <div className="flex flex-col md:flex-row items-center gap-12 lg:gap-20">
               <div className="md:w-1/3">
@@ -63,10 +89,18 @@ export default function RiyaTiwariPage() {
                     className="rounded-full shadow-2xl w-full max-w-xs mx-auto border-8 border-white/50"
                   />
                   <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex gap-4">
-                    <a href="#" className="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                    <a 
+                      href="#" 
+                      className="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                      onClick={() => trackSocialMediaClick('linkedin', 'profile_view', { page: 'riya-tiwari' })}
+                    >
                       <Linkedin className="h-6 w-6 text-white" />
                     </a>
-                    <a href="#" className="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                    <a 
+                      href="#" 
+                      className="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                      onClick={() => trackSocialMediaClick('twitter', 'profile_view', { page: 'riya-tiwari' })}
+                    >
                       <Twitter className="h-6 w-6 text-white" />
                     </a>
                   </div>
@@ -86,7 +120,7 @@ export default function RiyaTiwariPage() {
         </section>
 
         {/* Key Contributions Section */}
-        <section className="py-20 md:py-28 bg-gradient-to-b from-gray-50 via-white to-gray-50">
+        <section id="contributions" className="py-20 md:py-28 bg-gradient-to-b from-gray-50 via-white to-gray-50">
           <div className="container mx-auto px-4">
             <div className="text-center mb-16 max-w-3xl mx-auto">
               <h2 className="font-bold text-4xl md:text-5xl mb-6 text-foreground">Key Contributions</h2>
@@ -136,7 +170,7 @@ export default function RiyaTiwariPage() {
         </section>
          
          {/* Vision & Mission Section */}
-         <section className="py-20 md:py-28 bg-gradient-to-b from-gray-50 via-white to-gray-50">
+         <section id="vision-mission" className="py-20 md:py-28 bg-gradient-to-b from-gray-50 via-white to-gray-50">
           <div className="container mx-auto px-4">
             <div className="text-center mb-16 max-w-3xl mx-auto">
               <h2 className="font-bold text-4xl md:text-5xl mb-6 text-foreground">A Vision for Growth</h2>
@@ -168,7 +202,7 @@ export default function RiyaTiwariPage() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-20 md:py-28 bg-white">
+        <section id="cta-section" className="py-20 md:py-28 bg-white">
             <div className="container mx-auto px-4 text-center">
                 <h2 className="font-bold text-3xl md:text-4xl mb-4">Connect with Our Vision</h2>
                 <p className="text-muted-foreground max-w-2xl mx-auto mb-8">
@@ -176,12 +210,24 @@ export default function RiyaTiwariPage() {
                 </p>
                 <div className="flex justify-center gap-4">
                     <Link href="/corporate-plans">
-                        <a className="inline-block bg-primary text-white font-semibold py-3 px-8 rounded-full hover:bg-primary/90 transition-colors">
+                        <a 
+                          className="inline-block bg-primary text-white font-semibold py-3 px-8 rounded-full hover:bg-primary/90 transition-colors"
+                          onClick={() => trackClick('For Corporates CTA', 'CTA Section', { 
+                            destination: '/corporate-plans',
+                            page: 'riya-tiwari'
+                          })}
+                        >
                             For Corporates
                         </a>
                     </Link>
                     <Link href="/contact-us">
-                        <a className="inline-block bg-secondary text-secondary-foreground font-semibold py-3 px-8 rounded-full hover:bg-secondary/90 transition-colors">
+                        <a 
+                          className="inline-block bg-secondary text-secondary-foreground font-semibold py-3 px-8 rounded-full hover:bg-secondary/90 transition-colors"
+                          onClick={() => trackClick('Partner With Us CTA', 'CTA Section', {
+                            destination: '/contact-us',
+                            page: 'riya-tiwari'
+                          })}
+                        >
                             Partner With Us
                         </a>
                     </Link>

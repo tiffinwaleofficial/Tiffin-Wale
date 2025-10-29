@@ -1,6 +1,6 @@
-import { ApiRouteConfig, Handlers } from 'motia'
+import { ApiRouteConfig, ApiRouteHandler } from 'motia'
 import { z } from 'zod'
-import { notificationSchema } from '../streams/notifications.stream'
+import { notificationSchema } from '../../streams/notifications.stream'
 
 export const config: ApiRouteConfig = {
   type: 'api',
@@ -22,7 +22,8 @@ export const config: ApiRouteConfig = {
   }
 }
 
-export const handler: Handlers.ApiHandler = async (req, { streams, emit }) => {
+export const handler: ApiRouteHandler<any, any, any> = async (req: any, context: any) => {
+  const { streams, emit } = context
   const { userId, userType, type, title, message, data, expiresAt } = req.body
 
   // Create notification in Motia stream
@@ -41,10 +42,13 @@ export const handler: Handlers.ApiHandler = async (req, { streams, emit }) => {
   })
 
   // Emit event to trigger NestJS WebSocket broadcast
-  await emit('notification_sent', {
-    notification,
-    targetUser: userId,
-    userType,
+  await emit({
+    topic: 'notification_sent',
+    data: {
+      notification,
+      targetUser: userId,
+      userType,
+    }
   })
 
   return { status: 201, body: notification }

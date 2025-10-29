@@ -206,4 +206,34 @@ export class ReviewService {
 
     return { message: "Review deleted successfully" };
   }
+
+  /**
+   * Add partner response to review
+   */
+  async addPartnerResponse(
+    reviewId: string,
+    userId: string,
+    response: string,
+  ): Promise<Review> {
+    const review = await this.reviewModel.findById(reviewId);
+    if (!review) {
+      throw new NotFoundException("Review not found");
+    }
+
+    // Verify the partner owns the restaurant being reviewed
+    if (review.restaurant) {
+      const partner = await this.partnerModel.findOne({ user: userId });
+      if (!partner || partner._id.toString() !== review.restaurant.toString()) {
+        throw new BadRequestException(
+          "You can only reply to reviews for your own restaurant",
+        );
+      }
+    }
+
+    // Update review with partner response
+    review.partnerResponse = response;
+    review.respondedAt = new Date();
+
+    return await review.save();
+  }
 }

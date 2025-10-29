@@ -69,6 +69,58 @@ export class BusinessHoursDto {
   days: string[];
 }
 
+// Bank Account DTO
+export class BankAccountDto {
+  @ApiPropertyOptional({
+    example: "John Doe",
+    description: "Account holder name",
+  })
+  @IsOptional()
+  @IsString()
+  accountHolderName?: string;
+
+  @ApiPropertyOptional({ example: "1234567890", description: "Account number" })
+  @IsOptional()
+  @IsString()
+  accountNumber?: string;
+
+  @ApiPropertyOptional({ example: "SBIN0001234", description: "IFSC code" })
+  @IsOptional()
+  @IsString()
+  ifscCode?: string;
+
+  @ApiPropertyOptional({
+    example: "State Bank of India",
+    description: "Bank name",
+  })
+  @IsOptional()
+  @IsString()
+  bankName?: string;
+
+  @ApiPropertyOptional({ example: "Main Branch", description: "Branch name" })
+  @IsOptional()
+  @IsString()
+  branch?: string;
+
+  @ApiPropertyOptional({
+    example: "Savings",
+    description: "Account type (Savings/Current)",
+  })
+  @IsOptional()
+  @IsString()
+  accountType?: string;
+
+  @ApiPropertyOptional({ example: "name@upi", description: "UPI ID" })
+  @IsOptional()
+  @IsString()
+  upiId?: string;
+
+  @ApiPropertyOptional({ example: "ABCDE1234F", description: "PAN number" })
+  @IsOptional()
+  @IsString()
+  panNumber?: string;
+}
+
 // Documents DTO
 export class DocumentsDto {
   @ApiPropertyOptional({
@@ -348,6 +400,13 @@ export class CreatePartnerDto {
   @IsOptional()
   @IsBoolean()
   acceptsUPI?: boolean;
+
+  // Bank Account
+  @ApiPropertyOptional({ description: "Bank account details" })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => BankAccountDto)
+  bankAccount?: BankAccountDto;
 
   // Documents
   @ApiPropertyOptional({ description: "Business documents" })

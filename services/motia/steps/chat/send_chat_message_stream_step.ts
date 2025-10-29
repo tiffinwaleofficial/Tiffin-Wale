@@ -1,6 +1,6 @@
 import { ApiRouteConfig, Handlers } from 'motia'
 import { z } from 'zod'
-import { chatMessageSchema } from '../streams/chat-messages.stream'
+import { chatMessageSchema } from '../../streams/chat-messages.stream'
 
 export const config: ApiRouteConfig = {
   type: 'api',
@@ -25,7 +25,8 @@ export const config: ApiRouteConfig = {
   }
 }
 
-export const handler: Handlers.ApiHandler = async (req, { streams, emit }) => {
+export const handler: ApiRouteHandler<any, any, any> = async (req: any, context: any) => {
+  const { streams, emit } = context
   const { 
     conversationId, 
     userId, 
@@ -58,10 +59,13 @@ export const handler: Handlers.ApiHandler = async (req, { streams, emit }) => {
   })
 
   // Emit event to trigger NestJS WebSocket broadcast
-  await emit('chat_message_sent', {
-    chatMessage,
-    conversationId,
-    targetUsers: [userId], // Will be expanded by NestJS based on conversation participants
+  await emit({
+    topic: 'chat_message_sent',
+    data: {
+      chatMessage,
+      conversationId,
+      targetUsers: [userId], // Will be expanded by NestJS based on conversation participants
+    }
   })
 
   return { status: 201, body: chatMessage }

@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 import { PartnerController } from "./partner.controller";
 import { PartnerService } from "./partner.service";
@@ -6,6 +6,9 @@ import { Partner, PartnerSchema } from "./schemas/partner.schema";
 import { MenuModule } from "../menu/menu.module";
 import { FeedbackModule } from "../feedback/feedback.module";
 import { OrderModule } from "../order/order.module";
+import { UserModule } from "../user/user.module";
+import { SubscriptionModule } from "../subscription/subscription.module";
+import { CustomerModule } from "../customer/customer.module";
 import { MenuItem, MenuItemSchema } from "../menu/schemas/menu-item.schema";
 import { Feedback, FeedbackSchema } from "../feedback/schemas/feedback.schema";
 import { Order, OrderSchema } from "../order/schemas/order.schema";
@@ -24,9 +27,12 @@ import {
       { name: Order.name, schema: OrderSchema },
       { name: SubscriptionPlan.name, schema: SubscriptionPlanSchema },
     ]),
-    MenuModule,
+    forwardRef(() => MenuModule),
     FeedbackModule,
     OrderModule,
+    UserModule,
+    SubscriptionModule,
+    CustomerModule,
     EmailModule,
   ],
   controllers: [PartnerController],

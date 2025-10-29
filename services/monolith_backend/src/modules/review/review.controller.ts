@@ -130,4 +130,20 @@ export class ReviewController {
   deleteReview(@Param("id") id: string, @GetCurrentUser("_id") userId: string) {
     return this.reviewService.deleteReview(id, userId);
   }
+
+  @Post(":id/reply")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Partner reply to review" })
+  @ApiParam({ name: "id", description: "Review ID" })
+  @ApiResponse({ status: 200, description: "Reply added successfully" })
+  @ApiResponse({ status: 404, description: "Review not found" })
+  async replyToReview(
+    @Param("id") id: string,
+    @Body("response") response: string,
+    @GetCurrentUser() user: any,
+  ) {
+    const userId = user?._id || user?.id || (user as any).sub;
+    return this.reviewService.addPartnerResponse(id, userId, response);
+  }
 }

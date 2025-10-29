@@ -22,10 +22,12 @@ export const notificationApi = {
   /**
    * Get my notifications
    */
-  getMyNotifications: async (): Promise<Notification[]> => {
+  getMyNotifications: async (page: number = 1, limit: number = 50): Promise<Notification[]> => {
     try {
       const response = await retryRequest(() =>
-        apiClient.get<Notification[]>('/notifications/me')
+        apiClient.get<Notification[]>('/notifications/history', {
+          params: { page, limit },
+        })
       );
       return response.data;
     } catch (error) {
@@ -51,9 +53,19 @@ export const notificationApi = {
    */
   markAllAsRead: async (): Promise<void> => {
     try {
-      await retryRequest(() =>
-        apiClient.patch('/notifications/me/read-all')
+      // Backend doesn't have bulk mark-as-read, so we'll mark pending ones individually
+      const pending = await retryRequest(() =>
+        apiClient.get<Notification[]>('/notifications/pending')
       );
+      if (Array.isArray(pending.data) && pending.data.length > 0) {
+        await Promise.all(
+          pending.data.map((notif: Notification) =>
+            retryRequest(() =>
+              apiClient.patch(`/notifications/${notif.id}/read`)
+            )
+          )
+        );
+      }
     } catch (error) {
       return handleApiError(error, 'markAllAsRead');
     }

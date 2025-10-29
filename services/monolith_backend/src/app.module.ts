@@ -10,6 +10,7 @@ import { UserModule } from "./modules/user/user.module";
 import { OrderModule } from "./modules/order/order.module";
 import { MenuModule } from "./modules/menu/menu.module";
 import { AdminModule } from "./modules/admin/admin.module";
+import { SuperAdminModule } from "./modules/super-admin/super-admin.module";
 import { PartnerModule } from "./modules/partner/partner.module";
 import { PaymentModule } from "./modules/payment/payment.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
@@ -55,6 +56,7 @@ import { AIModule } from "./modules/ai/ai.module";
     OrderModule,
     MenuModule,
     AdminModule,
+    SuperAdminModule,
     PartnerModule,
     PaymentModule,
     NotificationsModule,

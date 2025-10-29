@@ -6,8 +6,46 @@
 import { apiClient, handleApiError, retryRequest } from '../client';
 
 /**
+ * Address Interface
+ */
+export interface Address {
+  street: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+}
+
+/**
+ * Bank Account Interface
+ */
+export interface BankAccount {
+  accountHolderName?: string;
+  accountNumber?: string;
+  ifscCode?: string;
+  bankName?: string;
+  branchName?: string;
+  accountType?: string;
+  upiId?: string;
+  panNumber?: string;
+  gstNumber?: string;
+}
+
+/**
  * Partner Profile Interface
  */
+/**
+ * Notification Preferences Interface
+ */
+export interface NotificationPreferences {
+  pushEnabled?: boolean;
+  orders?: boolean;
+  payments?: boolean;
+  reminders?: boolean;
+  updates?: boolean;
+  marketing?: boolean;
+}
+
 export interface PartnerProfile {
   _id?: string;
   id?: string;
@@ -16,7 +54,7 @@ export interface PartnerProfile {
   description?: string;
   email?: string;
   phoneNumber?: string;
-  address?: string;
+  address?: Address;
   city?: string;
   state?: string;
   pincode?: string;
@@ -32,6 +70,9 @@ export interface PartnerProfile {
   status?: string;
   rating?: number;
   totalOrders?: number;
+  deliveryRadius?: number;
+  bankAccount?: BankAccount;
+  notificationPreferences?: NotificationPreferences;
   createdAt?: string;
   updatedAt?: string;
   [key: string]: any;
@@ -76,7 +117,7 @@ export const partnerApi = {
   getCurrentProfile: async (): Promise<PartnerProfile> => {
     try {
       const response = await retryRequest(() =>
-        apiClient.get<PartnerProfile>('/partners/me')
+        apiClient.get<PartnerProfile>('/partners/profile')
       );
       return response.data;
     } catch (error) {
@@ -90,7 +131,7 @@ export const partnerApi = {
   updateProfile: async (data: Partial<PartnerProfile>): Promise<PartnerProfile> => {
     try {
       const response = await retryRequest(() =>
-        apiClient.patch<PartnerProfile>('/partners/me', data)
+        apiClient.patch<PartnerProfile>('/partners/profile', data)
       );
       return response.data;
     } catch (error) {
@@ -118,7 +159,7 @@ export const partnerApi = {
   updateAcceptingStatus: async (isAcceptingOrders: boolean): Promise<PartnerProfile> => {
     try {
       const response = await retryRequest(() =>
-        apiClient.patch<PartnerProfile>('/partners/status/me', {
+        apiClient.patch<PartnerProfile>('/partners/my-status', {
           isAcceptingOrders,
         })
       );
@@ -134,7 +175,7 @@ export const partnerApi = {
   getStats: async (): Promise<PartnerStats> => {
     try {
       const response = await retryRequest(() =>
-        apiClient.get<PartnerStats>('/partners/stats/me')
+        apiClient.get<PartnerStats>('/partners/my-stats')
       );
       return response.data;
     } catch (error) {
@@ -148,7 +189,7 @@ export const partnerApi = {
   getMenu: async (): Promise<MenuItem[]> => {
     try {
       const response = await retryRequest(() =>
-        apiClient.get<MenuItem[]>('/partners/menu/me')
+        apiClient.get<MenuItem[]>('/partners/my-menu')
       );
       return response.data;
     } catch (error) {
@@ -170,13 +211,29 @@ export const partnerApi = {
   }> => {
     try {
       const response = await retryRequest(() =>
-        apiClient.get('/partners/reviews/me', {
+        apiClient.get('/partners/my-reviews', {
           params: { page, limit },
         })
       );
       return response.data;
     } catch (error) {
       return handleApiError(error, 'getPartnerReviews');
+    }
+  },
+
+  /**
+   * Update notification preferences
+   */
+  updateNotificationPreferences: async (
+    preferences: Partial<NotificationPreferences>
+  ): Promise<{ success: boolean; preferences: NotificationPreferences }> => {
+    try {
+      const response = await retryRequest(() =>
+        apiClient.patch('/partners/notification-preferences', preferences)
+      );
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, 'updateNotificationPreferences');
     }
   },
 };

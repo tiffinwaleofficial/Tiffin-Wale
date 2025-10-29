@@ -13,6 +13,7 @@ This memory bank contains comprehensive documentation and knowledge about the Ti
 - **[Development Scopes](./development-scopes.md)** - Scope-based development approach and onboarding
 - **[Progress Tracking](./progress-tracking.md)** - Progress monitoring and TODO management
 - **[Module Documentation](./module-documentation.md)** - Detailed module-by-module documentation
+- **[Super Admin Integration Analysis](./super-admin-integration-analysis.md)** - Complete analysis of super admin API integration needs
 
 ### **Quick Reference**
 - **Project Status**: 85% Complete

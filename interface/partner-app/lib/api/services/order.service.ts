@@ -93,6 +93,43 @@ export interface TodayOrdersResponse {
 }
 
 /**
+ * Production Summary Interface
+ */
+export interface ProductionSummary {
+  date: string;
+  totalOrders: number;
+  completionPercentage: number;
+  mealBreakdown: {
+    breakfast: number;
+    lunch: number;
+    dinner: number;
+  };
+  ingredientTotals: {
+    rotis: number;
+    sabzis: Record<string, number>;
+    dal: {
+      total: number;
+      types: Record<string, number>;
+    };
+    rice: {
+      total: number;
+      types: Record<string, number>;
+    };
+    extras: Record<string, number>;
+    salad: number;
+    curd: number;
+  };
+  planBreakdown: Record<string, { count: number; orders: string[] }>;
+  statusBreakdown: {
+    pending: number;
+    preparing: number;
+    ready: number;
+    outForDelivery: number;
+    delivered: number;
+  };
+}
+
+/**
  * Order API Methods
  */
 export const orderApi = {
@@ -106,7 +143,7 @@ export const orderApi = {
   ): Promise<OrdersResponse> => {
     try {
       const response = await retryRequest(() =>
-        apiClient.get<OrdersResponse>('/partners/orders/me', {
+        apiClient.get<OrdersResponse>('/partners/my-orders', {
           params: { page, limit, status },
         })
       );
@@ -122,7 +159,7 @@ export const orderApi = {
   getTodayOrders: async (): Promise<TodayOrdersResponse> => {
     try {
       const response = await retryRequest(() =>
-        apiClient.get<TodayOrdersResponse>('/partners/orders/me/today')
+        apiClient.get<TodayOrdersResponse>('/partners/my-orders/today')
       );
       return response.data;
     } catch (error) {
@@ -206,6 +243,39 @@ export const orderApi = {
       return response.data;
     } catch (error) {
       return handleApiError(error, 'markOrderReady');
+    }
+  },
+
+  /**
+   * Get production summary for a date
+   */
+  getProductionSummary: async (date?: string): Promise<ProductionSummary> => {
+    try {
+      const params: any = {};
+      if (date) {
+        params.date = date;
+      }
+
+      const response = await retryRequest(() =>
+        apiClient.get<ProductionSummary>('/partners/production-summary', { params })
+      );
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, 'getProductionSummary');
+    }
+  },
+
+  /**
+   * Get order details
+   */
+  getOrderDetails: async (orderId: string): Promise<Order> => {
+    try {
+      const response = await retryRequest(() =>
+        apiClient.get<Order>(`/orders/${orderId}`)
+      );
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, 'getOrderDetails');
     }
   },
 };

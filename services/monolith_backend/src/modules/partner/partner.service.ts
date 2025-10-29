@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
-import { Partner } from "./schemas/partner.schema";
+import { Partner, PartnerStatus } from "./schemas/partner.schema";
 import { MenuItem } from "../menu/schemas/menu-item.schema";
 import { Feedback } from "../feedback/schemas/feedback.schema";
 import { Order } from "../order/schemas/order.schema";
@@ -58,7 +58,25 @@ export class PartnerService {
     return this.partnerModel.find(query).exec();
   }
 
-  async findOne(id: string): Promise<Partner> {
+  async findAllForSuperAdmin(
+    page: number = 1,
+    limit: number = 10,
+    status?: PartnerStatus,
+  ) {
+    const query: any = {};
+    if (status) {
+      query.status = status;
+    }
+    const partners = await this.partnerModel
+      .find(query)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .exec();
+    const total = await this.partnerModel.countDocuments(query).exec();
+    return { partners, total, page, limit };
+  }
+
+  async findById(id: string): Promise<Partner> {
     const partner = await this.partnerModel.findById(id).exec();
     if (!partner) {
       throw new NotFoundException(`Partner with ID ${id} not found`);
@@ -67,28 +85,43 @@ export class PartnerService {
   }
 
   async findByUserId(userId: string): Promise<Partner> {
-    const partner = await this.partnerModel.findOne({ userId }).exec();
+    const partner = await this.partnerModel.findOne({ user: userId }).exec();
     if (!partner) {
       throw new NotFoundException(`Partner with user ID ${userId} not found`);
     }
     return partner;
   }
 
-  async getMenu(partnerId: string): Promise<MenuItem[]> {
-    // Verify partner exists
-    await this.findOne(partnerId);
+  async findByContactPhone(phoneNumber: string): Promise<Partner | null> {
+    return this.partnerModel.findOne({ contactPhone: phoneNumber }).exec();
+  }
 
+  async countAllPartners(): Promise<number> {
+    return this.partnerModel.countDocuments().exec();
+  }
+
+  async getMenu(partnerId: string): Promise<MenuItem[]> {
+    // Verify partner exists and get user ID
+    const partner = await this.findById(partnerId);
+    const userId = partner.user?.toString() || partner.user;
+
+    if (!userId) {
+      throw new NotFoundException(
+        `Partner user ID not found for partner ${partnerId}`,
+      );
+    }
+
+    // Menu items use businessPartner (user ID), not partnerId
     return this.menuItemModel
       .find({
-        partnerId,
-        isActive: true,
+        businessPartner: userId,
       })
       .sort({ category: 1, name: 1 })
       .exec();
   }
 
   async getSubscriptionPlans(partnerId: string): Promise<SubscriptionPlan[]> {
-    await this.findOne(partnerId);
+    await this.findById(partnerId);
     return this.subscriptionPlanModel
       .find({
         partner: partnerId,
@@ -108,7 +141,7 @@ export class PartnerService {
     limit: number;
   }> {
     // Verify partner exists
-    await this.findOne(partnerId);
+    await this.findById(partnerId);
 
     const skip = (page - 1) * limit;
 
@@ -138,7 +171,7 @@ export class PartnerService {
 
   async getStats(partnerId: string): Promise<any> {
     // Verify partner exists
-    await this.findOne(partnerId);
+    await this.findById(partnerId);
 
     const [totalOrders, completedOrders, totalRevenue, averageRating] =
       await Promise.all([
@@ -179,63 +212,26 @@ export class PartnerService {
     return updatedPartner;
   }
 
-  async remove(id: string): Promise<{ deleted: boolean }> {
-    const result = await this.partnerModel.findByIdAndDelete(id).exec();
-
-    if (!result) {
+  async delete(id: string): Promise<void> {
+    const result = await this.partnerModel.deleteOne({ _id: id }).exec();
+    if (result.deletedCount === 0) {
       throw new NotFoundException(`Partner with ID ${id} not found`);
     }
-
-    return { deleted: true };
   }
 
-  // Email helper methods for partner notifications
-  private async sendPartnerWelcomeEmail(partner: any): Promise<void> {
-    try {
-      await this.emailService.sendPartnerWelcomeEmail({
-        name: partner.name || partner.ownerName || "Partner",
-        email: partner.email || partner.contactEmail,
-        businessName: partner.businessName || partner.name,
-        partnerId: partner._id.toString(),
-      });
-    } catch (error) {
-      console.error("Partner welcome email service error:", error);
-    }
-  }
-
-  async sendNewOrderNotification(orderData: {
-    partnerEmail: string;
-    partnerName: string;
-    orderNumber: string;
-    customerName: string;
-    items: Array<{ name: string; quantity: number }>;
-    deliveryTime: string;
-    totalAmount: number;
-  }): Promise<void> {
-    try {
-      await this.emailService.sendPartnerOrderNotification(orderData);
-    } catch (error) {
-      console.error("Failed to send new order notification email:", error);
-    }
-  }
-
-  async sendEarningsSummary(partnerData: {
-    partnerEmail: string;
-    partnerName: string;
-    period: string;
-    totalEarnings: number;
-    totalOrders: number;
-    averageOrderValue: number;
-  }): Promise<void> {
-    try {
-      // This would integrate with your earnings calculation logic
-      console.log(
-        "Earnings summary email would be sent to:",
-        partnerData.partnerEmail,
-      );
-      // await this.emailService.sendEarningsSummary(partnerData);
-    } catch (error) {
-      console.error("Failed to send earnings summary email:", error);
+  private async sendPartnerWelcomeEmail(partner: Partner): Promise<void> {
+    // Use the integrated EmailService's sendPartnerWelcomeEmail method
+    if (partner.contactEmail) {
+      try {
+        await this.emailService.sendPartnerWelcomeEmail({
+          email: partner.contactEmail,
+          name: partner.businessName,
+          businessName: partner.businessName,
+          partnerId: partner._id.toString(),
+        });
+      } catch (error) {
+        console.error("Failed to send partner welcome email:", error);
+      }
     }
   }
 }

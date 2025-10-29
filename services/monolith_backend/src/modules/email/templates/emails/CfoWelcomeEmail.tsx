@@ -69,10 +69,10 @@ export const CfoWelcomeEmail = ({
         <tr>
           <td align="center">
             <Button
-              href={`https://www.tiffin-wale.com/riya-tiwari`}
+              href="https://www.tiffin-wale.com/riya-tiwari"
               variant="primary"
-              size="lg"
-              icon={<UserIcon size={20} color="#ffffff" />}
+              size="md"
+              icon={<UserIcon size={20} color="white" />}
             >
               About Me
             </Button>

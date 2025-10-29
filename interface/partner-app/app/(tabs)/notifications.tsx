@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,92 +6,66 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
+  ActivityIndicator,
 } from 'react-native';
 import { Bell, BellRing, Settings, Check, Clock, TriangleAlert as AlertTriangle, Info, CreditCard, Calendar, ChevronRight } from 'lucide-react-native';
-
-// Mock data for notifications
-const notificationsData = [
-  {
-    id: '1',
-    title: 'New Order Received',
-    message: 'You have received 3 new breakfast orders for today.',
-    time: '10 mins ago',
-    read: false,
-    type: 'order',
-  },
-  {
-    id: '2',
-    title: 'Payment Received',
-    message: 'Weekly payment of ₹23,150 has been processed to your account.',
-    time: '2 hours ago',
-    read: true,
-    type: 'payment',
-  },
-  {
-    id: '3',
-    title: 'Order Status Update',
-    message: 'Customer #1021 has marked their order as received.',
-    time: '5 hours ago',
-    read: true,
-    type: 'update',
-  },
-  {
-    id: '4',
-    title: 'Upcoming Subscription',
-    message: '8 new lunch orders scheduled for tomorrow.',
-    time: 'Yesterday',
-    read: true,
-    type: 'schedule',
-  },
-  {
-    id: '5',
-    title: 'Menu Update Required',
-    message: 'Please update your menu for the upcoming week.',
-    time: '2 days ago',
-    read: true,
-    type: 'alert',
-  },
-];
-
-// Mock data for notification preferences
-const notificationPreferences = [
-  {
-    id: 'orders',
-    title: 'New Orders',
-    description: 'Get notified when you receive new orders',
-    enabled: true,
-  },
-  {
-    id: 'payments',
-    title: 'Payments',
-    description: 'Get notified about payment processing and transfers',
-    enabled: true,
-  },
-  {
-    id: 'reminders',
-    title: 'Reminders',
-    description: 'Reminders for pending actions and tasks',
-    enabled: true,
-  },
-  {
-    id: 'updates',
-    title: 'App Updates',
-    description: 'Get notified about new features and updates',
-    enabled: false,
-  },
-  {
-    id: 'marketing',
-    title: 'Marketing & Promotions',
-    description: 'Receive promotional offers and tips',
-    enabled: false,
-  },
-];
+import { api } from '../../lib/api';
 
 export default function NotificationsScreen() {
   const [showSettings, setShowSettings] = useState(false);
-  const [preferences, setPreferences] = useState(notificationPreferences);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [preferences, setPreferences] = useState([
+    {
+      id: 'orders',
+      title: 'New Orders',
+      description: 'Get notified when you receive new orders',
+      enabled: true,
+    },
+    {
+      id: 'payments',
+      title: 'Payments',
+      description: 'Get notified about payment processing and transfers',
+      enabled: true,
+    },
+    {
+      id: 'reminders',
+      title: 'Reminders',
+      description: 'Reminders for pending actions and tasks',
+      enabled: true,
+    },
+    {
+      id: 'updates',
+      title: 'App Updates',
+      description: 'Get notified about new features and updates',
+      enabled: false,
+    },
+    {
+      id: 'marketing',
+      title: 'Marketing & Promotions',
+      description: 'Receive promotional offers and tips',
+      enabled: false,
+    },
+  ]);
 
-  const getIconForNotificationType = (type, read) => {
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
+  const loadNotifications = async () => {
+    try {
+      setLoading(true);
+      const data = await api.notifications.getMyNotifications();
+      setNotifications(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getIconForNotificationType = (type: string, read: boolean) => {
     const color = read ? '#999' : '#FF9F43';
     
     switch (type) {
@@ -110,12 +84,48 @@ export default function NotificationsScreen() {
     }
   };
 
-  const toggleNotificationPreference = (id) => {
-    setPreferences(
-      preferences.map((pref) =>
-        pref.id === id ? { ...pref, enabled: !pref.enabled } : pref
-      )
+  const formatTime = (dateString?: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} mins ago`;
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString();
+  };
+
+  const toggleNotificationPreference = async (id: string) => {
+    // Optimistically update UI
+    const updatedPrefs = preferences.map((pref) =>
+      pref.id === id ? { ...pref, enabled: !pref.enabled } : pref
     );
+    setPreferences(updatedPrefs);
+
+    // Make async API call to save preference
+    try {
+      const prefToUpdate = updatedPrefs.find((p) => p.id === id);
+      if (prefToUpdate) {
+        await api.partner.updateNotificationPreferences({
+          [id]: prefToUpdate.enabled,
+        });
+        console.log(`✅ Notification preference "${id}" updated to ${prefToUpdate.enabled}`);
+      }
+    } catch (error) {
+      console.error(`❌ Failed to update notification preference "${id}":`, error);
+      // Revert on error
+      setPreferences(
+        preferences.map((pref) =>
+          pref.id === id ? { ...pref, enabled: !pref.enabled } : pref
+        )
+      );
+    }
   };
 
   return (
@@ -172,23 +182,31 @@ export default function NotificationsScreen() {
             </TouchableOpacity>
           </View>
 
-          {notificationsData.map((notification) => (
+          {loading ? (
+            <ActivityIndicator style={{ marginVertical: 40 }} />
+          ) : notifications.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Bell size={48} color="#CCC" />
+              <Text style={styles.emptyText}>No notifications yet</Text>
+            </View>
+          ) : (
+          notifications.map((notification) => (
             <TouchableOpacity
               key={notification.id}
               style={[
                 styles.notificationItem,
-                notification.read && styles.readNotification,
+                notification.isRead && styles.readNotification,
               ]}
             >
               <View
                 style={[
                   styles.notificationIcon,
-                  !notification.read && styles.unreadIcon,
+                  !notification.isRead && styles.unreadIcon,
                 ]}
               >
                 {getIconForNotificationType(
-                  notification.type,
-                  notification.read
+                  notification.type || 'general',
+                  notification.isRead || false
                 )}
               </View>
 
@@ -197,19 +215,19 @@ export default function NotificationsScreen() {
                   <Text
                     style={[
                       styles.notificationTitle,
-                      notification.read && styles.readText,
+                      notification.isRead && styles.readText,
                     ]}
                   >
                     {notification.title}
                   </Text>
                   <Text style={styles.notificationTime}>
-                    {notification.time}
+                    {formatTime(notification.createdAt)}
                   </Text>
                 </View>
                 <Text
                   style={[
                     styles.notificationMessage,
-                    notification.read && styles.readText,
+                    notification.isRead && styles.readText,
                   ]}
                 >
                   {notification.message}
@@ -218,12 +236,16 @@ export default function NotificationsScreen() {
 
               <ChevronRight size={18} color="#CCC" />
             </TouchableOpacity>
-          ))}
+          ))
+          )}
 
-          <TouchableOpacity style={styles.viewAllContainer}>
-            <Text style={styles.viewAllText}>View All Notifications</Text>
-          </TouchableOpacity>
+          {!loading && notifications.length > 0 && (
+            <TouchableOpacity style={styles.viewAllContainer}>
+              <Text style={styles.viewAllText}>View All Notifications</Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
+        
       )}
     </View>
   );
@@ -335,6 +357,17 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Medium',
     fontSize: 14,
     color: '#FF9F43',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 16,
+    color: '#999',
+    marginTop: 16,
   },
   settingsContainer: {
     padding: 16,
