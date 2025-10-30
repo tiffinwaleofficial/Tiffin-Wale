@@ -3,7 +3,7 @@
  * Helps developers easily switch between local and production backends
  */
 
-import { config } from '@/config/environment';
+import { config } from '@/config';
 
 export const environmentSwitcher = {
   /**
@@ -12,7 +12,7 @@ export const environmentSwitcher = {
   getCurrentEnvironment() {
     return {
       environment: config.environment,
-      apiBaseUrl: config.apiBaseUrl,
+      apiBaseUrl: config.api.baseUrl,
       isDevelopment: config.environment === 'development',
       isProduction: config.environment === 'production',
     };

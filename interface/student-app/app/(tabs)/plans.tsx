@@ -1,16 +1,16 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Image, ActivityIndicator } from 'react-native';
-import { Check, Crown, Zap, Shield, RefreshCw, Eye, Star } from 'lucide-react-native';
+import { Check, Crown, Zap, Shield, RefreshCw, Eye, Star, MapPin, Search } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { useRestaurantStore } from '@/store/restaurantStore';
 
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { useAuth } from '@/auth/AuthProvider';
 import { SubscriptionPlan } from '@/types/api';
 import PlanDetailModal from '@/components/PlanDetailModal';
 import { useTranslation } from '@/hooks/useTranslation';
-import { Restaurant } from '@/types/restaurant';
+import { PartnerCard } from '@/components/PartnerCard';
+import { api, Partner } from '@/lib/api';
 
 export default function PlansScreen() {
   const router = useRouter();
@@ -27,38 +27,48 @@ export default function PlansScreen() {
     createSubscription 
   } = useSubscriptionStore();
 
-  const {
-    restaurants,
-    isLoading: restaurantsLoading,
-    fetchRestaurants,
-  } = useRestaurantStore();
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [partnersLoading, setPartnersLoading] = useState(false);
   
   const [refreshing, setRefreshing] = useState(false);
   const [subscribingToPlan, setSubscribingToPlan] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  // Enterprise caching: Load cached data immediately on mount
+  // Fetch partners on mount
   useEffect(() => {
     const initializePlans = async () => {
-      if (__DEV__) console.log('🔔 Plans: Showing cached data instantly');
+      if (__DEV__) console.log('🔔 Plans: Loading data');
       
       try {
-        // Load cached data first (no force refresh) - INSTANT UI
         await Promise.all([
           fetchAvailablePlans(false),
           fetchCurrentSubscription(false),
-          fetchRestaurants(),
+          fetchPartners(),
         ]);
         
-        if (__DEV__) console.log('✅ Plans: Cached data loaded instantly');
+        if (__DEV__) console.log('✅ Plans: Data loaded');
       } catch (error) {
-        if (__DEV__) console.error('❌ Plans: Error loading cached data:', error);
+        if (__DEV__) console.error('❌ Plans: Error loading data:', error);
       }
     };
     
     initializePlans();
   }, []);
+
+  const fetchPartners = async () => {
+    try {
+      setPartnersLoading(true);
+      const data = await api.partners.getAllPartners();
+      // Do not over-filter here; some backends may not set isActive
+      // Show all returned partners and let detail page handle status
+      setPartners(data.partners || []);
+    } catch (error) {
+      console.error('Failed to fetch partners:', error);
+    } finally {
+      setPartnersLoading(false);
+    }
+  };
 
   // Smart focus refresh: Background refresh when page comes into focus
   useFocusEffect(
@@ -68,7 +78,7 @@ export default function PlansScreen() {
       setTimeout(() => {
         fetchAvailablePlans(false); // Background refresh
         fetchCurrentSubscription(false); // Background refresh
-        fetchRestaurants();
+        fetchPartners();
       }, 100);
     }, [fetchAvailablePlans, fetchCurrentSubscription])
   );
@@ -81,7 +91,7 @@ export default function PlansScreen() {
       await Promise.all([
         fetchAvailablePlans(true), // Force refresh
         fetchCurrentSubscription(true), // Force refresh
-        fetchRestaurants(),
+        fetchPartners(),
       ]);
     } catch (error) {
       console.error('Error refreshing plans:', error);
@@ -114,27 +124,8 @@ export default function PlansScreen() {
     return `₹${price.toFixed(0)}`;
   };
 
-  const renderRestaurantCard = (restaurant: Restaurant, index: number) => {
-    return (
-      <Animated.View
-        key={restaurant.id}
-        entering={FadeInDown.delay(index * 150).duration(400)}
-      >
-        <TouchableOpacity style={styles.restaurantCard} onPress={() => router.push(`/restaurant/${restaurant.id}`)}>
-          <Image source={{ uri: restaurant.image }} style={styles.restaurantImage} />
-          <View style={styles.restaurantInfo}>
-            <Text style={styles.restaurantName} numberOfLines={1}>{restaurant.name}</Text>
-            <Text style={styles.restaurantCuisine} numberOfLines={1}>
-              {Array.isArray(restaurant.cuisineType) ? restaurant.cuisineType.join(', ') : ''}
-            </Text>
-            <View style={styles.restaurantRating}>
-              <Star size={14} color="#FFD700" fill="#FFD700" />
-              <Text style={styles.restaurantRatingText}>{restaurant.rating?.toFixed(1)} ({restaurant.reviewCount} reviews)</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Animated.View>
-    );
+  const handleViewAllPartners = () => {
+    router.push('/pages/partners');
   };
 
   const getPlanIcon = (planName: string) => {
@@ -330,10 +321,16 @@ export default function PlansScreen() {
         )}
         
         <Animated.View entering={FadeInDown.delay(200).duration(400)}>
-          <Text style={styles.sectionTitle}>{t('exploreTiffinCenters')}</Text>
-          {restaurantsLoading && restaurants.length === 0 ? (
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{t('exploreTiffinCenters')}</Text>
+            <TouchableOpacity onPress={handleViewAllPartners} style={styles.viewAllButton}>
+              <Text style={styles.viewAllText}>View All</Text>
+              <Search size={16} color="#FF9B42" />
+            </TouchableOpacity>
+          </View>
+          {partnersLoading && partners.length === 0 ? (
             <ActivityIndicator style={{ marginTop: 20 }} size="large" color="#FF9B42" />
-          ) : restaurants.length === 0 ? (
+          ) : partners.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Crown size={64} color="#CCCCCC" />
               <Text style={styles.emptyTitle}>{t('noTiffinCentersFound')}</Text>
@@ -343,7 +340,15 @@ export default function PlansScreen() {
             </View>
           ) : (
             <View style={styles.plansContainer}>
-              {restaurants.map((restaurant, index) => renderRestaurantCard(restaurant, index))}
+              {partners.slice(0, 3).map((partner, index) => (
+                <PartnerCard key={partner._id} partner={partner} />
+              ))}
+              {partners.length > 3 && (
+                <TouchableOpacity style={styles.viewMoreButton} onPress={handleViewAllPartners}>
+                  <Text style={styles.viewMoreText}>View All {partners.length} Tiffin Centers</Text>
+                  <Search size={18} color="#FFF" />
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </Animated.View>
@@ -436,12 +441,42 @@ const styles = StyleSheet.create({
   plansContainer: {
     paddingBottom: 20,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    marginTop: 20,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#333333',
-    marginBottom: 16,
-    marginTop: 20,
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FF9B42',
+  },
+  viewMoreButton: {
+    backgroundColor: '#FF9B42',
+    borderRadius: 12,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 8,
+  },
+  viewMoreText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFF',
   },
   restaurantCard: {
     backgroundColor: '#FFFFFF',

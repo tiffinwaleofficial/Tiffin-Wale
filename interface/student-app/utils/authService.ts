@@ -353,7 +353,11 @@ export const authService = {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ phoneNumber, firebaseUid }),
+        body: JSON.stringify({ 
+          phoneNumber, 
+          firebaseUid,
+          role: 'customer' // Student app is for customers only
+        }),
       });
 
       if (!response.ok) {
@@ -390,7 +394,10 @@ export const authService = {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ phoneNumber }),
+        body: JSON.stringify({ 
+          phoneNumber,
+          role: 'customer' // Student app is for customers only
+        }),
       });
 
       if (!response.ok) {

@@ -37,7 +37,6 @@
     "build:android:production": "eas build -p android --profile production",
     "build:ios:preview": "eas build -p ios --profile preview",
     "build:ios:production": "eas build -p ios --profile production",
-    "build:android": "npm run build:android:preview",
     "build:ios": "npm run build:ios:preview",
     "build:all:preview": "eas build --platform all --profile preview",
     "build:all:production": "eas build --platform all --profile production",
@@ -61,7 +60,9 @@
     "build:orbit:release": "expo run:android --variant release --no-install --no-bundler",
     "build:apk:fast": "cd android && .\\gradlew.bat assembleDebug --parallel --build-cache",
     "build:clean": "cd android && .\\gradlew.bat clean",
-    "build:daemon:stop": "cd android && .\\gradlew.bat --stop"
+    "build:daemon:stop": "cd android && .\\gradlew.bat --stop",
+    "build:android": "node -e \"const fs=require('fs'); if(!fs.existsSync('./android')){console.log('🔧 Running prebuild...'); require('child_process').execSync('npx expo prebuild --platform android --clean',{stdio:'inherit'})} console.log('🔨 Building APK...'); require('child_process').execSync('cd android && gradlew.bat assembleDebug',{stdio:'inherit',shell:true})\"",
+    "build:android:clean": "npx expo prebuild --platform android --clean && cd android && gradlew.bat assembleDebug"
   },
   "dependencies": {
     "@expo-google-fonts/poppins": "^0.2.3",

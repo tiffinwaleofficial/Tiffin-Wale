@@ -3,7 +3,7 @@
  * Supports multiple email verification providers with easy integration
  */
 
-import { config } from '@/config/environment';
+import { config } from '@/config';
 
 // Email verification result interface
 export interface EmailVerificationResult {

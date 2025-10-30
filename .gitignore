@@ -25,6 +25,12 @@
 # production
 **/dist/
 **/build/
+# Exception: Keep Android Gradle cache for faster builds
+!**/android/.gradle/
+!**/android/app/build/
+# But still ignore APK/AAB outputs within the build directory
+**/android/app/build/outputs/**/*.apk
+**/android/app/build/outputs/**/*.aab
 
 # IDE
 **/.idea/

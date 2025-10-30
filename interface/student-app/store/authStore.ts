@@ -5,7 +5,7 @@ import api from '@/utils/apiClient';
 import { getErrorMessage, isNetworkError, isAuthError } from '@/utils/errorHandler';
 import { tokenManager } from '@/utils/tokenManager';
 import { nativeWebSocketService } from '@/services/nativeWebSocketService';
-import { config } from '@/config/environment';
+import { config } from '@/config'; // Use centralized config
 import i18n from '@/i18n/config';
 
 interface AuthState {
@@ -150,13 +150,17 @@ export const useAuthStore = create<AuthState>((set: any, get: any) => ({
     try {
       if (__DEV__) console.log('📱 AuthStore: Attempting phone login for:', phoneNumber);
       
-      // Call backend API for phone login
-      const response = await fetch(`${config.apiBaseUrl}/api/auth/login-phone`, {
+      // Call backend API for phone login with customer role
+      const response = await fetch(`${config.api.baseUrl}/api/auth/login-phone`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ phoneNumber, firebaseUid }),
+        body: JSON.stringify({ 
+          phoneNumber, 
+          firebaseUid,
+          role: 'customer' // Student app is for customers
+        }),
       });
 
       if (!response.ok) {
@@ -207,13 +211,16 @@ export const useAuthStore = create<AuthState>((set: any, get: any) => ({
     try {
       if (__DEV__) console.log('🔍 AuthStore: Checking if user exists for phone:', phoneNumber);
       
-      // Call backend API to check user existence
-      const response = await fetch(`${config.apiBaseUrl}/api/auth/check-phone`, {
+      // Call backend API to check user existence with role 'customer'
+      const response = await fetch(`${config.api.baseUrl}/api/auth/check-phone`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ phoneNumber }),
+        body: JSON.stringify({ 
+          phoneNumber,
+          role: 'customer' // Student app is for customers
+        }),
       });
 
       if (!response.ok) {
@@ -280,7 +287,7 @@ export const useAuthStore = create<AuthState>((set: any, get: any) => ({
       console.log('🏪 AuthStore: Mapped registration data:', registrationData);
       
       // Call backend API for registration with onboarding data
-      const response = await fetch(`${config.apiBaseUrl}/api/auth/register-customer`, {
+      const response = await fetch(`${config.api.baseUrl}/api/auth/register-customer`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

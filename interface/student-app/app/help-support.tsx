@@ -126,7 +126,6 @@ export default function HelpSupportScreen() {
         'Failed to initiate chat. Don\'t worry, our phone support is always ready! ☎️'
       );
       clearError();
-      );
     }
   };
 

@@ -27,6 +27,8 @@
     "build:preview": "eas build --profile preview --platform android",
     "build:prod": "eas build --profile production --platform android",
     "submit:android": "eas submit --platform android",
+    "build:android": "node -e \"const fs=require('fs'); if(!fs.existsSync('./android')){console.log('🔧 Running prebuild...'); require('child_process').execSync('npx expo prebuild --platform android --clean',{stdio:'inherit'})} console.log('🔨 Building APK...'); require('child_process').execSync('cd android && gradlew.bat assembleDebug',{stdio:'inherit',shell:true})\"",
+    "build:android:clean": "npx expo prebuild --platform android --clean && cd android && gradlew.bat assembleDebug",
     "vercel-build": "bun run export:web",
     "deploy:vercel": "vercel --prod",
     "preview:vercel": "vercel"

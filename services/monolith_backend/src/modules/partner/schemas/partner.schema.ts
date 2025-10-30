@@ -82,7 +82,7 @@ export class Partner extends Document {
   @Prop({
     type: String,
     enum: Object.values(PartnerStatus),
-    default: PartnerStatus.PENDING,
+    default: PartnerStatus.APPROVED, // Auto-approve partners on registration for MVP
   })
   status: string;
 

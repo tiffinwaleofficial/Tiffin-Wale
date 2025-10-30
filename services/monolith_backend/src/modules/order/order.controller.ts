@@ -56,11 +56,12 @@ export class OrderController {
     return this.orderService.findAll();
   }
 
-  @Get("me")
+  @Get("customer/my-orders")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Get orders for current authenticated customer" })
+  @ApiOperation({ summary: "Get all orders for current authenticated customer" })
   @ApiResponse({ status: 200, description: "Return customer orders" })
+  @ApiResponse({ status: 401, description: "Unauthorized" })
   getMyOrders(@GetCurrentUser("_id") userId: string) {
     return this.orderService.findByCustomer(userId);
   }
