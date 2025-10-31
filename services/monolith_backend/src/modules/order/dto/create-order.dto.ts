@@ -16,11 +16,11 @@ import {
 export class OrderItemDto {
   @ApiProperty({
     example: "6075c1a5a9f14a2c9c5df91a",
-    description: "Menu Item ID",
+    description: "Menu Item ID (or placeholder ID for subscription orders)",
   })
-  @IsMongoId()
+  @IsString({ message: "Meal ID must be a string" })
   @IsNotEmpty({ message: "Menu item ID is required" })
-  mealId: string;
+  mealId: string; // Changed from @IsMongoId() to allow placeholder IDs for subscription orders
 
   @ApiProperty({ example: 2, description: "Quantity of the menu item" })
   @IsNumber({}, { message: "Quantity must be a number" })
@@ -111,4 +111,52 @@ export class CreateOrderDto {
   )
   @IsOptional()
   scheduledDeliveryTime?: string;
+
+  @ApiPropertyOptional({
+    example: "2023-04-20T00:00:00Z",
+    description: "Delivery date (date only, for filtering)",
+  })
+  @IsDateString({}, { message: "Delivery date must be a valid date string" })
+  @IsOptional()
+  deliveryDate?: string;
+
+  @ApiPropertyOptional({
+    example: "breakfast",
+    description: "Meal type",
+  })
+  @IsString()
+  @IsOptional()
+  mealType?: string;
+
+  @ApiPropertyOptional({
+    example: "morning",
+    description: "Delivery slot",
+  })
+  @IsString()
+  @IsOptional()
+  deliverySlot?: string;
+
+  @ApiPropertyOptional({
+    example: "8-10 AM",
+    description: "Delivery time range",
+  })
+  @IsString()
+  @IsOptional()
+  deliveryTimeRange?: string;
+
+  @ApiPropertyOptional({
+    example: "6075c1a5a9f14a2c9c5df91a",
+    description: "Subscription ID",
+  })
+  @IsMongoId({ message: "Invalid subscription ID format" })
+  @IsOptional()
+  subscription?: string;
+
+  @ApiPropertyOptional({
+    example: "monday",
+    description: "Day of week",
+  })
+  @IsString()
+  @IsOptional()
+  dayOfWeek?: string;
 }

@@ -7,7 +7,6 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Dimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -29,6 +28,11 @@ import {
   DurationType,
   MealFrequency,
 } from '@/lib/api';
+import { useAuth } from '@/auth/AuthProvider';
+import { useSubscriptionStore } from '@/store/subscriptionStore';
+import { secureTokenManager } from '@/auth/SecureTokenManager';
+import { useFirebaseNotification } from '@/hooks/useFirebaseNotification';
+import { notificationActions } from '@/store/notificationStore';
 
 const { width } = Dimensions.get('window');
 
@@ -36,6 +40,19 @@ export default function PlanDetailScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const planId = params.id as string;
+  const { user, isAuthenticated, isInitialized } = useAuth();
+  const { fetchCurrentSubscription } = useSubscriptionStore();
+  const { showSuccess, showError } = useFirebaseNotification();
+
+  // Debug: Log user state on mount and when it changes
+  useEffect(() => {
+    console.log('👤 PlanDetail: User state from useAuth():', { 
+      hasUser: !!user, 
+      userId: user?.id,
+      isAuthenticated,
+      isInitialized
+    });
+  }, [user, isAuthenticated, isInitialized]);
 
   const [plan, setPlan] = useState<SubscriptionPlan | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,25 +71,258 @@ export default function PlanDetailScreen() {
       setPlan(planData);
     } catch (error: any) {
       console.error('Failed to fetch plan details:', error);
-      Alert.alert('Error', error.message || 'Failed to load plan details');
+      showError('Error', error.message || 'Failed to load plan details');
       router.back();
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubscribe = () => {
-    if (!plan) return;
-    
-    // Navigate to subscription checkout page with plan details
-    router.push({
-      pathname: '/subscription-checkout',
-      params: {
-        planId: plan._id,
-        planName: plan.name,
-        price: plan.discountedPrice || plan.price,
-      },
+  const handleSubscribe = async () => {
+    console.log('🔔 Subscribe button clicked!', { 
+      hasPlan: !!plan, 
+      subscribing, 
+      hasUser: !!user, 
+      userId: user?.id,
+      isAuthenticated,
+      isInitialized
     });
+
+    if (!plan) {
+      console.error('❌ No plan available');
+      showError('Error', 'Plan information is missing. Please try again.');
+      return;
+    }
+
+    if (subscribing) {
+      console.log('⏳ Already subscribing, ignoring click');
+      return;
+    }
+
+    // Wait for auth to initialize if not ready
+    if (!isInitialized) {
+      console.log('⏳ Auth not initialized, waiting...');
+      // Wait a moment for auth to initialize
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Re-check from secureTokenManager after delay
+      try {
+        const storedUser = await secureTokenManager.getUser();
+        const authState = await secureTokenManager.getAuthState();
+        
+        if (!authState || !storedUser || !storedUser.id) {
+          showError(
+            'Authentication Required',
+            'Please login to subscribe to a plan'
+          );
+          // Navigate to login after a short delay
+          setTimeout(() => {
+            router.push('/(onboarding)/phone-verification' as any);
+          }, 1500);
+          return;
+        }
+      } catch (error) {
+        console.error('❌ Error checking auth state:', error);
+        showError(
+          'Authentication Required',
+          'Please login to subscribe to a plan'
+        );
+        // Navigate to login after a short delay
+        setTimeout(() => {
+          router.push('/(onboarding)/phone-verification' as any);
+        }, 1500);
+        return;
+      }
+    }
+
+    // Check if user is authenticated - try multiple sources
+    let currentUser = user;
+    let userId: string | undefined = user?.id;
+
+    // If user not from hook, try secureTokenManager
+    if (!currentUser || !userId) {
+      console.log('⚠️ User not from hook, trying secureTokenManager...');
+      try {
+        const storedUser = await secureTokenManager.getUser();
+        if (storedUser && storedUser.id) {
+          currentUser = storedUser;
+          userId = storedUser.id;
+          console.log('✅ Got user from secureTokenManager:', userId);
+        }
+      } catch (error) {
+        console.error('❌ Error getting user from secureTokenManager:', error);
+      }
+    }
+
+    if (!currentUser || !userId) {
+      console.log('⚠️ User not authenticated', { 
+        hasUser: !!user, 
+        userId: user?.id,
+        isAuthenticated,
+        isInitialized
+      });
+      showError(
+        'Authentication Required',
+        'Please login to subscribe to a plan'
+      );
+      // Navigate to login after a short delay
+      setTimeout(() => {
+        router.push('/(onboarding)/phone-verification' as any);
+      }, 1500);
+      return;
+    }
+
+    // Check if user has delivery address (optional check - we'll use placeholder if missing)
+    const deliveryAddress = (currentUser as any).address || (currentUser as any).deliveryAddress;
+    if (!deliveryAddress || !deliveryAddress.street || !deliveryAddress.city || !deliveryAddress.pincode) {
+      console.log('⚠️ No delivery address found, proceeding with placeholder');
+      // Don't block subscription - backend can use placeholder
+      // User can update address later
+    }
+
+    try {
+      console.log('🚀 Starting subscription creation process...');
+      setSubscribing(true);
+
+      // Calculate subscription dates based on plan duration
+      const startDate = new Date();
+      const endDate = new Date();
+      
+      // Calculate end date based on durationType and durationValue
+      const durationValue = plan.durationValue || 30;
+      const durationType = typeof plan.durationType === 'string' 
+        ? plan.durationType.toLowerCase()
+        : String(plan.durationType || 'days').toLowerCase();
+      
+      console.log('📅 Calculating dates:', { durationValue, durationType });
+
+      if (durationType === 'days' || durationType === 'day') {
+        endDate.setDate(endDate.getDate() + durationValue);
+      } else if (durationType === 'weeks' || durationType === 'week') {
+        endDate.setDate(endDate.getDate() + (durationValue * 7));
+      } else if (durationType === 'months' || durationType === 'month') {
+        endDate.setMonth(endDate.getMonth() + durationValue);
+      } else {
+        // Default to days if unknown
+        endDate.setDate(endDate.getDate() + durationValue);
+      }
+
+      // Get delivery slot (use first enabled slot if available)
+      let deliverySlot: string | undefined;
+      if (plan.deliverySlots) {
+        if (plan.deliverySlots.morning?.enabled) {
+          deliverySlot = 'morning';
+        } else if (plan.deliverySlots.afternoon?.enabled) {
+          deliverySlot = 'afternoon';
+        } else if (plan.deliverySlots.evening?.enabled) {
+          deliverySlot = 'evening';
+        }
+      }
+
+      // Get plan details to calculate total amount
+      const planPrice = plan.discountedPrice || plan.price || 0;
+      const totalAmount = planPrice + (plan.deliveryFee || 0);
+
+      // Prepare subscription data matching backend DTO format
+      const subscriptionData = {
+        customer: userId!,
+        plan: plan._id, // Backend expects 'plan' not 'subscriptionPlan'
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        totalAmount: totalAmount,
+        discountAmount: plan.discountedPrice ? (plan.price - plan.discountedPrice) : 0,
+        autoRenew: false,
+        paymentFrequency: 'monthly' as const,
+        status: 'pending' as const,
+        isPaid: false,
+        customizations: [],
+      };
+
+      console.log('📝 Creating subscription with data:', subscriptionData);
+
+      // Create subscription - using apiClient directly to match backend DTO format
+      // Note: apiClient baseURL already includes '/api', so we use '/subscriptions' not '/api/subscriptions'
+      const { apiClient } = await import('@/lib/api/client');
+      console.log('📡 Calling API to create subscription...');
+      
+      const subscription = await apiClient.post('/subscriptions', subscriptionData);
+
+      console.log('✅ Subscription created successfully:', subscription.data);
+      const subscriptionId = subscription.data._id || subscription.data.id;
+
+      // Wait a moment for backend to process order generation
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Increased wait time for order generation
+
+      // Try to regenerate orders if they weren't created (as a safety measure)
+      try {
+        console.log('🔄 Attempting to regenerate orders for subscription:', subscriptionId);
+        await apiClient.post(`/subscriptions/${subscriptionId}/regenerate-orders`);
+        console.log('✅ Orders regeneration triggered');
+      } catch (regenerateError: any) {
+        console.warn('⚠️ Could not regenerate orders (may already exist):', regenerateError.message);
+        // This is okay - orders might already exist
+      }
+
+      // Force refresh subscription store with fresh data
+      await fetchCurrentSubscription(true);
+
+      // Wait another moment to ensure state is updated
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Show success notification
+      notificationActions.showNotification({
+        id: `subscription-success-${Date.now()}`,
+        type: 'toast',
+        variant: 'success',
+        title: 'Subscription Successful! 🎉',
+        message: `You have successfully subscribed to ${plan.name}. Your meals will be delivered as per the plan schedule.`,
+        duration: 5000,
+      });
+
+      // Show additional success toast
+      showSuccess(
+        'Subscription Active!',
+        `Welcome to ${plan.name}! Your meals will be delivered as scheduled.`
+      );
+
+      // Navigate to dashboard after showing notification
+      setTimeout(() => {
+        // Force another refresh when navigating
+        fetchCurrentSubscription(true);
+        router.replace('/(tabs)' as any);
+      }, 1000);
+    } catch (error: any) {
+      console.error('❌ Failed to create subscription:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        stack: error.stack
+      });
+      
+      const errorMessage = error.response?.data?.message 
+        || error.message 
+        || 'Failed to create subscription. Please try again.';
+      
+      // Show error notification
+      notificationActions.showNotification({
+        id: `subscription-error-${Date.now()}`,
+        type: 'toast',
+        variant: 'error',
+        title: 'Subscription Failed',
+        message: errorMessage,
+        duration: 5000,
+      });
+
+      // Also show error toast
+      showError(
+        'Subscription Failed',
+        errorMessage
+      );
+    } finally {
+      setSubscribing(false);
+      console.log('🔄 Subscription process finished, subscribing state reset');
+    }
   };
 
   if (loading) {
@@ -102,12 +352,39 @@ export default function PlanDetailScreen() {
     : 0;
 
   const formatDuration = () => {
-    const typeMap: Record<DurationType, string> = {
-      [DurationType.DAYS]: plan.durationValue === 1 ? 'Day' : 'Days',
-      [DurationType.WEEKS]: plan.durationValue === 1 ? 'Week' : 'Weeks',
-      [DurationType.MONTHS]: plan.durationValue === 1 ? 'Month' : 'Months',
+    if (!plan || plan.durationValue === undefined || !plan.durationType) {
+      return 'N/A';
+    }
+
+    // Normalize durationType to handle both string values and enum
+    let normalizedType: string;
+    
+    if (typeof plan.durationType === 'string') {
+      normalizedType = plan.durationType.toLowerCase().replace(/s$/, ''); // Remove trailing 's' if present
+    } else {
+      // Handle enum values - convert to string first
+      normalizedType = String(plan.durationType).toLowerCase();
+    }
+    
+    const typeMap: Record<string, string> = {
+      'day': plan.durationValue === 1 ? 'Day' : 'Days',
+      'days': plan.durationValue === 1 ? 'Day' : 'Days',
+      'week': plan.durationValue === 1 ? 'Week' : 'Weeks',
+      'weeks': plan.durationValue === 1 ? 'Week' : 'Weeks',
+      'month': plan.durationValue === 1 ? 'Month' : 'Months',
+      'months': plan.durationValue === 1 ? 'Month' : 'Months',
+      // Handle enum values if they're different
+      ...(typeof DurationType !== 'undefined' && {
+        [String(DurationType.DAYS).toLowerCase()]: plan.durationValue === 1 ? 'Day' : 'Days',
+        [String(DurationType.WEEKS).toLowerCase()]: plan.durationValue === 1 ? 'Week' : 'Weeks',
+        [String(DurationType.MONTHS).toLowerCase()]: plan.durationValue === 1 ? 'Month' : 'Months',
+      }),
     };
-    return `${plan.durationValue} ${typeMap[plan.durationType]}`;
+    
+    const displayType = typeMap[normalizedType] || 
+      (plan.durationValue === 1 ? 'Day' : 'Days'); // Fallback
+    
+    return `${plan.durationValue} ${displayType}`;
   };
 
   const formatFrequency = () => {
@@ -385,7 +662,7 @@ export default function PlanDetailScreen() {
       </ScrollView>
 
       {/* Fixed Bottom CTA */}
-      <View style={styles.bottomBar}>
+      <View style={styles.bottomBar} pointerEvents="box-none">
         <View style={styles.bottomPriceContainer}>
           <Text style={styles.bottomPriceLabel}>Total Amount</Text>
           <Text style={styles.bottomPrice}>
@@ -393,12 +670,25 @@ export default function PlanDetailScreen() {
           </Text>
         </View>
         <TouchableOpacity
-          style={styles.subscribeButton}
-          onPress={handleSubscribe}
-          disabled={subscribing}
+          style={[styles.subscribeButton, subscribing && styles.subscribeButtonDisabled]}
+          onPress={() => {
+            console.log('🔘 Button pressed!', { 
+              plan: !!plan, 
+              user: !!user, 
+              subscribing,
+              planId: plan?._id,
+              userId: user?.id
+            });
+            handleSubscribe();
+          }}
+          disabled={subscribing || !plan}
+          activeOpacity={0.7}
         >
           {subscribing ? (
-            <ActivityIndicator size="small" color="#FFF" />
+            <>
+              <ActivityIndicator size="small" color="#FFF" />
+              <Text style={styles.subscribeButtonText}>Subscribing...</Text>
+            </>
           ) : (
             <>
               <CreditCard size={20} color="#FFF" />
@@ -699,6 +989,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 10,
+    minHeight: 50,
+  },
+  subscribeButtonDisabled: {
+    opacity: 0.6,
   },
   subscribeButtonText: {
     fontSize: 16,

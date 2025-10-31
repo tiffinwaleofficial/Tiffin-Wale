@@ -10,7 +10,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -121,12 +120,11 @@ export default function PhoneInputScreen() {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-        {/* Logo and Header */}
+        {/* Header with Icon */}
         <View style={styles.headerContainer}>
-          <Image
-            source={{ uri: 'https://images.pexels.com/photos/5920773/pexels-photo-5920773.jpeg?auto=compress&cs=tinysrgb&w=800' }}
-            style={styles.logo}
-          />
+          <View style={styles.iconContainer}>
+            <Phone size={40} color="#FF9B42" />
+          </View>
           <Text style={styles.title}>TiffinWale Partner</Text>
           <Text style={styles.subtitle}>Enter your phone number to continue</Text>
         </View>
@@ -169,7 +167,6 @@ export default function PhoneInputScreen() {
             <ActivityIndicator color="#FFF" />
           ) : (
             <>
-              <Phone size={20} color="#FFF" style={styles.buttonIcon} />
               <Text style={styles.sendButtonText}>Send OTP</Text>
               <ArrowRight size={20} color="#FFF" />
             </>
@@ -189,7 +186,7 @@ export default function PhoneInputScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FEF6E9',
+    backgroundColor: '#FFFAF0',
   },
   scrollContent: {
     flexGrow: 1,
@@ -200,80 +197,102 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 48,
   },
-  logo: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 16,
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFF5E6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 32,
   },
   title: {
-    fontSize: 32,
-    fontFamily: 'Poppins-Bold',
+    fontSize: 28,
+    fontFamily: 'Poppins-SemiBold',
     color: '#333',
-    marginBottom: 8,
+    marginBottom: 12,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
     fontFamily: 'Poppins-Regular',
     color: '#666',
     textAlign: 'center',
+    lineHeight: 24,
+    paddingHorizontal: 20,
   },
   inputContainer: {
-    marginBottom: 24,
+    marginBottom: 32,
+    width: '100%',
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFF',
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 2,
     borderColor: '#E0E0E0',
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   countryCode: {
     paddingHorizontal: 16,
     paddingVertical: 18,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F8F8F8',
     borderRightWidth: 1,
     borderRightColor: '#E0E0E0',
+    justifyContent: 'center',
   },
   countryCodeText: {
     fontSize: 16,
-    fontFamily: 'Poppins-SemiBold',
+    fontFamily: 'Poppins-Medium',
     color: '#333',
   },
   input: {
     flex: 1,
-    padding: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
     fontSize: 18,
-    fontFamily: 'Poppins-Medium',
+    fontFamily: 'Poppins-Regular',
     color: '#333',
   },
   errorText: {
-    color: '#E74C3C',
-    fontSize: 12,
+    color: '#FF4444',
+    fontSize: 14,
     fontFamily: 'Poppins-Regular',
     marginTop: 8,
-    marginLeft: 4,
   },
   sendButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FF9F43',
-    borderRadius: 12,
+    backgroundColor: '#FF9B42',
+    borderRadius: 16,
     padding: 18,
-    marginBottom: 16,
+    marginBottom: 24,
+    width: '100%',
+    shadowColor: '#FF9B42',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   sendButtonDisabled: {
     backgroundColor: '#FFB97C',
     opacity: 0.6,
   },
-  buttonIcon: {
-    marginRight: 8,
-  },
   sendButtonText: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: 'Poppins-SemiBold',
     color: '#FFF',
     marginRight: 8,
@@ -281,22 +300,9 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 14,
     fontFamily: 'Poppins-Regular',
-    color: '#666',
+    color: '#999',
     textAlign: 'center',
     lineHeight: 20,
-  },
-  devNote: {
-    marginTop: 24,
-    padding: 12,
-    backgroundColor: '#FFF3CD',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FFE69C',
-  },
-  devNoteText: {
-    fontSize: 12,
-    fontFamily: 'Poppins-Regular',
-    color: '#856404',
-    textAlign: 'center',
+    paddingHorizontal: 20,
   },
 });

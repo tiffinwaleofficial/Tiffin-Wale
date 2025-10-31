@@ -10,6 +10,7 @@ export interface Partner {
   businessName: string;
   description?: string;
   logoUrl?: string;
+  bannerUrl?: string;
   contactPhone?: string;
   contactEmail?: string;
   address?: {
@@ -18,9 +19,14 @@ export interface Partner {
     state: string;
     postalCode: string;
     country: string;
+    coordinates?: {
+      latitude: number;
+      longitude: number;
+    };
   };
   cuisineTypes?: string[];
   dietaryOptions?: string[];
+  isVegetarian?: boolean;
   averageRating?: number;
   totalReviews?: number;
   status?: 'pending' | 'approved' | 'rejected' | 'suspended';

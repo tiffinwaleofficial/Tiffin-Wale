@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, Image, StyleSheet } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, Image, StyleSheet, Linking } from 'react-native';
 import { router } from 'expo-router';
+import { Instagram, Facebook, Twitter } from 'lucide-react-native';
 import { Screen } from '../../components/layout/Screen';
 import { Container } from '../../components/layout/Container';
 import { Card } from '../../components/layout/Card';
@@ -158,7 +159,9 @@ export default function ImagesBranding() {
               {/* Instagram */}
               <View style={styles.socialSection}>
                 <View style={styles.socialHeader}>
-                  <Text style={styles.socialIcon}>📷</Text>
+                  <View style={[styles.iconContainer, { backgroundColor: '#E1306C15' }]}>
+                    <Instagram size={20} color="#E1306C" />
+                  </View>
                   <Text variant="body" style={styles.socialLabel}>Instagram</Text>
                 </View>
                 <Input
@@ -172,7 +175,9 @@ export default function ImagesBranding() {
               {/* Facebook */}
               <View style={styles.socialSection}>
                 <View style={styles.socialHeader}>
-                  <Text style={styles.socialIcon}>📘</Text>
+                  <View style={[styles.iconContainer, { backgroundColor: '#1877F215' }]}>
+                    <Facebook size={20} color="#1877F2" />
+                  </View>
                   <Text variant="body" style={styles.socialLabel}>Facebook</Text>
                 </View>
                 <Input
@@ -186,7 +191,9 @@ export default function ImagesBranding() {
               {/* Twitter */}
               <View style={styles.socialSectionLast}>
                 <View style={styles.socialHeader}>
-                  <Text style={styles.socialIcon}>🐦</Text>
+                  <View style={[styles.iconContainer, { backgroundColor: '#1DA1F215' }]}>
+                    <Twitter size={20} color="#1DA1F2" />
+                  </View>
                   <Text variant="body" style={styles.socialLabel}>Twitter</Text>
                 </View>
                 <Input
@@ -265,9 +272,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  socialIcon: {
-    fontSize: 20,
-    marginRight: 8,
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
   },
   socialLabel: {
     fontSize: 14,

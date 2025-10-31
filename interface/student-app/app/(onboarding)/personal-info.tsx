@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,28 +11,29 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, User, ArrowRight, Check } from 'lucide-react-native';
+import { ArrowLeft, User, ArrowRight, CheckCircle } from 'lucide-react-native';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { useTranslation } from '@/hooks/useTranslation';
-import VerifiedEmailInput from '@/components/ui/VerifiedEmailInput';
-import { EmailVerificationResult } from '@/services/emailVerificationService';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function PersonalInfoScreen() {
   const router = useRouter();
   const { data, setPersonalInfo, nextStep, setCurrentStep } = useOnboardingStore();
   const { t } = useTranslation('onboarding');
+  const scrollViewRef = useRef<ScrollView>(null);
   
   const [firstName, setFirstName] = useState(data.personalInfo?.firstName || '');
   const [lastName, setLastName] = useState(data.personalInfo?.lastName || '');
   const [email, setEmail] = useState(data.personalInfo?.email || '');
-  const [isEmailVerified, setIsEmailVerified] = useState(false);
-  const [emailVerificationResult, setEmailVerificationResult] = useState<EmailVerificationResult | null>(null);
+  const [address, setAddress] = useState(data.personalInfo?.address || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  // Scroll to top when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    }, [])
+  );
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -49,12 +50,17 @@ export default function PersonalInfoScreen() {
       newErrors.lastName = t('lastNameMinLength');
     }
 
+    // Email validation
     if (!email.trim()) {
-      newErrors.email = t('emailRequired');
-    } else if (!validateEmail(email)) {
-      newErrors.email = t('emailInvalid');
-    } else if (!isEmailVerified) {
-      newErrors.email = t('emailNotVerified');
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (!address.trim()) {
+      newErrors.address = 'Address is required';
+    } else if (address.trim().length < 5) {
+      newErrors.address = 'Address must be at least 5 characters';
     }
 
     setErrors(newErrors);
@@ -70,7 +76,8 @@ export default function PersonalInfoScreen() {
     setPersonalInfo({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      email: email.trim().toLowerCase()
+      email: email.trim(),
+      address: address.trim()
     });
 
     // Update step and navigate to food preferences
@@ -78,33 +85,24 @@ export default function PersonalInfoScreen() {
     router.push('/(onboarding)/food-preferences' as any);
   };
 
-  const handleEmailVerificationChange = (isVerified: boolean, result?: EmailVerificationResult) => {
-    setIsEmailVerified(isVerified);
-    setEmailVerificationResult(result || null);
-    
-    // Clear email error if verification is successful
-    if (isVerified && errors.email) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors.email;
-        return newErrors;
-      });
-    }
-  };
-
   const handleBack = () => {
     setCurrentStep(2); // Go back to OTP verification (step 2)
     router.back();
   };
 
-  const isFormValid = firstName.trim() && lastName.trim() && email.trim() && validateEmail(email) && isEmailVerified;
+  const isFormValid = firstName.trim() && lastName.trim() && email.trim() && 
+                      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) && 
+                      address.trim() && address.trim().length >= 5;
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
     >
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView 
+        ref={scrollViewRef}
+        contentContainerStyle={styles.container}
+      >
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -135,14 +133,12 @@ export default function PersonalInfoScreen() {
           {/* Verified Phone Display */}
           <View style={styles.verifiedPhoneContainer}>
             <View style={styles.verifiedPhoneContent}>
-              <View style={styles.checkIconContainer}>
-                <Check size={16} color="#10B981" />
-              </View>
+              <CheckCircle size={20} color="#10B981" style={styles.checkIcon} />
               <Text style={styles.verifiedPhoneText}>
-                {t('phoneVerified', { phone: data.phoneVerification?.phoneNumber?.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3') })}
+                Phone: +91 {data.phoneVerification?.phoneNumber?.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')}
               </Text>
             </View>
-            <Text style={styles.verifiedLabel}>{t('verified')}</Text>
+            <Text style={styles.verifiedLabel}>Verified ✓</Text>
           </View>
 
           {/* Form */}
@@ -197,9 +193,15 @@ export default function PersonalInfoScreen() {
 
             {/* Email */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>{t('emailAddress')}</Text>
-              <Text style={styles.inputSubLabel}>{t('emailSubLabel')}</Text>
-              <VerifiedEmailInput
+              <Text style={styles.inputLabel}>Email</Text>
+              <Text style={styles.inputSubLabel}>We'll use this to send you updates</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  errors.email && styles.inputError
+                ]}
+                placeholder="your.email@example.com"
+                placeholderTextColor="#999"
                 value={email}
                 onChangeText={(text) => {
                   setEmail(text);
@@ -207,13 +209,40 @@ export default function PersonalInfoScreen() {
                     setErrors(prev => ({ ...prev, email: '' }));
                   }
                 }}
-                onVerificationChange={handleEmailVerificationChange}
-                placeholder={t('emailPlaceholder')}
-                error={errors.email}
-                autoVerify={true}
-                debounceMs={1500}
-                style={{ marginBottom: 0 }}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
               />
+              {errors.email && (
+                <Text style={styles.errorText}>{errors.email}</Text>
+              )}
+            </View>
+
+            {/* Address */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Address</Text>
+              <Text style={styles.inputSubLabel}>Your current residential address</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  errors.address && styles.inputError
+                ]}
+                placeholder="Enter your address"
+                placeholderTextColor="#999"
+                value={address}
+                onChangeText={(text) => {
+                  setAddress(text);
+                  if (errors.address) {
+                    setErrors(prev => ({ ...prev, address: '' }));
+                  }
+                }}
+                multiline
+                numberOfLines={2}
+                textAlignVertical="top"
+              />
+              {errors.address && (
+                <Text style={styles.errorText}>{errors.address}</Text>
+              )}
             </View>
           </View>
 
@@ -327,30 +356,29 @@ const styles = StyleSheet.create({
     width: '100%',
     borderWidth: 1,
     borderColor: '#10B981',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   verifiedPhoneContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    flex: 1,
   },
-  checkIconContainer: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#10B981',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
+  checkIcon: {
+    marginRight: 12,
   },
   verifiedPhoneText: {
     fontSize: 16,
     fontFamily: 'Poppins-Medium',
     color: '#333',
+    flex: 1,
   },
   verifiedLabel: {
-    fontSize: 12,
-    fontFamily: 'Poppins-Regular',
+    fontSize: 14,
+    fontFamily: 'Poppins-SemiBold',
     color: '#10B981',
+    marginLeft: 8,
   },
   form: {
     width: '100%',

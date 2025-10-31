@@ -239,5 +239,22 @@ export const subscriptionApi = {
       return handleApiError(error, 'skipDelivery');
     }
   },
+
+  /**
+   * Regenerate orders for an existing subscription
+   */
+  regenerateOrders: async (subscriptionId: string): Promise<{ success: boolean; ordersCreated: number; errors: number }> => {
+    try {
+      const response = await retryRequest(() =>
+        apiClient.post<{ success: boolean; ordersCreated: number; errors: number }>(
+          `/subscriptions/${subscriptionId}/regenerate-orders`
+        )
+      );
+      console.log('✅ Orders regeneration completed');
+      return response.data;
+    } catch (error: any) {
+      return handleApiError(error, 'regenerateOrders');
+    }
+  },
 };
 

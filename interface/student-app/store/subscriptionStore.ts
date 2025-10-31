@@ -66,25 +66,36 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       console.log('✅ SubscriptionStore: Current subscription fetched:', apiSubscription);
       
       // Map API subscription to frontend type
+      // Handle both _id and id fields from backend
       const currentSubscription = apiSubscription ? {
-        _id: apiSubscription.id,
-        id: apiSubscription.id,
-        customer: typeof apiSubscription.customer === 'string' ? apiSubscription.customer : apiSubscription.customer.id,
-        plan: {
-          _id: apiSubscription.plan.id,
-          id: apiSubscription.plan.id,
-          name: apiSubscription.plan.name,
-          description: apiSubscription.plan.description,
-          price: apiSubscription.plan.price,
-          features: apiSubscription.plan.features,
-          mealsPerDay: apiSubscription.plan.mealsPerDay,
+        _id: apiSubscription._id || apiSubscription.id || '',
+        id: apiSubscription.id || apiSubscription._id || '',
+        customer: typeof apiSubscription.customer === 'string' 
+          ? apiSubscription.customer 
+          : (apiSubscription.customer?._id || apiSubscription.customer?.id || ''),
+        plan: apiSubscription.plan && typeof apiSubscription.plan === 'object' ? {
+          _id: apiSubscription.plan._id || apiSubscription.plan.id || '',
+          id: apiSubscription.plan.id || apiSubscription.plan._id || '',
+          name: apiSubscription.plan.name || '',
+          description: apiSubscription.plan.description || '',
+          price: apiSubscription.plan.price || 0,
+          features: apiSubscription.plan.features || [],
+          mealsPerDay: apiSubscription.plan.mealsPerDay || 2,
+        } : {
+          _id: typeof apiSubscription.plan === 'string' ? apiSubscription.plan : '',
+          id: typeof apiSubscription.plan === 'string' ? apiSubscription.plan : '',
+          name: '',
+          description: '',
+          price: 0,
+          features: [],
+          mealsPerDay: 2,
         },
-        status: (apiSubscription.status === 'canceled' ? 'cancelled' : apiSubscription.status) as 'active' | 'pending' | 'cancelled' | 'paused',
-        startDate: apiSubscription.startDate,
-        endDate: apiSubscription.endDate,
-        autoRenew: apiSubscription.autoRenew,
+        status: (apiSubscription.status === 'canceled' ? 'cancelled' : apiSubscription.status || 'pending') as 'active' | 'pending' | 'cancelled' | 'paused',
+        startDate: apiSubscription.startDate || new Date().toISOString(),
+        endDate: apiSubscription.endDate || new Date().toISOString(),
+        autoRenew: apiSubscription.autoRenew || false,
         paymentFrequency: 'monthly' as const, // Default value
-        totalAmount: apiSubscription.plan.price,
+        totalAmount: (apiSubscription.plan && typeof apiSubscription.plan === 'object' ? apiSubscription.plan.price : 0) || 0,
         discountAmount: 0,
         isPaid: true, // Default value
         customizations: [],

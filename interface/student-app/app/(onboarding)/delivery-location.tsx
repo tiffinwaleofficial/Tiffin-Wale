@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,11 +14,13 @@ import { ArrowLeft, MapPin, Navigation, Check } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { useOnboardingStore, ADDRESS_TYPES } from '@/store/onboardingStore';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function DeliveryLocationScreen() {
   const router = useRouter();
   const { data, setDeliveryLocation, completeOnboarding, isLoading, setCurrentStep } = useOnboardingStore();
   const { t } = useTranslation('onboarding');
+  const scrollViewRef = useRef<ScrollView>(null);
   
   const [street, setStreet] = useState(data.deliveryLocation?.address?.street || '');
   const [area, setArea] = useState(data.deliveryLocation?.address?.area || '');
@@ -31,6 +33,13 @@ export default function DeliveryLocationScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
+
+  // Scroll to top when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    }, [])
+  );
 
   // Request location permissions on component mount
   useEffect(() => {
@@ -97,9 +106,14 @@ export default function DeliveryLocationScreen() {
       // Complete onboarding
       await completeOnboarding();
       
+      // Small delay to ensure auth state is fully updated
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Navigate to dashboard
+      if (__DEV__) console.log('🚀 Navigating to dashboard after successful registration');
       router.replace('/(tabs)');
     } catch (error) {
+      console.error('❌ Setup failed:', error);
       Alert.alert(t('setupFailedTitle'), t('setupFailedMessage'));
     }
   };
@@ -185,7 +199,11 @@ export default function DeliveryLocationScreen() {
                      /^\d{6}$/.test(pincode) && addressType;
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      ref={scrollViewRef}
+      style={styles.container} 
+      showsVerticalScrollIndicator={false}
+    >
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>

@@ -97,32 +97,86 @@ export interface CreateOrderDto {
   specialInstructions?: string;
 }
 
+// Simple in-memory cache to prevent duplicate API calls
+let ordersCache: { data: Order[]; timestamp: number } | null = null;
+const CACHE_DURATION = 30 * 1000; // 30 seconds
+
 export const orderApi = {
   /**
    * Get all orders for current user
    */
-  getMyOrders: async (status?: OrderStatus): Promise<Order[]> => {
+  getMyOrders: async (status?: OrderStatus, forceRefresh = false): Promise<Order[]> => {
     try {
+      // Check cache first
+      if (!forceRefresh && ordersCache && Date.now() - ordersCache.timestamp < CACHE_DURATION) {
+        console.log('📦 Using cached orders');
+        let cachedData = ordersCache.data;
+        
+        // Filter by status if requested
+        if (status) {
+          cachedData = cachedData.filter(order => order.status === status);
+        }
+        
+        return cachedData;
+      }
+
       const params: any = {};
       if (status) params.status = status;
       
       const response = await retryRequest(() =>
         apiClient.get<Order[]>('/orders/customer/my-orders', { params })
       );
+      
+      // Update cache
+      ordersCache = {
+        data: response.data,
+        timestamp: Date.now()
+      };
+      
       return response.data;
     } catch (error: any) {
       return handleApiError(error, 'getMyOrders');
     }
   },
+  
+  /**
+   * Clear orders cache (call when orders are created/updated)
+   */
+  clearCache: () => {
+    ordersCache = null;
+  },
 
   /**
    * Get today's orders (client-side filtered)
    */
-  getTodaysOrders: async (): Promise<Order[]> => {
+  getTodaysOrders: async (forceRefresh = false): Promise<Order[]> => {
     try {
+      // Check cache first
+      if (!forceRefresh && ordersCache && Date.now() - ordersCache.timestamp < CACHE_DURATION) {
+        console.log('📦 Using cached orders for today filter');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        return ordersCache.data.filter((order) => {
+          const dateSource = order.deliveryDate || order.scheduledDeliveryTime;
+          if (!dateSource) return false;
+          const deliveryDate = new Date(dateSource);
+          deliveryDate.setHours(0, 0, 0, 0);
+          return deliveryDate >= today && deliveryDate < tomorrow;
+        });
+      }
+
       const response = await retryRequest(() =>
         apiClient.get<Order[]>('/orders/customer/my-orders')
       );
+      
+      // Update cache
+      ordersCache = {
+        data: response.data,
+        timestamp: Date.now()
+      };
       
       // Filter for today's orders
       const today = new Date();
@@ -131,7 +185,11 @@ export const orderApi = {
       tomorrow.setDate(tomorrow.getDate() + 1);
       
       return response.data.filter((order) => {
-        const deliveryDate = new Date(order.deliveryDate);
+        // Use deliveryDate if available, otherwise fallback to scheduledDeliveryTime
+        const dateSource = order.deliveryDate || order.scheduledDeliveryTime;
+        if (!dateSource) return false;
+        const deliveryDate = new Date(dateSource);
+        deliveryDate.setHours(0, 0, 0, 0);
         return deliveryDate >= today && deliveryDate < tomorrow;
       });
     } catch (error: any) {
@@ -142,11 +200,37 @@ export const orderApi = {
   /**
    * Get upcoming orders (client-side filtered)
    */
-  getUpcomingOrders: async (): Promise<Order[]> => {
+  getUpcomingOrders: async (forceRefresh = false): Promise<Order[]> => {
     try {
+      // Check cache first
+      if (!forceRefresh && ordersCache && Date.now() - ordersCache.timestamp < CACHE_DURATION) {
+        console.log('📦 Using cached orders for upcoming filter');
+        const tomorrow = new Date();
+        tomorrow.setHours(0, 0, 0, 0);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        return ordersCache.data.filter((order) => {
+          const dateSource = order.deliveryDate || order.scheduledDeliveryTime;
+          if (!dateSource) return false;
+          const deliveryDate = new Date(dateSource);
+          deliveryDate.setHours(0, 0, 0, 0);
+          return deliveryDate >= tomorrow;
+        }).sort((a, b) => {
+          const dateA = new Date(a.deliveryDate || a.scheduledDeliveryTime || 0);
+          const dateB = new Date(b.deliveryDate || b.scheduledDeliveryTime || 0);
+          return dateA.getTime() - dateB.getTime();
+        });
+      }
+
       const response = await retryRequest(() =>
         apiClient.get<Order[]>('/orders/customer/my-orders')
       );
+      
+      // Update cache
+      ordersCache = {
+        data: response.data,
+        timestamp: Date.now()
+      };
       
       // Filter for future orders (after today)
       const tomorrow = new Date();
@@ -154,9 +238,17 @@ export const orderApi = {
       tomorrow.setDate(tomorrow.getDate() + 1);
       
       return response.data.filter((order) => {
-        const deliveryDate = new Date(order.deliveryDate);
+        // Use deliveryDate if available, otherwise fallback to scheduledDeliveryTime
+        const dateSource = order.deliveryDate || order.scheduledDeliveryTime;
+        if (!dateSource) return false;
+        const deliveryDate = new Date(dateSource);
+        deliveryDate.setHours(0, 0, 0, 0);
         return deliveryDate >= tomorrow;
-      }).sort((a, b) => new Date(a.deliveryDate).getTime() - new Date(b.deliveryDate).getTime());
+      }).sort((a, b) => {
+        const dateA = new Date(a.deliveryDate || a.scheduledDeliveryTime || 0);
+        const dateB = new Date(b.deliveryDate || b.scheduledDeliveryTime || 0);
+        return dateA.getTime() - dateB.getTime();
+      });
     } catch (error: any) {
       return handleApiError(error, 'getUpcomingOrders');
     }
@@ -165,20 +257,60 @@ export const orderApi = {
   /**
    * Get past orders (client-side filtered and paginated)
    */
-  getPastOrders: async (page = 1, limit = 10): Promise<{ orders: Order[]; total: number }> => {
+  getPastOrders: async (page = 1, limit = 10, forceRefresh = false): Promise<{ orders: Order[]; total: number; page: number; limit: number }> => {
     try {
+      // Check cache first
+      if (!forceRefresh && ordersCache && Date.now() - ordersCache.timestamp < CACHE_DURATION) {
+        console.log('📦 Using cached orders for past filter');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const pastOrders = ordersCache.data.filter((order) => {
+          const dateSource = order.deliveryDate || order.scheduledDeliveryTime;
+          if (!dateSource) return false;
+          const deliveryDate = new Date(dateSource);
+          deliveryDate.setHours(0, 0, 0, 0);
+          return deliveryDate < today || order.status === OrderStatus.DELIVERED || order.status === OrderStatus.CANCELLED;
+        }).sort((a, b) => {
+          const dateA = new Date(a.deliveryDate || a.scheduledDeliveryTime || 0);
+          const dateB = new Date(b.deliveryDate || b.scheduledDeliveryTime || 0);
+          return dateB.getTime() - dateA.getTime();
+        });
+        
+        const skip = (page - 1) * limit;
+        return {
+          orders: pastOrders.slice(skip, skip + limit),
+          total: pastOrders.length,
+          page,
+          limit,
+        };
+      }
+
       const response = await retryRequest(() =>
         apiClient.get<Order[]>('/orders/customer/my-orders')
       );
+      
+      // Update cache
+      ordersCache = {
+        data: response.data,
+        timestamp: Date.now()
+      };
       
       // Filter for past orders (before today)
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
       const pastOrders = response.data.filter((order) => {
-        const deliveryDate = new Date(order.deliveryDate);
+        const dateSource = order.deliveryDate || order.scheduledDeliveryTime;
+        if (!dateSource) return false;
+        const deliveryDate = new Date(dateSource);
+        deliveryDate.setHours(0, 0, 0, 0);
         return deliveryDate < today || order.status === OrderStatus.DELIVERED || order.status === OrderStatus.CANCELLED;
-      }).sort((a, b) => new Date(b.deliveryDate).getTime() - new Date(a.deliveryDate).getTime());
+      }).sort((a, b) => {
+        const dateA = new Date(a.deliveryDate || a.scheduledDeliveryTime || 0);
+        const dateB = new Date(b.deliveryDate || b.scheduledDeliveryTime || 0);
+        return dateB.getTime() - dateA.getTime();
+      });
       
       // Client-side pagination
       const startIndex = (page - 1) * limit;

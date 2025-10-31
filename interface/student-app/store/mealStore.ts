@@ -71,10 +71,31 @@ export const useMealStore = create<MealState>((set, get) => ({
 
     set({ isLoadingToday: true, isLoading: true, error: null });
     try {
-      console.log('🔔 MealStore: Fetching today\'s meals...');
+      console.log('🔔 MealStore: Fetching today\'s meals from orders...');
       
-      const todayMeals = await api.meals.getToday();
-      console.log('✅ MealStore: Today\'s meals fetched:', todayMeals);
+      // Fetch today's orders and convert to meals
+      const { orderApi } = await import('@/lib/api/services/order.service');
+      const todayOrders = await orderApi.getTodaysOrders(forceRefresh);
+      console.log('✅ MealStore: Today\'s orders fetched:', todayOrders.length, todayOrders);
+      
+      // Convert orders to meals format
+      const todayMeals: Meal[] = todayOrders.map((order: any) => ({
+        id: order._id || order.id,
+        orderId: order._id || order.id,
+        mealType: order.mealType || order.deliverySlot || 'lunch',
+        deliverySlot: order.deliverySlot || 'afternoon',
+        deliveryTime: order.scheduledDeliveryTime || order.deliveryTimeRange,
+        deliveryDate: order.deliveryDate || order.scheduledDeliveryTime,
+        status: order.status || 'pending',
+        partnerId: typeof order.businessPartner === 'string' ? order.businessPartner : (order.businessPartner?._id || order.businessPartner?.id),
+        partnerName: typeof order.businessPartner === 'object' && order.businessPartner ? (order.businessPartner.businessName || order.businessPartner.name) : 'Partner',
+        items: order.items || [],
+        totalAmount: order.totalAmount || 0,
+        rating: order.rating,
+        review: order.review,
+      }));
+      
+      console.log('✅ MealStore: Today\'s meals converted:', todayMeals.length);
       
       set({ 
         todayMeals,
@@ -92,7 +113,7 @@ export const useMealStore = create<MealState>((set, get) => ({
       }
       
       if (errorMessage.includes('Network Error') || errorMessage.includes('404')) {
-        if (__DEV__) console.log('🔄 MealStore: Meals endpoint not available, setting empty state');
+        if (__DEV__) console.log('🔄 MealStore: Orders endpoint not available, setting empty state');
         set({ 
           todayMeals: [],
           isLoadingToday: false,
@@ -125,10 +146,31 @@ export const useMealStore = create<MealState>((set, get) => ({
 
     set({ isLoadingUpcoming: true, isLoading: true, error: null });
     try {
-      console.log('🔔 MealStore: Fetching upcoming meals...');
+      console.log('🔔 MealStore: Fetching upcoming meals from orders...');
       
-      const upcomingMeals = await api.meals.getUpcoming();
-      console.log('✅ MealStore: Upcoming meals fetched:', upcomingMeals);
+      // Fetch upcoming orders and convert to meals
+      const { orderApi } = await import('@/lib/api/services/order.service');
+      const upcomingOrders = await orderApi.getUpcomingOrders(forceRefresh);
+      console.log('✅ MealStore: Upcoming orders fetched:', upcomingOrders.length, upcomingOrders);
+      
+      // Convert orders to meals format
+      const upcomingMeals: Meal[] = upcomingOrders.map((order: any) => ({
+        id: order._id || order.id,
+        orderId: order._id || order.id,
+        mealType: order.mealType || order.deliverySlot || 'lunch',
+        deliverySlot: order.deliverySlot || 'afternoon',
+        deliveryTime: order.scheduledDeliveryTime || order.deliveryTimeRange,
+        deliveryDate: order.deliveryDate || order.scheduledDeliveryTime,
+        status: order.status || 'pending',
+        partnerId: typeof order.businessPartner === 'string' ? order.businessPartner : (order.businessPartner?._id || order.businessPartner?.id),
+        partnerName: typeof order.businessPartner === 'object' && order.businessPartner ? (order.businessPartner.businessName || order.businessPartner.name) : 'Partner',
+        items: order.items || [],
+        totalAmount: order.totalAmount || 0,
+        rating: order.rating,
+        review: order.review,
+      }));
+      
+      console.log('✅ MealStore: Upcoming meals converted:', upcomingMeals.length);
       
       set({ 
         upcomingMeals,

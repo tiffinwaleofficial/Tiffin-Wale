@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,11 +11,13 @@ import { useRouter } from 'expo-router';
 import { ArrowLeft, ChefHat, ArrowRight } from 'lucide-react-native';
 import { useOnboardingStore, CUISINE_OPTIONS, DIETARY_TYPES } from '@/store/onboardingStore';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function FoodPreferencesScreen() {
   const router = useRouter();
   const { data, setFoodPreferences, setCurrentStep } = useOnboardingStore();
   const { t } = useTranslation('onboarding');
+  const scrollViewRef = useRef<ScrollView>(null);
   
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>(
     data.foodPreferences?.cuisinePreferences || []
@@ -28,6 +30,13 @@ export default function FoodPreferencesScreen() {
   );
   const [allergies, setAllergies] = useState<string[]>(
     data.foodPreferences?.allergies || []
+  );
+
+  // Scroll to top when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    }, [])
   );
 
   const commonAllergies = [
@@ -82,7 +91,11 @@ export default function FoodPreferencesScreen() {
   const isFormValid = selectedCuisines.length > 0 && selectedDietaryType;
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      ref={scrollViewRef}
+      style={styles.container} 
+      showsVerticalScrollIndicator={false}
+    >
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>

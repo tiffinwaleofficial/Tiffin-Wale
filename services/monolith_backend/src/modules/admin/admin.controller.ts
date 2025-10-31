@@ -12,6 +12,7 @@ import { AdminService } from "./admin.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
+import { Public } from "../../common/decorators/public.decorator";
 import { UserRole } from "../../common/interfaces/user.interface";
 import {
   ApiTags,
@@ -240,9 +241,10 @@ export class AdminController {
     );
   }
 
+  @Public()
   @Delete("database/clean-all")
   @ApiOperation({
-    summary: "Clean entire database",
+    summary: "Clean entire database (Public endpoint for development)",
     description:
       "🚨 EXTREMELY DESTRUCTIVE OPERATION: Deletes ALL documents from ALL collections. Requires multiple confirmations and is blocked in production. Use with extreme caution!",
   })
@@ -259,10 +261,6 @@ export class AdminController {
   @ApiResponse({
     status: 400,
     description: "Invalid confirmation or environment mismatch",
-  })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - Admin access required",
   })
   @ApiResponse({
     status: 403,

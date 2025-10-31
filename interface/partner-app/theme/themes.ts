@@ -181,10 +181,10 @@ export const lightTheme: Theme = {
   },
   typography: {
     fontFamily: {
-      regular: 'Inter-Regular',
-      medium: 'Inter-Medium',
-      semiBold: 'Inter-SemiBold',
-      bold: 'Inter-Bold',
+      regular: 'Poppins-Regular',
+      medium: 'Poppins-Medium',
+      semiBold: 'Poppins-SemiBold',
+      bold: 'Poppins-Bold',
     },
     fontSize: {
       xs: 12,
@@ -307,10 +307,10 @@ export const darkTheme: Theme = {
   },
   typography: {
     fontFamily: {
-      regular: 'Inter-Regular',
-      medium: 'Inter-Medium',
-      semiBold: 'Inter-SemiBold',
-      bold: 'Inter-Bold',
+      regular: 'Poppins-Regular',
+      medium: 'Poppins-Medium',
+      semiBold: 'Poppins-SemiBold',
+      bold: 'Poppins-Bold',
     },
     fontSize: {
       xs: 12,

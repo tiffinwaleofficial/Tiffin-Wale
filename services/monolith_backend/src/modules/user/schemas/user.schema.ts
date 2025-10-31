@@ -2,9 +2,11 @@ import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
 import { UserRole } from "../../../common/interfaces/user.interface";
 
-@Schema({ timestamps: true })
+@Schema({
+  timestamps: true,
+})
 export class User extends Document {
-  @Prop({ required: true, unique: true })
+  @Prop({ required: true })
   email: string;
 
   @Prop()
@@ -55,3 +57,7 @@ export class User extends Document {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+// Add compound unique indexes: same email/phone allowed for different roles
+UserSchema.index({ email: 1, role: 1 }, { unique: true });
+UserSchema.index({ phoneNumber: 1, role: 1 }, { unique: true });

@@ -8,10 +8,7 @@ import {
   ValidateNested,
 } from "class-validator";
 import { Type } from "class-transformer";
-import {
-  AddressDto,
-  BusinessHoursDto,
-} from "../../partner/dto/partner.dto";
+import { AddressDto, BusinessHoursDto } from "../../partner/dto/partner.dto";
 
 export class UpdatePartnerDto {
   @ApiPropertyOptional({ description: "Business email address" })

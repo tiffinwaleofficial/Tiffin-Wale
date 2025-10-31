@@ -67,6 +67,7 @@ export default function EarningsScreen() {
       setTransactionsLoading(true);
 
       const period = mapPeriod(activeTab);
+      console.log('📊 Loading earnings for period:', activeTab, '→', period);
       
       // For all time, fetch comprehensive data without period restriction
       // For specific periods, fetch period-specific data
@@ -85,6 +86,9 @@ export default function EarningsScreen() {
       const earningsRes = results[0] as any;
       const orderAnalyticsRes = results[1] as any;
       const revenueHistoryRes = results[2] || results[1] as any;
+      
+      console.log('💰 Earnings Response:', earningsRes);
+      console.log('📈 Revenue History Response:', revenueHistoryRes);
 
       // Map to UI structure with comprehensive financial data
       const totalEarnings = earningsRes?.totalEarnings ?? earningsRes?.totalRevenue ?? stats?.totalRevenue ?? 0;
@@ -130,16 +134,20 @@ export default function EarningsScreen() {
         const historyRes = revenueHistoryRes as any;
         const historyData = historyRes?.data || [];
         if (historyData.length > 0) {
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
           const maxRevenue = Math.max(...historyData.map((h: any) => h.revenue || 0));
-          setChartData(historyData.slice(-7).map((h: any) => ({
-            date: h.month,
+          const formattedChartData = historyData.map((h: any) => ({
+            date: typeof h.month === 'number' ? monthNames[h.month - 1] : h.month,
             earnings: h.revenue || 0,
             orders: h.orders || 0,
             heightPercent: maxRevenue > 0 ? ((h.revenue || 0) / maxRevenue) * 100 : 0,
-          })));
+          }));
+          console.log('📊 Chart Data:', formattedChartData);
+          setChartData(formattedChartData);
         }
       }
 
+      // Only set data if we actually have earnings
       setEarningsData({
         totalEarnings,
         totalOrders,
@@ -149,15 +157,18 @@ export default function EarningsScreen() {
         comparison,
         orderAnalytics: orderAnalyticsRes,
         breakdown: breakdown,
+        hasData: totalEarnings > 0 || totalOrders > 0, // Flag to indicate if we have real data
       });
 
       // Transactions from revenue history or orders
       let transactions: any[] = [];
       const historyRes = revenueHistoryRes as any;
       if (historyRes?.data && Array.isArray(historyRes.data)) {
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const currentYear = new Date().getFullYear();
         transactions = historyRes.data.slice(0, 10).map((m: any, idx: number) => ({
           id: `${m.month}-${idx}`,
-          date: m.month,
+          date: typeof m.month === 'number' ? `${monthNames[m.month - 1]} ${currentYear}` : m.month,
           description: `${m.orders || 0} orders completed`,
           amount: m.revenue || 0,
           status: 'Paid',
@@ -332,6 +343,15 @@ export default function EarningsScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Earnings Summary Card */}
         {earningsLoading ? <ActivityIndicator style={{ marginVertical: 40 }}/> :
+        !earningsData?.hasData ? (
+          <View style={styles.emptyStateContainer}>
+            <DollarSign size={48} color="#CCC" />
+            <Text style={styles.emptyStateTitle}>No Earnings Yet</Text>
+            <Text style={styles.emptyStateText}>
+              Start accepting orders to see your earnings here
+            </Text>
+          </View>
+        ) :
         <View style={styles.summaryCard}>
           <View style={styles.summaryHeader}>
             <View style={styles.summaryIconContainer}>
@@ -477,7 +497,7 @@ export default function EarningsScreen() {
                               ]}
                             />
                             <Text style={styles.chartBarLabel} numberOfLines={1}>
-                              {item.date?.split('T')[0]?.split('-')[2] || item.date?.substring(0, 7) || ''}
+                              {item.date || ''}
                             </Text>
                           </View>
                         );
@@ -923,6 +943,33 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Regular',
     fontSize: 14,
     color: '#999',
+  },
+  emptyStateContainer: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 20,
+    padding: 48,
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  emptyStateTitle: {
+    fontFamily: 'Poppins-SemiBold',
+    fontSize: 18,
+    color: '#333',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyStateText: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
   },
   transactionAmountContainer: {
     alignItems: 'flex-end',

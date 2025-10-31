@@ -13,6 +13,7 @@ import {
   SubscriptionPlanSchema,
 } from "./schemas/subscription-plan.schema";
 import { EmailModule } from "../email/email.module";
+import { OrderModule } from "../order/order.module";
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { EmailModule } from "../email/email.module";
       { name: SubscriptionPlan.name, schema: SubscriptionPlanSchema },
     ]),
     EmailModule,
+    OrderModule,
   ],
   controllers: [SubscriptionController, SubscriptionPlanController],
   providers: [SubscriptionService, SubscriptionPlanService],

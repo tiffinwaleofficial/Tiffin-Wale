@@ -604,8 +604,16 @@ const api = {
   // Subscriptions endpoints
   subscriptions: {
     getCurrent: async (): Promise<Subscription | null> => {
-      const response = await apiClient.get('/api/subscriptions/me/current');
-      return response.data;
+      try {
+        const response = await apiClient.get('/api/subscriptions/me/current');
+        return response.data || null;
+      } catch (error: any) {
+        // Handle 404 as no subscription (not an error)
+        if (error.response?.status === 404) {
+          return null;
+        }
+        throw error;
+      }
     },
     getAll: async (): Promise<Subscription[]> => {
       const response = await apiClient.get('/api/subscriptions/me/all');

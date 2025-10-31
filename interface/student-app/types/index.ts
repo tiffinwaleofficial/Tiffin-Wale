@@ -146,15 +146,26 @@ export interface Menu {
 
 export interface Meal {
   id: string;
-  name: string;
+  orderId?: string; // Link to order if meal comes from subscription order
+  name?: string;
   image?: string;
-  type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
-  date: string;
-  menu: MenuItem[];
-  status: 'scheduled' | 'preparing' | 'ready' | 'delivered' | 'cancelled' | 'skipped';
-  restaurantId: string;
-  restaurantName: string;
+  type?: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  mealType?: 'breakfast' | 'lunch' | 'dinner'; // From order
+  deliverySlot?: 'morning' | 'afternoon' | 'evening'; // From order
+  deliveryTime?: string; // Delivery time from order
+  deliveryTimeRange?: string; // Time range like "8-10 AM"
+  deliveryDate?: string | Date; // Delivery date for filtering
+  date?: string;
+  menu?: MenuItem[];
+  items?: any[]; // Order items
+  status?: 'scheduled' | 'preparing' | 'ready' | 'delivered' | 'cancelled' | 'skipped' | 'pending' | 'confirmed' | 'out_for_delivery';
+  restaurantId?: string;
+  partnerId?: string; // Business partner ID from order
+  partnerName?: string; // Business partner name from order
+  restaurantName?: string;
   userRating?: number;
+  rating?: number; // From order
+  review?: string; // From order
   userReview?: string;
 }
 

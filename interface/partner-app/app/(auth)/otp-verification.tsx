@@ -16,7 +16,7 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { CheckCircle, ArrowLeft } from 'lucide-react-native';
+import { Shield, ArrowLeft } from 'lucide-react-native';
 import phoneAuthService from '../../services/phoneAuthService';
 import { useAuthStore } from '../../store/authStore';
 import { useOnboardingStore } from '../../store/onboardingStore';
@@ -28,7 +28,7 @@ export default function OTPVerificationScreen() {
   
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
-  const [timer, setTimer] = useState(60);
+  const [timer, setTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
   
   const inputRefs = useRef<(TextInput | null)[]>([]);
@@ -200,7 +200,7 @@ export default function OTPVerificationScreen() {
       if (result.success) {
         // Reset timer and OTP
         setOtp(['', '', '', '', '', '']);
-        setTimer(60);
+        setTimer(30);
         setCanResend(false);
         inputRefs.current[0]?.focus();
         
@@ -236,7 +236,7 @@ export default function OTPVerificationScreen() {
       {/* Content */}
       <View style={styles.content}>
         <View style={styles.iconContainer}>
-          <CheckCircle size={64} color="#FF9F43" />
+          <Shield size={40} color="#FF9B42" />
         </View>
 
         <Text style={styles.title}>Enter Verification Code</Text>
@@ -305,7 +305,7 @@ export default function OTPVerificationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FEF6E9',
+    backgroundColor: '#FFFAF0',
   },
   header: {
     flexDirection: 'row',
@@ -316,7 +316,20 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   backButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   headerTitle: {
     fontSize: 18,
@@ -332,14 +345,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFF5E6',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 32,
-    marginBottom: 24,
+    marginBottom: 32,
   },
   title: {
     fontSize: 28,
-    fontFamily: 'Poppins-Bold',
+    fontFamily: 'Poppins-SemiBold',
     color: '#333',
-    marginBottom: 8,
+    marginBottom: 12,
     textAlign: 'center',
   },
   subtitle: {
@@ -347,55 +366,66 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Regular',
     color: '#666',
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: 48,
     lineHeight: 24,
   },
   phoneNumber: {
     fontFamily: 'Poppins-SemiBold',
-    color: '#FF9F43',
+    color: '#FF9B42',
   },
   otpContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
     marginBottom: 32,
   },
   otpInput: {
-    width: 50,
-    height: 60,
+    width: 45,
+    height: 55,
     borderWidth: 2,
     borderColor: '#E0E0E0',
     borderRadius: 12,
     fontSize: 24,
-    fontFamily: 'Poppins-Bold',
+    fontFamily: 'Poppins-SemiBold',
     textAlign: 'center',
     backgroundColor: '#FFF',
     color: '#333',
+    textAlignVertical: 'center',
+    paddingTop: 0,
+    paddingBottom: 0,
   },
   otpInputFilled: {
-    borderColor: '#FF9F43',
-    backgroundColor: '#FFF8F0',
+    borderColor: '#FF9B42',
+    backgroundColor: '#FFF9F0',
   },
   verifyButton: {
     width: '100%',
-    backgroundColor: '#FF9F43',
-    borderRadius: 12,
+    backgroundColor: '#FF9B42',
+    borderRadius: 16,
     padding: 18,
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 24,
+    shadowColor: '#FF9B42',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   verifyButtonDisabled: {
     backgroundColor: '#FFB97C',
     opacity: 0.6,
   },
   verifyButtonText: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: 'Poppins-SemiBold',
     color: '#FFF',
   },
   resendContainer: {
     alignItems: 'center',
-    marginTop: 8,
+    marginBottom: 24,
   },
   resendText: {
     fontSize: 14,
@@ -403,8 +433,8 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   resendLink: {
-    fontFamily: 'Poppins-SemiBold',
-    color: '#FF9F43',
+    fontFamily: 'Poppins-Medium',
+    color: '#FF9B42',
   },
   timerText: {
     fontSize: 14,
@@ -413,6 +443,6 @@ const styles = StyleSheet.create({
   },
   timerNumber: {
     fontFamily: 'Poppins-Bold',
-    color: '#FF9F43',
+    color: '#FF9B42',
   },
 });

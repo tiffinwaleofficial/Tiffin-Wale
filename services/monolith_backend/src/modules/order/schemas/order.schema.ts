@@ -5,7 +5,7 @@ import { OrderStatus } from "../../../common/interfaces/order.interface";
 
 @Schema({ _id: false })
 class OrderItem {
-  @Prop({ required: true, type: MongooseSchema.Types.ObjectId })
+  @Prop({ required: true }) // Changed from ObjectId to allow string IDs for subscription orders
   mealId: string;
 
   @Prop({ required: true })
@@ -66,6 +66,9 @@ export class Order extends Document {
   scheduledDeliveryTime: Date;
 
   @Prop()
+  deliveryDate?: Date; // Date part only (for frontend filtering by date)
+
+  @Prop()
   actualDeliveryTime: Date;
 
   @Prop({ min: 1, max: 5 })
@@ -92,6 +95,9 @@ export class Order extends Document {
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: "SubscriptionPlan" })
   subscriptionPlan?: string;
+
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: "Subscription" })
+  subscription?: string; // Link to subscription
 
   @Prop()
   dayOfWeek?: string; // "monday", "tuesday", etc.

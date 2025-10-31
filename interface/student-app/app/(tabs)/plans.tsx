@@ -70,14 +70,14 @@ export default function PlansScreen() {
     }
   };
 
-  // Smart focus refresh: Background refresh when page comes into focus
+  // Smart focus refresh: Force refresh when page comes into focus to catch new subscriptions
   useFocusEffect(
     useCallback(() => {
-      if (__DEV__) console.log('👁️ Plans: Page focused - background refresh');
-      // Background refresh without loading states
+      if (__DEV__) console.log('👁️ Plans: Page focused - force refreshing subscription');
+      // Force refresh subscription to catch newly created subscriptions
       setTimeout(() => {
         fetchAvailablePlans(false); // Background refresh
-        fetchCurrentSubscription(false); // Background refresh
+        fetchCurrentSubscription(true); // Force refresh to catch new subscriptions
         fetchPartners();
       }, 100);
     }, [fetchAvailablePlans, fetchCurrentSubscription])
@@ -102,7 +102,7 @@ export default function PlansScreen() {
 
   const handleSubscribe = async (planId: string) => {
     if (!user) {
-      router.push('/(auth)/login');
+      router.push('/(onboarding)/phone-verification' as any);
       return;
     }
 
@@ -280,7 +280,7 @@ export default function PlansScreen() {
           <TouchableOpacity 
             onPress={() => {
               fetchAvailablePlans(true);
-              fetchRestaurants();
+              fetchPartners();
             }}
             style={styles.retryButton}
           >
@@ -313,16 +313,16 @@ export default function PlansScreen() {
           />
         }
       >
-        {currentSubscription && currentSubscription.plan && (
+        {currentSubscription && currentSubscription.plan && typeof currentSubscription.plan === 'object' && (
           <Animated.View entering={FadeInDown.duration(400)}>
             <Text style={styles.sectionTitle}>{t('activeSubscription')}</Text>
-            {renderPlanCard(currentSubscription.plan as SubscriptionPlan, 0)}
+            {renderPlanCard(currentSubscription.plan as any as SubscriptionPlan, 0)}
           </Animated.View>
         )}
         
         <Animated.View entering={FadeInDown.delay(200).duration(400)}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{t('exploreTiffinCenters')}</Text>
+          <Text style={styles.sectionTitle}>{t('exploreTiffinCenters')}</Text>
             <TouchableOpacity onPress={handleViewAllPartners} style={styles.viewAllButton}>
               <Text style={styles.viewAllText}>View All</Text>
               <Search size={16} color="#FF9B42" />
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFAF0',
   },
   header: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 60,
     paddingBottom: 20,
     backgroundColor: '#FFFAF0',
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
   },
   centerContainer: {
     flex: 1,

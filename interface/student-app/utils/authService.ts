@@ -419,7 +419,7 @@ export const authService = {
     try {
       console.log('🏪 AuthService: registerWithOnboarding called with:', onboardingData);
       
-      // Map onboarding data to registration format
+      // Map onboarding data to registration format for register-customer endpoint
       const registrationData = {
         // Personal info
         firstName: onboardingData.personalInfo?.firstName,
@@ -433,14 +433,18 @@ export const authService = {
         spiceLevel: onboardingData.foodPreferences?.spiceLevel || 3,
         allergies: onboardingData.foodPreferences?.allergies || [],
         
-        // Address
-        address: onboardingData.address,
+        // Delivery location
+        address: onboardingData.deliveryLocation?.address,
+        addressType: onboardingData.deliveryLocation?.addressType,
+        deliveryInstructions: onboardingData.deliveryLocation?.deliveryInstructions,
         
-        // Firebase UID
-        firebaseUid: onboardingData.phoneVerification?.firebaseUid,
+        // Role
+        role: 'customer' as const,
       };
 
-      const response = await fetch(`${API_BASE_URL}/api/auth/register-onboarding`, {
+      console.log('🏪 AuthService: Mapped registration data:', registrationData);
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/register-customer`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -455,10 +459,10 @@ export const authService = {
 
       const data = await response.json();
       
-      // Normalize response
+      // Normalize response - backend returns accessToken directly
       const normalizedResponse = {
         ...data,
-        accessToken: data.token || data.accessToken,
+        accessToken: data.accessToken || data.token,
         refreshToken: data.refreshToken,
         user: data.user
       };

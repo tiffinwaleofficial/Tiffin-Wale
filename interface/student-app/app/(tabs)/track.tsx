@@ -84,7 +84,7 @@ export default function TrackScreen() {
       fetchTodayActiveOrder();
     }
   }, [orderId]);
-
+  
   // Setup WebSocket for real-time updates
   useEffect(() => {
     if (!order) return;
@@ -124,7 +124,7 @@ export default function TrackScreen() {
       ])
     ).start();
   }, []);
-
+  
   useFocusEffect(
     useCallback(() => {
       if (orderId) {
@@ -179,10 +179,10 @@ export default function TrackScreen() {
     }
     setRefreshing(false);
   };
-
+  
   const getStepStatus = (stepStatus: OrderStatus): 'completed' | 'active' | 'pending' => {
     if (!order) return 'pending';
-
+    
     const statusOrder = [
       OrderStatus.PENDING,
       OrderStatus.CONFIRMED,
@@ -194,7 +194,7 @@ export default function TrackScreen() {
 
     const currentIndex = statusOrder.indexOf(order.status as OrderStatus);
     const stepIndex = statusOrder.indexOf(stepStatus);
-
+    
     if (stepIndex < currentIndex) return 'completed';
     if (stepIndex === currentIndex) return 'active';
     return 'pending';
@@ -243,13 +243,13 @@ export default function TrackScreen() {
           <Text style={styles.emptyTitle}>No Active Orders</Text>
           <Text style={styles.emptyText}>
             You don't have any orders to track right now
-          </Text>
-          <TouchableOpacity
+            </Text>
+              <TouchableOpacity 
             style={styles.browsePlansButton}
             onPress={() => router.push('/plans')}
           >
             <Text style={styles.browsePlansText}>Browse Plans</Text>
-          </TouchableOpacity>
+              </TouchableOpacity>
         </View>
       </View>
     );
@@ -266,8 +266,8 @@ export default function TrackScreen() {
         <Text style={styles.headerTitle}>Track Order</Text>
         <View style={styles.placeholder} />
       </View>
-
-      <ScrollView
+      
+      <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -305,12 +305,12 @@ export default function TrackScreen() {
               const isCompleted = stepStatus === 'completed';
               const isLast = index === STATUS_STEPS.length - 1;
               const Icon = step.icon;
-
+              
               return (
                 <View key={step.status} style={styles.stepWrapper}>
                   <View style={styles.stepRow}>
                     {/* Bullet/Icon */}
-                    <Animated.View
+                    <Animated.View 
                       style={[
                         styles.stepBullet,
                         isCompleted && styles.stepBulletCompleted,
@@ -324,7 +324,7 @@ export default function TrackScreen() {
                         <View style={styles.stepBulletEmpty} />
                       )}
                     </Animated.View>
-
+                    
                     {/* Step Content */}
                     <View style={styles.stepContent}>
                       <Text style={[styles.stepLabel, (isActive || isCompleted) && styles.stepLabelActive]}>
@@ -336,14 +336,14 @@ export default function TrackScreen() {
                       )}
                     </View>
                   </View>
-
+                  
                   {/* Connecting Line */}
                   {!isLast && (
                     <View
                       style={[
                         styles.stepLine,
                         isCompleted && styles.stepLineCompleted,
-                      ]}
+                      ]} 
                     />
                   )}
                 </View>
@@ -415,7 +415,7 @@ export default function TrackScreen() {
               >
                 <MessageSquare size={20} color="#FFF" />
                 <Text style={[styles.contactButtonText, styles.chatButtonText]}>Chat</Text>
-              </TouchableOpacity>
+            </TouchableOpacity>
             </View>
           </View>
         )}
@@ -796,4 +796,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FF9F43',
   },
-});
+}); 

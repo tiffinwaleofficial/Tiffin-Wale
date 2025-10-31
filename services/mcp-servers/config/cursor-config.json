@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/vscode-settings.json",
+  "mcpServers": {
+    "mongodb": {
+      "command": "node",
+      "args": [
+        "D:\\Bachelor Food App\\Tiffin-Wale\\services\\mcp-servers\\dist\\servers\\mongodb\\index.js"
+      ],
+      "env": {
+        "MONGODB_URI": "mongodb+srv://username:password@cluster.mongodb.net/database",
+        "MONGODB_READ_ONLY": "true",
+        "MCP_LOG_LEVEL": "info"
+      }
+    }
+  },
+  "_comment": "Add this configuration to your Cursor settings.json file at %APPDATA%\\Cursor\\User\\settings.json on Windows or ~/Library/Application Support/Cursor/User/settings.json on macOS"
+}
+
+
+
+
+
+
+

@@ -18,6 +18,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { notificationActions } from '@/store/notificationStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useAuthNotifications, useValidationNotifications, useSystemNotifications } from '@/hooks/useFirebaseNotification';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function OTPVerificationScreen() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -40,6 +41,14 @@ export default function OTPVerificationScreen() {
   
   // Refs for OTP inputs
   const inputRefs = useRef<(TextInput | null)[]>([]);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Scroll to top when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    }, [])
+  );
 
   useEffect(() => {
     // Start countdown timer
@@ -76,6 +85,11 @@ export default function OTPVerificationScreen() {
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
+
+    // Auto-verify when all 6 digits entered
+    if (value && index === 5 && newOtp.every(digit => digit !== '')) {
+      handleVerifyOTP(newOtp.join(''));
+    }
   };
 
   const handleKeyPress = (e: any, index: number) => {
@@ -85,8 +99,8 @@ export default function OTPVerificationScreen() {
     }
   };
 
-  const handleVerifyOTP = async () => {
-    const otpCode = otp.join('');
+  const handleVerifyOTP = async (providedOtp?: string) => {
+    const otpCode = providedOtp || otp.join('');
     
     if (otpCode.length !== 6) {
       requiredField('complete OTP');
@@ -211,7 +225,10 @@ export default function OTPVerificationScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
     >
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView 
+        ref={scrollViewRef}
+        contentContainerStyle={styles.container}
+      >
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>

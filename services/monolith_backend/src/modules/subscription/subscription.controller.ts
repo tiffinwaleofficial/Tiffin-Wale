@@ -187,4 +187,18 @@ export class SubscriptionController {
   resumeSubscription(@Param("id") id: string) {
     return this.subscriptionService.resumeSubscription(id);
   }
+
+  @Post(":id/regenerate-orders")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Regenerate orders for an existing subscription" })
+  @ApiResponse({
+    status: 200,
+    description: "Orders regenerated successfully.",
+  })
+  @ApiResponse({ status: 401, description: "Unauthorized." })
+  @ApiResponse({ status: 404, description: "Subscription not found." })
+  regenerateOrders(@Param("id") id: string) {
+    return this.subscriptionService.regenerateOrders(id);
+  }
 }

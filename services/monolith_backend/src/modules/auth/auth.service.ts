@@ -176,15 +176,6 @@ export class AuthService {
 
   async registerPartner(registerPartnerDto: RegisterPartnerDto) {
     try {
-      // Check if user with email already exists
-      const existingUser = await this.userService.findByEmailSafe(
-        registerPartnerDto.email,
-      );
-      if (existingUser) {
-        throw new ConflictException("Email already in use");
-      }
-
-      // Create user with partner role
       // Clean and normalize phone number
       const cleanPhoneNumber = registerPartnerDto.phoneNumber
         .replace(/^\+91/, "")
@@ -195,6 +186,26 @@ export class AuthService {
         original: registerPartnerDto.phoneNumber,
         clean: cleanPhoneNumber,
       });
+
+      // Check if user with email AND partner role already exists
+      const existingUser = await this.userService.findByEmailAndRole(
+        registerPartnerDto.email,
+        UserRole.PARTNER,
+      );
+      if (existingUser) {
+        throw new ConflictException("Email already registered as partner");
+      }
+
+      // Check if user with phone number AND partner role already exists
+      const existingUserByPhone = await this.userService.findByPhoneAndRole(
+        cleanPhoneNumber,
+        UserRole.PARTNER,
+      );
+      if (existingUserByPhone) {
+        throw new ConflictException(
+          "Phone number already registered as partner",
+        );
+      }
 
       const userData = {
         email: registerPartnerDto.email,
@@ -307,25 +318,30 @@ export class AuthService {
 
   async registerCustomer(registerCustomerDto: RegisterCustomerDto) {
     try {
-      // Check if user with email already exists
-      const existingUserByEmail = await this.userService.findByEmailSafe(
-        registerCustomerDto.email,
-      );
-      if (existingUserByEmail) {
-        throw new ConflictException("Email already in use");
-      }
-
       // Clean and normalize phone number
       const cleanPhoneNumber = registerCustomerDto.phoneNumber
         .replace(/^\+91/, "")
         .replace(/\D/g, "")
         .slice(-10);
 
-      // Check if user with phone number already exists
-      const existingUserByPhone =
-        await this.userService.findByPhoneNumber(cleanPhoneNumber);
+      // Check if user with email AND customer role already exists
+      const existingUserByEmail = await this.userService.findByEmailAndRole(
+        registerCustomerDto.email,
+        UserRole.CUSTOMER,
+      );
+      if (existingUserByEmail) {
+        throw new ConflictException("Email already registered as customer");
+      }
+
+      // Check if user with phone number AND customer role already exists
+      const existingUserByPhone = await this.userService.findByPhoneAndRole(
+        cleanPhoneNumber,
+        UserRole.CUSTOMER,
+      );
       if (existingUserByPhone) {
-        throw new ConflictException("Phone number already in use");
+        throw new ConflictException(
+          "Phone number already registered as customer",
+        );
       }
 
       // Create user with customer role
@@ -725,8 +741,8 @@ export class AuthService {
         }
       }
 
-      // For CUSTOMER role: Check in User collection by phoneNumber
-      const user = await this.userService.findByPhoneNumber(cleanPhone);
+      // For CUSTOMER role: Check in User collection by phoneNumber AND role
+      const user = await this.userService.findByPhoneAndRole(cleanPhone, role);
 
       console.log(
         "🔍 User found:",
@@ -748,15 +764,11 @@ export class AuthService {
         };
       }
 
-      // Check if user has the specified role (role is now required)
-      const hasRole = user.role === role;
+      // User exists with the specified role
       return {
-        exists: hasRole,
-        userId: hasRole ? user._id : null,
+        exists: true,
+        userId: user._id,
         role: user.role,
-        message: hasRole
-          ? null
-          : `This phone number is registered as a ${user.role}. Please use the correct app for your account type.`,
       };
     } catch (error) {
       console.error("Error checking phone existence:", error);
@@ -808,22 +820,18 @@ export class AuthService {
           );
         }
       } else {
-        // For CUSTOMER role: Check in User collection by phoneNumber
+        // For CUSTOMER role: Check in User collection by phoneNumber AND role
         console.log("🔑 loginWithPhone - Customer role:", {
           phoneNumber,
           cleanPhone,
+          role,
         });
 
-        user = await this.userService.findByPhoneNumber(cleanPhone);
+        user = await this.userService.findByPhoneAndRole(cleanPhone, role);
 
         if (!user) {
-          throw new NotFoundException("User not found with this phone number");
-        }
-
-        // Check if user has the specified role (role is now required)
-        if (user.role !== role) {
-          throw new UnauthorizedException(
-            `This phone number is registered as a ${user.role}. Please use the correct app for your account type.`,
+          throw new NotFoundException(
+            `No ${role} account found with this phone number`,
           );
         }
       }

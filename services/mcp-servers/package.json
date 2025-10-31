@@ -1,0 +1,35 @@
+{
+  "name": "@tiffin-wale/mcp-servers",
+  "version": "1.0.0",
+  "description": "Scalable MCP (Model Context Protocol) servers for Tiffin-Wale platform",
+  "author": "",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "mcp:mongodb:install": "bun add mongodb-mcp-server || npm install mongodb-mcp-server",
+    "mcp:mongodb:start": "node dist/servers/mongodb/index.js",
+    "mcp:mongodb:dev": "tsx src/servers/mongodb/index.ts",
+    "mcp:mongodb:test": "tsx src/servers/mongodb/test.ts",
+    "generate:cursor-config": "tsx src/utils/generate-cursor-config.ts",
+    "list:servers": "tsx -e \"import('./dist/shared/utils/server-registry.js').then(m => m.listServers())\"",
+    "lint": "eslint \"src/**/*.ts\" --fix",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "mongodb-mcp-server": "^1.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.3",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.4"
+  }
+}

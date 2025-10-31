@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Bell, ChevronRight, Clock, Coffee, Star, Calendar, ChevronDown, Utensils, Wallet, ThumbsUp } from 'lucide-react-native';
@@ -144,56 +144,131 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
           )}
         </View>
 
-        {/* Today's Meals */}
+        {/* Today's Meals - Grouped by Meal Type */}
         <View style={styles.todaysMealsContainer}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>{t('todaysMeals')}</Text>
-            <TouchableOpacity style={styles.viewAllButton}>
+            <TouchableOpacity 
+              style={styles.viewAllButton}
+              onPress={() => router.push('/(tabs)/orders' as any)}
+            >
               <Text style={styles.viewAllText}>{t('viewAll')}</Text>
               <ChevronRight size={16} color="#FF9B42" />
             </TouchableOpacity>
           </View>
 
           {todayMeals && todayMeals.length > 0 ? (
-            todayMeals.map((meal, index) => (
-              <Animated.View 
-                key={meal.id}
-                style={styles.mealCard}
-                entering={FadeInDown.duration(400).delay(500 + index * 100)}
-              >
-                <View style={styles.mealCardHeader}>
-                  <Text style={styles.mealTypeLabel}>{meal.type || t('meal')}</Text>
-                </View>
-                <View style={styles.mealCardContent}>
-                  <View style={styles.mealImageContainer}>
-                    <Image 
-                      source={{ uri: meal.menu?.[0]?.images?.[0] || 'https://images.pexels.com/photos/14705131/pexels-photo-14705131.jpeg' }} 
-                      style={styles.mealImage}
-                      resizeMode="cover"
-                    />
-                  </View>
-                  <View style={styles.mealDetails}>
-                    <Text style={styles.mealName}>{meal.menu?.[0]?.name || t('meal')}</Text>
-                    <Text style={styles.vendorName}>{meal.restaurantName || t('restaurant')}</Text>
-                    <View style={styles.ratingAndStatus}>
-                      <View style={styles.ratingContainer}>
-                        <Star size={14} color="#FFB800" fill="#FFB800" />
-                        <Text style={styles.ratingText}>{meal.userRating || '4.5'}</Text>
-                      </View>
-                      <View style={styles.deliveredBadge}>
-                        <Text style={styles.deliveredText}>{meal.status || 'Scheduled'}</Text>
-                      </View>
-                    </View>
-                    <View style={styles.buttonContainer}>
-                      <TouchableOpacity style={styles.rateButton}>
-                        <ThumbsUp size={14} color="#FF9B42" />
-                        <Text style={styles.rateButtonText}>{t('rate')}</Text>
+            (() => {
+              // Group meals by mealType (breakfast, lunch, dinner)
+              const groupedMeals = todayMeals.reduce((acc, meal) => {
+                const mealType = meal.mealType || meal.deliverySlot || 'lunch';
+                const typeKey = mealType.toLowerCase();
+                if (!acc[typeKey]) acc[typeKey] = [];
+                acc[typeKey].push(meal);
+                return acc;
+              }, {} as Record<string, typeof todayMeals>);
+
+              // Define meal type order and labels
+              const mealTypeOrder = ['breakfast', 'lunch', 'dinner'];
+              const mealTypeLabels: Record<string, string> = {
+                breakfast: '🌅 Breakfast',
+                lunch: '🍽️ Lunch',
+                dinner: '🌙 Dinner',
+                morning: '🌅 Breakfast',
+                afternoon: '🍽️ Lunch',
+                evening: '🌙 Dinner',
+              };
+
+              return mealTypeOrder.map((type) => {
+                const meals = groupedMeals[type] || [];
+                if (meals.length === 0) return null;
+
+                return (
+                  <View key={type} style={styles.mealTypeGroup}>
+                    <Text style={styles.mealTypeGroupTitle}>
+                      {mealTypeLabels[type] || type.charAt(0).toUpperCase() + type.slice(1)}
+                    </Text>
+                    {meals.map((meal, index) => (
+                      <TouchableOpacity
+                        key={meal.id || meal.orderId || index}
+                        style={styles.mealCard}
+                        onPress={() => {
+                          if (meal.orderId) {
+                            router.push(`/pages/meal-detail?id=${meal.orderId}` as any);
+                          }
+                        }}
+                      >
+                        <View style={styles.mealCardHeader}>
+                          <Text style={styles.mealTypeLabel}>
+                            {meal.deliveryTimeRange || meal.deliveryTime || type}
+                          </Text>
+                          <View style={[styles.statusBadge, 
+                            meal.status === 'delivered' && styles.statusBadgeDelivered,
+                            meal.status === 'preparing' && styles.statusBadgePreparing,
+                            meal.status === 'pending' && styles.statusBadgePending
+                          ]}>
+                            <Text style={styles.statusBadgeText}>
+                              {meal.status ? meal.status.charAt(0).toUpperCase() + meal.status.slice(1).replace('_', ' ') : 'Scheduled'}
+                            </Text>
+                          </View>
+                        </View>
+                        <View style={styles.mealCardContent}>
+                          <View style={styles.mealInfo}>
+                            <Text style={styles.mealName}>
+                              Subscription Meal
+                            </Text>
+                            <Text style={styles.vendorName}>
+                              {meal.partnerName || 'Your Plan'}
+                            </Text>
+                            {meal.items && meal.items.length > 0 && (
+                              <Text style={styles.mealItems} numberOfLines={2}>
+                                {meal.items.map((item: any) => item.specialInstructions || `${item.quantity}x Meal`).join(', ')}
+                              </Text>
+                            )}
+                          </View>
+                          {meal.rating ? (
+                            <View style={styles.ratingContainer}>
+                              <Star size={14} color="#FFB800" fill="#FFB800" />
+                              <Text style={styles.ratingText}>{meal.rating}</Text>
+                            </View>
+                          ) : meal.status === 'delivered' ? (
+                            <TouchableOpacity 
+                              style={styles.rateButton}
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                if (meal.orderId || meal.id) {
+                                  router.push(`/pages/meal-detail?id=${meal.orderId || meal.id}&action=rate` as any);
+                                }
+                              }}
+                            >
+                              <ThumbsUp size={14} color="#FF9B42" />
+                              <Text style={styles.rateButtonText}>{t('rate')}</Text>
+                            </TouchableOpacity>
+                          ) : (
+                            <TouchableOpacity 
+                              style={styles.addExtrasButton}
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                if (meal.orderId || meal.id) {
+                                  router.push(`/pages/meal-detail?id=${meal.orderId || meal.id}&action=extras` as any);
+                                }
+                              }}
+                            >
+                              <Text style={styles.addExtrasText}>+ Add Extras</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
                       </TouchableOpacity>
-                    </View>
+                    ))}
                   </View>
-                </View>
-              </Animated.View>
-            ))
+                );
+              }).filter(Boolean);
+            })()
+          ) : isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#FF9B42" />
+              <Text style={styles.loadingText}>Loading meals...</Text>
+            </View>
           ) : (
             <View style={styles.noMealsContainer}>
               <Utensils size={48} color="#CCCCCC" />
@@ -205,37 +280,76 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
 
         {/* Coming Up Next */}
         <View style={styles.comingUpContainer}>
-          <Text style={styles.comingUpTitle}>{t('comingUpNext')}</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.comingUpTitle}>{t('comingUpNext')}</Text>
+            <TouchableOpacity 
+              style={styles.viewAllButton}
+              onPress={() => router.push('/(tabs)/orders?tab=upcoming' as any)}
+            >
+              <Text style={styles.viewAllText}>{t('viewAll')}</Text>
+              <ChevronRight size={16} color="#FF9B42" />
+            </TouchableOpacity>
+          </View>
           
           {upcomingMeals && upcomingMeals.length > 0 ? (
-            upcomingMeals.slice(0, 3).map((meal, index) => (
-              <View key={meal.id || index} style={styles.mealCard}>
-                <View style={styles.mealCardHeader}>
-                  <View style={styles.headerWithIcon}>
-                    <Utensils size={16} color="#FF9B42" />
-                    <Text style={styles.mealTypeLabel}>{meal.type || t('meal')}</Text>
-                  </View>
-                </View>
-                <View style={styles.mealCardContent}>
-                  <View style={styles.mealImageContainer}>
-                    <Image 
-                      source={{ uri: meal.image || 'https://images.pexels.com/photos/2474661/pexels-photo-2474661.jpeg' }} 
-                      style={styles.mealImage}
-                      resizeMode="cover"
-                    />
-                  </View>
-                  <View style={styles.mealDetails}>
-                    <Text style={styles.mealName}>{meal.name || t('deliciousMeal')}</Text>
-                    <Text style={styles.vendorName}>{t('from')} {meal.restaurantName || t('kitchen')}</Text>
-                    <View style={styles.ratingAndStatus}>
-                      <View style={styles.preparingBadge}>
-                        <Text style={styles.preparingText}>{meal.status || t('preparing')}</Text>
-                      </View>
+            upcomingMeals.slice(0, 5).map((meal, index) => {
+              const mealType = meal.mealType || meal.deliverySlot || 'lunch';
+              const mealTypeLabels: Record<string, string> = {
+                breakfast: '🌅 Breakfast',
+                lunch: '🍽️ Lunch',
+                dinner: '🌙 Dinner',
+                morning: '🌅 Breakfast',
+                afternoon: '🍽️ Lunch',
+                evening: '🌙 Dinner',
+              };
+              const deliveryDate = meal.deliveryDate ? new Date(meal.deliveryDate) : null;
+              
+              return (
+                <TouchableOpacity
+                  key={meal.id || meal.orderId || index}
+                  style={styles.mealCard}
+                  onPress={() => {
+                    if (meal.orderId) {
+                      router.push(`/pages/meal-detail?id=${meal.orderId}` as any);
+                    }
+                  }}
+                >
+                  <View style={styles.mealCardHeader}>
+                    <View style={styles.headerWithIcon}>
+                      <Utensils size={16} color="#FF9B42" />
+                      <Text style={styles.mealTypeLabel}>
+                        {mealTypeLabels[mealType.toLowerCase()] || mealType}
+                      </Text>
                     </View>
+                    {deliveryDate && (
+                      <Text style={styles.mealDate}>
+                        {deliveryDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </Text>
+                    )}
                   </View>
-                </View>
-              </View>
-            ))
+                  <View style={styles.mealCardContent}>
+                    <View style={styles.mealInfo}>
+                      <Text style={styles.mealName}>Subscription Meal</Text>
+                      <Text style={styles.vendorName}>{meal.partnerName || 'Your Plan'}</Text>
+                      <Text style={styles.mealTime}>
+                        {meal.deliveryTimeRange || meal.deliveryTime || 'Scheduled'}
+                      </Text>
+                    </View>
+                    <TouchableOpacity 
+                      style={styles.addExtrasButton}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        if (meal.orderId) {
+                          router.push(`/pages/meal-detail?id=${meal.orderId}&action=extras` as any);
+                        }
+                      }}
+                    >
+                      <Text style={styles.addExtrasText}>+ Extras</Text>
+                    </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
+              );
+            })
           ) : (
             <View style={styles.noUpcomingMealsContainer}>
               <Utensils size={48} color="#CCCCCC" />
@@ -423,6 +537,9 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F5F5F5',
     paddingVertical: 12,
     paddingHorizontal: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   headerWithIcon: {
     flexDirection: 'row',
@@ -560,16 +677,79 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-SemiBold',
     fontSize: 18,
     color: '#333333',
-    marginBottom: 16,
+  },
+  mealTypeGroup: {
+    marginBottom: 20,
+  },
+  mealTypeGroupTitle: {
+    fontFamily: 'Poppins-SemiBold',
+    fontSize: 16,
+    color: '#333333',
+    marginBottom: 12,
+  },
+  mealInfo: {
+    flex: 1,
+  },
+  mealItems: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 12,
+    color: '#999999',
+    marginTop: 4,
+  },
+  mealTime: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 12,
+    color: '#999999',
+    marginTop: 4,
+  },
+  mealDate: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 12,
+    color: '#666666',
+  },
+  statusBadge: {
+    backgroundColor: 'rgba(255, 155, 66, 0.13)',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  statusBadgeDelivered: {
+    backgroundColor: 'rgba(76, 185, 68, 0.13)',
+  },
+  statusBadgePreparing: {
+    backgroundColor: 'rgba(30, 136, 229, 0.13)',
+  },
+  statusBadgePending: {
+    backgroundColor: 'rgba(255, 155, 66, 0.13)',
+  },
+  statusBadgeText: {
+    fontFamily: 'Poppins-Medium',
+    fontSize: 11,
+    color: '#FF9B42',
+  },
+  addExtrasButton: {
+    backgroundColor: '#FFF8EE',
+    borderColor: '#FF9B42',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignSelf: 'flex-start',
+  },
+  addExtrasText: {
+    fontFamily: 'Poppins-Medium',
+    fontSize: 12,
+    color: '#FF9B42',
   },
   loadingContainer: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 32,
   },
   loadingText: {
     fontFamily: 'Poppins-Regular',
-    fontSize: 16,
+    fontSize: 14,
     color: '#666666',
+    marginTop: 8,
   },
   noMealsContainer: {
     alignItems: 'center',

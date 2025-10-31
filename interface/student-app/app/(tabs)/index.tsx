@@ -21,9 +21,11 @@ export default function HomeScreen() {
   const { t } = useTranslation('common');
   const { 
     todayMeals, 
+    upcomingMeals,
     isLoading: mealsLoading, 
     error: mealsError, 
-    fetchTodayMeals 
+    fetchTodayMeals,
+    fetchUpcomingMeals
   } = useMealStore();
   const { 
     currentSubscription, 
@@ -61,16 +63,32 @@ export default function HomeScreen() {
       
       const userId = user?.id || user?.id;
       if (userId) {
-        if (__DEV__) console.log('🚀 Dashboard: Loading cached data with background refresh for user:', userId);
+        if (__DEV__) console.log('🚀 Dashboard: Loading data for user:', userId);
         try {
-          // Load cached data first (no force refresh) - INSTANT UI
-          await Promise.all([
-            fetchTodayMeals(false), // Use cache if available
-            fetchCurrentSubscription(false), // Use cache if available
-            fetchRestaurants(), // Use cache if available
-            fetchNotifications(userId, false), // Use cache if available
-          ]);
-          if (__DEV__) console.log('✅ Dashboard: Cached data loaded instantly');
+          // Load subscription first to check if user has active subscription
+          await fetchCurrentSubscription(false); // Use cache if available
+          
+          // If subscription exists, force refresh meals (orders might have been generated)
+          // Otherwise load cached data first
+          const { currentSubscription } = useSubscriptionStore.getState();
+          if (currentSubscription) {
+            if (__DEV__) console.log('✅ Dashboard: Active subscription found, force refreshing meals');
+            await Promise.all([
+              fetchTodayMeals(true), // Force refresh to get orders
+              fetchUpcomingMeals(true), // Force refresh to get orders
+              fetchRestaurants(), // Use cache if available
+              fetchNotifications(userId, false), // Use cache if available
+            ]);
+          } else {
+            if (__DEV__) console.log('📦 Dashboard: No subscription, loading cached data');
+            await Promise.all([
+              fetchTodayMeals(false), // Use cache if available
+              fetchUpcomingMeals(false), // Use cache if available
+              fetchRestaurants(), // Use cache if available
+              fetchNotifications(userId, false), // Use cache if available
+            ]);
+          }
+          if (__DEV__) console.log('✅ Dashboard: Data loaded');
         } catch (error) {
           if (__DEV__) console.error('❌ Dashboard: Error loading initial data:', error);
         }
@@ -105,15 +123,17 @@ export default function HomeScreen() {
     React.useCallback(() => {
       const userId = user?.id || user?.id;
       if (isInitialized && !authLoading && userId) {
-        if (__DEV__) console.log('👁️ Dashboard: Screen focused, checking if refresh needed');
+        if (__DEV__) console.log('👁️ Dashboard: Screen focused, force refreshing subscription and meals');
         
-        // Only refresh if data is stale - background refresh without loading states
+        // Force refresh subscription AND meals when screen comes into focus to catch new subscriptions and orders
         setTimeout(() => {
-          fetchCurrentSubscription(false); // Background refresh - no loading state
+          fetchCurrentSubscription(true); // Force refresh to catch newly created subscriptions
+          fetchTodayMeals(true); // Force refresh to catch newly generated orders
+          fetchUpcomingMeals(true); // Force refresh upcoming meals
           fetchNotifications(userId, false); // Background refresh - no loading state
         }, 100); // Small delay to avoid blocking UI
       }
-    }, [isInitialized, authLoading, user?.id, fetchCurrentSubscription, fetchNotifications])
+    }, [isInitialized, authLoading, user?.id, fetchCurrentSubscription, fetchTodayMeals, fetchUpcomingMeals, fetchNotifications])
   );
 
   // Pull to refresh handler
@@ -130,6 +150,7 @@ export default function HomeScreen() {
       console.log('🔄 Dashboard: Manual refresh triggered');
       await Promise.all([
         fetchTodayMeals(true), // Force refresh meals
+        fetchUpcomingMeals(true), // Force refresh upcoming meals
         fetchCurrentSubscription(true), // Force refresh current subscription
         fetchRestaurants(), // Fetch restaurants
         fetchNotifications(userId, true), // Force refresh notifications
@@ -267,7 +288,8 @@ export default function HomeScreen() {
               })}
               <ActiveSubscriptionDashboard 
                 user={user} 
-                todayMeals={todayMeals} 
+                todayMeals={todayMeals}
+                upcomingMeals={upcomingMeals || []}
                 isLoading={mealsLoading && todayMeals.length === 0}
               />
             </>

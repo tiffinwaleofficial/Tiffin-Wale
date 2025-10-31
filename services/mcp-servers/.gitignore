@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+package-lock.json
+bun.lock
+
+# Environment variables
+.env
+.env.local
+
+# Compiled output
+dist/
+build/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+.cache/
+
+
+
+
+
+
+

@@ -35,14 +35,26 @@ export default function OrdersScreen() {
   const fetchAllOrders = async () => {
     try {
       setLoading(true);
+      // Use cached data first, then refresh in background
       const [todayData, upcomingData, pastData] = await Promise.all([
-        api.orders.getTodaysOrders(),
-        api.orders.getUpcomingOrders(),
-        api.orders.getPastOrders(1, 10),
+        api.orders.getTodaysOrders(false), // Use cache first
+        api.orders.getUpcomingOrders(false), // Use cache first
+        api.orders.getPastOrders(1, 10, false), // Use cache first
       ]);
       setTodayOrders(todayData);
       setUpcomingOrders(upcomingData);
       setPastOrders(pastData.orders);
+      
+      // Refresh in background for fresh data
+      Promise.all([
+        api.orders.getTodaysOrders(true), // Force refresh
+        api.orders.getUpcomingOrders(true), // Force refresh
+        api.orders.getPastOrders(1, 10, true), // Force refresh
+      ]).then(([todayRefresh, upcomingRefresh, pastRefresh]) => {
+        setTodayOrders(todayRefresh);
+        setUpcomingOrders(upcomingRefresh);
+        setPastOrders(pastRefresh.orders);
+      }).catch(err => console.error('Background refresh failed:', err));
     } catch (error: any) {
       console.error('Failed to fetch orders:', error);
       Alert.alert('Error', 'Failed to load orders');
@@ -54,7 +66,7 @@ export default function OrdersScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchAllOrders();
-    setRefreshing(false);
+      setRefreshing(false);
   };
 
   const handleRateOrder = (orderId: string) => {
@@ -138,8 +150,8 @@ export default function OrdersScreen() {
 
       const config = emptyConfig[activeTab];
 
-      return (
-        <View style={styles.emptyContainer}>
+        return (
+          <View style={styles.emptyContainer}>
           {config.icon}
           <Text style={styles.emptyTitle}>{config.title}</Text>
           <Text style={styles.emptyDescription}>{config.description}</Text>
@@ -151,26 +163,26 @@ export default function OrdersScreen() {
               <Text style={styles.exploreButtonText}>Explore Plans</Text>
             </TouchableOpacity>
           )}
-        </View>
-      );
-    }
+          </View>
+        );
+      }
 
-    return (
-      <View style={styles.listContainer}>
+      return (
+        <View style={styles.listContainer}>
         {currentOrders.map((order, index) => (
-          <Animated.View 
+            <Animated.View 
             key={order._id} 
-            entering={FadeInDown.delay(index * 100).duration(400)}
-          >
+              entering={FadeInDown.delay(index * 100).duration(400)}
+            >
             <OrderCard 
               order={order}
               onRate={handleRateOrder}
               onTrack={handleTrackOrder}
-            />
-          </Animated.View>
-        ))}
-      </View>
-    );
+              />
+            </Animated.View>
+          ))}
+        </View>
+      );
   };
 
   return (

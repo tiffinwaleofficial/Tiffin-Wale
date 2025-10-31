@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import phoneAuthService from '@/services/phoneAuthService';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import RecaptchaContainer from '@/components/RecaptchaContainer';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function PhoneVerificationScreen() {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -24,6 +25,14 @@ export default function PhoneVerificationScreen() {
   const router = useRouter();
   const { setPhoneVerification, nextStep, setCurrentStep } = useOnboardingStore();
   const { t } = useTranslation('onboarding');
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Scroll to top when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    }, [])
+  );
 
   const formatPhoneNumber = (text: string) => {
     // Remove all non-digit characters
@@ -106,6 +115,7 @@ export default function PhoneVerificationScreen() {
       keyboardVerticalOffset={0}
     >
       <ScrollView 
+        ref={scrollViewRef}
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}

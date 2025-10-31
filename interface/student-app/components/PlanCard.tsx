@@ -1,8 +1,17 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { Calendar, Utensils, Clock, Tag, TrendingDown } from 'lucide-react-native';
 import { SubscriptionPlan, DurationType, MealFrequency } from '@/lib/api';
 import { useRouter } from 'expo-router';
+
+// Calculate card width based on screen dimensions
+// Account for 16px padding on each side from parent container
+const getCardWidth = () => {
+  const { width } = Dimensions.get('window');
+  return width - 32; // 16px padding * 2
+};
+
+const CARD_WIDTH = getCardWidth();
 
 interface PlanCardProps {
   plan: SubscriptionPlan;
@@ -22,12 +31,24 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan, onPress, variant = 'de
   };
 
   const formatDuration = () => {
-    const typeMap: Record<DurationType, string> = {
-      [DurationType.DAYS]: plan.durationValue === 1 ? 'Day' : 'Days',
-      [DurationType.WEEKS]: plan.durationValue === 1 ? 'Week' : 'Weeks',
-      [DurationType.MONTHS]: plan.durationValue === 1 ? 'Month' : 'Months',
+    // Normalize durationType to handle both singular and plural from API
+    const normalizedType = typeof plan.durationType === 'string' 
+      ? plan.durationType.toLowerCase().replace(/s$/, '') // Remove trailing 's' if present
+      : plan.durationType;
+    
+    const typeMap: Record<string, string> = {
+      'day': plan.durationValue === 1 ? 'Day' : 'Days',
+      'days': plan.durationValue === 1 ? 'Day' : 'Days',
+      'week': plan.durationValue === 1 ? 'Week' : 'Weeks',
+      'weeks': plan.durationValue === 1 ? 'Week' : 'Weeks',
+      'month': plan.durationValue === 1 ? 'Month' : 'Months',
+      'months': plan.durationValue === 1 ? 'Month' : 'Months',
     };
-    return `${plan.durationValue} ${typeMap[plan.durationType]}`;
+    
+    const displayType = typeMap[normalizedType as string] || 
+      (plan.durationValue === 1 ? 'Day' : 'Days'); // Fallback
+    
+    return `${plan.durationValue} ${displayType}`;
   };
 
   const formatFrequency = () => {
@@ -184,7 +205,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFF',
     borderRadius: 16,
-    marginHorizontal: 16,
+    marginHorizontal: 0,
     marginBottom: 16,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -192,15 +213,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
+    width: CARD_WIDTH,
+    maxWidth: CARD_WIDTH,
+    alignSelf: 'stretch',
   },
   imageContainer: {
     position: 'relative',
     width: '100%',
     height: 160,
+    overflow: 'hidden',
   },
   image: {
     width: '100%',
     height: '100%',
+    resizeMode: 'cover',
   },
   discountBadge: {
     position: 'absolute',
@@ -221,6 +247,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
+    width: '100%',
   },
   planName: {
     fontSize: 20,
@@ -305,6 +332,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     marginBottom: 4,
+    flexWrap: 'wrap',
   },
   originalPrice: {
     fontSize: 16,
@@ -332,6 +360,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
+    width: '100%',
   },
   ctaText: {
     fontSize: 16,

@@ -1,0 +1,31 @@
+{
+  "servers": [
+    {
+      "id": "mongodb",
+      "name": "MongoDB",
+      "description": "MongoDB MCP Server for database queries and schema exploration",
+      "enabled": true,
+      "module": "src/servers/mongodb/index.ts",
+      "command": "node",
+      "args": [
+        "${DIST_PATH}/servers/mongodb/index.js"
+      ],
+      "env": {
+        "MONGODB_URI": "${MONGODB_URI}",
+        "MONGODB_READ_ONLY": "${MONGODB_READ_ONLY}",
+        "MCP_LOG_LEVEL": "${MCP_LOG_LEVEL}"
+      }
+    }
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "lastUpdated": "2025-10-31"
+  }
+}
+
+
+
+
+
+
+

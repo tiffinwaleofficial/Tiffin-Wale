@@ -13,6 +13,7 @@ export interface PersonalInfoData {
   firstName: string;
   lastName: string;
   email: string;
+  address?: string;
 }
 
 // Step 3: Food Preferences

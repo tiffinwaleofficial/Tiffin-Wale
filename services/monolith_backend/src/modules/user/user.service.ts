@@ -255,4 +255,26 @@ export class UserService {
 
     return null;
   }
+
+  /**
+   * Find user by email and role combination
+   * Allows same email for different roles (customer and partner)
+   */
+  async findByEmailAndRole(
+    email: string,
+    role: UserRole,
+  ): Promise<User | null> {
+    return this.userModel.findOne({ email, role }).exec();
+  }
+
+  /**
+   * Find user by phone number and role combination
+   * Allows same phone number for different roles (customer and partner)
+   */
+  async findByPhoneAndRole(
+    phoneNumber: string,
+    role: UserRole,
+  ): Promise<User | null> {
+    return this.userModel.findOne({ phoneNumber, role }).exec();
+  }
 }
