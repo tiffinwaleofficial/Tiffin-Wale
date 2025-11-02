@@ -70,21 +70,7 @@ export const EmailLayout: React.FC<EmailLayoutProps> = ({
           <Section className="header" style={{ background: headerGradient, borderRadius: '16px 16px 0 0' }}>
             <table cellPadding="0" cellSpacing="0" style={{ margin: '0 auto 24px' }}>
               <tr>
-                <td className="logo-bg" style={{
-                  borderRadius: '50%',
-                  width: '96px',
-                  height: '96px',
-                  textAlign: 'center',
-                  verticalAlign: 'middle'
-                }}>
-                  <Img
-                    src={'https://res.cloudinary.com/dols3w27e/image/upload/v1761226264/wdqhh9yupfrhxvp4yxzv.png'}
-                    alt={`${appName} Icon`}
-                    width="80"
-                    height="80"
-                    style={{ margin: 'auto' }}
-                  />
-                </td>
+               
               </tr>
             </table>
 
@@ -94,7 +80,7 @@ export const EmailLayout: React.FC<EmailLayoutProps> = ({
                   borderRadius: '12px',
                 }}>
                   <Img
-                    src={'https://res.cloudinary.com/dols3w27e/image/upload/v1761226264/cbvsj2wkius4l0lu6vf3.png'}
+                    src={'https://res.cloudinary.com/dols3w27e/image/upload/v1762087694/qy4jh0sayv96vvez9bpc.png'}
                     alt={`${appName} Logo`}
                     width="240"
                     style={{ margin: '0 auto', display: 'block' }}
