@@ -39,6 +39,7 @@ export class EmailService {
     marketing: string;
     admin: string;
     cfo: string;
+    ceo: string;
   };
 
   constructor(
@@ -86,6 +87,7 @@ export class EmailService {
       marketing: "Tiffin-Wale Marketing <marketing@tiffin-wale.com>",
       admin: "Tiffin-Wale Admin <admin@tiffin-wale.com>",
       cfo: "Riya Tiwari <riya.tiwari@tiffin-wale.com>",
+      ceo: "Rahul Vishwakarma <admin@tiffin-wale.com>",
     };
 
     // Log comprehensive email service status
@@ -193,6 +195,7 @@ export class EmailService {
     type:
       | "welcome"
       | "cfo-welcome"
+      | "ceo-welcome"
       | "password-reset"
       | "verification"
       | "order"
@@ -207,6 +210,8 @@ export class EmailService {
         return this.emailAddresses.info;
       case "cfo-welcome":
         return this.emailAddresses.cfo;
+      case "ceo-welcome":
+        return this.emailAddresses.ceo;
       case "password-reset":
       case "verification":
         return this.emailAddresses.info;
@@ -287,6 +292,37 @@ export class EmailService {
         data: templateData,
         subject: `Tiffin Wale, CFO Riya Tiwari`,
         from: this.getSenderEmail("cfo-welcome"),
+      },
+      userId,
+    );
+  }
+
+  /**
+   * Send CEO welcome email to new users
+   */
+  async sendCeoWelcomeEmail(
+    userId: string,
+    userData: {
+      name: string;
+      email: string;
+    },
+  ): Promise<EmailResult> {
+    const templateData: TemplateData = {
+      user: {
+        name: userData.name,
+        email: userData.email,
+        id: userId,
+      },
+      // dashboardUrl is no longer needed as the URL is hardcoded in the template
+    };
+
+    return this.sendTemplateEmail(
+      {
+        to: userData.email,
+        template: "ceo-welcome",
+        data: templateData,
+        subject: `Invitation to Rejoin Tiffin Wale`,
+        from: this.getSenderEmail("ceo-welcome"),
       },
       userId,
     );
@@ -911,6 +947,7 @@ export class EmailService {
       const templateCategories = {
         welcome: "securityAlerts",
         "cfo-welcome": "securityAlerts",
+        "ceo-welcome": "securityAlerts",
         "password-reset": "securityAlerts",
         "email-verification": "securityAlerts",
         "order-confirmation": "orderUpdates",

@@ -124,6 +124,33 @@ export class EmailTestController {
     }
   }
 
+  @Post("send-ceo-welcome")
+  @ApiOperation({ summary: "Send CEO welcome email" })
+  @ApiResponse({ status: 200, description: "CEO welcome email sent" })
+  async sendCeoWelcomeEmail(@Body() request: { to: string; name: string }) {
+    try {
+      const result = await this.emailService.sendCeoWelcomeEmail(
+        "test-user-id",
+        {
+          email: request.to,
+          name: request.name || "Valued Customer",
+        },
+      );
+
+      return {
+        success: true,
+        message: `CEO welcome email sent to ${request.to}`,
+        result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to send CEO welcome email: ${error.message}`,
+        error: error.message,
+      };
+    }
+  }
+
   @Get("templates")
   @ApiOperation({ summary: "Get available templates for testing" })
   @ApiResponse({ status: 200, description: "List of available templates" })
@@ -131,6 +158,7 @@ export class EmailTestController {
     const templates = [
       "welcome",
       "cfo-welcome",
+      "ceo-welcome",
       "password-reset",
       "email-verification",
       "order-confirmation",
@@ -163,6 +191,7 @@ export class EmailTestController {
       // Welcome and auth emails - info@
       welcome: "info",
       "cfo-welcome": "cfo",
+      "ceo-welcome": "ceo",
       "email-verification": "info",
       "password-reset": "info",
 
@@ -193,6 +222,7 @@ export class EmailTestController {
     const emailAddresses = {
       info: process.env.INFO_EMAIL || "Tiffin-Wale <info@tiffin-wale.com>",
       cfo: process.env.CFO_EMAIL || "Riya Tiwari <riya.tiwari@tiffin-wale.com>",
+      ceo: process.env.CEO_EMAIL || "Rahul Vishwakarma <admin@tiffin-wale.com>",
       sales:
         process.env.SALES_EMAIL || "Tiffin-Wale Sales <sales@tiffin-wale.com>",
       orders:
@@ -226,6 +256,7 @@ export class EmailTestController {
       "cfo-welcome": `A personal welcome from Riya Tiwari, CFO of ${
         data.appName || "Tiffin-Wale"
       }`,
+      "ceo-welcome": `Invitation to Rejoin Tiffin Wale`,
       "password-reset": `Reset Your Password - ${data.appName || "Tiffin-Wale"}`,
       "email-verification": `Verify Your Email - ${data.appName || "Tiffin-Wale"}`,
       "order-confirmation": `Order Confirmed #${

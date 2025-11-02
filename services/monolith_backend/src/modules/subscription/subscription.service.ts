@@ -330,19 +330,33 @@ export class SubscriptionService {
               });
             }
 
-            // Calculate total (delivery fee per meal)
-            totalAmount = plan.deliveryFee || 0;
+            // Add delivery fee as an item to match totalAmount validation
+            const deliveryFee = plan.deliveryFee || 0;
+            if (deliveryFee > 0) {
+              items.push({
+                mealId: "delivery-fee",
+                quantity: 1,
+                price: deliveryFee,
+                specialInstructions: `Delivery fee for ${slot.type}`,
+              });
+            }
+            // Calculate total (sum of all items)
+            totalAmount = items.reduce(
+              (sum, item) => sum + item.price * item.quantity,
+              0,
+            );
           }
 
           if (items.length === 0) {
             // Fallback: create a basic meal item
+            const deliveryFee = plan.deliveryFee || 0;
             items.push({
               mealId: "plan-meal",
               quantity: 1,
-              price: 0,
+              price: deliveryFee, // Set price to delivery fee so validation passes
               specialInstructions: `Subscription meal for ${slot.type}`,
             });
-            totalAmount = plan.deliveryFee || 0;
+            totalAmount = deliveryFee;
           }
 
           // Extract date part for deliveryDate (used by frontend for filtering)

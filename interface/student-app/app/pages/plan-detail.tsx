@@ -224,6 +224,7 @@ export default function PlanDetailScreen() {
       const totalAmount = planPrice + (plan.deliveryFee || 0);
 
       // Prepare subscription data matching backend DTO format
+      // Backend expects: customer, plan, startDate, endDate, totalAmount
       const subscriptionData = {
         customer: userId!,
         plan: plan._id, // Backend expects 'plan' not 'subscriptionPlan'
@@ -241,14 +242,16 @@ export default function PlanDetailScreen() {
       console.log('📝 Creating subscription with data:', subscriptionData);
 
       // Create subscription - using apiClient directly to match backend DTO format
-      // Note: apiClient baseURL already includes '/api', so we use '/subscriptions' not '/api/subscriptions'
+      // Note: The backend expects customer, plan, startDate, endDate, totalAmount
+      // But subscriptionApi.createSubscription expects different format, so use apiClient directly
       const { apiClient } = await import('@/lib/api/client');
       console.log('📡 Calling API to create subscription...');
       
-      const subscription = await apiClient.post('/subscriptions', subscriptionData);
+      const subscriptionResponse = await apiClient.post('/subscriptions', subscriptionData);
+      const subscription = subscriptionResponse.data;
 
-      console.log('✅ Subscription created successfully:', subscription.data);
-      const subscriptionId = subscription.data._id || subscription.data.id;
+      console.log('✅ Subscription created successfully:', subscription);
+      const subscriptionId = subscription._id;
 
       // Wait a moment for backend to process order generation
       await new Promise(resolve => setTimeout(resolve, 2000)); // Increased wait time for order generation
@@ -256,6 +259,7 @@ export default function PlanDetailScreen() {
       // Try to regenerate orders if they weren't created (as a safety measure)
       try {
         console.log('🔄 Attempting to regenerate orders for subscription:', subscriptionId);
+        const { apiClient } = await import('@/lib/api/client');
         await apiClient.post(`/subscriptions/${subscriptionId}/regenerate-orders`);
         console.log('✅ Orders regeneration triggered');
       } catch (regenerateError: any) {

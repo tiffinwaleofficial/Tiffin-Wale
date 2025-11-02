@@ -127,6 +127,7 @@ export class TemplateService {
       // Auth templates
       welcome: "./templates/emails/WelcomeEmail",
       "cfo-welcome": "./templates/emails/CfoWelcomeEmail",
+      "ceo-welcome": "./templates/emails/CeoWelcomeEmail",
       "password-reset": "./templates/emails/PasswordResetEmail",
       "password-change-confirmation":
         "./templates/emails/PasswordChangeConfirmationEmail",
@@ -249,6 +250,7 @@ export class TemplateService {
       "cfo-welcome": `A personal welcome from Riya Tiwari, CFO of ${
         data.appName || "Tiffin-Wale"
       }`,
+      "ceo-welcome": `Invitation to Rejoin Tiffin Wale`,
       "password-reset": `Reset Your Password - ${data.appName || "Tiffin-Wale"}`,
       "email-verification": `Verify Your Email - ${data.appName || "Tiffin-Wale"}`,
       "order-confirmation": `Order Confirmed #${data.order?.orderNumber || "N/A"} - ${data.appName || "Tiffin-Wale"}`,

@@ -11,7 +11,7 @@
  */
 
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
-import { tokenManager } from '@/utils/tokenManager';
+import { secureTokenManager } from '@/auth/SecureTokenManager';
 import { DeviceEventEmitter } from 'react-native';
 import { config } from '@/config';
 
@@ -54,8 +54,13 @@ apiClient.interceptors.request.use(
         return requestConfig;
       }
 
-      // Get and inject token
-      const token = await tokenManager.getAccessToken();
+      // Get and inject token from SecureTokenManager
+      // Ensure SecureTokenManager is initialized
+      if (!secureTokenManager.isInitialized) {
+        await secureTokenManager.initialize();
+      }
+      
+      const token = await secureTokenManager.getAccessToken();
       
       if (token) {
         requestConfig.headers.Authorization = `Bearer ${token}`;
@@ -98,29 +103,31 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       
       try {
-        // Attempt to refresh token
+        // Attempt to refresh token using SecureTokenManager
         if (__DEV__) console.log('🔄 API: Attempting token refresh...');
         
-        const newToken = await tokenManager.refreshAccessToken();
-        
-        if (newToken) {
-          // Retry original request with new token
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          if (__DEV__) console.log('✅ API: Token refreshed, retrying request');
-          return apiClient(originalRequest);
-        } else {
-          // Refresh failed, clear tokens and emit event
-          if (__DEV__) console.log('❌ API: Token refresh failed');
-          await tokenManager.clearTokens();
-          
-          // Emit auth error event for the app to handle (redirect to login)
-          DeviceEventEmitter.emit('auth:session-expired', {
-            message: 'Session expired. Please login again.',
-          });
+        const refreshToken = await secureTokenManager.getRefreshToken();
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
         }
+        
+        // Import auth service to refresh token
+        const { authService } = await import('@/utils/authService');
+        const response = await authService.refreshToken(refreshToken);
+        
+        // Store new tokens
+        await secureTokenManager.storeTokens({
+          accessToken: response.accessToken,
+          refreshToken: response.refreshToken,
+        });
+        
+        // Retry original request with new token
+        originalRequest.headers.Authorization = `Bearer ${response.accessToken}`;
+        if (__DEV__) console.log('✅ API: Token refreshed, retrying request');
+        return apiClient(originalRequest);
       } catch (refreshError) {
         console.error('❌ API: Token refresh error:', refreshError);
-        await tokenManager.clearTokens();
+        await secureTokenManager.clearAll();
         
         // Emit auth error event
         DeviceEventEmitter.emit('auth:session-expired', {

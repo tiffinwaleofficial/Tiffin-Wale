@@ -157,16 +157,16 @@ export default function PartnerDetailScreen() {
               <Text style={styles.businessName} numberOfLines={2}>
                 {partner.businessName}
               </Text>
-              {partner.isAcceptingOrders && (
+            {partner.isAcceptingOrders && (
                 <View style={styles.openBadge}>
                   <View style={styles.openDot} />
                   <Text style={styles.openText}>Open</Text>
-                </View>
-              )}
-            </View>
+              </View>
+            )}
+          </View>
 
             {/* Rating Highlight */}
-            {partner.averageRating && partner.averageRating > 0 ? (
+          {partner.averageRating && partner.averageRating > 0 ? (
               <View style={styles.ratingHighlight}>
                 <View style={styles.ratingBadge}>
                   <Star size={16} color="#FFF" fill="#FFF" />
@@ -174,9 +174,9 @@ export default function PartnerDetailScreen() {
                 </View>
                 <Text style={styles.reviewsText}>
                   Based on {partner.totalReviews || 0} reviews
-                </Text>
-              </View>
-            ) : (
+              </Text>
+            </View>
+          ) : (
               <View style={styles.newPartnerHighlight}>
                 <View style={styles.newBadge}>
                   <Text style={styles.newText}>New Partner</Text>
@@ -189,7 +189,7 @@ export default function PartnerDetailScreen() {
           {/* Beautiful Info Grid */}
           <View style={styles.infoGrid}>
             {/* Location Card */}
-            {partner.address && (
+          {partner.address && (
               <View style={styles.infoCard}>
                 <View style={styles.infoCardIconCircle}>
                   <MapPin size={20} color="#FF9B42" />
@@ -198,13 +198,13 @@ export default function PartnerDetailScreen() {
                   <Text style={styles.infoCardLabel}>Location</Text>
                   <Text style={styles.infoCardValue} numberOfLines={2}>
                     {partner.address.city}, {partner.address.state}
-                  </Text>
+              </Text>
                 </View>
-              </View>
-            )}
-            
+            </View>
+          )}
+
             {/* Hours Card */}
-            {partner.businessHours && (
+          {partner.businessHours && (
               <View style={[styles.infoCard, styles.hoursInfoCard]}>
                 <View style={[styles.infoCardIconCircle, styles.hoursIconCircle]}>
                   <Clock size={20} color="#10B981" />
@@ -213,10 +213,10 @@ export default function PartnerDetailScreen() {
                   <Text style={[styles.infoCardLabel, styles.hoursLabel]}>Open Hours</Text>
                   <Text style={[styles.infoCardValue, styles.hoursValue]}>
                     {partner.businessHours.open} - {partner.businessHours.close}
-                  </Text>
+              </Text>
                 </View>
-              </View>
-            )}
+            </View>
+          )}
           </View>
 
           {/* Premium Dietary Highlight */}
@@ -230,8 +230,8 @@ export default function PartnerDetailScreen() {
                 <Text style={styles.vegPremiumSubtitle}>All dishes are vegetarian</Text>
               </View>
               <Check size={24} color="#10B981" strokeWidth={3} />
-            </View>
-          )}
+              </View>
+            )}
 
           {/* Additional Dietary Options */}
           {(partner.dietaryOptions?.includes('vegan') || partner.dietaryOptions?.includes('jain')) && (
@@ -240,12 +240,12 @@ export default function PartnerDetailScreen() {
                 <View style={styles.veganMiniCard}>
                   <Leaf size={16} color="#10B981" />
                   <Text style={styles.veganMiniText}>Vegan</Text>
-                </View>
-              )}
+              </View>
+            )}
               {partner.dietaryOptions?.includes('jain') && (
                 <View style={styles.jainMiniCard}>
                   <Text style={styles.jainMiniText}>Jain Food</Text>
-                </View>
+          </View>
               )}
             </View>
           )}
@@ -257,7 +257,7 @@ export default function PartnerDetailScreen() {
             <View style={styles.statCard}>
               <View style={[styles.statIconContainer, { backgroundColor: '#FFF5E6' }]}>
                 <Users size={22} color="#FF9B42" />
-              </View>
+            </View>
               <Text style={styles.statValue}>{stats.totalCustomers || 0}</Text>
               <Text style={styles.statLabel}>Happy Customers</Text>
             </View>
@@ -265,7 +265,7 @@ export default function PartnerDetailScreen() {
             <View style={styles.statCard}>
               <View style={[styles.statIconContainer, { backgroundColor: '#ECFDF5' }]}>
                 <TrendingUp size={22} color="#10B981" />
-              </View>
+            </View>
               <Text style={styles.statValue}>{stats.totalOrders || 0}</Text>
               <Text style={styles.statLabel}>Orders Delivered</Text>
             </View>
@@ -292,7 +292,7 @@ export default function PartnerDetailScreen() {
                     styles.cuisinePill,
                     index === 0 && styles.featuredCuisinePill
                   ]}
-                >
+          >
                   <Text 
                     style={[
                       styles.cuisinePillText,
@@ -300,7 +300,7 @@ export default function PartnerDetailScreen() {
                     ]}
                   >
                     {cuisine}
-                  </Text>
+            </Text>
                 </View>
               ))}
             </View>
@@ -310,7 +310,7 @@ export default function PartnerDetailScreen() {
         {/* Modern Tabs with Better Spacing */}
         <View style={styles.tabsContainer}>
           {tabs.map((tab, index) => (
-            <TouchableOpacity
+          <TouchableOpacity
               key={tab.key}
               style={[styles.modernTab, activeTab === tab.key && styles.modernTabActive]}
               onPress={() => {
@@ -318,7 +318,7 @@ export default function PartnerDetailScreen() {
                 setActiveTabIndex(index);
                 tabScrollRef.current?.scrollToOffset({ offset: width * index, animated: true });
               }}
-            >
+          >
               <View style={styles.tabContent}>
                 {tab.icon && (
                   <tab.icon 
@@ -330,9 +330,9 @@ export default function PartnerDetailScreen() {
                 <Text style={[styles.modernTabText, activeTab === tab.key && styles.modernTabTextActive]}>
                   {tab.label}
                   {tab.key === 'plans' && plans.length > 0 && ` (${plans.length})`}
-                </Text>
+            </Text>
               </View>
-            </TouchableOpacity>
+          </TouchableOpacity>
           ))}
         </View>
 
@@ -386,7 +386,7 @@ export default function PartnerDetailScreen() {
               </View>
             )}
           </View>
-              )}
+        )}
 
               {item.key === 'about' && (
           <View style={styles.aboutContent}>
@@ -405,11 +405,11 @@ export default function PartnerDetailScreen() {
                 <TouchableOpacity style={styles.contactButton}>
                   <View style={styles.contactIconWrapper}>
                     <Phone size={18} color="#FF9B42" />
-                  </View>
+                    </View>
                   <View style={styles.contactInfo}>
                     <Text style={styles.contactLabel}>Phone</Text>
                     <Text style={styles.contactValue}>{partner.contactPhone}</Text>
-                  </View>
+                </View>
                   <ChevronRight size={20} color="#CCC" />
                 </TouchableOpacity>
               )}
@@ -417,7 +417,7 @@ export default function PartnerDetailScreen() {
                 <TouchableOpacity style={styles.contactButton}>
                   <View style={styles.contactIconWrapper}>
                     <Mail size={18} color="#FF9B42" />
-                  </View>
+              </View>
                   <View style={styles.contactInfo}>
                     <Text style={styles.contactLabel}>Email</Text>
                     <Text style={styles.contactValue}>{partner.contactEmail}</Text>
@@ -429,15 +429,15 @@ export default function PartnerDetailScreen() {
                 <View style={styles.contactButton}>
                   <View style={styles.contactIconWrapper}>
                     <MapPin size={18} color="#FF9B42" />
-                  </View>
+                    </View>
                   <View style={styles.contactInfo}>
                     <Text style={styles.contactLabel}>Address</Text>
                     <Text style={styles.contactValue}>
                       {partner.address.street}, {partner.address.city}, {partner.address.state} - {partner.address.postalCode}
                     </Text>
-                  </View>
                 </View>
-              )}
+              </View>
+            )}
             </View>
 
             {/* Delivery Info Card */}
@@ -453,7 +453,7 @@ export default function PartnerDetailScreen() {
               </View>
             )}
           </View>
-              )}
+        )}
 
               {item.key === 'reviews' && (
           <View style={styles.reviewsContent}>
@@ -467,7 +467,7 @@ export default function PartnerDetailScreen() {
               </Text>
             </View>
           </View>
-              )}
+        )}
             </View>
           )}
         />

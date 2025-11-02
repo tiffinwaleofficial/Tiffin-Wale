@@ -134,11 +134,27 @@ export default function MealDetailScreen() {
 
       // Update order with extras using PATCH endpoint
       const { apiClient } = await import('@/lib/api/client');
-      await apiClient.patch(`/orders/${orderId}`, {
+      
+      // Get existing delivery instructions if any
+      const existingInstructions = order.deliveryInstructions || '';
+      const extrasDescription = `Extras requested: ${selectedExtras.map(e => `${e.quantity}x ${e.name}`).join(', ')}`;
+      const combinedInstructions = [
+        existingInstructions,
+        extrasDescription,
+        specialInstructions.trim()
+      ].filter(Boolean).join('. ');
+      
+      const updatePayload = {
         items: updatedItems,
         totalAmount: itemsTotal,
-        specialInstructions: `Extras requested: ${selectedExtras.map(e => `${e.quantity}x ${e.name}`).join(', ')}. ${specialInstructions.trim() || 'No special instructions'}`,
-      });
+        deliveryInstructions: combinedInstructions,
+      };
+
+      console.log('📝 Updating order with extras:', updatePayload);
+      
+      const response = await apiClient.patch(`/orders/${orderId}`, updatePayload);
+      
+      console.log('✅ Order updated successfully:', response.data);
 
       // Show success notification
       notificationActions.showNotification({

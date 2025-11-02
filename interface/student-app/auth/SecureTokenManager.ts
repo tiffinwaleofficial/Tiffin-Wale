@@ -11,7 +11,11 @@ const AUTH_STATE_KEY = 'secure_auth_state';
 
 class SecureTokenManager {
   private accessToken: string | null = null; // Keep in memory only
-  private isInitialized = false;
+  private _isInitialized = false;
+  
+  get isInitialized(): boolean {
+    return this._isInitialized;
+  }
 
   /**
    * Platform-aware secure storage methods
@@ -50,16 +54,16 @@ class SecureTokenManager {
    * Initialize the token manager by loading tokens from secure storage
    */
   async initialize(): Promise<void> {
-    if (this.isInitialized) return;
+    if (this._isInitialized) return;
 
     try {
       // Load access token into memory (if exists)
       this.accessToken = await this.getSecureItem(ACCESS_TOKEN_KEY);
-      this.isInitialized = true;
+      this._isInitialized = true;
       if (__DEV__) console.log('🔐 SecureTokenManager: Initialized successfully', Platform.OS === 'web' ? '(using AsyncStorage for web)' : '(using SecureStore)');
     } catch (error) {
       console.error('❌ SecureTokenManager: Initialization failed:', error);
-      this.isInitialized = true; // Mark as initialized even if failed
+      this._isInitialized = true; // Mark as initialized even if failed
     }
   }
 
@@ -86,7 +90,7 @@ class SecureTokenManager {
    * Get access token (from memory first, fallback to secure storage)
    */
   async getAccessToken(): Promise<string | null> {
-    if (!this.isInitialized) {
+    if (!this._isInitialized) {
       await this.initialize();
     }
 
