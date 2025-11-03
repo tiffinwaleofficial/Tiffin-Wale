@@ -13,12 +13,15 @@ import { CreateSubscriptionDto } from "./dto/create-subscription.dto";
 import { UpdateSubscriptionDto } from "./dto/update-subscription.dto";
 import { EmailService } from "../email/email.service";
 import { OrderService } from "../order/order.service";
+import { Order } from "../order/schemas/order.schema";
 
 @Injectable()
 export class SubscriptionService {
   constructor(
     @InjectModel(Subscription.name)
     private readonly subscriptionModel: Model<Subscription>,
+    @InjectModel(Order.name)
+    private readonly orderModel: Model<Order>,
     private readonly emailService: EmailService,
     private readonly orderService: OrderService,
   ) {}
@@ -384,59 +387,38 @@ export class SubscriptionService {
         currentDate.setDate(currentDate.getDate() + 1);
       }
 
-      // Create orders in batches (to avoid overwhelming the system)
-      console.log(
-        `📦 SubscriptionService: Generating ${ordersToCreate.length} orders for subscription ${subscription._id}`,
-      );
-
       if (ordersToCreate.length === 0) {
-        console.warn(
-          "⚠️ SubscriptionService: No orders to create! Check subscription dates and operational days.",
-        );
         return;
       }
 
-      let successCount = 0;
-      let failCount = 0;
-
       for (let i = 0; i < ordersToCreate.length; i++) {
         const orderData = ordersToCreate[i];
+
+        const orderDeliveryDate = orderData.deliveryDate
+          ? new Date(orderData.deliveryDate)
+          : new Date(orderData.scheduledDeliveryTime);
+        orderDeliveryDate.setHours(0, 0, 0, 0);
+
+        const existingOrder = await this.orderModel.findOne({
+          subscription: subscription._id,
+          deliveryDate: {
+            $gte: orderDeliveryDate,
+            $lt: new Date(orderDeliveryDate.getTime() + 24 * 60 * 60 * 1000),
+          },
+          mealType: orderData.mealType,
+          status: { $ne: "cancelled" },
+        });
+
+        if (existingOrder) {
+          continue;
+        }
+
         try {
-          console.log(
-            `📦 SubscriptionService: Creating order ${i + 1}/${ordersToCreate.length} for ${orderData.scheduledDeliveryTime}`,
-          );
-          const createdOrder = await this.orderService.create(orderData as any);
-          console.log(
-            `✅ SubscriptionService: Order created successfully:`,
-            createdOrder._id,
-          );
-          successCount++;
+          await this.orderService.create(orderData as any);
         } catch (error: any) {
-          console.error(
-            `❌ SubscriptionService: Failed to create order for ${orderData.scheduledDeliveryTime}:`,
-            error.message || error,
-          );
-          console.error(
-            `❌ SubscriptionService: Order data that failed:`,
-            JSON.stringify(orderData, null, 2),
-          );
-          failCount++;
-          // Continue with other orders even if one fails
         }
       }
-
-      console.log(
-        `✅ SubscriptionService: Order generation complete for subscription ${subscription._id}. Success: ${successCount}, Failed: ${failCount}`,
-      );
     } catch (error: any) {
-      console.error(
-        "❌ SubscriptionService: Error generating subscription orders:",
-        error,
-      );
-      console.error("❌ SubscriptionService: Error message:", error.message);
-      console.error("❌ SubscriptionService: Error stack:", error.stack);
-      // Don't throw - subscription creation should still succeed even if order generation fails
-      // Error is already logged above for debugging
     }
   }
 

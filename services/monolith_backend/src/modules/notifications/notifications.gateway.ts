@@ -275,6 +275,8 @@ export class NotificationsGateway
         timestamp: new Date().toISOString(),
       };
 
+      const orderRoom = `order_${orderData.orderId}`;
+
       if (userClient) {
         userClient.emit("orderStatusUpdate", orderStatusUpdate);
       }
@@ -282,6 +284,15 @@ export class NotificationsGateway
       if (partnerClient) {
         partnerClient.emit("orderStatusUpdate", orderStatusUpdate);
       }
+
+      this.server.to(orderRoom).emit("order_update", {
+        orderId: orderData.orderId,
+        status: orderData.status,
+        message: orderData.message,
+        estimatedTime: orderData.estimatedTime,
+        location: orderData.location,
+        timestamp: new Date().toISOString(),
+      });
 
       this.logger.log(
         `Order status updated via Motia stream and WebSocket: ${orderData.orderId}`,

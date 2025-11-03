@@ -24,6 +24,8 @@ import { UpdatePartnerStatusDto } from "./dto/update-partner-status.dto";
 import { UpdatePartnerDto } from "./dto/update-partner.dto";
 import { UpdateCustomerStatusDto } from "./dto/update-customer-status.dto";
 import { UpdateCustomerProfileDto } from "../customer/dto/update-customer-profile.dto";
+import { CreatePartnerDto } from "../partner/dto/create-partner.dto";
+import { CreateNotificationDto } from "../notifications/notifications.service";
 
 @ApiTags("Super Admin")
 @ApiBearerAuth()
@@ -383,5 +385,343 @@ export class SuperAdminController {
   })
   getEarnings(@Query("period") period: string = "month") {
     return this.superAdminService.getEarningsData(period);
+  }
+
+  // Partner Management - Create
+  @Post("partners")
+  @ApiOperation({ summary: "Create a new partner" })
+  @ApiResponse({ status: 201, description: "Partner created successfully" })
+  @ApiResponse({ status: 400, description: "Bad request" })
+  createPartner(@Body() createPartnerDto: CreatePartnerDto) {
+    return this.superAdminService.createPartner(createPartnerDto);
+  }
+
+  // Revenue & Payouts Management
+  @Get("revenue/stats")
+  @ApiOperation({ summary: "Get revenue statistics" })
+  @ApiResponse({ status: 200, description: "Revenue stats retrieved successfully" })
+  getRevenueStats() {
+    return this.superAdminService.getRevenueStats();
+  }
+
+  @Get("payouts")
+  @ApiOperation({ summary: "Get all payouts" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiQuery({ name: "status", required: false, type: String })
+  @ApiResponse({ status: 200, description: "Payouts retrieved successfully" })
+  getAllPayouts(
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10,
+    @Query("status") status: string,
+  ) {
+    return this.superAdminService.getAllPayouts(
+      Number(page),
+      Number(limit),
+      status,
+    );
+  }
+
+  @Get("payouts/:id")
+  @ApiOperation({ summary: "Get payout by ID" })
+  @ApiResponse({ status: 200, description: "Payout retrieved successfully" })
+  @ApiResponse({ status: 404, description: "Payout not found" })
+  getPayoutById(@Param("id") id: string) {
+    return this.superAdminService.getPayoutById(id);
+  }
+
+  @Patch("payouts/:id/status")
+  @ApiOperation({ summary: "Update payout status" })
+  @ApiResponse({
+    status: 200,
+    description: "Payout status updated successfully",
+  })
+  @ApiResponse({ status: 404, description: "Payout not found" })
+  updatePayoutStatus(
+    @Param("id") id: string,
+    @Body() body: { status: string },
+  ) {
+    return this.superAdminService.updatePayoutStatus(id, body.status);
+  }
+
+  // User Management
+  @Get("users")
+  @ApiOperation({ summary: "Get all users" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiResponse({ status: 200, description: "Users retrieved successfully" })
+  getAllUsers(
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10,
+  ) {
+    return this.superAdminService.getAllUsers(Number(page), Number(limit));
+  }
+
+  @Get("users/:id")
+  @ApiOperation({ summary: "Get user by ID" })
+  @ApiResponse({ status: 200, description: "User retrieved successfully" })
+  @ApiResponse({ status: 404, description: "User not found" })
+  getUserById(@Param("id") id: string) {
+    return this.superAdminService.getUserById(id);
+  }
+
+  @Patch("users/:id")
+  @ApiOperation({ summary: "Update a user" })
+  @ApiResponse({ status: 200, description: "User updated successfully" })
+  @ApiResponse({ status: 404, description: "User not found" })
+  updateUser(@Param("id") id: string, @Body() updateData: any) {
+    return this.superAdminService.updateUser(id, updateData);
+  }
+
+  @Delete("users/:id")
+  @ApiOperation({ summary: "Delete a user" })
+  @ApiResponse({ status: 200, description: "User deleted successfully" })
+  @ApiResponse({ status: 404, description: "User not found" })
+  deleteUser(@Param("id") id: string) {
+    return this.superAdminService.deleteUser(id);
+  }
+
+  // System Config Management
+  @Get("system/config")
+  @ApiOperation({ summary: "Get system configuration" })
+  @ApiResponse({
+    status: 200,
+    description: "System configuration retrieved successfully",
+  })
+  getSystemConfig() {
+    return this.superAdminService.getSystemConfig();
+  }
+
+  @Patch("system/config")
+  @ApiOperation({ summary: "Update system configuration" })
+  @ApiResponse({
+    status: 200,
+    description: "System configuration updated successfully",
+  })
+  updateSystemConfig(@Body() updates: any) {
+    return this.superAdminService.updateSystemConfig(updates);
+  }
+
+  @Get("system/stats")
+  @ApiOperation({ summary: "Get system statistics" })
+  @ApiResponse({
+    status: 200,
+    description: "System statistics retrieved successfully",
+  })
+  getSystemStats() {
+    return this.superAdminService.getSystemStats();
+  }
+
+  // Notifications Management
+  @Post("notifications")
+  @ApiOperation({ summary: "Broadcast notification" })
+  @ApiResponse({
+    status: 201,
+    description: "Notification broadcasted successfully",
+  })
+  broadcastNotification(@Body() dto: CreateNotificationDto) {
+    return this.superAdminService.broadcastNotification(dto);
+  }
+
+  @Get("notifications")
+  @ApiOperation({ summary: "Get all notifications" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiResponse({ status: 200, description: "Notifications retrieved successfully" })
+  getAllNotifications(
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10,
+  ) {
+    return this.superAdminService.getAllNotifications(Number(page), Number(limit));
+  }
+
+  @Get("notifications/user/:userId")
+  @ApiOperation({ summary: "Get notifications for a user" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiResponse({
+    status: 200,
+    description: "User notifications retrieved successfully",
+  })
+  getUserNotifications(
+    @Param("userId") userId: string,
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10,
+  ) {
+    return this.superAdminService.getUserNotifications(
+      userId,
+      Number(page),
+      Number(limit),
+    );
+  }
+
+  @Patch("notifications/:id/read")
+  @ApiOperation({ summary: "Mark notification as read" })
+  @ApiResponse({
+    status: 200,
+    description: "Notification marked as read successfully",
+  })
+  markNotificationRead(@Param("id") id: string) {
+    return this.superAdminService.markNotificationRead(id);
+  }
+
+  @Delete("notifications/:id")
+  @ApiOperation({ summary: "Delete a notification" })
+  @ApiResponse({ status: 200, description: "Notification deleted successfully" })
+  deleteNotification(@Param("id") id: string) {
+    return this.superAdminService.deleteNotification(id);
+  }
+
+  // Feedback Management
+  @Get("feedback")
+  @ApiOperation({ summary: "Get all feedback" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiQuery({ name: "type", required: false, type: String })
+  @ApiQuery({ name: "category", required: false, type: String })
+  @ApiQuery({ name: "priority", required: false, type: String })
+  @ApiQuery({ name: "status", required: false, type: String })
+  @ApiQuery({ name: "isResolved", required: false, type: Boolean })
+  @ApiQuery({ name: "search", required: false, type: String })
+  @ApiResponse({ status: 200, description: "Feedback retrieved successfully" })
+  getAllFeedback(
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10,
+    @Query("type") type: string,
+    @Query("category") category: string,
+    @Query("priority") priority: string,
+    @Query("status") status: string,
+    @Query("isResolved") isResolved: string,
+    @Query("search") search: string,
+  ) {
+    return this.superAdminService.getAllFeedback(Number(page), Number(limit), {
+      type,
+      category,
+      priority,
+      status,
+      isResolved: isResolved === "true" ? true : isResolved === "false" ? false : undefined,
+      search,
+    });
+  }
+
+  @Get("feedback/:id")
+  @ApiOperation({ summary: "Get feedback by ID" })
+  @ApiResponse({ status: 200, description: "Feedback retrieved successfully" })
+  @ApiResponse({ status: 404, description: "Feedback not found" })
+  getFeedbackById(@Param("id") id: string) {
+    return this.superAdminService.getFeedbackById(id);
+  }
+
+  @Patch("feedback/:id/response")
+  @ApiOperation({ summary: "Update feedback response" })
+  @ApiResponse({
+    status: 200,
+    description: "Feedback response updated successfully",
+  })
+  @ApiResponse({ status: 404, description: "Feedback not found" })
+  updateFeedbackResponse(
+    @Param("id") id: string,
+    @Body() body: { response: string },
+  ) {
+    return this.superAdminService.updateFeedbackResponse(id, body.response);
+  }
+
+  @Get("feedback/user/:userId")
+  @ApiOperation({ summary: "Get feedback by user ID" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiResponse({
+    status: 200,
+    description: "User feedback retrieved successfully",
+  })
+  getFeedbackByUser(
+    @Param("userId") userId: string,
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10,
+  ) {
+    return this.superAdminService.getFeedbackByUser(
+      userId,
+      Number(page),
+      Number(limit),
+    );
+  }
+
+  @Get("feedback/partner/:partnerId")
+  @ApiOperation({ summary: "Get feedback by partner ID" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiResponse({
+    status: 200,
+    description: "Partner feedback retrieved successfully",
+  })
+  getFeedbackByPartner(
+    @Param("partnerId") partnerId: string,
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10,
+  ) {
+    return this.superAdminService.getFeedbackByPartner(
+      partnerId,
+      Number(page),
+      Number(limit),
+    );
+  }
+
+  // Payments Management
+  @Get("payments/history")
+  @ApiOperation({ summary: "Get payment history" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiQuery({ name: "status", required: false, type: String })
+  @ApiQuery({ name: "type", required: false, type: String })
+  @ApiQuery({ name: "customerId", required: false, type: String })
+  @ApiResponse({ status: 200, description: "Payment history retrieved successfully" })
+  getPaymentHistory(
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10,
+    @Query("status") status: string,
+    @Query("type") type: string,
+    @Query("customerId") customerId: string,
+  ) {
+    return this.superAdminService.getPaymentHistory(Number(page), Number(limit), {
+      status,
+      type,
+      customerId,
+    });
+  }
+
+  @Get("payments/:id")
+  @ApiOperation({ summary: "Get payment by ID" })
+  @ApiResponse({ status: 200, description: "Payment retrieved successfully" })
+  @ApiResponse({ status: 404, description: "Payment not found" })
+  getPaymentById(@Param("id") id: string) {
+    return this.superAdminService.getPaymentById(id);
+  }
+
+  @Get("payments/order/:orderId")
+  @ApiOperation({ summary: "Get payments by order ID" })
+  @ApiResponse({
+    status: 200,
+    description: "Payments for order retrieved successfully",
+  })
+  getPaymentByOrderId(@Param("orderId") orderId: string) {
+    return this.superAdminService.getPaymentByOrderId(orderId);
+  }
+
+  @Post("payments/verify/:paymentId")
+  @ApiOperation({ summary: "Verify a payment" })
+  @ApiResponse({ status: 200, description: "Payment verified successfully" })
+  @ApiResponse({ status: 404, description: "Payment not found" })
+  verifyPayment(@Param("paymentId") paymentId: string) {
+    return this.superAdminService.verifyPayment(paymentId);
+  }
+
+  @Get("payments/dashboard")
+  @ApiOperation({ summary: "Get payment dashboard statistics" })
+  @ApiResponse({
+    status: 200,
+    description: "Payment dashboard stats retrieved successfully",
+  })
+  getPaymentDashboard() {
+    return this.superAdminService.getPaymentDashboard();
   }
 }

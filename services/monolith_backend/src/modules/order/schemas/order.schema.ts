@@ -116,3 +116,9 @@ export class Order extends Document {
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);
+
+// Create compound indexes for efficient queries
+OrderSchema.index({ subscription: 1, deliveryDate: 1, mealType: 1 });
+OrderSchema.index({ businessPartner: 1, deliveryDate: 1, status: 1 });
+OrderSchema.index({ customer: 1, deliveryDate: -1 });
+OrderSchema.index({ subscription: 1, status: 1 });

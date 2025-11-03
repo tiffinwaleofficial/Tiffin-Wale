@@ -122,7 +122,15 @@ export const useOrderStore = create<OrderState & OrderActions>()(
       fetchTodayOrders: async () => {
         try {
           const response = await api.orders.getTodayOrders();
-          set({ todayOrders: response.orders });
+          set({ 
+            todayOrders: response.orders,
+            todayStats: response.stats ? {
+              totalOrders: response.stats.total || 0,
+              pendingOrders: response.stats.pending || 0,
+              completedOrders: response.stats.completed || response.stats.delivered || 0,
+              totalRevenue: 0, // Will be calculated separately
+            } : null
+          });
         } catch (error: any) {
           console.error('Fetch today orders error:', error);
           // Don't set error for background fetches

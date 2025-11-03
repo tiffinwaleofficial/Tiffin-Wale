@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, ActivityIndicator } from 'react-native';
 import { Calendar, Star, ChevronRight, Plus, ShoppingBag, Package, Clock, Truck } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -8,6 +8,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { OrderCard } from '@/components/OrderCard';
 import { useTranslation } from '@/hooks/useTranslation';
 import { api, Order, OrderStatus } from '@/lib/api';
+import { nativeWebSocketService } from '@/services/nativeWebSocketService';
 
 export default function OrdersScreen() {
   const router = useRouter();
@@ -21,43 +22,109 @@ export default function OrdersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'today' | 'upcoming' | 'past'>('today');
 
-  // Fetch orders on mount
+  const ordersMapRef = useRef<Map<string, Order>>(new Map());
+
+  // Fetch orders on mount only
   useEffect(() => {
-    fetchAllOrders();
+    fetchAllOrders(false); // Use cache on mount
   }, []);
 
+  // Refresh only when screen comes into focus after being away
   useFocusEffect(
     useCallback(() => {
-      fetchAllOrders();
+      // Only refresh if data might be stale (not on initial mount)
+      const timer = setTimeout(() => {
+        fetchAllOrders(true); // Force refresh when screen focused
+      }, 300); // Small delay to avoid double fetch
+      return () => clearTimeout(timer);
     }, [])
   );
 
-  const fetchAllOrders = async () => {
+  // Setup WebSocket for real-time order updates
+  useEffect(() => {
+    const handleOrderUpdate = (data: any) => {
+      if (__DEV__) console.log('📡 Orders page: Real-time order update:', data);
+      
+      // Handle both string and ObjectId comparison
+      const orderIdString = typeof data.orderId === 'string' ? data.orderId : String(data.orderId);
+      
+      // Update order in state if it exists
+      setTodayOrders(prevOrders => 
+        prevOrders.map(order => {
+          const currentOrderId = typeof order._id === 'string' ? order._id : String(order._id);
+          return currentOrderId === orderIdString
+            ? { ...order, status: data.status as OrderStatus }
+            : order;
+        })
+      );
+      
+      setUpcomingOrders(prevOrders => 
+        prevOrders.map(order => {
+          const currentOrderId = typeof order._id === 'string' ? order._id : String(order._id);
+          return currentOrderId === orderIdString
+            ? { ...order, status: data.status as OrderStatus }
+            : order;
+        })
+      );
+      
+      setPastOrders(prevOrders => 
+        prevOrders.map(order => {
+          const currentOrderId = typeof order._id === 'string' ? order._id : String(order._id);
+          return currentOrderId === orderIdString
+            ? { ...order, status: data.status as OrderStatus }
+            : order;
+        })
+      );
+    };
+
+    nativeWebSocketService.on('order_update', handleOrderUpdate);
+
+    return () => {
+      nativeWebSocketService.off('order_update', handleOrderUpdate);
+    };
+  }, []);
+
+  // Join order rooms when orders are loaded
+  useEffect(() => {
+    const allOrderIds = [
+      ...todayOrders.map(o => typeof o._id === 'string' ? o._id : String(o._id)),
+      ...upcomingOrders.map(o => typeof o._id === 'string' ? o._id : String(o._id)),
+      ...pastOrders.map(o => typeof o._id === 'string' ? o._id : String(o._id)),
+    ].filter(Boolean) as string[];
+
+    allOrderIds.forEach(orderId => {
+      nativeWebSocketService.joinOrderRoom(orderId);
+    });
+
+    return () => {
+      allOrderIds.forEach(orderId => {
+        nativeWebSocketService.leaveOrderRoom(orderId);
+      });
+    };
+  }, [todayOrders, upcomingOrders, pastOrders]);
+
+  const fetchAllOrders = async (forceRefresh = false) => {
     try {
-      setLoading(true);
-      // Use cached data first, then refresh in background
+      if (!forceRefresh) {
+        // On initial load, show cached data immediately if available
+        setLoading(true);
+      }
+      
+      // Single API call - no duplicates
       const [todayData, upcomingData, pastData] = await Promise.all([
-        api.orders.getTodaysOrders(false), // Use cache first
-        api.orders.getUpcomingOrders(false), // Use cache first
-        api.orders.getPastOrders(1, 10, false), // Use cache first
+        api.orders.getTodaysOrders(forceRefresh),
+        api.orders.getUpcomingOrders(forceRefresh),
+        api.orders.getPastOrders(1, 10, forceRefresh),
       ]);
+      
       setTodayOrders(todayData);
       setUpcomingOrders(upcomingData);
       setPastOrders(pastData.orders);
-      
-      // Refresh in background for fresh data
-      Promise.all([
-        api.orders.getTodaysOrders(true), // Force refresh
-        api.orders.getUpcomingOrders(true), // Force refresh
-        api.orders.getPastOrders(1, 10, true), // Force refresh
-      ]).then(([todayRefresh, upcomingRefresh, pastRefresh]) => {
-        setTodayOrders(todayRefresh);
-        setUpcomingOrders(upcomingRefresh);
-        setPastOrders(pastRefresh.orders);
-      }).catch(err => console.error('Background refresh failed:', err));
     } catch (error: any) {
       console.error('Failed to fetch orders:', error);
-      Alert.alert('Error', 'Failed to load orders');
+      if (forceRefresh) {
+        Alert.alert('Error', 'Failed to refresh orders');
+      }
     } finally {
       setLoading(false);
     }

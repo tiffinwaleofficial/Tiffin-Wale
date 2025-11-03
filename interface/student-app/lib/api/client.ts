@@ -121,10 +121,10 @@ apiClient.interceptors.response.use(
           refreshToken: response.refreshToken,
         });
         
-        // Retry original request with new token
+          // Retry original request with new token
         originalRequest.headers.Authorization = `Bearer ${response.accessToken}`;
-        if (__DEV__) console.log('✅ API: Token refreshed, retrying request');
-        return apiClient(originalRequest);
+          if (__DEV__) console.log('✅ API: Token refreshed, retrying request');
+          return apiClient(originalRequest);
       } catch (refreshError) {
         console.error('❌ API: Token refresh error:', refreshError);
         await secureTokenManager.clearAll();

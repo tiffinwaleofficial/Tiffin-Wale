@@ -77,3 +77,5 @@ Add the following to your Cursor settings (`%APPDATA%\Cursor\User\settings.json`
 
 
 
+
+

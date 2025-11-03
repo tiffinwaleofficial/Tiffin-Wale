@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { MongooseModule } from "@nestjs/mongoose";
 import { SuperAdminController } from "./super-admin.controller";
 import { SuperAdminService } from "./super-admin.service";
 import { PartnerModule } from "../partner/partner.module";
@@ -8,9 +9,21 @@ import { SubscriptionModule } from "../subscription/subscription.module";
 import { SubscriptionPlanModule } from "../subscription-plan/subscription-plan.module";
 import { SupportModule } from "../support/support.module";
 import { MenuModule } from "../menu/menu.module";
+import { NotificationsModule } from "../notifications/notifications.module";
+import { FeedbackModule } from "../feedback/feedback.module";
+import { PaymentModule } from "../payment/payment.module";
+import { UserModule } from "../user/user.module";
+import { AdminModule } from "../admin/admin.module";
+import { SystemModule } from "../system/system.module";
+import { Payment, PaymentSchema } from "../payment/schemas/payment.schema";
+import { Partner, PartnerSchema } from "../partner/schemas/partner.schema";
 
 @Module({
   imports: [
+    MongooseModule.forFeature([
+      { name: Payment.name, schema: PaymentSchema },
+      { name: Partner.name, schema: PartnerSchema },
+    ]),
     PartnerModule,
     CustomerModule,
     OrderModule,
@@ -18,6 +31,12 @@ import { MenuModule } from "../menu/menu.module";
     SubscriptionPlanModule,
     SupportModule,
     MenuModule,
+    NotificationsModule,
+    FeedbackModule,
+    PaymentModule,
+    UserModule,
+    AdminModule,
+    SystemModule,
   ],
   controllers: [SuperAdminController],
   providers: [SuperAdminService],

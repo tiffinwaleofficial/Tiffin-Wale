@@ -1,3 +1,0 @@
-dispatch:
-  - url: "admin.tiffin-wale.com/*"
-    service: super-admin-web 

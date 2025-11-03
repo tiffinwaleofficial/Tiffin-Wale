@@ -13,6 +13,7 @@ import { User, Settings, LogOut, MapPin, CreditCard, Bell, CircleHelp as HelpCir
 import { useRouter } from 'expo-router';
 import { usePartnerStore } from '../../store/partnerStore';
 import { useAuthStore } from '../../store/authStore';
+import { api } from '../../lib/api';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -44,7 +45,6 @@ export default function ProfileScreen() {
     setUpdatingNotifications(true);
 
     try {
-      const { api } = await import('../../lib/api');
       await api.partner.updateNotificationPreferences({
         pushEnabled: value,
       });

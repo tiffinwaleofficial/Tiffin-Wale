@@ -19,6 +19,8 @@ import { ReadyOrderDto } from "./dto/ready-order.dto";
 import { EmailService } from "../email/email.service";
 import { RedisService } from "../redis/redis.service";
 import { NotificationsGateway } from "../notifications/notifications.gateway";
+import { NativeWebSocketGateway } from "../notifications/native-websocket.gateway";
+import { PartnerService } from "../partner/partner.service";
 
 @Injectable()
 export class OrderService {
@@ -27,6 +29,8 @@ export class OrderService {
     private readonly emailService: EmailService,
     private readonly redisService: RedisService,
     private readonly notificationsGateway: NotificationsGateway,
+    private readonly nativeWebSocketGateway: NativeWebSocketGateway,
+    private readonly partnerService: PartnerService,
   ) {}
 
   async create(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -343,7 +347,7 @@ export class OrderService {
         .findByIdAndUpdate(id, { status }, { new: true })
         .exec();
 
-      // Update order status via Motia stream and WebSocket
+      // Update order status via Motia stream and WebSocket (Socket.io)
       await this.notificationsGateway.updateOrderStatusViaMotia({
         orderId: id,
         status: status as any,
@@ -351,6 +355,25 @@ export class OrderService {
         partnerId: updatedOrder.businessPartner.toString(),
         message: `Order status updated to ${status}`,
       });
+
+      // Also broadcast via native WebSocket gateway (for student app)
+      await this.nativeWebSocketGateway.broadcastOrderUpdate(id, {
+        status: status,
+        message: `Order status updated to ${status}`,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Update outForDeliveryAt timestamp if status is OUT_FOR_DELIVERY
+      if (
+        status === OrderStatus.OUT_FOR_DELIVERY &&
+        !updatedOrder.outForDeliveryAt
+      ) {
+        await this.orderModel
+          .findByIdAndUpdate(id, {
+            outForDeliveryAt: new Date(),
+          })
+          .exec();
+      }
 
       return updatedOrder;
     } catch (error) {
@@ -464,10 +487,21 @@ export class OrderService {
   ): boolean {
     // Define valid transitions
     const validTransitions = {
-      [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
+      [OrderStatus.PENDING]: [
+        OrderStatus.CONFIRMED,
+        OrderStatus.PREPARING,
+        OrderStatus.CANCELLED,
+      ],
       [OrderStatus.CONFIRMED]: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
       [OrderStatus.PREPARING]: [OrderStatus.READY, OrderStatus.CANCELLED],
-      [OrderStatus.READY]: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
+      [OrderStatus.READY]: [
+        OrderStatus.OUT_FOR_DELIVERY,
+        OrderStatus.CANCELLED,
+      ],
+      [OrderStatus.OUT_FOR_DELIVERY]: [
+        OrderStatus.DELIVERED,
+        OrderStatus.CANCELLED,
+      ],
       [OrderStatus.DELIVERED]: [], // Terminal state
       [OrderStatus.CANCELLED]: [], // Terminal state
     };
@@ -550,7 +584,7 @@ export class OrderService {
         .findByIdAndUpdate(orderId, updateData, { new: true })
         .exec();
 
-      // Send real-time notification via WebSocket
+      // Send real-time notification via WebSocket (Socket.io for web/legacy)
       await this.notificationsGateway.updateOrderStatusViaMotia({
         orderId,
         status: "confirmed",
@@ -563,6 +597,20 @@ export class OrderService {
               ? ` and will be ready in ${acceptOrderDto.estimatedTime} minutes`
               : ""
           }`,
+        estimatedTime: acceptOrderDto.estimatedTime,
+      });
+
+      // Broadcast via native WebSocket for React Native/Expo apps
+      await this.nativeWebSocketGateway.broadcastOrderUpdate(orderId, {
+        status: OrderStatus.CONFIRMED,
+        message:
+          acceptOrderDto.message ||
+          `Your order has been accepted${
+            acceptOrderDto.estimatedTime
+              ? ` and will be ready in ${acceptOrderDto.estimatedTime} minutes`
+              : ""
+          }`,
+        timestamp: new Date().toISOString(),
         estimatedTime: acceptOrderDto.estimatedTime,
       });
 
@@ -614,7 +662,7 @@ export class OrderService {
         .findByIdAndUpdate(orderId, updateData, { new: true })
         .exec();
 
-      // Send real-time notification via WebSocket
+      // Send real-time notification via WebSocket (Socket.io for web/legacy)
       await this.notificationsGateway.updateOrderStatusViaMotia({
         orderId,
         status: "cancelled",
@@ -623,6 +671,15 @@ export class OrderService {
         message:
           rejectOrderDto.message ||
           `Your order has been rejected. Reason: ${rejectOrderDto.reason}`,
+      });
+
+      // Broadcast via native WebSocket for React Native/Expo apps
+      await this.nativeWebSocketGateway.broadcastOrderUpdate(orderId, {
+        status: OrderStatus.CANCELLED,
+        message:
+          rejectOrderDto.message ||
+          `Your order has been rejected. Reason: ${rejectOrderDto.reason}`,
+        timestamp: new Date().toISOString(),
       });
 
       return updatedOrder;
@@ -640,13 +697,44 @@ export class OrderService {
   async markOrderReady(
     orderId: string,
     readyOrderDto: ReadyOrderDto,
-    partnerId: string,
+    userId: string, // This is the user ID from JWT
   ): Promise<Order> {
     try {
       const order = await this.findById(orderId);
 
-      // Validate that the order belongs to this partner
-      if (order.businessPartner.toString() !== partnerId) {
+      // Get order's businessPartner ID (could be User ID or Partner ID)
+      const orderBusinessPartnerId =
+        typeof order.businessPartner === "object"
+          ? order.businessPartner._id?.toString() ||
+            order.businessPartner.toString()
+          : order.businessPartner.toString();
+
+      // Get the partner document for the authenticated user
+      let partner;
+      try {
+        partner = await this.partnerService.findByUserId(userId);
+      } catch (error) {
+        throw new BadRequestException(
+          "Partner account not found for this user",
+        );
+      }
+
+      // The order's businessPartner might be stored as:
+      // 1. User ID (matches userId directly)
+      // 2. Partner ID (matches partner._id)
+      // Check both cases
+      const partnerIdString = partner._id.toString();
+      const partnerUserIdString =
+        typeof partner.user === "object"
+          ? partner.user._id.toString()
+          : partner.user.toString();
+
+      // Validate: order must belong to this partner
+      // Check if order.businessPartner matches either partner._id or partner.user._id
+      if (
+        orderBusinessPartnerId !== partnerIdString &&
+        orderBusinessPartnerId !== partnerUserIdString
+      ) {
         throw new BadRequestException(
           "You can only mark orders ready for your restaurant",
         );
@@ -675,12 +763,13 @@ export class OrderService {
         .findByIdAndUpdate(orderId, updateData, { new: true })
         .exec();
 
-      // Send real-time notification via WebSocket
+      // Send real-time notification via WebSocket (Socket.io for web/legacy)
+      const partnerIdForNotification = partner._id.toString();
       await this.notificationsGateway.updateOrderStatusViaMotia({
         orderId,
         status: "ready",
         userId: updatedOrder.customer.toString(),
-        partnerId,
+        partnerId: partnerIdForNotification,
         message:
           readyOrderDto.message ||
           `Your order is ready for pickup${
@@ -689,6 +778,20 @@ export class OrderService {
               : ""
           }`,
         estimatedTime: readyOrderDto.estimatedPickupTime,
+      });
+
+      // Broadcast via native WebSocket for React Native/Expo apps
+      await this.nativeWebSocketGateway.broadcastOrderUpdate(orderId, {
+        status: OrderStatus.READY,
+        message:
+          readyOrderDto.message ||
+          `Your order is ready for pickup${
+            readyOrderDto.estimatedPickupTime
+              ? ` in ${readyOrderDto.estimatedPickupTime} minutes`
+              : ""
+          }`,
+        timestamp: new Date().toISOString(),
+        estimatedPickupTime: readyOrderDto.estimatedPickupTime,
       });
 
       // Send email notification
@@ -706,6 +809,103 @@ export class OrderService {
       }
       throw new BadRequestException(
         `Failed to mark order ready: ${error.message}`,
+      );
+    }
+  }
+
+  async markOrderDelivered(
+    orderId: string,
+    userId: string, // This is the user ID from JWT
+  ): Promise<Order> {
+    try {
+      const order = await this.findById(orderId);
+
+      // Get order's businessPartner ID (could be User ID or Partner ID)
+      const orderBusinessPartnerId =
+        typeof order.businessPartner === "object"
+          ? order.businessPartner._id?.toString() ||
+            order.businessPartner.toString()
+          : order.businessPartner.toString();
+
+      // Get the partner document for the authenticated user
+      let partner;
+      try {
+        partner = await this.partnerService.findByUserId(userId);
+      } catch (error) {
+        throw new BadRequestException(
+          "Partner account not found for this user",
+        );
+      }
+
+      // The order's businessPartner might be stored as:
+      // 1. User ID (matches userId directly)
+      // 2. Partner ID (matches partner._id)
+      // Check both cases
+      const partnerIdString = partner._id.toString();
+      const partnerUserIdString =
+        typeof partner.user === "object"
+          ? partner.user._id.toString()
+          : partner.user.toString();
+
+      // Validate: order must belong to this partner
+      if (
+        orderBusinessPartnerId !== partnerIdString &&
+        orderBusinessPartnerId !== partnerUserIdString
+      ) {
+        throw new BadRequestException(
+          "You can only mark orders delivered for your restaurant",
+        );
+      }
+
+      // Validate status transition (can only mark delivered from out_for_delivery status)
+      if (order.status !== OrderStatus.OUT_FOR_DELIVERY) {
+        throw new BadRequestException(
+          `Cannot mark order delivered with status: ${order.status}. Only orders that are out for delivery can be marked as delivered.`,
+        );
+      }
+
+      // Update order status to delivered
+      const updateData: any = {
+        status: OrderStatus.DELIVERED,
+        actualDeliveryTime: new Date(),
+      };
+
+      const updatedOrder = await this.orderModel
+        .findByIdAndUpdate(orderId, updateData, { new: true })
+        .exec();
+
+      // Send real-time notification via WebSocket (Socket.io for web/legacy)
+      const partnerIdForNotification = partner._id.toString();
+      await this.notificationsGateway.updateOrderStatusViaMotia({
+        orderId,
+        status: "delivered",
+        userId: updatedOrder.customer.toString(),
+        partnerId: partnerIdForNotification,
+        message: "Your order has been delivered successfully!",
+      });
+
+      // Broadcast via native WebSocket for React Native/Expo apps
+      await this.nativeWebSocketGateway.broadcastOrderUpdate(orderId, {
+        status: OrderStatus.DELIVERED,
+        message: "Your order has been delivered successfully!",
+        timestamp: new Date().toISOString(),
+      });
+
+      // Send email notification
+      this.sendOrderStatusUpdateEmail(updatedOrder, "delivered").catch((error) => {
+        console.error("Failed to send delivered notification email:", error);
+      });
+
+      return updatedOrder;
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to mark order delivered: ${error.message}`,
       );
     }
   }

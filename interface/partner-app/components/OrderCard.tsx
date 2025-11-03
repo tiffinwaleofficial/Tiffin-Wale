@@ -17,6 +17,7 @@ import {
   Star,
   MessageSquare,
 } from 'lucide-react-native';
+import { api } from '../lib/api';
 
 interface OrderCardProps {
   order: any;
@@ -37,16 +38,19 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'delivered':
-        return { bg: '#DCFCE7', text: '#10B981' };
+      case 'completed':
+        return { bg: '#E6F7EF', text: '#10B981' };
       case 'out_for_delivery':
       case 'outfordelivery':
-        return { bg: '#DBEAFE', text: '#3B82F6' };
+        return { bg: '#E6F3FF', text: '#FF9F43' }; // Light blue bg, theme orange text
       case 'ready':
-        return { bg: '#FEF3C7', text: '#F59E0B' };
+        return { bg: '#FFF5E8', text: '#FF9F43' }; // Theme orange
       case 'preparing':
-        return { bg: '#E0E7FF', text: '#6366F1' };
+        return { bg: '#FFF5E8', text: '#FF9F43' }; // Theme orange
+      case 'confirmed':
+        return { bg: '#FFF5E8', text: '#FF9F43' }; // Theme orange
       case 'pending':
-        return { bg: '#FEE2E2', text: '#EF4444' };
+        return { bg: '#FFF5E8', text: '#FF9F43' }; // Theme orange
       default:
         return { bg: '#F3F4F6', text: '#6B7280' };
     }
@@ -118,8 +122,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         </View>
 
         <View style={styles.headerRight}>
+          {/* Status Badge - smaller, label-like (not a button) */}
           <View style={[styles.statusBadge, { backgroundColor: statusColors.bg }]}>
-            <Text style={[styles.statusText, { color: statusColors.text }]}>
+            <Text style={[styles.statusBadgeText, { color: statusColors.text }]}>
               {getStatusLabel(order.status)}
             </Text>
           </View>
@@ -146,29 +151,74 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           </View>
 
           {/* Meal Details */}
-          {order.subscriptionPlan?.mealSpecification && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Meal Details</Text>
-              <View style={styles.mealSpec}>
-                {order.subscriptionPlan.mealSpecification.rotis && (
-                  <Text style={styles.specItem}>
-                    🫓 {order.subscriptionPlan.mealSpecification.rotis} Rotis
-                  </Text>
+          {(() => {
+            const baseItems = order.items?.filter((item: any) => 
+              !item.specialInstructions?.toLowerCase().includes('extra') &&
+              !item.mealId?.includes('extra') &&
+              !item.mealId?.includes('delivery-fee')
+            ) || [];
+            
+            const extraItems = order.items?.filter((item: any) => 
+              item.specialInstructions?.toLowerCase().includes('extra') ||
+              item.mealId?.includes('extra')
+            ) || [];
+
+            return (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Meal Details</Text>
+                
+                {/* Base Meal Items */}
+                {baseItems.length > 0 && (
+                  <View style={styles.mealSpec}>
+                    {baseItems.map((item: any, idx: number) => (
+                      <Text key={idx} style={styles.specItem}>
+                        ✓ {item.name || item.specialInstructions || `${item.quantity || 1}x Meal Item`}
+                      </Text>
+                    ))}
+                  </View>
                 )}
-                {order.subscriptionPlan.mealSpecification.sabzis?.map((sabzi: any, idx: number) => (
-                  <Text key={idx} style={styles.specItem}>
-                    🥘 {sabzi.name} ({sabzi.quantity})
-                  </Text>
-                ))}
-                {order.subscriptionPlan.mealSpecification.dal && (
-                  <Text style={styles.specItem}>
-                    🍲 {order.subscriptionPlan.mealSpecification.dal.type} Dal (
-                    {order.subscriptionPlan.mealSpecification.dal.quantity})
-                  </Text>
+
+                {/* Extra Items */}
+                {extraItems.length > 0 && (
+                  <View style={styles.extraItemsContainer}>
+                    <Text style={styles.extraItemsTitle}>
+                      ✨ Extra Items Requested:
+                    </Text>
+                    {extraItems.map((item: any, idx: number) => (
+                      <View key={idx} style={styles.extraItemRow}>
+                        <Text style={styles.extraItemText}>
+                          • {item.name || item.specialInstructions || `${item.quantity || 1}x Extra Item`}
+                          {item.price > 0 && ` (+₹${item.price})`}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* Fallback to subscription plan spec if no items */}
+                {baseItems.length === 0 && extraItems.length === 0 && order.subscriptionPlan?.mealSpecification && (
+                  <View style={styles.mealSpec}>
+                    {order.subscriptionPlan.mealSpecification.rotis && (
+                      <Text style={styles.specItem}>
+                        🫓 {order.subscriptionPlan.mealSpecification.rotis} Rotis
+                      </Text>
+                    )}
+                    {order.subscriptionPlan.mealSpecification.sabzis?.map((sabzi: any, idx: number) => (
+                      <Text key={idx} style={styles.specItem}>
+                        🥘 {sabzi.name} ({sabzi.quantity})
+                      </Text>
+                    ))}
+                    {order.subscriptionPlan.mealSpecification.dal && (
+                      <Text style={styles.specItem}>
+                        🍲 {order.subscriptionPlan.mealSpecification.dal.type} Dal (
+                        {order.subscriptionPlan.mealSpecification.dal.quantity})
+                      </Text>
+                    )}
+                  </View>
                 )}
               </View>
-            </View>
-          )}
+            );
+          })()}
 
           {/* Review Section */}
           {order.review && (
@@ -228,7 +278,20 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             {order.status === 'preparing' && (
               <TouchableOpacity
                 style={[styles.actionButton, styles.primaryButton]}
-                onPress={() => handleStatusUpdate('ready')}
+                onPress={async () => {
+                  try {
+                    setIsUpdating(true);
+                    // Use markOrderReady endpoint instead of updateOrderStatus
+                    // This ensures proper status transition validation
+                    await api.orders.markOrderReady(order._id || order.id);
+                    await onStatusUpdate(order._id || order.id, 'ready');
+                  } catch (error: any) {
+                    console.error('Failed to mark order ready:', error);
+                    alert(error.response?.data?.message || 'Failed to mark order ready');
+                  } finally {
+                    setIsUpdating(false);
+                  }
+                }}
                 disabled={isUpdating}
               >
                 {isUpdating ? (
@@ -249,6 +312,34 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                   <ActivityIndicator size="small" color="#FFF" />
                 ) : (
                   <Text style={styles.primaryButtonText}>Out for Delivery</Text>
+                )}
+              </TouchableOpacity>
+            )}
+
+            {order.status === 'out_for_delivery' && (
+              <TouchableOpacity
+                style={[styles.actionButton, styles.deliverButton]}
+                onPress={async () => {
+                  try {
+                    setIsUpdating(true);
+                    await api.orders.markOrderDelivered(order._id || order.id);
+                    // Refresh by calling onStatusUpdate
+                    if (onStatusUpdate) {
+                      await onStatusUpdate(order._id || order.id, 'delivered');
+                    }
+                  } catch (error: any) {
+                    console.error('Failed to mark delivered:', error);
+                    alert(error?.message || error?.response?.data?.message || 'Failed to mark order as delivered');
+                  } finally {
+                    setIsUpdating(false);
+                  }
+                }}
+                disabled={isUpdating}
+              >
+                {isUpdating ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <Text style={styles.deliverButtonText}>Mark as Delivered</Text>
                 )}
               </TouchableOpacity>
             )}
@@ -308,9 +399,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   statusBadge: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 8,
+    alignSelf: 'flex-start', // Make it smaller, label-like
+  },
+  statusBadgeText: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 11,
+    fontWeight: '500',
   },
   statusText: {
     fontFamily: 'Poppins-SemiBold',
@@ -439,6 +536,42 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-SemiBold',
     fontSize: 14,
     color: '#FFF',
+  },
+  deliverButton: {
+    backgroundColor: '#FF9F43', // Theme orange
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  deliverButtonText: {
+    fontFamily: 'Poppins-Bold',
+    fontSize: 14,
+    color: '#FFF',
+    fontWeight: '700',
+  },
+  extraItemsContainer: {
+    backgroundColor: '#FFF7ED',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#FFE4CC',
+  },
+  extraItemsTitle: {
+    fontFamily: 'Poppins-SemiBold',
+    fontSize: 13,
+    color: '#FF9F43',
+    marginBottom: 8,
+  },
+  extraItemRow: {
+    marginTop: 4,
+  },
+  extraItemText: {
+    fontFamily: 'Poppins-Medium',
+    fontSize: 13,
+    color: '#333',
   },
 });
 

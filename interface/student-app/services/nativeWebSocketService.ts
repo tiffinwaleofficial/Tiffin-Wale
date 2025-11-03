@@ -39,6 +39,8 @@ export interface OrderUpdate {
   timestamp: Date;
 }
 
+type EventHandler = (data: any) => void;
+
 class NativeWebSocketService {
   private static instance: NativeWebSocketService;
   private socket: WebSocket | null = null;
@@ -50,6 +52,7 @@ class NativeWebSocketService {
   private currentOrderId: string | null = null;
   private reconnectTimer: any = null;
   private heartbeatInterval: any = null;
+  private eventListeners: Map<string, Set<EventHandler>> = new Map();
 
   private constructor() {
     console.log('🔌 Native WebSocket service initialized');
@@ -225,6 +228,9 @@ class NativeWebSocketService {
   private handleNotification(data: WebSocketNotification): void {
     if (__DEV__) console.log('🔔 Received notification:', data.title);
     
+    // Emit event to subscribers
+    this.emit('notification', data);
+    
     // Show notification using notification service
     notificationService.show({
       id: data.id,
@@ -243,6 +249,9 @@ class NativeWebSocketService {
    */
   private handleOrderUpdate(data: OrderUpdate): void {
     if (__DEV__) console.log('📦 Order update received:', data.orderId, data.status);
+    
+    // Emit event to subscribers
+    this.emit('order_update', data);
     
     // Show order update notification
     const statusMessages = {
@@ -272,7 +281,8 @@ class NativeWebSocketService {
    */
   private handleChatMessage(data: any): void {
     if (__DEV__) console.log('💬 Chat message received:', data);
-    // Handle chat messages here
+    // Emit event to subscribers
+    this.emit('chat_message', data);
   }
 
   /**
@@ -311,12 +321,15 @@ class NativeWebSocketService {
   }
 
   /**
-   * Leave order room
+   * Leave order room (with optional orderId parameter for compatibility)
    */
-  public leaveOrderRoom(): void {
-    if (this.currentOrderId) {
-      this.sendMessage('leave_order_room', { orderId: this.currentOrderId });
+  public leaveOrderRoom(orderId?: string): void {
+    const idToLeave = orderId || this.currentOrderId;
+    if (idToLeave) {
+      this.sendMessage('leave_order_room', { orderId: idToLeave });
+      if (orderId === this.currentOrderId || !orderId) {
       this.currentOrderId = null;
+      }
     }
   }
 
@@ -440,6 +453,40 @@ class NativeWebSocketService {
       reconnectAttempts: this.reconnectAttempts,
     };
   }
+
+  /**
+   * Subscribe to an event
+   */
+  public on(event: string, handler: EventHandler): void {
+    if (!this.eventListeners.has(event)) {
+      this.eventListeners.set(event, new Set());
+    }
+    this.eventListeners.get(event)?.add(handler);
+  }
+
+  /**
+   * Unsubscribe from an event
+   */
+  public off(event: string, handler: EventHandler): void {
+    this.eventListeners.get(event)?.delete(handler);
+  }
+
+  /**
+   * Emit an event to all subscribers
+   */
+  private emit(event: string, data: any): void {
+    const handlers = this.eventListeners.get(event);
+    if (handlers) {
+      handlers.forEach(handler => {
+        try {
+          handler(data);
+        } catch (error) {
+          if (__DEV__) console.error(`❌ Error in event handler for ${event}:`, error);
+        }
+      });
+    }
+  }
+
 }
 
 // Export singleton instance

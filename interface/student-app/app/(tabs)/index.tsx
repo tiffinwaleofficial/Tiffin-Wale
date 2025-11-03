@@ -68,26 +68,15 @@ export default function HomeScreen() {
           // Load subscription first to check if user has active subscription
           await fetchCurrentSubscription(false); // Use cache if available
           
-          // If subscription exists, force refresh meals (orders might have been generated)
-          // Otherwise load cached data first
+          // Load all data in parallel - single call per resource
           const { currentSubscription } = useSubscriptionStore.getState();
-          if (currentSubscription) {
-            if (__DEV__) console.log('✅ Dashboard: Active subscription found, force refreshing meals');
-            await Promise.all([
-              fetchTodayMeals(true), // Force refresh to get orders
-              fetchUpcomingMeals(true), // Force refresh to get orders
-              fetchRestaurants(), // Use cache if available
-              fetchNotifications(userId, false), // Use cache if available
-            ]);
-          } else {
-            if (__DEV__) console.log('📦 Dashboard: No subscription, loading cached data');
-            await Promise.all([
-              fetchTodayMeals(false), // Use cache if available
-              fetchUpcomingMeals(false), // Use cache if available
-              fetchRestaurants(), // Use cache if available
-              fetchNotifications(userId, false), // Use cache if available
-            ]);
-          }
+          await Promise.all([
+            fetchTodayMeals(false), // Use cache - avoid duplicate calls
+            fetchUpcomingMeals(false), // Use cache - avoid duplicate calls
+            fetchRestaurants(), // Use cache if available
+            fetchNotifications(userId, false), // Use cache if available
+          ]);
+          
           if (__DEV__) console.log('✅ Dashboard: Data loaded');
         } catch (error) {
           if (__DEV__) console.error('❌ Dashboard: Error loading initial data:', error);
@@ -96,7 +85,7 @@ export default function HomeScreen() {
     };
 
     loadInitialData();
-  }, [isInitialized, authLoading, user?.id]); // Removed excessive dependencies
+  }, [isInitialized, authLoading, user?.id]);
 
   // Hide splash screen when dashboard is ready AND subscription status is determined
   useEffect(() => {
@@ -118,21 +107,32 @@ export default function HomeScreen() {
     }
   }, [isInitialized, authLoading, subscriptionLoading, currentSubscription]);
 
-  // Smart focus refresh - only refresh if data is stale (older than 5 minutes)
+  // Smart focus refresh - only refresh when screen comes back into focus (not on initial mount)
+  const isInitialMount = React.useRef(true);
   useFocusEffect(
     React.useCallback(() => {
       const userId = user?.id || user?.id;
-      if (isInitialized && !authLoading && userId) {
-        if (__DEV__) console.log('👁️ Dashboard: Screen focused, force refreshing subscription and meals');
-        
-        // Force refresh subscription AND meals when screen comes into focus to catch new subscriptions and orders
-        setTimeout(() => {
-          fetchCurrentSubscription(true); // Force refresh to catch newly created subscriptions
-          fetchTodayMeals(true); // Force refresh to catch newly generated orders
-          fetchUpcomingMeals(true); // Force refresh upcoming meals
-          fetchNotifications(userId, false); // Background refresh - no loading state
-        }, 100); // Small delay to avoid blocking UI
+      if (!isInitialized || authLoading || !userId) return;
+      
+      // Skip refresh on initial mount (handled by useEffect)
+      if (isInitialMount.current) {
+        isInitialMount.current = false;
+        return;
       }
+      
+      if (__DEV__) console.log('👁️ Dashboard: Screen refocused, refreshing data');
+      
+      // Single refresh call when screen comes back into focus
+      const timer = setTimeout(() => {
+        Promise.all([
+          fetchCurrentSubscription(true),
+          fetchTodayMeals(true),
+          fetchUpcomingMeals(true),
+          fetchNotifications(userId, false),
+        ]).catch(err => console.error('Focus refresh error:', err));
+      }, 300); // Small delay to avoid duplicate calls
+      
+      return () => clearTimeout(timer);
     }, [isInitialized, authLoading, user?.id, fetchCurrentSubscription, fetchTodayMeals, fetchUpcomingMeals, fetchNotifications])
   );
 
@@ -288,7 +288,7 @@ export default function HomeScreen() {
               })}
               <ActiveSubscriptionDashboard 
                 user={user} 
-                todayMeals={todayMeals}
+                todayMeals={todayMeals} 
                 upcomingMeals={upcomingMeals || []}
                 isLoading={mealsLoading && todayMeals.length === 0}
               />
@@ -346,28 +346,31 @@ export default function HomeScreen() {
                   <View style={styles.mealHeader}>
                     <View>
                       <Text style={styles.mealType}>
-                        {meal.type.charAt(0).toUpperCase() + meal.type.slice(1)}
+                        {(meal.mealType || meal.deliverySlot || 'lunch')
+                          .charAt(0)
+                          .toUpperCase() + 
+                          (meal.mealType || meal.deliverySlot || 'lunch').slice(1)}
                       </Text>
                       <Text style={styles.mealRestaurant}>
-                        {meal.restaurantName}
+                        {meal.partnerName || meal.restaurantName || 'Restaurant'}
                       </Text>
                     </View>
                     <View style={[
                       styles.statusBadge,
-                      { backgroundColor: getStatusColor(meal.status) }
+                      { backgroundColor: getStatusColor(meal.status || 'pending') }
                     ]}>
                       <Text style={styles.statusText}>
-                        {getStatusText(meal.status)}
+                        {getStatusText(meal.status || 'pending')}
                       </Text>
                     </View>
                   </View>
                   
                   <View style={styles.mealContent}>
                     <Text style={styles.mealName}>
-                      {meal.menu?.[0]?.name || t('meal')}
+                      {meal.items?.[0]?.name || meal.menu?.[0]?.name || t('meal')}
                     </Text>
                     <Text style={styles.mealDescription}>
-                      {meal.menu?.[0]?.description || t('deliciousMealPrepared')}
+                      {meal.items?.[0]?.description || meal.menu?.[0]?.description || t('deliciousMealPrepared')}
                     </Text>
                   </View>
                   
@@ -375,7 +378,7 @@ export default function HomeScreen() {
                     <View style={styles.timeContainer}>
                       <Clock size={14} color="#666666" />
                       <Text style={styles.timeText}>
-                        {formatTime(meal.date)}
+                        {meal.deliveryTime || meal.deliveryTimeRange || formatTime(String(meal.deliveryDate || meal.date || new Date()))}
                       </Text>
                     </View>
                     <Text style={styles.trackText}>{t('track')}</Text>

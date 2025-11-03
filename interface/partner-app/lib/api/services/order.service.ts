@@ -50,7 +50,7 @@ export type OrderStatus =
   | 'confirmed'
   | 'preparing'
   | 'ready'
-  | 'picked_up'
+  | 'out_for_delivery'
   | 'delivered'
   | 'cancelled'
   | 'rejected';
@@ -209,6 +209,20 @@ export const orderApi = {
       return response.data;
     } catch (error) {
       return handleApiError(error, 'acceptOrder');
+    }
+  },
+
+  /**
+   * Mark order as delivered
+   */
+  markOrderDelivered: async (id: string): Promise<Order> => {
+    try {
+      const response = await retryRequest(() =>
+        apiClient.patch<Order>(`/orders/${id}/delivered`)
+      );
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, 'markOrderDelivered');
     }
   },
 

@@ -605,7 +605,7 @@ const api = {
   subscriptions: {
     getCurrent: async (): Promise<Subscription | null> => {
       try {
-        const response = await apiClient.get('/api/subscriptions/me/current');
+      const response = await apiClient.get('/api/subscriptions/me/current');
         return response.data || null;
       } catch (error: any) {
         // Handle 404 as no subscription (not an error)

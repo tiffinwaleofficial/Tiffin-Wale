@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -75,6 +75,26 @@ export default function TrackScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [pulseAnim] = useState(new Animated.Value(1));
 
+  // Define fetchOrderData function
+  const fetchOrderData = async () => {
+    if (!orderId) return;
+    try {
+      setLoading(true);
+      const orderData = await api.orders.getOrderById(orderId);
+      setOrder(orderData);
+    } catch (error: any) {
+      console.error('Failed to fetch order:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Create ref for fetchOrderData to use in useEffect
+  const fetchOrderDataRef = useRef(fetchOrderData);
+  useEffect(() => {
+    fetchOrderDataRef.current = fetchOrderData;
+  }, [orderId]);
+
   // Fetch order data
   useEffect(() => {
     if (orderId) {
@@ -87,14 +107,30 @@ export default function TrackScreen() {
   
   // Setup WebSocket for real-time updates
   useEffect(() => {
-    if (!order) return;
+    if (!order?._id) return;
 
     // Subscribe to order updates via WebSocket
     const handleOrderUpdate = (data: any) => {
-      if (data.orderId === order._id) {
-        console.log('📡 Real-time order update:', data);
-        // Update order status
-        setOrder((prev) => prev ? { ...prev, status: data.status } : prev);
+      // Handle both direct orderId and nested data.orderId
+      const orderId = data.orderId || data.data?.orderId;
+      const status = data.status || data.data?.status;
+      
+      // Check if this update is for the current order (support both string and ObjectId comparison)
+      const currentOrderId = typeof order._id === 'string' ? order._id : String(order._id);
+      const updateOrderId = orderId ? (typeof orderId === 'string' ? orderId : String(orderId)) : null;
+      
+      if (updateOrderId && updateOrderId === currentOrderId) {
+        console.log('📡 Track page: Real-time order update received:', { orderId: updateOrderId, status });
+        // Update order status immediately
+        setOrder((prev) => {
+          if (!prev) return prev;
+          return { ...prev, status: (status || data.status) as OrderStatus };
+        });
+        
+        // Also refresh order data from API to ensure we have latest state
+        fetchOrderDataRef.current().catch((err: any) => console.error('Failed to refresh order:', err));
+      } else {
+        console.log('📡 Track page: Ignoring update for different order:', { updateOrderId, currentOrderId });
       }
     };
 
@@ -134,18 +170,6 @@ export default function TrackScreen() {
       }
     }, [orderId])
   );
-
-  const fetchOrderData = async () => {
-    try {
-      setLoading(true);
-      const orderData = await api.orders.getOrderById(orderId);
-      setOrder(orderData);
-    } catch (error: any) {
-      console.error('Failed to fetch order:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchTodayActiveOrder = async () => {
     try {
@@ -420,23 +444,97 @@ export default function TrackScreen() {
           </View>
         )}
 
-        {/* Order Items */}
-        {order.items && order.items.length > 0 && (
-          <View style={styles.itemsCard}>
-            <Text style={styles.itemsTitle}>Order Items</Text>
-            {order.items.map((item, index) => (
-              <View key={index} style={styles.itemRow}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemQty}>x{item.quantity}</Text>
-                <Text style={styles.itemPrice}>₹{item.price}</Text>
+        {/* Order Items - Base Meal and Extras */}
+        {(() => {
+          // Separate base meal items from extras
+          const baseItems = order.items?.filter((item: any) => {
+            const isExtra = item.specialInstructions?.toLowerCase().includes('extra') ||
+                           item.mealId?.toLowerCase().includes('extra') ||
+                           item.name?.toLowerCase().includes('extra');
+            const isDeliveryFee = item.mealId?.includes('delivery-fee') || item.name?.toLowerCase().includes('delivery');
+            return !isExtra && !isDeliveryFee;
+          }) || [];
+          
+          const extraItems = order.items?.filter((item: any) => {
+            return item.specialInstructions?.toLowerCase().includes('extra') ||
+                   item.mealId?.toLowerCase().includes('extra') ||
+                   item.name?.toLowerCase().includes('extra');
+          }) || [];
+
+          const deliveryFee = order.items?.find((item: any) => 
+            item.mealId?.includes('delivery-fee') || item.name?.toLowerCase().includes('delivery')
+          );
+
+          // Get meal name from subscription plan if available
+          const getItemName = (item: any) => {
+            if (item.name && item.name !== 'plan-rotis' && !item.name.startsWith('plan-')) {
+              return item.name;
+            }
+            // Format placeholder IDs
+            if (item.mealId?.startsWith('plan-rotis')) {
+              return `${item.quantity} Rotis`;
+            }
+            if (item.mealId?.startsWith('plan-sabzi')) {
+              return item.specialInstructions?.replace('Subscription meal - ', '').replace(/\(.*\)/, '').trim() || 'Sabzi';
+            }
+            if (item.mealId?.startsWith('plan-meal')) {
+              return 'Meal';
+            }
+            return item.mealId?.replace('plan-', '').replace(/-/g, ' ') || 'Meal Item';
+          };
+
+          if (baseItems.length === 0 && extraItems.length === 0) return null;
+
+          return (
+            <View style={styles.itemsCard}>
+              <Text style={styles.itemsTitle}>Order Details</Text>
+              
+              {/* Base Meal Items */}
+              {baseItems.length > 0 && (
+                <>
+                  <Text style={styles.itemsSectionTitle}>Base Meal</Text>
+                  {baseItems.map((item: any, index: number) => (
+                    <View key={`base-${index}`} style={styles.itemRow}>
+                      <Text style={styles.itemName}>{getItemName(item)}</Text>
+                      {item.quantity > 1 && <Text style={styles.itemQty}>x{item.quantity}</Text>}
+                      {item.price > 0 && <Text style={styles.itemPrice}>₹{item.price * item.quantity}</Text>}
+                    </View>
+                  ))}
+                </>
+              )}
+
+              {/* Extra Items */}
+              {extraItems.length > 0 && (
+                <>
+                  <Text style={styles.extraItemsTitle}>✨ Extra Items</Text>
+                  {extraItems.map((item: any, index: number) => (
+                    <View key={`extra-${index}`} style={styles.extraItemRow}>
+                      <Text style={styles.extraItemName}>• {getItemName(item)}</Text>
+                      {item.quantity > 1 && <Text style={styles.itemQty}>x{item.quantity}</Text>}
+                      {item.price > 0 && (
+                        <Text style={styles.extraItemPrice}>+₹{item.price * item.quantity}</Text>
+                      )}
+                    </View>
+                  ))}
+                </>
+              )}
+
+              {/* Delivery Fee */}
+              {deliveryFee && deliveryFee.price > 0 && (
+                <View style={styles.deliveryFeeRow}>
+                  <Text style={styles.deliveryFeeLabel}>Delivery Fee</Text>
+                  <Text style={styles.deliveryFeeAmount}>₹{deliveryFee.price}</Text>
+                </View>
+              )}
+
+              {/* Total */}
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Total</Text>
+                <Text style={styles.totalAmount}>₹{order.totalAmount}</Text>
               </View>
-            ))}
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalAmount}>₹{order.totalAmount}</Text>
             </View>
-          </View>
-        )}
+          );
+        })()}
       </ScrollView>
     </View>
   );
@@ -796,4 +894,53 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FF9F43',
   },
-}); 
+  itemsSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  extraItemsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FF9F43',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  extraItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingLeft: 8,
+  },
+  extraItemName: {
+    flex: 1,
+    fontSize: 13,
+    color: '#374151',
+  },
+  extraItemPrice: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FF9F43',
+    marginLeft: 8,
+  },
+  deliveryFeeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  deliveryFeeLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  deliveryFeeAmount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+});

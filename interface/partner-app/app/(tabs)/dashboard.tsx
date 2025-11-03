@@ -29,6 +29,7 @@ import { useOrderStore } from '../../store/orderStore';
 import { usePartnerStore } from '../../store/partnerStore';
 import { useNotificationStore } from '../../store/notificationStore';
 import { NotificationsModal } from '../../components/NotificationsModal';
+import { api } from '../../lib/api';
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -121,39 +122,67 @@ export default function DashboardScreen() {
     }
   };
 
-  // Generate overview data from real stats
+  // Generate overview data from real stats - use todayStats and todayOrders from API
   const overviewData = [
     { 
       id: '1', 
       title: 'Pending', 
-      count: todayStats?.pendingOrders || 0, 
+      count: todayStats?.pendingOrders || todayOrders.filter(o => o.status === 'pending').length || 0, 
       icon: Clock, 
       color: '#F59E0B' 
     },
     { 
       id: '2', 
       title: 'Active', 
-      count: Math.max(0, (todayStats?.totalOrders || 0) - (todayStats?.completedOrders || 0)), 
+      count: todayOrders.filter(o => 
+        ['confirmed', 'preparing', 'ready', 'out_for_delivery'].includes(o.status?.toLowerCase() || '')
+      ).length || 0,
       icon: Utensils, 
-      color: '#3B82F6' 
+      color: '#FF9F43' // Theme color
     },
     {
       id: '3',
       title: 'Completed',
-      count: todayStats?.completedOrders || 0,
+      count: todayStats?.completedOrders || todayOrders.filter(o => 
+        ['delivered', 'completed'].includes(o.status?.toLowerCase() || '')
+      ).length || 0,
       icon: CheckCircle2,
       color: '#10B981',
     },
   ];
 
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      pending: 'Pending',
+      confirmed: 'Confirmed',
+      preparing: 'Preparing',
+      ready: 'Ready',
+      out_for_delivery: 'Out for Delivery',
+      delivered: 'Delivered',
+      cancelled: 'Cancelled',
+    };
+    return labels[status] || status;
+  };
+
+  const handleMarkDelivered = async (orderId: string) => {
+    try {
+      await api.orders.markOrderDelivered(orderId);
+      Alert.alert('Success', 'Order marked as delivered successfully!');
+      fetchTodayOrders(); // Refresh orders
+    } catch (error: any) {
+      Alert.alert('Error', error.message || error.response?.data?.message || 'Failed to mark order as delivered');
+    }
+  };
+
   const renderOrderCard = ({ item }: { item: any }) => (
     <TouchableOpacity style={styles.orderCard}>
       <View style={styles.orderDetails}>
-        <Text style={styles.orderNumber}>Order #{item.id}</Text>
+        <Text style={styles.orderNumber}>Order #{item._id?.slice(-8) || item.id?.slice(-8)}</Text>
         <View style={styles.orderInfo}>
           <Text style={styles.orderAmount}>
             {item.items?.length || 1} items • ₹{item.totalAmount || 0}
           </Text>
+          {/* Status Badge - smaller, label-like */}
           <View
             style={[
               styles.statusBadge,
@@ -164,24 +193,32 @@ export default function DashboardScreen() {
           >
             <Text
               style={[
-                styles.statusText,
+                styles.statusBadgeText,
                 {
                   color: getStatusColor(item.status).text,
                 },
               ]}
             >
-              {item.status || 'pending'}
+              {getStatusLabel(item.status || 'pending')}
             </Text>
           </View>
         </View>
         <View style={styles.orderActions}>
           <Text style={styles.orderTime}>
-            <Clock size={14} color="#666" /> {formatTime(item.createdAt)}
+            <Clock size={14} color="#666" /> {formatTime(item.createdAt || item.orderDate)}
           </Text>
+          {item.status === 'out_for_delivery' && (
+            <TouchableOpacity
+              style={styles.deliverButton}
+              onPress={() => handleMarkDelivered(item._id || item.id)}
+            >
+              <Text style={styles.deliverButtonText}>Mark Delivered</Text>
+            </TouchableOpacity>
+          )}
           {item.status === 'pending' && (
             <TouchableOpacity
               style={styles.acceptButton}
-              onPress={() => handleAcceptOrder(item.id)}
+              onPress={() => handleAcceptOrder(item._id || item.id)}
             >
               <Text style={styles.acceptButtonText}>Accept</Text>
             </TouchableOpacity>
@@ -192,13 +229,16 @@ export default function DashboardScreen() {
   );
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return { bg: '#FEF3C7', text: '#F59E0B' };
-      case 'accepted': 
-      case 'preparing': return { bg: '#EBF5FF', text: '#3B82F6' };
-      case 'ready': 
-      case 'completed': return { bg: '#DCFCE7', text: '#10B981' };
-      case 'cancelled': return { bg: '#FEE2E2', text: '#EF4444' };
+    switch (status?.toLowerCase()) {
+      case 'pending': return { bg: '#FFF5E8', text: '#FF9F43' }; // Theme orange
+      case 'confirmed': return { bg: '#FFF5E8', text: '#FF9F43' }; // Theme orange
+      case 'preparing': return { bg: '#FFF5E8', text: '#FF9F43' }; // Theme orange
+      case 'ready': return { bg: '#FFF5E8', text: '#FF9F43' }; // Theme orange
+      case 'out_for_delivery': 
+      case 'outfordelivery': return { bg: '#E6F3FF', text: '#FF9F43' }; // Light blue bg, orange text
+      case 'delivered': 
+      case 'completed': return { bg: '#E6F7EF', text: '#10B981' }; // Green
+      case 'cancelled': return { bg: '#FEE2E2', text: '#EF4444' }; // Red
       default: return { bg: '#F3F4F6', text: '#6B7280' };
     }
   };
@@ -233,7 +273,26 @@ export default function DashboardScreen() {
   }
 
   const businessName = profile?.businessName || partner?.businessName || 'Partner';
-  const todayRevenue = todayStats?.totalRevenue || stats?.todayRevenue || 0;
+  
+  // Fetch total earnings for today (same as earnings page)
+  const [todayEarnings, setTodayEarnings] = useState(0);
+  useEffect(() => {
+    const fetchTodayEarnings = async () => {
+      try {
+        const earnings = await api.analytics.getEarnings('today');
+        setTodayEarnings(earnings.totalEarnings || 0);
+      } catch (error) {
+        console.error('Failed to fetch today earnings:', error);
+        // Fallback to stats
+        setTodayEarnings(todayStats?.totalRevenue || stats?.todayRevenue || 0);
+      }
+    };
+    if (isAuthenticated) {
+      fetchTodayEarnings();
+    }
+  }, [isAuthenticated, todayStats, stats]);
+  
+  const todayRevenue = todayEarnings || todayStats?.totalRevenue || stats?.todayRevenue || 0;
 
   return (
     <ScrollView
@@ -640,6 +699,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
+    alignSelf: 'flex-start', // Make it smaller, label-like (not a button)
+  },
+  statusBadgeText: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 11,
+    fontWeight: '500',
   },
   statusText: {
     fontFamily: 'Poppins-Medium',
@@ -665,6 +730,23 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Medium',
     fontSize: 12,
     color: '#FFF',
+  },
+  deliverButton: {
+    backgroundColor: '#FF9F43', // Theme orange
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+  },
+  deliverButtonText: {
+    fontFamily: 'Poppins-SemiBold',
+    fontSize: 12,
+    color: '#FFF',
+    fontWeight: '600',
   },
   quickActions: {
     marginTop: 8,

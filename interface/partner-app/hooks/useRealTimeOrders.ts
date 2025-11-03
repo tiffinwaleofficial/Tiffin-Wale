@@ -1,10 +1,27 @@
-import { useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { DeviceEventEmitter } from 'react-native';
-import { useWebSocket } from './useWebSocket';
+import { nativeWebSocketService } from '../services/nativeWebSocketService';
 import { useOrderStore } from '../store/orderStore';
 import { usePartnerStore } from '../store/partnerStore';
 import { useAuthStore } from '../store/authStore';
-import { OrderStatusUpdate, NotificationData } from '../utils/websocketManager';
+
+export interface OrderStatusUpdate {
+  orderId: string;
+  status: string;
+  message?: string;
+  estimatedTime?: number;
+  location?: { latitude: number; longitude: number };
+  timestamp: string;
+}
+
+export interface NotificationData {
+  id: string;
+  title: string;
+  message: string;
+  type: 'order_status' | 'general' | 'promotion' | 'system';
+  data?: any;
+  timestamp: string;
+}
 
 interface UseRealTimeOrdersOptions {
   autoJoinPartnerRoom?: boolean;
@@ -20,7 +37,7 @@ interface UseRealTimeOrdersReturn {
 }
 
 /**
- * React hook for real-time order updates via WebSocket
+ * React hook for real-time order updates via Native WebSocket
  * Automatically handles order status updates and notifications for partners
  */
 export const useRealTimeOrders = (
@@ -28,10 +45,7 @@ export const useRealTimeOrders = (
 ): UseRealTimeOrdersReturn => {
   const { autoJoinPartnerRoom = true, enableNotifications = true } = options;
   
-  const { isConnected, joinRoom, leaveRoom } = useWebSocket({
-    autoConnect: true,
-    reconnectOnAuth: true,
-  });
+  const [isConnected, setIsConnected] = useState(false);
   
   const { partner } = useAuthStore();
   const { 
@@ -47,6 +61,35 @@ export const useRealTimeOrders = (
   
   const currentRoomsRef = useRef<Set<string>>(new Set());
   const partnerIdRef = useRef<string | null>(null);
+  const initializedRef = useRef(false);
+
+  // Initialize and connect WebSocket
+  useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
+    const initializeWebSocket = async () => {
+      try {
+        await nativeWebSocketService.initialize();
+        
+        // Listen for connection status changes
+        const status = nativeWebSocketService.getStatus();
+        setIsConnected(status.isConnected);
+
+        // Update connection status when it changes
+        const checkStatus = setInterval(() => {
+          const currentStatus = nativeWebSocketService.getStatus();
+          setIsConnected(currentStatus.isConnected);
+        }, 1000);
+
+        return () => clearInterval(checkStatus);
+      } catch (error) {
+        console.error('❌ useRealTimeOrders: Failed to initialize WebSocket:', error);
+      }
+    };
+
+    initializeWebSocket();
+  }, []);
 
   // Handle order status updates
   useEffect(() => {
@@ -159,23 +202,21 @@ export const useRealTimeOrders = (
       return;
     }
 
-    const roomName = `order-${orderId}`;
-    if (!currentRoomsRef.current.has(roomName)) {
-      joinRoom(roomName);
-      currentRoomsRef.current.add(roomName);
-      if (__DEV__) console.log(`🏠 useRealTimeOrders: Joined order room: ${roomName}`);
+    if (!currentRoomsRef.current.has(orderId)) {
+      nativeWebSocketService.joinOrderRoom(orderId);
+      currentRoomsRef.current.add(orderId);
+      if (__DEV__) console.log(`🏠 useRealTimeOrders: Joined order room: ${orderId}`);
     }
-  }, [isConnected, joinRoom]);
+  }, [isConnected]);
 
   // Leave specific order room
   const leaveOrderRoom = useCallback((orderId: string): void => {
-    const roomName = `order-${orderId}`;
-    if (currentRoomsRef.current.has(roomName)) {
-      leaveRoom(roomName);
-      currentRoomsRef.current.delete(roomName);
-      if (__DEV__) console.log(`🏠 useRealTimeOrders: Left order room: ${roomName}`);
+    if (currentRoomsRef.current.has(orderId)) {
+      nativeWebSocketService.leaveOrderRoom(orderId);
+      currentRoomsRef.current.delete(orderId);
+      if (__DEV__) console.log(`🏠 useRealTimeOrders: Left order room: ${orderId}`);
     }
-  }, [leaveRoom]);
+  }, []);
 
   // Join partner-specific room for all partner notifications
   const joinPartnerRoom = useCallback((): void => {
@@ -184,36 +225,27 @@ export const useRealTimeOrders = (
       return;
     }
 
-    const roomName = `partner-${partner.id}`;
-    if (!currentRoomsRef.current.has(roomName)) {
-      joinRoom(roomName);
-      currentRoomsRef.current.add(roomName);
-      if (__DEV__) console.log(`🏠 useRealTimeOrders: Joined partner room: ${roomName}`);
-    }
-  }, [isConnected, partner?.id, joinRoom]);
+    // For now, we'll just ensure WebSocket is connected
+    // Partner-specific rooms can be implemented later if needed
+    if (__DEV__) console.log(`🏠 useRealTimeOrders: Partner room joined via WebSocket connection`);
+  }, [isConnected, partner?.id]);
 
   // Leave partner room
   const leavePartnerRoom = useCallback((): void => {
     if (!partner?.id) return;
-
-    const roomName = `partner-${partner.id}`;
-    if (currentRoomsRef.current.has(roomName)) {
-      leaveRoom(roomName);
-      currentRoomsRef.current.delete(roomName);
-      if (__DEV__) console.log(`🏠 useRealTimeOrders: Left partner room: ${roomName}`);
-    }
-  }, [partner?.id, leaveRoom]);
+    if (__DEV__) console.log(`🏠 useRealTimeOrders: Partner room left`);
+  }, [partner?.id]);
 
   // Cleanup rooms on unmount
   useEffect(() => {
     return () => {
-      // Leave all rooms when component unmounts
-      currentRoomsRef.current.forEach(roomName => {
-        leaveRoom(roomName);
+      // Leave all order rooms when component unmounts
+      currentRoomsRef.current.forEach(orderId => {
+        nativeWebSocketService.leaveOrderRoom(orderId);
       });
       currentRoomsRef.current.clear();
     };
-  }, [leaveRoom]);
+  }, []);
 
   return {
     isConnected,

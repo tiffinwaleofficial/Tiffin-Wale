@@ -254,18 +254,7 @@ export default function PlanDetailScreen() {
       const subscriptionId = subscription._id;
 
       // Wait a moment for backend to process order generation
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Increased wait time for order generation
-
-      // Try to regenerate orders if they weren't created (as a safety measure)
-      try {
-        console.log('🔄 Attempting to regenerate orders for subscription:', subscriptionId);
-        const { apiClient } = await import('@/lib/api/client');
-        await apiClient.post(`/subscriptions/${subscriptionId}/regenerate-orders`);
-        console.log('✅ Orders regeneration triggered');
-      } catch (regenerateError: any) {
-        console.warn('⚠️ Could not regenerate orders (may already exist):', regenerateError.message);
-        // This is okay - orders might already exist
-      }
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for order generation
 
       // Force refresh subscription store with fresh data
       await fetchCurrentSubscription(true);
@@ -690,7 +679,7 @@ export default function PlanDetailScreen() {
         >
           {subscribing ? (
             <>
-              <ActivityIndicator size="small" color="#FFF" />
+            <ActivityIndicator size="small" color="#FFF" />
               <Text style={styles.subscribeButtonText}>Subscribing...</Text>
             </>
           ) : (

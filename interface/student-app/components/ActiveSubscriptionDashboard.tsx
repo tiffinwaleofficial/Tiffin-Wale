@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { CustomerProfile } from '@/types/api';
 import { Meal } from '@/types';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
+import { MealDetailModal } from './MealDetailModal';
 
 type ActiveSubscriptionDashboardProps = {
   user: CustomerProfile | null;
@@ -18,6 +19,9 @@ type ActiveSubscriptionDashboardProps = {
 
 export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = [], isLoading }: ActiveSubscriptionDashboardProps) => {
   const router = useRouter();
+  const [mealModalVisible, setMealModalVisible] = useState(false);
+  const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
+  const [selectedAction, setSelectedAction] = useState<'extras' | 'rate' | undefined>(undefined);
   const { t } = useTranslation('common');
   const { currentSubscription } = useSubscriptionStore();
   
@@ -92,14 +96,49 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
             <View style={[styles.statsIconContainer, { backgroundColor: '#E6F7EF' }]}>
               <Star size={24} color="#4CB944" />
             </View>
-            <Text style={styles.statsNumber}>4.8</Text>
+            <Text style={styles.statsNumber}>
+              {(() => {
+                // Calculate average rating from all orders/meals with ratings
+                if (!activeSubscription) return '0.0';
+                const allMeals = [...todayMeals, ...(upcomingMeals || [])];
+                const ratedMeals = allMeals.filter(m => m.rating && m.rating > 0);
+                if (ratedMeals.length === 0) {
+                  // If no ratings yet, return default or check subscription plan average
+                  return activeSubscription.plan?.averageRating?.toFixed(1) || '0.0';
+                }
+                const avgRating = ratedMeals.reduce((sum, m) => sum + (m.rating || 0), 0) / ratedMeals.length;
+                return avgRating.toFixed(1);
+              })()}
+            </Text>
             <Text style={styles.statsLabel}>{t('rating')}</Text>
           </View>
           <View style={styles.statsCard}>
             <View style={[styles.statsIconContainer, { backgroundColor: '#F0EAFF' }]}>
               <Wallet size={24} color="#7C3AED" />
             </View>
-            <Text style={styles.statsNumber}>₹349</Text>
+            <Text style={styles.statsNumber}>
+              ₹{(() => {
+                // Calculate savings from discount
+                if (!activeSubscription) return '0';
+                const plan = activeSubscription.plan;
+                if (!plan) return '0';
+                
+                // Calculate total discount from subscription
+                const discountAmount = activeSubscription.discountAmount || 0;
+                const discountedPrice = plan.discountedPrice || plan.price;
+                const regularPrice = plan.price;
+                const discountPerOrder = regularPrice - discountedPrice;
+                
+                // Calculate savings: discount per order * number of orders (days left * meals per day)
+                const daysLeft = Math.max(0, Math.ceil((new Date(activeSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
+                const mealsLeft = (plan.mealsPerDay || 1) * daysLeft;
+                const totalSavings = discountAmount > 0 
+                  ? discountAmount 
+                  : discountPerOrder * mealsLeft;
+                
+                return Math.max(0, Math.round(totalSavings));
+              })()}
+            </Text>
             <Text style={styles.statsLabel}>{t('savings')}</Text>
           </View>
         </View>
@@ -159,15 +198,22 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
 
           {todayMeals && todayMeals.length > 0 ? (
             (() => {
-              // Deduplicate meals by orderId first to fix duplicate cards
+              // Deduplicate meals by orderId AND by mealType+deliveryDate+deliverySlot
+              // This prevents showing the same order multiple times
               const uniqueMealsMap = new Map();
               todayMeals.forEach(meal => {
                 const mealId = meal.orderId || meal.id;
-                if (mealId && !uniqueMealsMap.has(mealId)) {
-                  uniqueMealsMap.set(mealId, meal);
+                const mealType = (meal.mealType || meal.deliverySlot || 'lunch').toLowerCase();
+                const deliveryKey = `${mealId}-${mealType}`;
+                
+                // Only add if we haven't seen this exact combination
+                if (mealId && !uniqueMealsMap.has(deliveryKey)) {
+                  uniqueMealsMap.set(deliveryKey, meal);
                 }
               });
               const deduplicatedMeals = Array.from(uniqueMealsMap.values());
+              
+              console.log('🔍 Deduplication: Original meals:', todayMeals.length, 'Deduplicated:', deduplicatedMeals.length);
 
               // Group meals by mealType (breakfast, lunch, dinner)
               const groupedMeals = deduplicatedMeals.reduce((acc, meal) => {
@@ -195,16 +241,21 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
 
                 return (
                   <View key={type} style={styles.mealTypeGroup}>
-                    <Text style={styles.mealTypeGroupTitle}>
-                      {mealTypeLabels[type] || type.charAt(0).toUpperCase() + type.slice(1)}
-                    </Text>
-                    {meals.map((meal, index) => (
+                    <View style={styles.mealTypeGroupHeader}>
+                      <Utensils size={18} color="#FF9B42" />
+                      <Text style={styles.mealTypeGroupTitle}>
+                        {mealTypeLabels[type] || type.charAt(0).toUpperCase() + type.slice(1)}
+                      </Text>
+                    </View>
+                    {meals.map((meal: Meal, index: number) => (
                       <TouchableOpacity
                         key={meal.id || meal.orderId || index}
                 style={styles.mealCard}
                         onPress={() => {
                           if (meal.orderId) {
-                            router.push(`/pages/meal-detail?id=${meal.orderId}` as any);
+                            setSelectedMealId(meal.orderId);
+                            setSelectedAction(undefined);
+                            setMealModalVisible(true);
                           }
                         }}
               >
@@ -231,22 +282,63 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
                 </View>
                 <View style={styles.mealCardContent}>
                           <View style={styles.mealInfo}>
-                            <Text style={styles.mealName}>
-                              Subscription Meal
-                            </Text>
-                            <Text style={styles.vendorName}>
-                              {meal.partnerName || 'Your Plan'}
-                            </Text>
+                            {(() => {
+                              // Build meal title from items
+                              if (meal.items && meal.items.length > 0) {
+                                const mealItems = meal.items.filter((item: any) => item.mealId !== 'delivery-fee');
+                                const itemNames: string[] = [];
+                                mealItems.forEach((item: any) => {
+                                  let itemName = '';
+                                  if (item.specialInstructions) {
+                                    const instructions = item.specialInstructions;
+                                    if (instructions.includes('Roti')) itemName = `${item.quantity || 4} Rotis`;
+                                    else if (instructions.includes('Allo')) itemName = 'Allo';
+                                    else if (instructions.includes('Chawal')) itemName = 'Chawal';
+                                    else if (instructions.includes('Dal')) itemName = 'Dal';
+                                    else if (instructions.includes('Rice')) itemName = 'Rice';
+                                    else if (instructions.includes('Salad')) itemName = 'Salad';
+                                    else {
+                                      const parts = instructions.split(' - ');
+                                      itemName = parts[0].replace(/Subscription meal|breakfast|lunch|dinner|Delivery fee/gi, '').trim();
+                                    }
+                                  } else if (item.mealId) {
+                                    if (item.mealId.includes('roti')) itemName = `${item.quantity || 4} Rotis`;
+                                    else if (item.mealId.includes('sabzi') || item.mealId.includes('allo')) itemName = 'Sabzi';
+                                    else if (item.mealId.includes('dal')) itemName = 'Dal';
+                                    else if (item.mealId.includes('rice') || item.mealId.includes('chawal')) itemName = 'Rice';
+                                    else if (item.mealId.includes('salad')) itemName = 'Salad';
+                                  }
+                                  if (itemName && !itemNames.includes(itemName)) {
+                                    itemNames.push(itemName);
+                                  }
+                                });
+                                const mealTitle = itemNames.length > 0 
+                                  ? itemNames.slice(0, 3).join(' • ') + (itemNames.length > 3 ? ' • ...' : '')
+                                  : `${type.charAt(0).toUpperCase() + type.slice(1)} Meal`;
+                                return (
+                                  <>
+                                    <Text style={styles.mealName}>{mealTitle}</Text>
+                                    <Text style={styles.vendorName}>{meal.partnerName || 'Your Plan'}</Text>
+                                  </>
+                                );
+                              }
+                              // Fallback to meal type
+                              return (
+                                <>
+                                  <Text style={styles.mealName}>{type.charAt(0).toUpperCase() + type.slice(1)} Meal</Text>
+                                  <Text style={styles.vendorName}>{meal.partnerName || 'Your Plan'}</Text>
+                                </>
+                              );
+                            })()}
                             {meal.items && meal.items.length > 0 && (
                               <View style={styles.mealItemsContainer}>
                                 {meal.items
-                                  .filter((item: any) => item.mealId !== 'delivery-fee') // Filter out delivery fee from display
-                                  .slice(0, 4) // Show max 4 items
+                                  .filter((item: any) => item.mealId !== 'delivery-fee')
+                                  .slice(0, 4)
                                   .map((item: any, itemIndex: number) => {
                                     let itemName = `${item.quantity || 1}x Item`;
                                     if (item.specialInstructions) {
                                       const instructions = item.specialInstructions;
-                                      // Extract meaningful name from special instructions
                                       if (instructions.includes('Roti')) itemName = `${item.quantity || 4} Rotis`;
                                       else if (instructions.includes('Allo')) itemName = 'Allo';
                                       else if (instructions.includes('Chawal')) itemName = 'Chawal';
@@ -254,12 +346,10 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
                                       else if (instructions.includes('Rice')) itemName = 'Rice';
                                       else if (instructions.includes('Salad')) itemName = 'Salad';
                                       else {
-                                        // Try to extract from instructions
                                         const parts = instructions.split(' - ');
                                         itemName = parts[0].replace(/Subscription meal|breakfast|lunch|dinner|Delivery fee/gi, '').trim() || itemName;
                                       }
                                     } else if (item.mealId) {
-                                      // Extract from mealId
                                       if (item.mealId.includes('roti')) itemName = `${item.quantity || 4} Rotis`;
                                       else if (item.mealId.includes('sabzi')) itemName = 'Sabzi';
                                       else if (item.mealId.includes('dal')) itemName = 'Dal';
@@ -291,7 +381,9 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
                               onPress={(e) => {
                                 e.stopPropagation();
                                 if (meal.orderId || meal.id) {
-                                  router.push(`/pages/meal-detail?id=${meal.orderId || meal.id}&action=rate` as any);
+                                  setSelectedMealId(meal.orderId || meal.id || null);
+                                  setSelectedAction('rate');
+                                  setMealModalVisible(true);
                                 }
                               }}
                             >
@@ -304,7 +396,9 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
                               onPress={(e) => {
                                 e.stopPropagation();
                                 if (meal.orderId || meal.id) {
-                                  router.push(`/pages/meal-detail?id=${meal.orderId || meal.id}&action=extras` as any);
+                                  setSelectedMealId(meal.orderId || meal.id || null);
+                                  setSelectedAction('extras');
+                                  setMealModalVisible(true);
                                 }
                               }}
                             >
@@ -345,18 +439,56 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
             </TouchableOpacity>
           </View>
           
-          {upcomingMeals && upcomingMeals.length > 0 ? (
-            upcomingMeals.slice(0, 5).map((meal, index) => {
-              const mealType = meal.mealType || meal.deliverySlot || 'lunch';
-              const mealTypeLabels: Record<string, string> = {
-                breakfast: '🌅 Breakfast',
-                lunch: '🍽️ Lunch',
-                dinner: '🌙 Dinner',
-                morning: '🌅 Breakfast',
-                afternoon: '🍽️ Lunch',
-                evening: '🌙 Dinner',
-              };
+          {(() => {
+            // "Coming Up Next" should show only TODAY's meals that are yet to occur
+            // Filter: today's date + scheduled time in the future + not delivered/cancelled
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const todayEnd = new Date(todayStart);
+            todayEnd.setDate(todayEnd.getDate() + 1);
+            
+            // Get all today's meals (from todayMeals) that are still pending/preparing/confirmed
+            const todayUpcomingMeals = todayMeals.filter((meal: Meal) => {
+              // Must be for today
               const deliveryDate = meal.deliveryDate ? new Date(meal.deliveryDate) : null;
+              const scheduledTime = meal.deliveryTime ? new Date(meal.deliveryTime) : null;
+              
+              // Check if it's today
+              let isToday = false;
+              if (deliveryDate) {
+                const mealDate = new Date(deliveryDate.getFullYear(), deliveryDate.getMonth(), deliveryDate.getDate());
+                isToday = mealDate >= todayStart && mealDate < todayEnd;
+              } else if (scheduledTime) {
+                const mealDate = new Date(scheduledTime.getFullYear(), scheduledTime.getMonth(), scheduledTime.getDate());
+                isToday = mealDate >= todayStart && mealDate < todayEnd;
+              }
+              
+              if (!isToday) return false;
+              
+              // Must be in the future (scheduled time hasn't passed yet)
+              if (scheduledTime) {
+                if (scheduledTime <= now) return false;
+              }
+              
+              // Must be pending, preparing, confirmed, or ready (not delivered/cancelled)
+              const status = (meal.status || '').toLowerCase();
+              if (status === 'delivered' || status === 'cancelled') return false;
+              
+              return true;
+            });
+            
+            // Sort by scheduled time and take only the next one(s) - limit to 3-5 upcoming meals for today
+            const sortedTodayUpcoming = todayUpcomingMeals.sort((a, b) => {
+              const timeA = a.deliveryTime ? new Date(a.deliveryTime).getTime() : 0;
+              const timeB = b.deliveryTime ? new Date(b.deliveryTime).getTime() : 0;
+              return timeA - timeB; // Earliest first
+            });
+            
+            const filteredUpcoming = sortedTodayUpcoming.slice(0, 5); // Show max 5 upcoming meals for today
+            
+            return filteredUpcoming.length > 0 ? (
+              filteredUpcoming.map((meal: Meal, index: number) => {
+                const mealType = meal.mealType || meal.deliverySlot || 'lunch';
               
               return (
                 <TouchableOpacity
@@ -364,79 +496,91 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
                   style={styles.mealCard}
                   onPress={() => {
                     if (meal.orderId) {
-                      router.push(`/pages/meal-detail?id=${meal.orderId}` as any);
+                      setSelectedMealId(meal.orderId);
+                      setSelectedAction(undefined);
+                      setMealModalVisible(true);
                     }
                   }}
                 >
                 <View style={styles.mealCardHeader}>
-                  <View style={styles.headerWithIcon}>
-                    <Utensils size={16} color="#E65100" />
-                      <Text style={styles.mealTypeLabel}>
-                        {mealTypeLabels[mealType.toLowerCase()] || mealType}
-                      </Text>
-                  </View>
-                    <View style={[styles.statusBadge, 
-                      meal.status === 'delivered' && styles.statusBadgeDelivered,
-                      meal.status === 'preparing' && styles.statusBadgePreparing,
-                      meal.status === 'confirmed' && styles.statusBadgeConfirmed,
-                      meal.status === 'ready' && styles.statusBadgeReady,
-                      meal.status === 'pending' && styles.statusBadgePending
+                  <Text style={styles.mealTypeLabel}>
+                    {meal.deliveryTimeRange || 'Scheduled'}
+                  </Text>
+                  <View style={[styles.statusBadge, 
+                    meal.status === 'delivered' && styles.statusBadgeDelivered,
+                    meal.status === 'preparing' && styles.statusBadgePreparing,
+                    meal.status === 'confirmed' && styles.statusBadgeConfirmed,
+                    meal.status === 'ready' && styles.statusBadgeReady,
+                    meal.status === 'pending' && styles.statusBadgePending
+                  ]}>
+                    <Text style={[styles.statusBadgeText,
+                      meal.status === 'delivered' && styles.statusBadgeTextDelivered,
+                      meal.status === 'preparing' && styles.statusBadgeTextPreparing,
+                      meal.status === 'confirmed' && styles.statusBadgeTextConfirmed,
+                      meal.status === 'ready' && styles.statusBadgeTextReady,
                     ]}>
-                      <Text style={[styles.statusBadgeText,
-                        meal.status === 'delivered' && styles.statusBadgeTextDelivered,
-                        meal.status === 'preparing' && styles.statusBadgeTextPreparing,
-                        meal.status === 'confirmed' && styles.statusBadgeTextConfirmed,
-                        meal.status === 'ready' && styles.statusBadgeTextReady,
-                      ]}>
-                        {meal.status ? meal.status.charAt(0).toUpperCase() + meal.status.slice(1).replace('_', ' ') : 'Scheduled'}
-                      </Text>
-                    </View>
+                      {meal.status ? meal.status.charAt(0).toUpperCase() + meal.status.slice(1).replace('_', ' ') : 'Scheduled'}
+                    </Text>
+                  </View>
                 </View>
                 <View style={styles.mealCardContent}>
                     <View style={styles.mealInfo}>
-                      <Text style={styles.mealName}>Subscription Meal</Text>
-                      <Text style={styles.vendorName}>{meal.partnerName || 'Your Plan'}</Text>
-                      {meal.items && meal.items.length > 0 && (
-                        <View style={styles.mealItemsContainer}>
-                          {meal.items
-                            .filter((item: any) => item.mealId !== 'delivery-fee')
-                            .slice(0, 3)
-                              .map((item: any, itemIndex: number) => {
-                                let itemName = `${item.quantity || 1}x Item`;
-                                if (item.specialInstructions) {
-                                  const instructions = item.specialInstructions;
-                                  if (instructions.includes('Roti')) itemName = `${item.quantity || 4} Rotis`;
-                                  else if (instructions.includes('Allo')) itemName = 'Allo';
-                                  else if (instructions.includes('Chawal')) itemName = 'Chawal';
-                                  else if (instructions.includes('Dal')) itemName = 'Dal';
-                                  else if (instructions.includes('Rice')) itemName = 'Rice';
-                                  else if (instructions.includes('Salad')) itemName = 'Salad';
-                                  else {
-                                    const parts = instructions.split(' - ');
-                                    itemName = parts[0].replace(/Subscription meal|breakfast|lunch|dinner|Delivery fee/gi, '').trim() || itemName;
-                                  }
-                                } else if (item.mealId) {
-                                  if (item.mealId.includes('roti')) itemName = `${item.quantity || 4} Rotis`;
-                                  else if (item.mealId.includes('sabzi')) itemName = 'Sabzi';
-                                  else if (item.mealId.includes('dal')) itemName = 'Dal';
-                                  else if (item.mealId.includes('rice')) itemName = 'Rice';
-                                  else if (item.mealId.includes('salad')) itemName = 'Salad';
-                                }
-                                return (
-                                  <View key={itemIndex} style={styles.mealItemTag}>
-                                    <Text style={styles.mealItemText}>{itemName}</Text>
-                                  </View>
-                                );
-                              })}
-                        </View>
-                      )}
+                      {(() => {
+                        // Build meal title from items
+                        if (meal.items && meal.items.length > 0) {
+                          const mealItems = meal.items.filter((item: any) => item.mealId !== 'delivery-fee');
+                          const itemNames: string[] = [];
+                          mealItems.forEach((item: any) => {
+                            let itemName = '';
+                            if (item.specialInstructions) {
+                              const instructions = item.specialInstructions;
+                              if (instructions.includes('Roti')) itemName = `${item.quantity || 4} Rotis`;
+                              else if (instructions.includes('Allo')) itemName = 'Allo';
+                              else if (instructions.includes('Chawal')) itemName = 'Chawal';
+                              else if (instructions.includes('Dal')) itemName = 'Dal';
+                              else if (instructions.includes('Rice')) itemName = 'Rice';
+                              else if (instructions.includes('Salad')) itemName = 'Salad';
+                              else {
+                                const parts = instructions.split(' - ');
+                                itemName = parts[0].replace(/Subscription meal|breakfast|lunch|dinner|Delivery fee/gi, '').trim();
+                              }
+                            } else if (item.mealId) {
+                              if (item.mealId.includes('roti')) itemName = `${item.quantity || 4} Rotis`;
+                              else if (item.mealId.includes('sabzi') || item.mealId.includes('allo')) itemName = 'Sabzi';
+                              else if (item.mealId.includes('dal')) itemName = 'Dal';
+                              else if (item.mealId.includes('rice') || item.mealId.includes('chawal')) itemName = 'Rice';
+                              else if (item.mealId.includes('salad')) itemName = 'Salad';
+                            }
+                            if (itemName && !itemNames.includes(itemName)) {
+                              itemNames.push(itemName);
+                            }
+                          });
+                          const mealTitle = itemNames.length > 0 
+                            ? itemNames.slice(0, 3).join(' • ') + (itemNames.length > 3 ? ' • ...' : '')
+                            : `${mealType.charAt(0).toUpperCase() + mealType.slice(1)} Meal`;
+                          return (
+                            <>
+                              <Text style={styles.mealName}>{mealTitle}</Text>
+                              <Text style={styles.vendorName}>{meal.partnerName || 'Your Plan'}</Text>
+                            </>
+                          );
+                        }
+                        return (
+                          <>
+                            <Text style={styles.mealName}>{mealType.charAt(0).toUpperCase() + mealType.slice(1)} Meal</Text>
+                            <Text style={styles.vendorName}>{meal.partnerName || 'Your Plan'}</Text>
+                          </>
+                        );
+                      })()}
                     </View>
                     <TouchableOpacity 
                       style={styles.addExtrasButton}
                       onPress={(e) => {
                         e.stopPropagation();
                         if (meal.orderId) {
-                          router.push(`/pages/meal-detail?id=${meal.orderId}&action=extras` as any);
+                          setSelectedMealId(meal.orderId);
+                          setSelectedAction('extras');
+                          setMealModalVisible(true);
                         }
                       }}
                     >
@@ -445,16 +589,33 @@ export const ActiveSubscriptionDashboard = ({ user, todayMeals, upcomingMeals = 
                   </View>
                 </TouchableOpacity>
               );
-            })
+              })
           ) : (
             <View style={styles.noUpcomingMealsContainer}>
               <Utensils size={48} color="#CCCCCC" />
               <Text style={styles.noUpcomingMealsTitle}>{t('noUpcomingMeals')}</Text>
               <Text style={styles.noUpcomingMealsText}>{t('upcomingMealsWillAppearHere')}</Text>
             </View>
-          )}
+            );
+          })()}
         </View>
       </View>
+      
+      {/* Meal Detail Modal */}
+      <MealDetailModal
+        visible={mealModalVisible}
+        orderId={selectedMealId}
+        action={selectedAction}
+        onClose={() => {
+          setMealModalVisible(false);
+          setSelectedMealId(null);
+          setSelectedAction(undefined);
+        }}
+        onOrderUpdated={() => {
+          // Refresh meal data if needed
+          // This will be handled by parent component's refresh logic
+        }}
+      />
     </ScrollView>
   );
 };
@@ -777,11 +938,16 @@ const styles = StyleSheet.create({
   mealTypeGroup: {
     marginBottom: 20,
   },
+  mealTypeGroupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
   mealTypeGroupTitle: {
     fontFamily: 'Poppins-SemiBold',
     fontSize: 16,
     color: '#E65100',
-    marginBottom: 12,
   },
   mealInfo: {
     flex: 1,

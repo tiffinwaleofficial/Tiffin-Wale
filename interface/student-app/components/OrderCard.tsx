@@ -31,19 +31,42 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   const handlePress = () => {
     if (onPress) {
       onPress();
+    } else if (canTrack && onTrack) {
+      // Navigate to track page for active orders
+      onTrack(order._id);
     } else {
-      router.push(`/pages/order-detail?id=${order._id}`);
+      // For other cases, just trigger track anyway
+      router.push(`/track?id=${order._id}`);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'Scheduled';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Scheduled';
+      return date.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
+      });
+    } catch {
+      return 'Scheduled';
+    }
+  };
+
+  const formatTime = (dateString?: string) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      return date.toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return '';
+    }
   };
 
   const formatMealType = (type?: string) => {
@@ -88,8 +111,10 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       <View style={styles.details}>
         {/* Order ID and Date */}
         <View style={styles.detailRow}>
-          <Text style={styles.orderIdLabel}>Order #{order._id.slice(-8)}</Text>
-          <Text style={styles.orderDate}>{formatDate(order.orderDate)}</Text>
+          <Text style={styles.orderIdLabel}>Order #{order._id?.slice(-8) || order.id?.slice(-8) || 'N/A'}</Text>
+          <Text style={styles.orderDate}>
+            {formatDate(order.orderDate || order.deliveryDate || order.createdAt)}
+          </Text>
         </View>
 
         {/* Meal Type and Time Slot */}
@@ -112,7 +137,10 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         <View style={styles.infoRow}>
           <Calendar size={14} color="#666" />
           <Text style={styles.infoLabel}>Delivery:</Text>
-          <Text style={styles.infoValue}>{formatDate(order.deliveryDate)}</Text>
+          <Text style={styles.infoValue}>
+            {formatDate(order.deliveryDate || order.scheduledDeliveryTime || order.orderDate)}
+            {formatTime(order.deliveryDate || order.scheduledDeliveryTime) && `, ${formatTime(order.deliveryDate || order.scheduledDeliveryTime)}`}
+          </Text>
         </View>
 
         {/* Delivery Address */}
@@ -143,22 +171,70 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           </View>
         )}
 
-        {/* Order Items */}
-        {order.items && order.items.length > 0 && (
-          <View style={styles.itemsContainer}>
-            {order.items.slice(0, 2).map((item, index) => (
-              <View key={index} style={styles.itemRow}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemQty}>x{item.quantity}</Text>
-              </View>
-            ))}
-            {order.items.length > 2 && (
-              <Text style={styles.moreItems}>
-                +{order.items.length - 2} more items
-              </Text>
-            )}
-          </View>
-        )}
+        {/* Order Items - Base and Extra Separated */}
+        {(() => {
+          const baseItems = order.items?.filter((item: any) => 
+            !item.specialInstructions?.toLowerCase().includes('extra') &&
+            !item.mealId?.includes('extra') &&
+            !item.mealId?.includes('delivery-fee')
+          ) || [];
+          
+          const extraItems = order.items?.filter((item: any) => 
+            item.specialInstructions?.toLowerCase().includes('extra') ||
+            item.mealId?.includes('extra')
+          ) || [];
+
+          const allItems = baseItems.concat(extraItems);
+
+          if (allItems.length === 0) return null;
+
+          return (
+            <View style={styles.itemsContainer}>
+              <Text style={styles.itemsSectionTitle}>Meal Items</Text>
+              
+              {/* Base Items */}
+              {baseItems.length > 0 && (
+                <>
+                  {baseItems.slice(0, 3).map((item: any, index: number) => (
+                    <View key={`base-${index}`} style={styles.itemRow}>
+                      <View style={styles.itemInfo}>
+                        <Text style={styles.itemName}>
+                          {item.name || item.specialInstructions || 'Meal Item'}
+                        </Text>
+                      </View>
+                      <Text style={styles.itemQty}>x{item.quantity || 1}</Text>
+                    </View>
+                  ))}
+                  {baseItems.length > 3 && (
+                    <Text style={styles.moreItems}>
+                      +{baseItems.length - 3} more base items
+                    </Text>
+                  )}
+                </>
+              )}
+
+              {/* Extra Items */}
+              {extraItems.length > 0 && (
+                <View style={styles.extraItemsSection}>
+                  <Text style={styles.extraItemsTitle}>✨ Extra Items:</Text>
+                  {extraItems.map((item: any, index: number) => (
+                    <View key={`extra-${index}`} style={styles.extraItemRow}>
+                      <View style={styles.itemInfo}>
+                        <Text style={styles.extraItemName}>
+                          {item.name || item.specialInstructions || 'Extra Item'}
+                        </Text>
+                        {item.price > 0 && (
+                          <Text style={styles.extraItemPrice}>+₹{item.price}</Text>
+                        )}
+                      </View>
+                      <Text style={styles.itemQty}>x{item.quantity || 1}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          );
+        })()}
       </View>
 
       {/* Footer with Amount and Actions */}
@@ -337,29 +413,83 @@ const styles = StyleSheet.create({
   },
   itemsContainer: {
     backgroundColor: '#F9FAFB',
-    padding: 10,
+    padding: 12,
     borderRadius: 8,
-    gap: 6,
+    gap: 8,
+    marginTop: 8,
+  },
+  itemsSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 8,
+    fontFamily: 'Poppins-SemiBold',
   },
   itemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: 4,
+  },
+  itemInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   itemName: {
     fontSize: 13,
     color: '#1F2937',
     flex: 1,
+    fontFamily: 'Poppins-Regular',
   },
   itemQty: {
     fontSize: 13,
     fontWeight: '700',
     color: '#666',
+    fontFamily: 'Poppins-SemiBold',
+    minWidth: 32,
+    textAlign: 'right',
   },
   moreItems: {
     fontSize: 12,
     color: '#999',
     fontStyle: 'italic',
+    marginTop: 4,
+    fontFamily: 'Poppins-Regular',
+  },
+  extraItemsSection: {
+    backgroundColor: '#FFF7ED',
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#FFE4CC',
+  },
+  extraItemsTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FF9B42',
+    marginBottom: 6,
+    fontFamily: 'Poppins-SemiBold',
+  },
+  extraItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  extraItemName: {
+    fontSize: 13,
+    color: '#333',
+    fontFamily: 'Poppins-Medium',
+    flex: 1,
+  },
+  extraItemPrice: {
+    fontSize: 12,
+    color: '#FF9B42',
+    fontFamily: 'Poppins-SemiBold',
+    marginLeft: 8,
   },
   footer: {
     flexDirection: 'row',

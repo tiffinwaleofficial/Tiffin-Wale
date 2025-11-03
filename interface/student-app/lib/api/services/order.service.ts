@@ -51,6 +51,8 @@ export interface Order {
   mealType?: 'breakfast' | 'lunch' | 'dinner';
   deliverySlot?: 'morning' | 'afternoon' | 'evening';
   deliveryTimeRange?: string;
+  scheduledDeliveryTime?: string;
+  deliveryInstructions?: string;
   items?: Array<{
     name: string;
     quantity: number;
@@ -319,6 +321,8 @@ export const orderApi = {
       return {
         orders: pastOrders.slice(startIndex, endIndex),
         total: pastOrders.length,
+        page,
+        limit,
       };
     } catch (error: any) {
       return handleApiError(error, 'getPastOrders');

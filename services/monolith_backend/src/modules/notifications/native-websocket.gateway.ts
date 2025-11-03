@@ -202,11 +202,19 @@ export class NativeWebSocketGateway implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  private orderRooms = new Map<string, Set<AuthenticatedWebSocket>>();
+
   private async handleJoinOrderRoom(client: AuthenticatedWebSocket, data: any) {
     const { orderId } = data;
     if (!orderId) return;
 
-    // Store order tracking info (you might want to use a more sophisticated room system)
+    // Add client to order room
+    if (!this.orderRooms.has(orderId)) {
+      this.orderRooms.set(orderId, new Set());
+    }
+    this.orderRooms.get(orderId)?.add(client);
+
+    // Store order tracking info
     this.logger.log(`User ${client.userId} joined order room: ${orderId}`);
 
     // Send confirmation
@@ -223,6 +231,15 @@ export class NativeWebSocketGateway implements OnModuleInit, OnModuleDestroy {
   ) {
     const { orderId } = data;
     if (!orderId) return;
+
+    // Remove client from order room
+    const room = this.orderRooms.get(orderId);
+    if (room) {
+      room.delete(client);
+      if (room.size === 0) {
+        this.orderRooms.delete(orderId);
+      }
+    }
 
     this.logger.log(`User ${client.userId} left order room: ${orderId}`);
 
@@ -399,6 +416,38 @@ export class NativeWebSocketGateway implements OnModuleInit, OnModuleDestroy {
         timestamp: Date.now(),
       });
     }
+  }
+
+  /**
+   * Broadcast order update to all clients in an order room
+   */
+  async broadcastOrderUpdate(orderId: string, orderUpdate: any) {
+    const room = this.orderRooms.get(orderId);
+    if (!room || room.size === 0) {
+      this.logger.log(`No clients in order room: ${orderId}`);
+      return;
+    }
+
+    const message: WebSocketMessage = {
+      type: "order_update",
+      data: {
+        orderId,
+        ...orderUpdate,
+      },
+      timestamp: Date.now(),
+    };
+
+    let broadcastCount = 0;
+    room.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        this.sendMessage(client, message);
+        broadcastCount++;
+      }
+    });
+
+    this.logger.log(
+      `📡 Broadcast order update for ${orderId} to ${broadcastCount} client(s)`,
+    );
   }
 
   /**
