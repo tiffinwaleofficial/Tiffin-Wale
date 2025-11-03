@@ -16,19 +16,32 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent form submission propagation
     setLoading(true);
 
     try {
       const response = await apiClient.post('/auth/login', { email, password });
-      const { access_token, user } = response.data;
+      const { access_token, accessToken, user } = response.data;
       
-      localStorage.setItem('admin_token', access_token);
-      localStorage.setItem('admin_user', JSON.stringify(user));
+      // Handle both access_token and accessToken response formats
+      const token = access_token || accessToken;
       
-      toast.success('Login successful!');
-      navigate('/');
+      if (token && user) {
+        localStorage.setItem('admin_token', token);
+        localStorage.setItem('admin_user', JSON.stringify(user));
+        
+        toast.success('Login successful!');
+        navigate('/');
+      } else {
+        toast.error('Invalid response from server');
+      }
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Login failed');
+      // Prevent page reload on error
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.detail || 
+                          error.message || 
+                          'Login failed. Please check your credentials.';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -45,7 +58,7 @@ export default function Login() {
           <CardDescription>Sign in to your super admin account</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4" data-testid="login-form">
+          <form onSubmit={handleLogin} className="space-y-4" data-testid="login-form" noValidate>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input

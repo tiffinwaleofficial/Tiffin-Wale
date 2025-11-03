@@ -40,7 +40,9 @@ export default function Orders() {
         ...(statusFilter !== 'all' && { status: statusFilter })
       };
       const response = await apiClient.get('/super-admin/orders', { params });
-      setOrders(response.data);
+      // Handle paginated response
+      const data = response.data?.data || response.data?.orders || (Array.isArray(response.data) ? response.data : []);
+      setOrders(data);
     } catch (error) {
       console.error('Orders fetch error:', error);
       toast.error('Failed to load orders');
@@ -51,7 +53,8 @@ export default function Orders() {
 
   const updateStatus = async (orderId, newStatus) => {
     try {
-      await apiClient.patch(`/super-admin/orders/${orderId}/status`, { status: newStatus });
+      const id = orderId?.id || orderId?._id || orderId;
+      await apiClient.patch(`/super-admin/orders/${id}/status`, { status: newStatus });
       toast.success('Order status updated');
       fetchOrders();
     } catch (error) {
@@ -62,7 +65,8 @@ export default function Orders() {
 
   const viewOrderDetails = async (orderId) => {
     try {
-      const response = await apiClient.get(`/super-admin/orders/${orderId}`);
+      const id = orderId?.id || orderId?._id || orderId;
+      const response = await apiClient.get(`/super-admin/orders/${id}`);
       setSelectedOrder(response.data);
     } catch (error) {
       console.error('Order details fetch error:', error);
@@ -70,11 +74,17 @@ export default function Orders() {
     }
   };
 
-  const filteredOrders = orders.filter(order => 
-    order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    order.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    order.partner_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredOrders = orders.filter(order => {
+    if (!order) return false;
+    const searchLower = searchQuery.toLowerCase();
+    const idMatch = order.id?.toLowerCase().includes(searchLower) || 
+                    order._id?.toLowerCase().includes(searchLower) || false;
+    const customerMatch = order.customer_name?.toLowerCase().includes(searchLower) ||
+                         order.customer?.name?.toLowerCase().includes(searchLower) || false;
+    const partnerMatch = order.partner_name?.toLowerCase().includes(searchLower) ||
+                        order.businessPartner?.name?.toLowerCase().includes(searchLower) || false;
+    return idMatch || customerMatch || partnerMatch;
+  });
 
   if (loading && orders.length === 0) {
     return (
@@ -150,28 +160,44 @@ export default function Orders() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredOrders.map((order) => (
-                  <TableRow key={order.id} data-testid={`order-row-${order.id}`}>
-                    <TableCell className="font-medium">#{order.id}</TableCell>
-                    <TableCell>{order.customer_name}</TableCell>
-                    <TableCell>{order.partner_name}</TableCell>
-                    <TableCell>
-                      <div className="max-w-[150px] truncate">
-                        {order.items.join(', ')}
-                      </div>
-                    </TableCell>
-                    <TableCell>₹{order.total_amount.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Badge
-                        className={statusColors[order.status] || 'bg-gray-500'}
-                        data-testid={`order-status-${order.id}`}
-                      >
-                        {order.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(order.created_at).toLocaleDateString()}
-                    </TableCell>
+                {filteredOrders.map((order) => {
+                  const orderId = order.id || order._id || 'N/A';
+                  const customerName = order.customer_name || order.customer?.name || 'N/A';
+                  const partnerName = order.partner_name || order.businessPartner?.name || order.partner?.name || 'N/A';
+                  const items = order.items || order.orderItems || [];
+                  const totalAmount = order.total_amount || order.totalAmount || order.amount || 0;
+                  const orderStatus = order.status || 'pending';
+                  const createdAt = order.createdAt || order.created_at;
+                  
+                  return (
+                    <TableRow key={orderId} data-testid={`order-row-${orderId}`}>
+                      <TableCell className="font-medium">#{orderId}</TableCell>
+                      <TableCell>{customerName}</TableCell>
+                      <TableCell>{partnerName}</TableCell>
+                      <TableCell>
+                        <div className="max-w-[150px] truncate">
+                          {Array.isArray(items) && items.length > 0 ? (
+                            items.map((item, idx) => {
+                              if (typeof item === 'string') return item;
+                              const itemName = item.name || item.title || item.mealId || item.mealName || 'Item';
+                              const quantity = item.quantity ? ` x${item.quantity}` : '';
+                              return itemName + quantity;
+                            }).join(', ')
+                          ) : 'N/A'}
+                        </div>
+                      </TableCell>
+                      <TableCell>₹{(totalAmount || 0).toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Badge
+                          className={statusColors[orderStatus] || 'bg-gray-500'}
+                          data-testid={`order-status-${orderId}`}
+                        >
+                          {orderStatus}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {createdAt ? new Date(createdAt).toLocaleDateString() : 'N/A'}
+                      </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Dialog>
@@ -179,7 +205,7 @@ export default function Orders() {
                             <Button
                               variant="outline"
                               size="icon"
-                              onClick={() => viewOrderDetails(order.id)}
+                              onClick={() => viewOrderDetails(orderId)}
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
@@ -193,36 +219,48 @@ export default function Orders() {
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Order ID</p>
-                                    <p className="text-base">#{selectedOrder.id}</p>
+                                    <p className="text-base">#{selectedOrder.id || selectedOrder._id || 'N/A'}</p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Customer</p>
-                                    <p className="text-base">{selectedOrder.customer_name}</p>
+                                    <p className="text-base">{selectedOrder.customer_name || selectedOrder.customer?.name || 'N/A'}</p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Partner</p>
-                                    <p className="text-base">{selectedOrder.partner_name}</p>
+                                    <p className="text-base">{selectedOrder.partner_name || selectedOrder.businessPartner?.name || selectedOrder.partner?.name || 'N/A'}</p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Amount</p>
-                                    <p className="text-base">₹{selectedOrder.total_amount.toFixed(2)}</p>
+                                    <p className="text-base">₹{((selectedOrder.total_amount || selectedOrder.totalAmount || selectedOrder.amount || 0)).toFixed(2)}</p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Status</p>
-                                    <Badge className={statusColors[selectedOrder.status]}>
-                                      {selectedOrder.status}
+                                    <Badge className={statusColors[selectedOrder.status] || 'bg-gray-500'}>
+                                      {selectedOrder.status || 'N/A'}
                                     </Badge>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Date</p>
-                                    <p className="text-base">{new Date(selectedOrder.created_at).toLocaleString()}</p>
+                                    <p className="text-base">{selectedOrder.createdAt || selectedOrder.created_at ? new Date(selectedOrder.createdAt || selectedOrder.created_at).toLocaleString() : 'N/A'}</p>
                                   </div>
                                   <div className="col-span-2">
                                     <p className="text-sm font-medium text-gray-500">Items</p>
-                                    <ul className="list-disc list-inside">
-                                      {selectedOrder.items.map((item, idx) => (
-                                        <li key={idx}>{item}</li>
-                                      ))}
+                                    <ul className="list-disc list-inside space-y-1">
+                                      {(selectedOrder.items || selectedOrder.orderItems || []).map((item, idx) => {
+                                        if (typeof item === 'string') {
+                                          return <li key={idx}>{item}</li>;
+                                        }
+                                        // Handle item objects with mealId, name, title, etc.
+                                        const itemName = item.name || item.title || item.mealId || item.mealName || 'Unknown Item';
+                                        const quantity = item.quantity ? ` (x${item.quantity})` : '';
+                                        const price = item.price ? ` - ₹${item.price}` : '';
+                                        const instructions = item.specialInstructions ? ` - ${item.specialInstructions}` : '';
+                                        return (
+                                          <li key={idx}>
+                                            {itemName}{quantity}{price}{instructions}
+                                          </li>
+                                        );
+                                      })}
                                     </ul>
                                   </div>
                                 </div>
@@ -231,8 +269,8 @@ export default function Orders() {
                           </DialogContent>
                         </Dialog>
                         <Select
-                          onValueChange={(value) => updateStatus(order.id, value)}
-                          data-testid={`order-action-${order.id}`}
+                          onValueChange={(value) => updateStatus(orderId, value)}
+                          data-testid={`order-action-${orderId}`}
                         >
                           <SelectTrigger className="w-32">
                             <SelectValue placeholder="Update" />
@@ -250,7 +288,8 @@ export default function Orders() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

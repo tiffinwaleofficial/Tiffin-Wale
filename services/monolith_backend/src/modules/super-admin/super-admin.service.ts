@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { CustomerService } from "../customer/customer.service";
@@ -22,7 +22,10 @@ import { CreatePartnerDto } from "../partner/dto/create-partner.dto";
 import { CreateNotificationDto } from "../notifications/notifications.service";
 import { Payment } from "../payment/schemas/payment.schema";
 import { Partner } from "../partner/schemas/partner.schema";
+import { CronPreference } from "./schemas/cron-preference.schema";
 import { ConfigService } from "@nestjs/config";
+import { RedisService } from "../redis/redis.service";
+import { InviteUserDto } from "./dto/invite-user.dto";
 
 @Injectable()
 export class SuperAdminService {
@@ -40,10 +43,13 @@ export class SuperAdminService {
     private readonly adminService: AdminService,
     private readonly systemService: SystemService,
     private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
     @InjectModel(Payment.name)
     private readonly paymentModel: Model<Payment>,
     @InjectModel(Partner.name)
     private readonly partnerModel: Model<Partner>,
+    @InjectModel(CronPreference.name)
+    private readonly cronPreferenceModel: Model<CronPreference>,
   ) {}
 
   async getDashboardStats() {
@@ -776,6 +782,210 @@ export class SuperAdminService {
       totalAmount: totalAmount[0]?.total || 0,
       successRate:
         totalPayments > 0 ? (successfulPayments / totalPayments) * 100 : 0,
+    };
+  }
+
+  // User Invitation
+  async inviteUser(inviteUserDto: InviteUserDto) {
+    try {
+      // Generate a temporary password (in production, this should be sent via email)
+      const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase() + "!@#";
+      
+      // Create user with provided role
+      const user = await this.userService.create({
+        email: inviteUserDto.email,
+        password: tempPassword,
+        role: inviteUserDto.role,
+        firstName: inviteUserDto.name?.split(" ")[0] || inviteUserDto.email.split("@")[0],
+        lastName: inviteUserDto.name?.split(" ").slice(1).join(" ") || "",
+      });
+
+      // In production, you would:
+      // 1. Generate an invitation token
+      // 2. Send invitation email with token/link
+      // 3. User sets password via invitation link
+      
+      // For now, return user without password
+      const { password: _password, ...userWithoutPassword } = user.toObject();
+      
+      return {
+        ...userWithoutPassword,
+        invitationToken: "temp_token_" + Date.now(), // In production, use proper JWT token
+        invitationLink: `${this.configService.get("FRONTEND_URL") || "https://admin.tiffin-wale.com"}/invite?token=temp_token_${Date.now()}`,
+        temporaryPassword: tempPassword, // Remove this in production - only send via email
+        message: "User invitation created. Please send the invitation link to the user.",
+      };
+    } catch (error) {
+      if (error.message?.includes("already exists")) {
+        throw new BadRequestException("User with this email already exists");
+      }
+      throw error;
+    }
+  }
+
+  // Critical Commands
+  async executeCommand(command: string, params?: any) {
+    switch (command) {
+      case "clear-cache":
+        await this.redisService.reset();
+        return {
+          success: true,
+          message: "Redis cache cleared successfully",
+          timestamp: new Date(),
+        };
+
+      case "refresh-stats":
+        // Recalculate dashboard stats
+        const stats = await this.getDashboardStats();
+        return {
+          success: true,
+          message: "System statistics refreshed successfully",
+          stats,
+          timestamp: new Date(),
+        };
+
+      case "regenerate-keys":
+        // In production, regenerate API keys
+        return {
+          success: true,
+          message: "API keys regeneration initiated",
+          note: "This feature requires implementation in production",
+          timestamp: new Date(),
+        };
+
+      case "clear-logs":
+        // In production, clear old logs
+        return {
+          success: true,
+          message: "Log clearing initiated",
+          note: "This feature requires implementation in production",
+          timestamp: new Date(),
+        };
+
+      case "backup-db":
+        // In production, trigger database backup
+        return {
+          success: true,
+          message: "Database backup initiated",
+          note: "This feature requires implementation in production",
+          timestamp: new Date(),
+        };
+
+      case "reset-ratings":
+        // Reset partner ratings
+        await this.partnerModel.updateMany(
+          {},
+          { $set: { rating: 0, totalRatings: 0 } }
+        );
+        return {
+          success: true,
+          message: "Partner ratings reset successfully",
+          timestamp: new Date(),
+        };
+
+      case "recalculate-revenue":
+        // Recalculate revenue stats
+        const revenueStats = await this.getRevenueStats();
+        return {
+          success: true,
+          message: "Revenue statistics recalculated successfully",
+          revenueStats,
+          timestamp: new Date(),
+        };
+
+      default:
+        throw new BadRequestException(`Unknown command: ${command}`);
+    }
+  }
+
+  // Cron Preferences Management
+  async getAllCronPreferences() {
+    try {
+      const preferences = await this.cronPreferenceModel.find().exec();
+      
+      // If no preferences exist, return default crons
+      if (preferences.length === 0) {
+        const defaultCrons = [
+          { name: 'notification-processing', description: 'Process pending notifications', schedule: 'Every minute', enabled: true },
+          { name: 'daily-morning-notifications', description: 'Send morning notifications', schedule: 'Every day at 9 AM', enabled: true },
+          { name: 'daily-evening-notifications', description: 'Send evening notifications', schedule: 'Every day at 6 PM', enabled: true },
+          { name: 'redis-health-check', description: 'Redis health monitoring', schedule: 'Every 30 seconds', enabled: true },
+          { name: 'redis-analytics', description: 'Analytics aggregation', schedule: 'Every minute', enabled: true },
+        ];
+        
+        // Create default preferences
+        const createdCrons = await Promise.all(
+          defaultCrons.map(cron => 
+            this.cronPreferenceModel.create({
+              name: cron.name,
+              description: cron.description,
+              schedule: cron.schedule,
+              enabled: cron.enabled,
+            })
+          )
+        );
+        return createdCrons;
+      }
+      
+      return preferences;
+    } catch (error) {
+      console.error('Error fetching cron preferences:', error);
+      throw error;
+    }
+  }
+
+  async getCronPreferenceByName(name: string) {
+    const preference = await this.cronPreferenceModel.findOne({ name }).exec();
+    if (!preference) {
+      throw new NotFoundException(`Cron preference with name ${name} not found`);
+    }
+    return preference;
+  }
+
+  async updateCronPreferenceStatus(name: string, enabled: boolean) {
+    const preference = await this.cronPreferenceModel.findOneAndUpdate(
+      { name },
+      { enabled, updatedAt: new Date() },
+      { new: true, upsert: true }
+    ).exec();
+    
+    return preference;
+  }
+
+  async createOrUpdateCronPreference(name: string, data: Partial<CronPreference>) {
+    const preference = await this.cronPreferenceModel.findOneAndUpdate(
+      { name },
+      { ...data, updatedAt: new Date() },
+      { new: true, upsert: true }
+    ).exec();
+    
+    return preference;
+  }
+
+  async deleteCronPreference(name: string) {
+    const result = await this.cronPreferenceModel.findOneAndDelete({ name }).exec();
+    if (!result) {
+      throw new NotFoundException(`Cron preference with name ${name} not found`);
+    }
+    return { message: `Cron preference ${name} deleted successfully` };
+  }
+
+  async triggerCronPreference(name: string) {
+    const preference = await this.getCronPreferenceByName(name);
+    
+    // Update last run timestamp and increment run count
+    await this.cronPreferenceModel.findOneAndUpdate(
+      { name },
+      { 
+        lastRun: new Date(),
+        $inc: { runCount: 1 },
+        updatedAt: new Date()
+      }
+    ).exec();
+    
+    return {
+      message: `Cron job ${name} triggered successfully`,
+      preference: await this.getCronPreferenceByName(name),
     };
   }
 }

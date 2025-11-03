@@ -15,6 +15,7 @@ import {
 } from "@nestjs/swagger";
 import { AuthService } from "./auth.service";
 import { RegisterDto } from "./dto/register.dto";
+import { RegisterSuperAdminDto } from "./dto/register-super-admin.dto";
 import { RegisterPartnerDto } from "./dto/register-partner.dto";
 import { RegisterCustomerDto } from "./dto/register-customer.dto";
 import { LoginDto } from "./dto/login.dto";
@@ -65,7 +66,7 @@ export class AuthController {
   @ApiResponse({ status: 201, description: "Super admin has been registered" })
   @ApiResponse({ status: 400, description: "Bad request" })
   @ApiResponse({ status: 409, description: "Email already exists" })
-  registerSuperAdmin(@Body() registerDto: RegisterDto) {
+  registerSuperAdmin(@Body() registerDto: RegisterSuperAdminDto) {
     return this.authService.registerSuperAdmin(registerDto);
   }
 

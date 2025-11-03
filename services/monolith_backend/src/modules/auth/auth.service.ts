@@ -8,6 +8,7 @@ import {
 import { JwtService } from "@nestjs/jwt";
 import { UserService } from "../user/user.service";
 import { RegisterDto } from "./dto/register.dto";
+import { RegisterSuperAdminDto } from "./dto/register-super-admin.dto";
 import { RegisterPartnerDto } from "./dto/register-partner.dto";
 import { RegisterCustomerDto } from "./dto/register-customer.dto";
 import { LoginDto } from "./dto/login.dto";
@@ -414,7 +415,7 @@ export class AuthService {
     return `TW${userIdPart}${timestamp}`.toUpperCase();
   }
 
-  async registerSuperAdmin(registerDto: RegisterDto) {
+  async registerSuperAdmin(registerDto: RegisterSuperAdminDto) {
     try {
       // Check if user with email already exists
       const existingUser = await this.userService.findByEmailSafe(

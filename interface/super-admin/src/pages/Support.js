@@ -43,7 +43,9 @@ export default function Support() {
         ...(statusFilter !== 'all' && { status: statusFilter })
       };
       const response = await apiClient.get('/super-admin/support/tickets', { params });
-      setTickets(response.data);
+      // Handle paginated response
+      const data = response.data?.data || response.data?.tickets || (Array.isArray(response.data) ? response.data : []);
+      setTickets(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Tickets fetch error:', error);
       toast.error('Failed to load tickets');
@@ -73,11 +75,16 @@ export default function Support() {
     }
   };
 
-  const filteredTickets = tickets.filter(ticket => 
-    ticket.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    ticket.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    ticket.subject.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTickets = tickets.filter(ticket => {
+    if (!ticket) return false;
+    const searchLower = searchQuery.toLowerCase();
+    const idMatch = ticket.id?.toLowerCase().includes(searchLower) || 
+                    ticket._id?.toLowerCase().includes(searchLower) || false;
+    const customerMatch = ticket.customer_name?.toLowerCase().includes(searchLower) ||
+                         ticket.customer?.name?.toLowerCase().includes(searchLower) || false;
+    const subjectMatch = ticket.subject?.toLowerCase().includes(searchLower) || false;
+    return idMatch || customerMatch || subjectMatch;
+  });
 
   if (loading && tickets.length === 0) {
     return (
@@ -149,9 +156,9 @@ export default function Support() {
               </TableHeader>
               <TableBody>
                 {filteredTickets.map((ticket) => (
-                  <TableRow key={ticket.id} data-testid={`ticket-row-${ticket.id}`}>
-                    <TableCell className="font-medium">#{ticket.id}</TableCell>
-                    <TableCell>{ticket.customer_name}</TableCell>
+                  <TableRow key={ticket.id || ticket._id} data-testid={`ticket-row-${ticket.id || ticket._id}`}>
+                    <TableCell className="font-medium">#{ticket.id || ticket._id || 'N/A'}</TableCell>
+                    <TableCell>{ticket.customer_name || ticket.customer?.name || 'N/A'}</TableCell>
                     <TableCell>
                       <div className="max-w-[200px] truncate">{ticket.subject}</div>
                     </TableCell>
@@ -172,7 +179,7 @@ export default function Support() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {new Date(ticket.created_at).toLocaleDateString()}
+                      {ticket.created_at ? new Date(ticket.created_at).toLocaleDateString() : 'N/A'}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -181,8 +188,8 @@ export default function Support() {
                             <Button
                               variant="outline"
                               size="icon"
-                              onClick={() => viewTicketDetails(ticket.id)}
-                              data-testid={`ticket-view-${ticket.id}`}
+                              onClick={() => viewTicketDetails(ticket.id || ticket._id)}
+                              data-testid={`ticket-view-${ticket.id || ticket._id}`}
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
@@ -199,35 +206,35 @@ export default function Support() {
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Ticket ID</p>
-                                    <p className="text-base">#{selectedTicket.id}</p>
+                                    <p className="text-base">#{selectedTicket.id || selectedTicket._id || 'N/A'}</p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Customer</p>
-                                    <p className="text-base">{selectedTicket.customer_name}</p>
+                                    <p className="text-base">{selectedTicket.customer_name || selectedTicket.customer?.name || 'N/A'}</p>
                                   </div>
                                   <div className="col-span-2">
                                     <p className="text-sm font-medium text-gray-500">Subject</p>
-                                    <p className="text-base">{selectedTicket.subject}</p>
+                                    <p className="text-base">{selectedTicket.subject || 'N/A'}</p>
                                   </div>
                                   <div className="col-span-2">
                                     <p className="text-sm font-medium text-gray-500">Description</p>
-                                    <p className="text-base">{selectedTicket.description}</p>
+                                    <p className="text-base">{selectedTicket.description || 'N/A'}</p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Priority</p>
-                                    <Badge className={priorityColors[selectedTicket.priority]}>
-                                      {selectedTicket.priority}
+                                    <Badge className={priorityColors[selectedTicket.priority] || 'bg-gray-500'}>
+                                      {selectedTicket.priority || 'N/A'}
                                     </Badge>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Status</p>
-                                    <Badge className={statusColors[selectedTicket.status]}>
-                                      {selectedTicket.status}
+                                    <Badge className={statusColors[selectedTicket.status] || 'bg-gray-500'}>
+                                      {selectedTicket.status || 'N/A'}
                                     </Badge>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Created At</p>
-                                    <p className="text-base">{new Date(selectedTicket.created_at).toLocaleString()}</p>
+                                    <p className="text-base">{selectedTicket.createdAt || selectedTicket.created_at ? new Date(selectedTicket.createdAt || selectedTicket.created_at).toLocaleString() : 'N/A'}</p>
                                   </div>
                                 </div>
                               </div>
@@ -235,8 +242,8 @@ export default function Support() {
                           </DialogContent>
                         </Dialog>
                         <Select
-                          onValueChange={(value) => updateStatus(ticket.id, value)}
-                          data-testid={`ticket-action-${ticket.id}`}
+                          onValueChange={(value) => updateStatus(ticket.id || ticket._id, value)}
+                          data-testid={`ticket-action-${ticket.id || ticket._id}`}
                         >
                           <SelectTrigger className="w-32">
                             <SelectValue placeholder="Update" />

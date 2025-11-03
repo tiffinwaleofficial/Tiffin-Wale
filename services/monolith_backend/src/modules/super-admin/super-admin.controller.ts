@@ -26,6 +26,7 @@ import { UpdateCustomerStatusDto } from "./dto/update-customer-status.dto";
 import { UpdateCustomerProfileDto } from "../customer/dto/update-customer-profile.dto";
 import { CreatePartnerDto } from "../partner/dto/create-partner.dto";
 import { CreateNotificationDto } from "../notifications/notifications.service";
+import { InviteUserDto } from "./dto/invite-user.dto";
 
 @ApiTags("Super Admin")
 @ApiBearerAuth()
@@ -689,12 +690,14 @@ export class SuperAdminController {
     });
   }
 
-  @Get("payments/:id")
-  @ApiOperation({ summary: "Get payment by ID" })
-  @ApiResponse({ status: 200, description: "Payment retrieved successfully" })
-  @ApiResponse({ status: 404, description: "Payment not found" })
-  getPaymentById(@Param("id") id: string) {
-    return this.superAdminService.getPaymentById(id);
+  @Get("payments/dashboard")
+  @ApiOperation({ summary: "Get payment dashboard statistics" })
+  @ApiResponse({
+    status: 200,
+    description: "Payment dashboard stats retrieved successfully",
+  })
+  getPaymentDashboard() {
+    return this.superAdminService.getPaymentDashboard();
   }
 
   @Get("payments/order/:orderId")
@@ -715,13 +718,109 @@ export class SuperAdminController {
     return this.superAdminService.verifyPayment(paymentId);
   }
 
-  @Get("payments/dashboard")
-  @ApiOperation({ summary: "Get payment dashboard statistics" })
+  @Get("payments/:id")
+  @ApiOperation({ summary: "Get payment by ID" })
+  @ApiResponse({ status: 200, description: "Payment retrieved successfully" })
+  @ApiResponse({ status: 404, description: "Payment not found" })
+  getPaymentById(@Param("id") id: string) {
+    return this.superAdminService.getPaymentById(id);
+  }
+
+  // User Invitation
+  @Post("users/invite")
+  @ApiOperation({ summary: "Invite a new admin user" })
+  @ApiResponse({
+    status: 201,
+    description: "User invitation sent successfully",
+  })
+  @ApiResponse({ status: 400, description: "Bad request" })
+  @ApiResponse({ status: 409, description: "Email already exists" })
+  inviteUser(@Body() inviteUserDto: InviteUserDto) {
+    return this.superAdminService.inviteUser(inviteUserDto);
+  }
+
+  // Critical Commands
+  @Post("system/commands/:command")
+  @ApiOperation({ summary: "Execute a critical system command" })
   @ApiResponse({
     status: 200,
-    description: "Payment dashboard stats retrieved successfully",
+    description: "Command executed successfully",
   })
-  getPaymentDashboard() {
-    return this.superAdminService.getPaymentDashboard();
+  @ApiResponse({ status: 400, description: "Bad request or unknown command" })
+  executeCommand(
+    @Param("command") command: string,
+    @Body() params?: any,
+  ) {
+    return this.superAdminService.executeCommand(command, params);
+  }
+
+  // Cron Preferences Management
+  @Get("system/crons")
+  @ApiOperation({ summary: "Get all cron job preferences" })
+  @ApiResponse({
+    status: 200,
+    description: "Cron preferences retrieved successfully",
+  })
+  getAllCronPreferences() {
+    return this.superAdminService.getAllCronPreferences();
+  }
+
+  @Get("system/crons/:name")
+  @ApiOperation({ summary: "Get cron preference by name" })
+  @ApiResponse({
+    status: 200,
+    description: "Cron preference retrieved successfully",
+  })
+  @ApiResponse({ status: 404, description: "Cron preference not found" })
+  getCronPreferenceByName(@Param("name") name: string) {
+    return this.superAdminService.getCronPreferenceByName(name);
+  }
+
+  @Patch("system/crons/:name/status")
+  @ApiOperation({ summary: "Update cron preference status (enable/disable)" })
+  @ApiResponse({
+    status: 200,
+    description: "Cron preference status updated successfully",
+  })
+  updateCronPreferenceStatus(
+    @Param("name") name: string,
+    @Body() body: { enabled: boolean },
+  ) {
+    return this.superAdminService.updateCronPreferenceStatus(name, body.enabled);
+  }
+
+  @Post("system/crons/:name/trigger")
+  @ApiOperation({ summary: "Trigger a cron job manually" })
+  @ApiResponse({
+    status: 200,
+    description: "Cron job triggered successfully",
+  })
+  @ApiResponse({ status: 404, description: "Cron preference not found" })
+  triggerCronPreference(@Param("name") name: string) {
+    return this.superAdminService.triggerCronPreference(name);
+  }
+
+  @Put("system/crons/:name")
+  @ApiOperation({ summary: "Create or update cron preference" })
+  @ApiResponse({
+    status: 200,
+    description: "Cron preference created/updated successfully",
+  })
+  createOrUpdateCronPreference(
+    @Param("name") name: string,
+    @Body() body: any,
+  ) {
+    return this.superAdminService.createOrUpdateCronPreference(name, body);
+  }
+
+  @Delete("system/crons/:name")
+  @ApiOperation({ summary: "Delete cron preference" })
+  @ApiResponse({
+    status: 200,
+    description: "Cron preference deleted successfully",
+  })
+  @ApiResponse({ status: 404, description: "Cron preference not found" })
+  deleteCronPreference(@Param("name") name: string) {
+    return this.superAdminService.deleteCronPreference(name);
   }
 }

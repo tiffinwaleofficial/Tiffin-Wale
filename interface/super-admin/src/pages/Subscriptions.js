@@ -35,7 +35,9 @@ export default function Subscriptions() {
         ...(statusFilter !== 'all' && { status: statusFilter })
       };
       const response = await apiClient.get('/super-admin/subscriptions', { params });
-      setSubscriptions(response.data);
+      // Handle paginated response
+      const data = response.data?.data || response.data?.subscriptions || (Array.isArray(response.data) ? response.data : []);
+      setSubscriptions(data);
     } catch (error) {
       console.error('Subscriptions fetch error:', error);
       toast.error('Failed to load subscriptions');
@@ -55,11 +57,17 @@ export default function Subscriptions() {
     }
   };
 
-  const filteredSubscriptions = subscriptions.filter(sub => 
-    sub.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    sub.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    sub.partner_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredSubscriptions = subscriptions.filter(sub => {
+    if (!sub) return false;
+    const searchLower = searchQuery.toLowerCase();
+    const idMatch = sub.id?.toLowerCase().includes(searchLower) || 
+                    sub._id?.toLowerCase().includes(searchLower) || false;
+    const customerMatch = sub.customer_name?.toLowerCase().includes(searchLower) ||
+                         sub.customer?.name?.toLowerCase().includes(searchLower) || false;
+    const partnerMatch = sub.partner_name?.toLowerCase().includes(searchLower) ||
+                        sub.partner?.name?.toLowerCase().includes(searchLower) || false;
+    return idMatch || customerMatch || partnerMatch;
+  });
 
   if (loading && subscriptions.length === 0) {
     return (
@@ -133,18 +141,18 @@ export default function Subscriptions() {
               </TableHeader>
               <TableBody>
                 {filteredSubscriptions.map((sub) => (
-                  <TableRow key={sub.id} data-testid={`subscription-row-${sub.id}`}>
-                    <TableCell className="font-medium">#{sub.id}</TableCell>
-                    <TableCell>{sub.customer_name}</TableCell>
-                    <TableCell>{sub.partner_name}</TableCell>
-                    <TableCell>{sub.plan_name}</TableCell>
-                    <TableCell>{new Date(sub.start_date).toLocaleDateString()}</TableCell>
-                    <TableCell>{new Date(sub.end_date).toLocaleDateString()}</TableCell>
-                    <TableCell>₹{sub.amount.toFixed(2)}</TableCell>
+                  <TableRow key={sub.id || sub._id} data-testid={`subscription-row-${sub.id || sub._id}`}>
+                    <TableCell className="font-medium">#{sub.id || sub._id || 'N/A'}</TableCell>
+                    <TableCell>{sub.customer_name || sub.customer?.name || 'N/A'}</TableCell>
+                    <TableCell>{sub.partner_name || sub.partner?.name || 'N/A'}</TableCell>
+                    <TableCell>{sub.plan_name || sub.plan?.name || 'N/A'}</TableCell>
+                    <TableCell>{sub.start_date ? new Date(sub.start_date).toLocaleDateString() : 'N/A'}</TableCell>
+                    <TableCell>{sub.end_date ? new Date(sub.end_date).toLocaleDateString() : 'N/A'}</TableCell>
+                    <TableCell>₹{sub.amount ? sub.amount.toFixed(2) : '0.00'}</TableCell>
                     <TableCell>
                       <Badge
                         className={statusColors[sub.status] || 'bg-gray-500'}
-                        data-testid={`subscription-status-${sub.id}`}
+                        data-testid={`subscription-status-${sub.id || sub._id}`}
                       >
                         {sub.status}
                       </Badge>

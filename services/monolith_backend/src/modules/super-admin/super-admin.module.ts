@@ -15,14 +15,17 @@ import { PaymentModule } from "../payment/payment.module";
 import { UserModule } from "../user/user.module";
 import { AdminModule } from "../admin/admin.module";
 import { SystemModule } from "../system/system.module";
+import { RedisModule } from "../redis/redis.module";
 import { Payment, PaymentSchema } from "../payment/schemas/payment.schema";
 import { Partner, PartnerSchema } from "../partner/schemas/partner.schema";
+import { CronPreference, CronPreferenceSchema } from "./schemas/cron-preference.schema";
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Payment.name, schema: PaymentSchema },
       { name: Partner.name, schema: PartnerSchema },
+      { name: CronPreference.name, schema: CronPreferenceSchema },
     ]),
     PartnerModule,
     CustomerModule,

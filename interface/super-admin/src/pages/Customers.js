@@ -30,7 +30,9 @@ export default function Customers() {
         ...(statusFilter !== 'all' && { status: statusFilter })
       };
       const response = await apiClient.get('/super-admin/customers', { params });
-      setCustomers(response.data);
+      // Handle paginated response
+      const data = response.data?.data || response.data?.customers || (Array.isArray(response.data) ? response.data : []);
+      setCustomers(data);
     } catch (error) {
       console.error('Customers fetch error:', error);
       toast.error('Failed to load customers');
@@ -60,11 +62,14 @@ export default function Customers() {
     }
   };
 
-  const filteredCustomers = customers.filter(customer => 
-    customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.phone.includes(searchQuery)
-  );
+  const filteredCustomers = customers.filter(customer => {
+    if (!customer) return false;
+    const searchLower = searchQuery.toLowerCase();
+    const nameMatch = customer.name?.toLowerCase().includes(searchLower) || false;
+    const emailMatch = customer.email?.toLowerCase().includes(searchLower) || false;
+    const phoneMatch = customer.phone?.includes(searchQuery) || false;
+    return nameMatch || emailMatch || phoneMatch;
+  });
 
   if (loading && customers.length === 0) {
     return (

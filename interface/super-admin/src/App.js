@@ -10,6 +10,8 @@ import Subscriptions from '@/pages/Subscriptions';
 import Support from '@/pages/Support';
 import Menu from '@/pages/Menu';
 import Revenue from '@/pages/Revenue';
+import Profile from '@/pages/Profile';
+import Configuration from '@/pages/Configuration';
 import Layout from '@/components/Layout';
 import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from '@/contexts/ThemeContext';
@@ -41,6 +43,8 @@ function App() {
             <Route path="support" element={<Support />} />
             <Route path="menu" element={<Menu />} />
             <Route path="revenue" element={<Revenue />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="configuration" element={<Configuration />} />
           </Route>
         </Routes>
         <Toaster position="top-right" />

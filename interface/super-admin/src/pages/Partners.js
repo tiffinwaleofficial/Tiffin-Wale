@@ -32,7 +32,9 @@ export default function Partners() {
         ...(statusFilter !== 'all' && { status: statusFilter })
       };
       const response = await apiClient.get('/super-admin/partners', { params });
-      setPartners(response.data);
+      // Handle paginated response - check for partners array first
+      const data = response.data?.partners || response.data?.data || (Array.isArray(response.data) ? response.data : []);
+      setPartners(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Partners fetch error:', error);
       toast.error('Failed to load partners');
@@ -43,7 +45,8 @@ export default function Partners() {
 
   const updateStatus = async (partnerId, newStatus) => {
     try {
-      await apiClient.patch(`/super-admin/partners/${partnerId}/status`, { status: newStatus });
+      const id = partnerId?.id || partnerId?._id || partnerId;
+      await apiClient.patch(`/super-admin/partners/${id}/status`, { status: newStatus });
       toast.success('Partner status updated');
       fetchPartners();
     } catch (error) {
@@ -54,7 +57,8 @@ export default function Partners() {
 
   const viewPartnerDetails = async (partnerId) => {
     try {
-      const response = await apiClient.get(`/super-admin/partners/${partnerId}`);
+      const id = partnerId?.id || partnerId?._id || partnerId;
+      const response = await apiClient.get(`/super-admin/partners/${id}`);
       setSelectedPartner(response.data);
     } catch (error) {
       console.error('Partner details fetch error:', error);
@@ -67,11 +71,14 @@ export default function Partners() {
     // TODO: Implement CSV export
   };
 
-  const filteredPartners = partners.filter(partner => 
-    partner.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    partner.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    partner.phone.includes(searchQuery)
-  );
+  const filteredPartners = partners.filter(partner => {
+    if (!partner) return false;
+    const searchLower = searchQuery.toLowerCase();
+    const nameMatch = (partner.businessName || partner.name || '')?.toLowerCase().includes(searchLower) || false;
+    const emailMatch = (partner.contactEmail || partner.email || '')?.toLowerCase().includes(searchLower) || false;
+    const phoneMatch = (partner.phoneNumber || partner.phone || '')?.includes(searchQuery) || false;
+    return nameMatch || emailMatch || phoneMatch;
+  });
 
   if (loading && partners.length === 0) {
     return (
@@ -152,28 +159,38 @@ export default function Partners() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPartners.map((partner) => (
-                  <TableRow key={partner.id} data-testid={`partner-row-${partner.id}`}>
-                    <TableCell className="font-medium">{partner.name}</TableCell>
-                    <TableCell>{partner.email}</TableCell>
-                    <TableCell>{partner.phone}</TableCell>
-                    <TableCell>{partner.address}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <span className="text-yellow-500">★</span>
-                        <span>{partner.rating.toFixed(1)}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{partner.total_orders}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={partner.status === 'active' ? 'default' : 'secondary'}
-                        className={partner.status === 'active' ? 'bg-green-500' : partner.status === 'pending' ? 'bg-yellow-500' : 'bg-gray-500'}
-                        data-testid={`partner-status-${partner.id}`}
-                      >
-                        {partner.status}
-                      </Badge>
-                    </TableCell>
+                {filteredPartners.map((partner) => {
+                  const partnerId = partner.id || partner._id || 'N/A';
+                  const partnerName = partner.businessName || partner.name || 'N/A';
+                  const partnerEmail = partner.contactEmail || partner.email || 'N/A';
+                  const partnerPhone = partner.phoneNumber || partner.phone || 'N/A';
+                  const partnerLocation = partner.address?.city || partner.address?.fullAddress || partner.location || 'N/A';
+                  const partnerRating = partner.rating || partner.avgRating || 0;
+                  const partnerOrders = partner.totalOrders || partner.total_orders || 0;
+                  const partnerStatus = partner.status || partner.isActive ? 'active' : 'pending';
+                  
+                  return (
+                    <TableRow key={partnerId} data-testid={`partner-row-${partnerId}`}>
+                      <TableCell className="font-medium">{partnerName}</TableCell>
+                      <TableCell>{partnerEmail}</TableCell>
+                      <TableCell>{partnerPhone}</TableCell>
+                      <TableCell>{partnerLocation}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <span className="text-yellow-500">★</span>
+                          <span>{(partnerRating || 0).toFixed(1)}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{partnerOrders}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={partnerStatus === 'active' ? 'default' : 'secondary'}
+                          className={partnerStatus === 'active' ? 'bg-green-500' : partnerStatus === 'pending' ? 'bg-yellow-500' : 'bg-gray-500'}
+                          data-testid={`partner-status-${partnerId}`}
+                        >
+                          {partnerStatus}
+                        </Badge>
+                      </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Dialog>
@@ -181,8 +198,8 @@ export default function Partners() {
                             <Button
                               variant="outline"
                               size="icon"
-                              onClick={() => viewPartnerDetails(partner.id)}
-                              data-testid={`view-partner-${partner.id}`}
+                              onClick={() => viewPartnerDetails(partnerId)}
+                              data-testid={`view-partner-${partnerId}`}
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
@@ -196,40 +213,40 @@ export default function Partners() {
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Name</p>
-                                    <p className="text-base">{selectedPartner.name}</p>
+                                    <p className="text-base">{selectedPartner.businessName || selectedPartner.name || 'N/A'}</p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Email</p>
-                                    <p className="text-base">{selectedPartner.email}</p>
+                                    <p className="text-base">{selectedPartner.contactEmail || selectedPartner.email || 'N/A'}</p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Phone</p>
-                                    <p className="text-base">{selectedPartner.phone}</p>
+                                    <p className="text-base">{selectedPartner.phoneNumber || selectedPartner.phone || 'N/A'}</p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Location</p>
-                                    <p className="text-base">{selectedPartner.address}</p>
+                                    <p className="text-base">{selectedPartner.address?.city || selectedPartner.address?.fullAddress || selectedPartner.address || 'N/A'}</p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Rating</p>
                                     <p className="text-base flex items-center gap-1">
                                       <span className="text-yellow-500">★</span>
-                                      {selectedPartner.rating.toFixed(1)}
+                                      {((selectedPartner.rating || selectedPartner.averageRating || 0)).toFixed(1)}
                                     </p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Total Orders</p>
-                                    <p className="text-base">{selectedPartner.total_orders}</p>
+                                    <p className="text-base">{selectedPartner.totalOrders || selectedPartner.total_orders || 0}</p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Status</p>
-                                    <Badge className={selectedPartner.status === 'active' ? 'bg-green-500' : 'bg-gray-500'}>
-                                      {selectedPartner.status}
+                                    <Badge className={selectedPartner.status === 'active' || selectedPartner.status === 'approved' ? 'bg-green-500' : 'bg-gray-500'}>
+                                      {selectedPartner.status || 'N/A'}
                                     </Badge>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Joined Date</p>
-                                    <p className="text-base">{new Date(selectedPartner.created_at).toLocaleDateString()}</p>
+                                    <p className="text-base">{selectedPartner.createdAt || selectedPartner.created_at ? new Date(selectedPartner.createdAt || selectedPartner.created_at).toLocaleDateString() : 'N/A'}</p>
                                   </div>
                                 </div>
                               </div>
@@ -237,8 +254,8 @@ export default function Partners() {
                           </DialogContent>
                         </Dialog>
                         <Select
-                          onValueChange={(value) => updateStatus(partner.id, value)}
-                          data-testid={`partner-action-${partner.id}`}
+                          onValueChange={(value) => updateStatus(partnerId, value)}
+                          data-testid={`partner-action-${partnerId}`}
                         >
                           <SelectTrigger className="w-32">
                             <SelectValue placeholder="Actions" />
@@ -252,7 +269,8 @@ export default function Partners() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

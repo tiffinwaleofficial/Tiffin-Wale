@@ -48,7 +48,7 @@
     "partner:deploy:gcloud": "cd interface/partner-app && bun run deploy:gcloud",
     "partner:lint": "cd interface/partner-app && bun exec expo lint",
     "// Admin Dashboard Commands": "",
-    "admin": "cd interface/super-admin && bun run dev",
+    "admin": "cd interface/super-admin && bun run start",
     "admin:dev": "cd interface/super-admin && bun run dev",
     "admin:build": "cd interface/super-admin && bun run build",
     "admin:start": "cd interface/super-admin && bun start",

@@ -2,7 +2,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { LayoutDashboard, Users, ShoppingBag, Calendar, MessageSquare, Menu as MenuIcon, Utensils, DollarSign, LogOut, Sun, Moon, User } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingBag, Calendar, MessageSquare, Menu as MenuIcon, Utensils, DollarSign, LogOut, Sun, Moon, User, Settings, UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 
@@ -15,6 +15,8 @@ const menuItems = [
   { path: '/menu', label: 'Menu', icon: Utensils },
   { path: '/support', label: 'Support', icon: MessageSquare },
   { path: '/revenue', label: 'Revenue', icon: DollarSign },
+  { path: '/profile', label: 'Profile', icon: UserCircle },
+  { path: '/configuration', label: 'Configuration', icon: Settings },
 ];
 
 export default function Layout() {

@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DollarSign, TrendingUp, TrendingDown, CreditCard, Clock, RefreshCw, Download, Calendar, Users, ShoppingBag, Percent, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DollarSign, TrendingUp, TrendingDown, CreditCard, Clock, RefreshCw, Download, Calendar, Users, ShoppingBag, Percent, ArrowUpRight, ArrowDownRight, Receipt, Wallet, BarChart3, PieChart as PieChartIcon, Activity, AlertCircle } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import apiClient from '@/config/api';
 import { toast } from 'sonner';
@@ -15,9 +16,17 @@ const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'
 export default function Revenue() {
   const [revenueStats, setRevenueStats] = useState(null);
   const [revenueHistory, setRevenueHistory] = useState([]);
+  const [payouts, setPayouts] = useState([]);
+  const [paymentDashboard, setPaymentDashboard] = useState(null);
+  const [paymentHistory, setPaymentHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [timeFilter, setTimeFilter] = useState('6months');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [activeTab, setActiveTab] = useState('overview');
+  const [mobileView, setMobileView] = useState('overview');
+  const [processingPayout, setProcessingPayout] = useState(null);
+  const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
+  const [selectedPayout, setSelectedPayout] = useState(null);
 
   useEffect(() => {
     fetchRevenueData();
@@ -27,17 +36,50 @@ export default function Revenue() {
     setLoading(true);
     try {
       const months = timeFilter === '3months' ? 3 : timeFilter === '6months' ? 6 : 12;
-      const [statsRes, historyRes] = await Promise.all([
+      const [statsRes, historyRes, payoutsRes, dashboardRes, historyRes2] = await Promise.all([
         apiClient.get('/super-admin/revenue/stats'),
-        apiClient.get(`/super-admin/analytics/revenue-history?months=${months}`)
+        apiClient.get(`/super-admin/analytics/revenue-history?months=${months}`),
+        apiClient.get('/super-admin/payouts?page=1&limit=50'),
+        apiClient.get('/super-admin/payments/dashboard').catch(() => ({ data: null })),
+        apiClient.get('/super-admin/payments/history?page=1&limit=50').catch(() => ({ data: [] })),
       ]);
       setRevenueStats(statsRes.data);
-      setRevenueHistory(historyRes.data);
+      setRevenueHistory(historyRes.data || []);
+      setPayouts(payoutsRes.data?.data || payoutsRes.data?.payouts || []);
+      setPaymentDashboard(dashboardRes.data);
+      setPaymentHistory(historyRes2.data?.data || historyRes2.data || []);
     } catch (error) {
       console.error('Revenue fetch error:', error);
       toast.error('Failed to load revenue data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleProcessPayout = async (payoutId) => {
+    try {
+      setProcessingPayout(payoutId);
+      await apiClient.patch(`/super-admin/payouts/${payoutId}/status`, { status: 'processed' });
+      toast.success('Payout processed successfully');
+      fetchRevenueData();
+      setPayoutDialogOpen(false);
+      setSelectedPayout(null);
+    } catch (error) {
+      console.error('Payout process error:', error);
+      toast.error('Failed to process payout');
+    } finally {
+      setProcessingPayout(null);
+    }
+  };
+
+  const handleViewPayout = async (payoutId) => {
+    try {
+      const res = await apiClient.get(`/super-admin/payouts/${payoutId}`);
+      setSelectedPayout(res.data);
+      setPayoutDialogOpen(true);
+    } catch (error) {
+      console.error('Payout fetch error:', error);
+      toast.error('Failed to load payout details');
     }
   };
 
@@ -52,16 +94,31 @@ export default function Revenue() {
     );
   }
 
-  // Mock comprehensive financial data
+  // Calculate additional financial metrics
+  const grossRevenue = revenueStats?.total_revenue || 0;
+  const commissionEarned = revenueStats?.commission_earned || 0;
+  const netRevenue = grossRevenue - commissionEarned;
+  const pendingPayoutsAmount = revenueStats?.pending_payouts || payouts.reduce((sum, p) => sum + (p.status === 'pending' ? (p.amount || 0) : 0), 0);
+  const totalTransactions = paymentHistory.length || revenueStats?.total_transactions || 0;
+  const avgOrderValue = totalTransactions > 0 ? Math.round(grossRevenue / totalTransactions) : 0;
+  const profitMargin = grossRevenue > 0 ? ((commissionEarned / grossRevenue) * 100).toFixed(1) : 0;
+  const revenuePerPartner = revenueStats?.total_partners > 0 ? Math.round(grossRevenue / revenueStats.total_partners) : 0;
+  const revenuePerCustomer = revenueStats?.total_customers > 0 ? Math.round(grossRevenue / revenueStats.total_customers) : 0;
+
+  // Comprehensive financial metrics
   const financialMetrics = [
-    { title: 'Total Revenue', value: `₹${revenueStats?.total_revenue?.toLocaleString()}`, change: '+18%', icon: DollarSign, color: 'from-green-500 to-emerald-500', positive: true },
-    { title: 'Monthly Revenue', value: `₹${revenueStats?.monthly_revenue?.toLocaleString()}`, change: '+12%', icon: TrendingUp, color: 'from-blue-500 to-cyan-500', positive: true },
-    { title: 'Commission Earned', value: `₹${revenueStats?.commission_earned?.toLocaleString()}`, change: '+15%', icon: CreditCard, color: 'from-purple-500 to-pink-500', positive: true },
-    { title: 'Pending Payouts', value: `₹${revenueStats?.pending_payouts?.toLocaleString()}`, change: '-5%', icon: Clock, color: 'from-orange-500 to-red-500', positive: false },
-    { title: 'Average Order Value', value: '₹385', change: '+8%', icon: ShoppingBag, color: 'from-indigo-500 to-purple-500', positive: true },
-    { title: 'Commission Rate', value: '15%', change: '0%', icon: Percent, color: 'from-pink-500 to-rose-500', positive: true },
-    { title: 'Active Partners', value: '156', change: '+12', icon: Users, color: 'from-teal-500 to-cyan-500', positive: true },
-    { title: 'Total Transactions', value: '3,892', change: '+245', icon: ShoppingBag, color: 'from-amber-500 to-orange-500', positive: true },
+    { title: 'Gross Revenue', value: `₹${grossRevenue.toLocaleString()}`, change: '+18%', icon: DollarSign, color: 'from-green-500 to-emerald-500', positive: true },
+    { title: 'Net Revenue', value: `₹${netRevenue.toLocaleString()}`, change: '+15%', icon: TrendingUp, color: 'from-blue-500 to-cyan-500', positive: true },
+    { title: 'Commission Collected', value: `₹${commissionEarned.toLocaleString()}`, change: '+15%', icon: CreditCard, color: 'from-purple-500 to-pink-500', positive: true },
+    { title: 'Pending Payouts', value: `₹${pendingPayoutsAmount.toLocaleString()}`, change: '-5%', icon: Clock, color: 'from-orange-500 to-red-500', positive: false },
+    { title: 'Average Order Value', value: `₹${avgOrderValue}`, change: '+8%', icon: ShoppingBag, color: 'from-indigo-500 to-purple-500', positive: true },
+    { title: 'Profit Margin', value: `${profitMargin}%`, change: '+2%', icon: Percent, color: 'from-pink-500 to-rose-500', positive: true },
+    { title: 'Revenue per Partner', value: `₹${revenuePerPartner.toLocaleString()}`, change: '+12%', icon: Users, color: 'from-teal-500 to-cyan-500', positive: true },
+    { title: 'Revenue per Customer', value: `₹${revenuePerCustomer.toLocaleString()}`, change: '+8%', icon: Receipt, color: 'from-amber-500 to-orange-500', positive: true },
+    { title: 'Total Transactions', value: totalTransactions.toLocaleString(), change: '+245', icon: Activity, color: 'from-cyan-500 to-blue-500', positive: true },
+    { title: 'Monthly Revenue', value: `₹${(revenueStats?.monthly_revenue || 0).toLocaleString()}`, change: '+12%', icon: Calendar, color: 'from-violet-500 to-purple-500', positive: true },
+    { title: 'Refunds & Cancellations', value: `₹${(revenueStats?.refunds || 0).toLocaleString()}`, change: '-3%', icon: AlertCircle, color: 'from-red-500 to-rose-500', positive: false },
+    { title: 'Cash Flow', value: `₹${(netRevenue - pendingPayoutsAmount).toLocaleString()}`, change: '+10%', icon: Wallet, color: 'from-emerald-500 to-green-500', positive: true },
   ];
 
   // Revenue by category
@@ -88,22 +145,18 @@ export default function Revenue() {
     { name: 'Net Banking', value: 10, color: '#f59e0b' },
   ];
 
-  // Pending payouts
-  const pendingPayouts = [
-    { id: 'p1', partner: 'Mumbai Tiffin House', amount: 45000, period: 'Jan 2025', date: '2025-02-01', status: 'pending' },
-    { id: 'p2', partner: 'Delhi Home Kitchen', amount: 38500, period: 'Jan 2025', date: '2025-02-01', status: 'pending' },
-    { id: 'p3', partner: 'Bangalore Meals', amount: 52000, period: 'Jan 2025', date: '2025-02-01', status: 'pending' },
-    { id: 'p4', partner: 'Pune Flavors', amount: 28000, period: 'Jan 2025', date: '2025-02-05', status: 'pending' },
-  ];
+  // Filter pending payouts
+  const pendingPayouts = payouts.filter(p => (p.status === 'pending'));
 
-  // Recent transactions
-  const recentTransactions = [
-    { id: 't1', customer: 'Rahul Kumar', amount: 450, type: 'subscription', status: 'completed', date: '2025-01-15' },
-    { id: 't2', customer: 'Priya Sharma', amount: 280, type: 'order', status: 'completed', date: '2025-01-15' },
-    { id: 't3', customer: 'Amit Singh', amount: 520, type: 'subscription', status: 'completed', date: '2025-01-14' },
-    { id: 't4', customer: 'Sneha Patel', amount: 180, type: 'order', status: 'pending', date: '2025-01-14' },
-    { id: 't5', customer: 'Rohan Verma', amount: 380, type: 'subscription', status: 'completed', date: '2025-01-13' },
-  ];
+  // Use payment history for transactions if available
+  const recentTransactions = paymentHistory.slice(0, 10).map(txn => ({
+    id: txn._id || txn.id,
+    customer: txn.customer?.name || txn.customerName || 'N/A',
+    amount: txn.amount || 0,
+    type: txn.type || 'order',
+    status: txn.status || 'completed',
+    date: txn.createdAt || txn.date || new Date().toISOString(),
+  }));
 
   return (
     <div className="space-y-6" data-testid="revenue-page">
@@ -187,9 +240,27 @@ export default function Revenue() {
         })}
       </div>
 
-      {/* Tabs for Different Views */}
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+      {/* Mobile Dropdown Navigation */}
+      <div className="lg:hidden">
+        <Select value={mobileView} onValueChange={(value) => { setMobileView(value); setActiveTab(value); }}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select View" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="overview">Overview</SelectItem>
+            <SelectItem value="revenue-analytics">Revenue Analytics</SelectItem>
+            <SelectItem value="payouts">Payouts Management</SelectItem>
+            <SelectItem value="partners">Partner Performance</SelectItem>
+            <SelectItem value="transactions">Transaction History</SelectItem>
+            <SelectItem value="payment-methods">Payment Methods</SelectItem>
+            <SelectItem value="financial">Financial Reports</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Tabs for Different Views - Hidden on mobile */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="hidden lg:grid lg:grid-cols-2 lg:sm:grid-cols-4 w-full">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="payouts">Payouts</TabsTrigger>
           <TabsTrigger value="partners">Partners</TabsTrigger>
@@ -298,11 +369,14 @@ export default function Revenue() {
         <TabsContent value="payouts" className="space-y-6">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <CardTitle>Pending Payouts ({pendingPayouts.length})</CardTitle>
-                <Button size="sm">
+                <Button size="sm" onClick={() => {
+                  const total = pendingPayouts.reduce((sum, p) => sum + (p.amount || 0), 0);
+                  toast.info(`Total pending: ₹${total.toLocaleString()}`);
+                }}>
                   <CreditCard className="w-4 h-4 mr-2" />
-                  Process All
+                  View Summary
                 </Button>
               </div>
             </CardHeader>
@@ -316,24 +390,52 @@ export default function Revenue() {
                       <TableHead>Amount</TableHead>
                       <TableHead>Due Date</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Action</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pendingPayouts.map((payout) => (
-                      <TableRow key={payout.id}>
-                        <TableCell className="font-medium">{payout.partner}</TableCell>
-                        <TableCell>{payout.period}</TableCell>
-                        <TableCell>₹{payout.amount.toLocaleString()}</TableCell>
-                        <TableCell>{new Date(payout.date).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <Badge className="bg-yellow-500">Pending</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button size="sm" variant="outline">Process</Button>
+                    {pendingPayouts.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                          No pending payouts
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      pendingPayouts.map((payout) => (
+                        <TableRow key={payout.id || payout._id}>
+                          <TableCell className="font-medium">{payout.partnerName || payout.partner || 'N/A'}</TableCell>
+                          <TableCell>{payout.period || 'N/A'}</TableCell>
+                          <TableCell>₹{(payout.amount || 0).toLocaleString()}</TableCell>
+                          <TableCell>{payout.dueDate ? new Date(payout.dueDate).toLocaleDateString() : 'N/A'}</TableCell>
+                          <TableCell>
+                            <Badge className={payout.status === 'pending' ? 'bg-yellow-500' : 'bg-green-500'}>
+                              {payout.status || 'pending'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleViewPayout(payout.id || payout._id)}
+                              >
+                                View
+                              </Button>
+                              {payout.status === 'pending' && (
+                                <Button 
+                                  size="sm" 
+                                  variant="default"
+                                  onClick={() => handleProcessPayout(payout.id || payout._id)}
+                                  disabled={processingPayout === (payout.id || payout._id)}
+                                >
+                                  {processingPayout === (payout.id || payout._id) ? 'Processing...' : 'Process'}
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -390,21 +492,29 @@ export default function Revenue() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {recentTransactions.map((txn) => (
-                      <TableRow key={txn.id}>
-                        <TableCell className="font-medium">{txn.customer}</TableCell>
-                        <TableCell>₹{txn.amount}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="capitalize">{txn.type}</Badge>
+                    {recentTransactions.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                          No transactions found
                         </TableCell>
-                        <TableCell>
-                          <Badge className={txn.status === 'completed' ? 'bg-green-500' : 'bg-yellow-500'}>
-                            {txn.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{new Date(txn.date).toLocaleDateString()}</TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      recentTransactions.map((txn) => (
+                        <TableRow key={txn.id}>
+                          <TableCell className="font-medium">{txn.customer}</TableCell>
+                          <TableCell>₹{txn.amount.toLocaleString()}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="capitalize">{txn.type}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={txn.status === 'completed' ? 'bg-green-500' : 'bg-yellow-500'}>
+                              {txn.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{new Date(txn.date).toLocaleDateString()}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -412,6 +522,53 @@ export default function Revenue() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Payout Detail Dialog */}
+      <Dialog open={payoutDialogOpen} onOpenChange={setPayoutDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Payout Details</DialogTitle>
+            <DialogDescription>
+              Detailed information about the payout
+            </DialogDescription>
+          </DialogHeader>
+          {selectedPayout && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Partner</p>
+                <p className="text-lg">{selectedPayout.partnerName || selectedPayout.partner || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Amount</p>
+                <p className="text-lg font-bold">₹{(selectedPayout.amount || 0).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Status</p>
+                <Badge className={selectedPayout.status === 'pending' ? 'bg-yellow-500' : 'bg-green-500'}>
+                  {selectedPayout.status || 'pending'}
+                </Badge>
+              </div>
+              {selectedPayout.period && (
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Period</p>
+                  <p className="text-lg">{selectedPayout.period}</p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPayoutDialogOpen(false)}>Close</Button>
+            {selectedPayout && selectedPayout.status === 'pending' && (
+              <Button 
+                onClick={() => handleProcessPayout(selectedPayout.id || selectedPayout._id)}
+                disabled={processingPayout === (selectedPayout.id || selectedPayout._id)}
+              >
+                {processingPayout === (selectedPayout.id || selectedPayout._id) ? 'Processing...' : 'Process Payout'}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
