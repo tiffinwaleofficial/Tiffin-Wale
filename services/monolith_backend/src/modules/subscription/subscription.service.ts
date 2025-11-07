@@ -415,11 +415,9 @@ export class SubscriptionService {
 
         try {
           await this.orderService.create(orderData as any);
-        } catch (error: any) {
-        }
+        } catch (error: any) {}
       }
-    } catch (error: any) {
-    }
+    } catch (error: any) {}
   }
 
   /**

@@ -26,5 +26,16 @@
       "@config/*": ["src/config/*"],
       "@modules/*": ["src/modules/*"]
     }
-  }
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "coverage",
+    "Platform UK/**/*",
+    "**/*.spec.ts",
+    "**/*.test.ts"
+  ]
 } 

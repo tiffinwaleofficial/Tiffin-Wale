@@ -1,0 +1,134 @@
+{
+  "fonts": {
+    "primary": "Poppins",
+    "fallback": ["Segoe UI", "Helvetica Neue", "Arial", "sans-serif"],
+    "sizes": {
+      "body": 12,
+      "heading": 18,
+      "subheading": 14,
+      "small": 10,
+      "tiny": 8
+    },
+    "weights": {
+      "regular": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700
+    }
+  },
+  "logo": {
+    "path": "src/modules/report/resources/images/logo.png",
+    "note": "Logo file path relative to project root. Supported formats: jpg, jpeg, png"
+  },
+  "icon": {
+    "path": "src/modules/report/resources/images/icon.png",
+    "note": "Icon file path relative to project root. Used in header. Supported formats: png, jpg, jpeg"
+  },
+  "colors": {
+    "primary": "#FF7A00",
+    "secondary": "#222831",
+    "text": "#222831",
+    "textLight": "#666666",
+    "textMuted": "#888888",
+    "border": "#E0E0E0",
+    "background": "#FFFFFF",
+    "backgroundLight": "#FAFAFA",
+    "headerBackground": "#FF7A00",
+    "headerText": "#FFFFFF",
+    "footerText": "#222831",
+    "footerTextMuted": "#888888"
+  },
+  "header": {
+    "enabled": true,
+    "height": 110,
+    "backgroundColor": "#FF7A00",
+    "textColor": "#FFFFFF",
+    "logoHeight": 75,
+    "logoClickable": true,
+    "logoUrl": "https://www.tiffin-wale.com/",
+    "showLogo": true,
+    "showCompanyName": true,
+    "showContactInfo": true,
+    "companyName": "Rira Industries",
+    "companyNameFontSize": 22,
+    "contactInfoFontSize": 13,
+    "title": "Tiffin Wale",
+    "titleFontSize": 24,
+    "tagline": "Ghar Jaisa Khana Har Jagah",
+    "taglineFontSize": 14,
+    "iconHeight": 70,
+    "borderRadius": 12,
+    "padding": {
+      "top": 20,
+      "bottom": 20,
+      "left": 30,
+      "right": 30
+    }
+  },
+  "footer": {
+    "enabled": true,
+    "height": 110,
+    "backgroundColor": "#FAFAFA",
+    "borderColor": "#E0E0E0",
+    "borderWidth": 1,
+    "textColor": "#222831",
+    "textColorMuted": "#888888",
+    "addressFontSize": 11,
+    "contactFontSize": 10,
+    "watermarkFontSize": 8,
+    "showAddress": true,
+    "showContactInfo": true,
+    "showWatermark": true,
+    "watermark": {
+      "enabled": true,
+      "text": "Powered by Tiffin Wale Report System © Rira Industries",
+      "fontSize": 8,
+      "color": "#888888",
+      "style": "italic"
+    },
+    "padding": {
+      "top": 12,
+      "bottom": 12,
+      "left": 20,
+      "right": 20
+    }
+  },
+  "watermark": {
+    "enabled": true,
+    "text": "Tiffin Wale",
+    "opacity": 0.05,
+    "fontSize": 72,
+    "color": "#FF7A00",
+    "rotation": -45,
+    "position": {
+      "x": "center",
+      "y": "center"
+    }
+  },
+  "pageMargins": {
+    "top": 0.5,
+    "bottom": 0.5,
+    "left": 0.5,
+    "right": 0.5,
+    "unit": "in",
+    "note": "Root page margins - applies to ALL content including header, footer, and body. Values in inches."
+  },
+  "margins": {
+    "top": 130,
+    "bottom": 130,
+    "left": 1.0,
+    "right": 1.0,
+    "unit": "px",
+    "note": "Content margins: Top/bottom in pixels (for header/footer space), left/right in inches (for content margins)"
+  },
+  "page": {
+    "format": "A4",
+    "orientation": "portrait",
+    "printBackground": true
+  },
+  "storage": {
+    "autoSave": true,
+    "saveOnGeneration": false
+  }
+}
+

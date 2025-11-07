@@ -1,0 +1,44 @@
+/*
+ * Global styles for PDF templates
+ * This stylesheet will be applied to all HTML templates before PDF conversion.
+*/
+
+/* Poppins font will be embedded via base64 in pdf.service.ts */
+body {
+  font-family: 'Poppins', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 12px;
+  color: #222831;
+  margin: 0;
+  padding: 0;
+  line-height: 1.4;
+}
+
+.container {
+  padding: 0.5in 0.8in 0.5in 0.8in; /* Reduced top/bottom padding since header/footer now have their own space */
+  font-family: 'Poppins', sans-serif;
+}
+
+h1,
+h2,
+h3 {
+  color: #FF7A00; /* Tiffin Wale Orange */
+  font-weight: bold;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+th,
+td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}

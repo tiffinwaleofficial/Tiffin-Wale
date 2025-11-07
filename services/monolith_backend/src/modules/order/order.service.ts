@@ -892,9 +892,11 @@ export class OrderService {
       });
 
       // Send email notification
-      this.sendOrderStatusUpdateEmail(updatedOrder, "delivered").catch((error) => {
-        console.error("Failed to send delivered notification email:", error);
-      });
+      this.sendOrderStatusUpdateEmail(updatedOrder, "delivered").catch(
+        (error) => {
+          console.error("Failed to send delivered notification email:", error);
+        },
+      );
 
       return updatedOrder;
     } catch (error) {

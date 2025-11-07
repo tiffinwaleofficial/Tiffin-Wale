@@ -168,8 +168,9 @@ export class RedisHealthService {
 
   /**
    * Perform comprehensive health check on all instances
+   * DISABLED: Cron job disabled to stop 30-second ping interval
    */
-  @Cron(CronExpression.EVERY_30_SECONDS)
+  // @Cron(CronExpression.EVERY_30_SECONDS)
   async performHealthChecks(): Promise<SystemHealthStatus> {
     this.initialize(); // Lazy initialization
     const timestamp = new Date();

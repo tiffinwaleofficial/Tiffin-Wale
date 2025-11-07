@@ -40,4 +40,3 @@ export class InviteUserDto {
   @IsOptional()
   name?: string;
 }
-

@@ -10,7 +10,10 @@ import {
 } from "class-validator";
 
 export class RegisterSuperAdminDto {
-  @ApiProperty({ example: "admin@tiffinwale.com", description: "Email address" })
+  @ApiProperty({
+    example: "admin@tiffinwale.com",
+    description: "Email address",
+  })
   @IsEmail({}, { message: "Please provide a valid email address" })
   @IsNotEmpty({ message: "Email is required" })
   @MaxLength(255, { message: "Email is too long" })
@@ -53,4 +56,3 @@ export class RegisterSuperAdminDto {
   })
   phoneNumber?: string;
 }
-

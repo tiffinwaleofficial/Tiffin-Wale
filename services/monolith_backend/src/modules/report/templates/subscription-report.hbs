@@ -1,0 +1,76 @@
+<h1>SUBSCRIPTION REPORT</h1>
+<p style="text-align: center;">Subscription ID: {{subscriptionId}}</p>
+<p style="text-align: center;">Report Generated: {{reportDate}}</p>
+
+<hr>
+
+<div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+  <div style="width: 48%;">
+    <h3>Customer Details:</h3>
+    <p><strong>Name:</strong> {{customer.name}}</p>
+    <p><strong>Email:</strong> {{customer.email}}</p>
+  </div>
+  <div style="width: 48%;">
+    <h3>Subscription Plan:</h3>
+    <p><strong>Plan:</strong> {{plan.name}}</p>
+    <p><strong>Price:</strong> ₹{{plan.price}}</p>
+    <p><strong>Duration:</strong> {{plan.durationValue}} {{plan.durationType}}</p>
+  </div>
+</div>
+
+<hr>
+
+<h3>Subscription Details:</h3>
+<p><strong>Status:</strong> {{status}}</p>
+<p><strong>Start Date:</strong> {{startDate}}</p>
+<p><strong>End Date:</strong> {{endDate}}</p>
+<p><strong>Next Billing:</strong> {{nextBillingDate}}</p>
+
+{{#if meals}}
+<hr>
+<h3>Meal History:</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Meal Type</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each meals}}
+    <tr>
+      <td>{{date}}</td>
+      <td>{{type}}</td>
+      <td>{{status}}</td>
+    </tr>
+    {{/each}}
+  </tbody>
+</table>
+{{/if}}
+
+{{#if payments}}
+<hr>
+<h3>Payment History:</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Amount</th>
+      <th>Status</th>
+      <th>Method</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each payments}}
+    <tr>
+      <td>{{date}}</td>
+      <td>₹{{amount}}</td>
+      <td>{{status}}</td>
+      <td>{{method}}</td>
+    </tr>
+    {{/each}}
+  </tbody>
+</table>
+{{/if}}
+

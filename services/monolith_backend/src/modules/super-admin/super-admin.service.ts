@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { CustomerService } from "../customer/customer.service";
@@ -466,8 +470,13 @@ export class SuperAdminService {
   async getAllPayouts(page: number = 1, limit: number = 10, status?: string) {
     // Calculate payouts from orders - partner earnings after commission
     try {
-      const ordersResult = await this.orderService.findAllForSuperAdmin(1, 1000);
-      const orders = Array.isArray(ordersResult) ? ordersResult : ordersResult.orders || [];
+      const ordersResult = await this.orderService.findAllForSuperAdmin(
+        1,
+        1000,
+      );
+      const orders = Array.isArray(ordersResult)
+        ? ordersResult
+        : ordersResult.orders || [];
       const partners = await this.partnerModel.find().exec();
 
       // Create a map of partner payouts
@@ -480,7 +489,8 @@ export class SuperAdminService {
 
         const partnerId = order.businessPartner.toString();
         const partner = partners.find(
-          (p) => p._id.toString() === partnerId || p.user?.toString() === partnerId,
+          (p) =>
+            p._id.toString() === partnerId || p.user?.toString() === partnerId,
         );
 
         if (!partner) return;
@@ -537,7 +547,9 @@ export class SuperAdminService {
 
   async getPayoutById(id: string) {
     const payout = await this.getAllPayouts(1, 1000);
-    const found = payout.data.find((p: any) => p.partnerId === id || p.id === id);
+    const found = payout.data.find(
+      (p: any) => p.partnerId === id || p.id === id,
+    );
     if (!found) {
       throw new NotFoundException(`Payout with ID ${id} not found`);
     }
@@ -583,15 +595,19 @@ export class SuperAdminService {
   async getSystemConfig() {
     // Return current system configuration
     return {
-      platformName: this.configService.get<string>("PLATFORM_NAME") || "TiffinWale",
-      commissionRate: this.configService.get<number>("DEFAULT_COMMISSION_RATE") || 20,
+      platformName:
+        this.configService.get<string>("PLATFORM_NAME") || "TiffinWale",
+      commissionRate:
+        this.configService.get<number>("DEFAULT_COMMISSION_RATE") || 20,
       minOrderAmount: this.configService.get<number>("MIN_ORDER_AMOUNT") || 100,
       deliveryFee: this.configService.get<number>("DELIVERY_FEE") || 0,
       currency: this.configService.get<string>("CURRENCY") || "INR",
       features: {
         payments: this.configService.get<boolean>("FEATURE_PAYMENTS") || false,
-        referrals: this.configService.get<boolean>("FEATURE_REFERRALS") || false,
-        subscriptions: this.configService.get<boolean>("FEATURE_SUBSCRIPTIONS") || false,
+        referrals:
+          this.configService.get<boolean>("FEATURE_REFERRALS") || false,
+        subscriptions:
+          this.configService.get<boolean>("FEATURE_SUBSCRIPTIONS") || false,
       },
     };
   }
@@ -640,8 +656,16 @@ export class SuperAdminService {
     };
   }
 
-  async getUserNotifications(userId: string, page: number = 1, limit: number = 10) {
-    return this.notificationsService.getNotificationHistory(userId, page, limit);
+  async getUserNotifications(
+    userId: string,
+    page: number = 1,
+    limit: number = 10,
+  ) {
+    return this.notificationsService.getNotificationHistory(
+      userId,
+      page,
+      limit,
+    );
   }
 
   async markNotificationRead(id: string) {
@@ -695,7 +719,11 @@ export class SuperAdminService {
     return { ...feedback, adminResponse: response, respondedAt: new Date() };
   }
 
-  async getFeedbackByUser(userId: string, page: number = 1, limit: number = 10) {
+  async getFeedbackByUser(
+    userId: string,
+    page: number = 1,
+    limit: number = 10,
+  ) {
     return this.feedbackService.getFeedbackList({
       page,
       limit,
@@ -703,7 +731,11 @@ export class SuperAdminService {
     });
   }
 
-  async getFeedbackByPartner(partnerId: string, page: number = 1, limit: number = 10) {
+  async getFeedbackByPartner(
+    partnerId: string,
+    page: number = 1,
+    limit: number = 10,
+  ) {
     return this.feedbackService.getFeedbackList({
       page,
       limit,
@@ -727,7 +759,12 @@ export class SuperAdminService {
     }
 
     const [payments, total] = await Promise.all([
-      this.paymentModel.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }).exec(),
+      this.paymentModel
+        .find(query)
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .exec(),
       this.paymentModel.countDocuments(query).exec(),
     ]);
 
@@ -749,7 +786,9 @@ export class SuperAdminService {
   }
 
   async getPaymentByOrderId(orderId: string) {
-    const payments = await this.paymentModel.find({ referenceId: orderId }).exec();
+    const payments = await this.paymentModel
+      .find({ referenceId: orderId })
+      .exec();
     return payments;
   }
 
@@ -758,7 +797,8 @@ export class SuperAdminService {
     // Return payment verification status
     return {
       ...payment.toObject(),
-      verified: payment.status === "captured" || payment.status === "authorized",
+      verified:
+        payment.status === "captured" || payment.status === "authorized",
       verifiedAt: new Date(),
     };
   }
@@ -769,10 +809,12 @@ export class SuperAdminService {
         this.paymentModel.countDocuments().exec(),
         this.paymentModel.countDocuments({ status: "captured" }).exec(),
         this.paymentModel.countDocuments({ status: "failed" }).exec(),
-        this.paymentModel.aggregate([
-          { $match: { status: "captured" } },
-          { $group: { _id: null, total: { $sum: "$amount" } } },
-        ]).exec(),
+        this.paymentModel
+          .aggregate([
+            { $match: { status: "captured" } },
+            { $group: { _id: null, total: { $sum: "$amount" } } },
+          ])
+          .exec(),
       ]);
 
     return {
@@ -789,14 +831,19 @@ export class SuperAdminService {
   async inviteUser(inviteUserDto: InviteUserDto) {
     try {
       // Generate a temporary password (in production, this should be sent via email)
-      const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase() + "!@#";
-      
+      const tempPassword =
+        Math.random().toString(36).slice(-12) +
+        Math.random().toString(36).slice(-12).toUpperCase() +
+        "!@#";
+
       // Create user with provided role
       const user = await this.userService.create({
         email: inviteUserDto.email,
         password: tempPassword,
         role: inviteUserDto.role,
-        firstName: inviteUserDto.name?.split(" ")[0] || inviteUserDto.email.split("@")[0],
+        firstName:
+          inviteUserDto.name?.split(" ")[0] ||
+          inviteUserDto.email.split("@")[0],
         lastName: inviteUserDto.name?.split(" ").slice(1).join(" ") || "",
       });
 
@@ -804,16 +851,17 @@ export class SuperAdminService {
       // 1. Generate an invitation token
       // 2. Send invitation email with token/link
       // 3. User sets password via invitation link
-      
+
       // For now, return user without password
       const { password: _password, ...userWithoutPassword } = user.toObject();
-      
+
       return {
         ...userWithoutPassword,
         invitationToken: "temp_token_" + Date.now(), // In production, use proper JWT token
         invitationLink: `${this.configService.get("FRONTEND_URL") || "https://admin.tiffin-wale.com"}/invite?token=temp_token_${Date.now()}`,
         temporaryPassword: tempPassword, // Remove this in production - only send via email
-        message: "User invitation created. Please send the invitation link to the user.",
+        message:
+          "User invitation created. Please send the invitation link to the user.",
       };
     } catch (error) {
       if (error.message?.includes("already exists")) {
@@ -875,7 +923,7 @@ export class SuperAdminService {
         // Reset partner ratings
         await this.partnerModel.updateMany(
           {},
-          { $set: { rating: 0, totalRatings: 0 } }
+          { $set: { rating: 0, totalRatings: 0 } },
         );
         return {
           success: true,
@@ -902,34 +950,59 @@ export class SuperAdminService {
   async getAllCronPreferences() {
     try {
       const preferences = await this.cronPreferenceModel.find().exec();
-      
+
       // If no preferences exist, return default crons
       if (preferences.length === 0) {
         const defaultCrons = [
-          { name: 'notification-processing', description: 'Process pending notifications', schedule: 'Every minute', enabled: true },
-          { name: 'daily-morning-notifications', description: 'Send morning notifications', schedule: 'Every day at 9 AM', enabled: true },
-          { name: 'daily-evening-notifications', description: 'Send evening notifications', schedule: 'Every day at 6 PM', enabled: true },
-          { name: 'redis-health-check', description: 'Redis health monitoring', schedule: 'Every 30 seconds', enabled: true },
-          { name: 'redis-analytics', description: 'Analytics aggregation', schedule: 'Every minute', enabled: true },
+          {
+            name: "notification-processing",
+            description: "Process pending notifications",
+            schedule: "Every minute",
+            enabled: true,
+          },
+          {
+            name: "daily-morning-notifications",
+            description: "Send morning notifications",
+            schedule: "Every day at 9 AM",
+            enabled: true,
+          },
+          {
+            name: "daily-evening-notifications",
+            description: "Send evening notifications",
+            schedule: "Every day at 6 PM",
+            enabled: true,
+          },
+          {
+            name: "redis-health-check",
+            description: "Redis health monitoring",
+            schedule: "Every 30 seconds",
+            enabled: true,
+          },
+          {
+            name: "redis-analytics",
+            description: "Analytics aggregation",
+            schedule: "Every minute",
+            enabled: true,
+          },
         ];
-        
+
         // Create default preferences
         const createdCrons = await Promise.all(
-          defaultCrons.map(cron => 
+          defaultCrons.map((cron) =>
             this.cronPreferenceModel.create({
               name: cron.name,
               description: cron.description,
               schedule: cron.schedule,
               enabled: cron.enabled,
-            })
-          )
+            }),
+          ),
         );
         return createdCrons;
       }
-      
+
       return preferences;
     } catch (error) {
-      console.error('Error fetching cron preferences:', error);
+      console.error("Error fetching cron preferences:", error);
       throw error;
     }
   }
@@ -937,52 +1010,67 @@ export class SuperAdminService {
   async getCronPreferenceByName(name: string) {
     const preference = await this.cronPreferenceModel.findOne({ name }).exec();
     if (!preference) {
-      throw new NotFoundException(`Cron preference with name ${name} not found`);
+      throw new NotFoundException(
+        `Cron preference with name ${name} not found`,
+      );
     }
     return preference;
   }
 
   async updateCronPreferenceStatus(name: string, enabled: boolean) {
-    const preference = await this.cronPreferenceModel.findOneAndUpdate(
-      { name },
-      { enabled, updatedAt: new Date() },
-      { new: true, upsert: true }
-    ).exec();
-    
+    const preference = await this.cronPreferenceModel
+      .findOneAndUpdate(
+        { name },
+        { enabled, updatedAt: new Date() },
+        { new: true, upsert: true },
+      )
+      .exec();
+
     return preference;
   }
 
-  async createOrUpdateCronPreference(name: string, data: Partial<CronPreference>) {
-    const preference = await this.cronPreferenceModel.findOneAndUpdate(
-      { name },
-      { ...data, updatedAt: new Date() },
-      { new: true, upsert: true }
-    ).exec();
-    
+  async createOrUpdateCronPreference(
+    name: string,
+    data: Partial<CronPreference>,
+  ) {
+    const preference = await this.cronPreferenceModel
+      .findOneAndUpdate(
+        { name },
+        { ...data, updatedAt: new Date() },
+        { new: true, upsert: true },
+      )
+      .exec();
+
     return preference;
   }
 
   async deleteCronPreference(name: string) {
-    const result = await this.cronPreferenceModel.findOneAndDelete({ name }).exec();
+    const result = await this.cronPreferenceModel
+      .findOneAndDelete({ name })
+      .exec();
     if (!result) {
-      throw new NotFoundException(`Cron preference with name ${name} not found`);
+      throw new NotFoundException(
+        `Cron preference with name ${name} not found`,
+      );
     }
     return { message: `Cron preference ${name} deleted successfully` };
   }
 
   async triggerCronPreference(name: string) {
     const preference = await this.getCronPreferenceByName(name);
-    
+
     // Update last run timestamp and increment run count
-    await this.cronPreferenceModel.findOneAndUpdate(
-      { name },
-      { 
-        lastRun: new Date(),
-        $inc: { runCount: 1 },
-        updatedAt: new Date()
-      }
-    ).exec();
-    
+    await this.cronPreferenceModel
+      .findOneAndUpdate(
+        { name },
+        {
+          lastRun: new Date(),
+          $inc: { runCount: 1 },
+          updatedAt: new Date(),
+        },
+      )
+      .exec();
+
     return {
       message: `Cron job ${name} triggered successfully`,
       preference: await this.getCronPreferenceByName(name),

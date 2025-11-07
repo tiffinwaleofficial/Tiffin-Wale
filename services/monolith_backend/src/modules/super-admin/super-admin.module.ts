@@ -18,7 +18,10 @@ import { SystemModule } from "../system/system.module";
 import { RedisModule } from "../redis/redis.module";
 import { Payment, PaymentSchema } from "../payment/schemas/payment.schema";
 import { Partner, PartnerSchema } from "../partner/schemas/partner.schema";
-import { CronPreference, CronPreferenceSchema } from "./schemas/cron-preference.schema";
+import {
+  CronPreference,
+  CronPreferenceSchema,
+} from "./schemas/cron-preference.schema";
 
 @Module({
   imports: [

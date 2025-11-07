@@ -1,0 +1,69 @@
+<h1>INVOICE</h1>
+<p style="text-align: center;">Invoice #{{invoiceNumber}}</p>
+<p style="text-align: center;">Date: {{invoiceDate}}</p>
+
+<hr>
+
+<div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+  <div style="width: 48%;">
+    <h3>Bill To:</h3>
+    <p><strong>{{customer.name}}</strong></p>
+    <p>{{customer.email}}</p>
+    <p>{{customer.phone}}</p>
+    <p>{{customer.address}}</p>
+  </div>
+  <div style="width: 48%;">
+    <h3>Invoice Details:</h3>
+    <p><strong>Invoice Date:</strong> {{invoiceDate}}</p>
+    <p><strong>Due Date:</strong> {{dueDate}}</p>
+    <p><strong>Status:</strong> {{status}}</p>
+  </div>
+</div>
+
+<hr>
+
+<h3>Items:</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Description</th>
+      <th>Quantity</th>
+      <th>Rate</th>
+      <th>Amount</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each items}}
+    <tr>
+      <td>{{description}}</td>
+      <td>{{quantity}}</td>
+      <td>₹{{rate}}</td>
+      <td>₹{{amount}}</td>
+    </tr>
+    {{/each}}
+  </tbody>
+</table>
+
+<hr>
+
+<div style="text-align: right; margin-top: 20px;">
+  <p><strong>Subtotal:</strong> ₹{{subtotal}}</p>
+  {{#if tax}}
+  <p><strong>Tax ({{taxRate}}%):</strong> ₹{{tax}}</p>
+  {{/if}}
+  {{#if discount}}
+  <p><strong>Discount:</strong> -₹{{discount}}</p>
+  {{/if}}
+  <h3 style="color: #FF7A00;"><strong>Total Amount: ₹{{totalAmount}}</strong></h3>
+</div>
+
+<hr>
+
+<h3>Payment Information:</h3>
+<p><strong>Payment Terms:</strong> {{paymentTerms}}</p>
+<p><strong>Payment Method:</strong> {{paymentMethod}}</p>
+
+<div style="margin-top: 30px;">
+  <p><em>Thank you for your business!</em></p>
+</div>
+

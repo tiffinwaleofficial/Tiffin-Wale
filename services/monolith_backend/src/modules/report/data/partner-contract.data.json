@@ -1,0 +1,38 @@
+{
+  "contractId": "AGR-2025-XYZ-001",
+  "documentType": "Partner Agreement",
+  "effectiveDate": "2025-11-06T00:00:00.000Z",
+  "partner": {
+    "businessName": "Sita Tiffin Center",
+    "ownerName": "Sita Devi",
+    "address": "56, Annapurna Road, Indore, MP - 452009",
+    "contactEmail": "sita.devi@example.com",
+    "contactPhone": "+91 98765 43210",
+    "gstNumber": "23AAAAA0000A1Z5",
+    "licenseNumber": "FSSAI-12345678901234"
+  },
+  "terms": {
+    "contractDuration": "24 months",
+    "paymentTerms": "Net 15",
+    "renewalTerms": "Automatic renewal unless terminated with 30 days notice.",
+    "commissionRate": 12.5,
+    "deliveryRadius": 8,
+    "minimumOrderAmount": 150
+  },
+  "bankDetails": {
+    "accountHolderName": "Sita Devi",
+    "accountNumber": "xx9876",
+    "ifscCode": "HDFC000123",
+    "bankName": "HDFC Bank"
+  },
+  "clauses": [
+    "Partner must adhere to all FSSAI hygiene and safety standards.",
+    "Tiffin Wale reserves the right to conduct periodic quality checks.",
+    "All payments will be processed electronically to the provided bank account."
+  ],
+  "signatures": {
+    "partnerSignature": null,
+    "companySignature": null,
+    "signedAt": "2025-11-06T12:00:00.000Z"
+  }
+}

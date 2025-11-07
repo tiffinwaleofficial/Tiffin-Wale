@@ -400,7 +400,10 @@ export class SuperAdminController {
   // Revenue & Payouts Management
   @Get("revenue/stats")
   @ApiOperation({ summary: "Get revenue statistics" })
-  @ApiResponse({ status: 200, description: "Revenue stats retrieved successfully" })
+  @ApiResponse({
+    status: 200,
+    description: "Revenue stats retrieved successfully",
+  })
   getRevenueStats() {
     return this.superAdminService.getRevenueStats();
   }
@@ -528,12 +531,18 @@ export class SuperAdminController {
   @ApiOperation({ summary: "Get all notifications" })
   @ApiQuery({ name: "page", required: false, type: Number })
   @ApiQuery({ name: "limit", required: false, type: Number })
-  @ApiResponse({ status: 200, description: "Notifications retrieved successfully" })
+  @ApiResponse({
+    status: 200,
+    description: "Notifications retrieved successfully",
+  })
   getAllNotifications(
     @Query("page") page: number = 1,
     @Query("limit") limit: number = 10,
   ) {
-    return this.superAdminService.getAllNotifications(Number(page), Number(limit));
+    return this.superAdminService.getAllNotifications(
+      Number(page),
+      Number(limit),
+    );
   }
 
   @Get("notifications/user/:userId")
@@ -568,7 +577,10 @@ export class SuperAdminController {
 
   @Delete("notifications/:id")
   @ApiOperation({ summary: "Delete a notification" })
-  @ApiResponse({ status: 200, description: "Notification deleted successfully" })
+  @ApiResponse({
+    status: 200,
+    description: "Notification deleted successfully",
+  })
   deleteNotification(@Param("id") id: string) {
     return this.superAdminService.deleteNotification(id);
   }
@@ -600,7 +612,12 @@ export class SuperAdminController {
       category,
       priority,
       status,
-      isResolved: isResolved === "true" ? true : isResolved === "false" ? false : undefined,
+      isResolved:
+        isResolved === "true"
+          ? true
+          : isResolved === "false"
+            ? false
+            : undefined,
       search,
     });
   }
@@ -675,7 +692,10 @@ export class SuperAdminController {
   @ApiQuery({ name: "status", required: false, type: String })
   @ApiQuery({ name: "type", required: false, type: String })
   @ApiQuery({ name: "customerId", required: false, type: String })
-  @ApiResponse({ status: 200, description: "Payment history retrieved successfully" })
+  @ApiResponse({
+    status: 200,
+    description: "Payment history retrieved successfully",
+  })
   getPaymentHistory(
     @Query("page") page: number = 1,
     @Query("limit") limit: number = 10,
@@ -683,11 +703,15 @@ export class SuperAdminController {
     @Query("type") type: string,
     @Query("customerId") customerId: string,
   ) {
-    return this.superAdminService.getPaymentHistory(Number(page), Number(limit), {
-      status,
-      type,
-      customerId,
-    });
+    return this.superAdminService.getPaymentHistory(
+      Number(page),
+      Number(limit),
+      {
+        status,
+        type,
+        customerId,
+      },
+    );
   }
 
   @Get("payments/dashboard")
@@ -747,10 +771,7 @@ export class SuperAdminController {
     description: "Command executed successfully",
   })
   @ApiResponse({ status: 400, description: "Bad request or unknown command" })
-  executeCommand(
-    @Param("command") command: string,
-    @Body() params?: any,
-  ) {
+  executeCommand(@Param("command") command: string, @Body() params?: any) {
     return this.superAdminService.executeCommand(command, params);
   }
 
@@ -786,7 +807,10 @@ export class SuperAdminController {
     @Param("name") name: string,
     @Body() body: { enabled: boolean },
   ) {
-    return this.superAdminService.updateCronPreferenceStatus(name, body.enabled);
+    return this.superAdminService.updateCronPreferenceStatus(
+      name,
+      body.enabled,
+    );
   }
 
   @Post("system/crons/:name/trigger")
@@ -806,10 +830,7 @@ export class SuperAdminController {
     status: 200,
     description: "Cron preference created/updated successfully",
   })
-  createOrUpdateCronPreference(
-    @Param("name") name: string,
-    @Body() body: any,
-  ) {
+  createOrUpdateCronPreference(@Param("name") name: string, @Body() body: any) {
     return this.superAdminService.createOrUpdateCronPreference(name, body);
   }
 

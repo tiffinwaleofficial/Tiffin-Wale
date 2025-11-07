@@ -31,6 +31,7 @@ import { ReviewModule } from "./modules/review/review.module";
 import { EmailModule } from "./modules/email/email.module";
 import { RedisModule } from "./modules/redis/redis.module";
 import { AIModule } from "./modules/ai/ai.module";
+import { ReportModule } from "./modules/report/report.module";
 
 @Module({
   imports: [
@@ -75,6 +76,7 @@ import { AIModule } from "./modules/ai/ai.module";
     ChatModule,
     ReviewModule,
     EmailModule,
+    ReportModule,
   ],
   controllers: [],
   providers: [],

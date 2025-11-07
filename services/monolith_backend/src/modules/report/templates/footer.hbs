@@ -1,0 +1,56 @@
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+  
+  body {
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+  }
+
+  .footer-container {
+    width: 100%;
+    padding: 0 0.8in 15px 0.8in;
+    box-sizing: border-box;
+  }
+
+  .footer {
+    width: 100%;
+    text-align: center;
+    color: #222831;
+    padding: 12px 0;
+    border-top: 1.5px solid #FF7A00;
+    font-family: 'Poppins', sans-serif;
+    position: relative;
+  }
+
+  .footer-address {
+    font-size: 11px;
+    margin: 8px 0 4px 0;
+    font-weight: 500;
+    color: #222831;
+  }
+
+  .footer-contact {
+    font-size: 10px;
+    margin: 4px 0 8px 0;
+    font-weight: 600;
+    color: #FF7A00;
+    letter-spacing: 0.3px;
+  }
+
+  .footer-watermark {
+    font-size: 8px;
+    color: #888;
+    margin-top: 6px;
+    font-weight: 300;
+    font-style: italic;
+  }
+</style>
+<div class="footer-container">
+  <div class="footer">
+    <div class="footer-address">📍 Head Office: {{address.line1}}, {{address.city}}, {{address.state}} - {{address.zip}}</div>
+    <div class="footer-contact">✉️ {{email}} | ☎️ {{phone}} | 🌐 {{website}}</div>
+    <div class="footer-watermark">Powered by Tiffin Wale Report System © RI RA INDUSTRIES PRIVATE LIMITED</div>
+  </div>
+</div>

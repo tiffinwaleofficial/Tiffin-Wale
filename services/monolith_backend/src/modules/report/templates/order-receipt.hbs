@@ -1,0 +1,76 @@
+<h1>ORDER RECEIPT</h1>
+<p style="text-align: center;">Order #{{orderNumber}}</p>
+<p style="text-align: center;">Date: {{orderDate}}</p>
+
+<hr>
+
+<div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+  <div style="width: 48%;">
+    <h3>Customer Details:</h3>
+    <p><strong>Name:</strong> {{customer.name}}</p>
+    <p><strong>Email:</strong> {{customer.email}}</p>
+    <p><strong>Phone:</strong> {{customer.phone}}</p>
+    <p><strong>Address:</strong> {{customer.address}}</p>
+  </div>
+  <div style="width: 48%;">
+    <h3>Partner Details:</h3>
+    <p><strong>Business:</strong> {{partner.businessName}}</p>
+    <p><strong>Address:</strong> {{partner.address}}</p>
+  </div>
+</div>
+
+<hr>
+
+<h3>Order Items:</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th>Quantity</th>
+      <th>Price</th>
+      <th>Subtotal</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each items}}
+    <tr>
+      <td>{{name}}</td>
+      <td>{{quantity}}</td>
+      <td>₹{{price}}</td>
+      <td>₹{{subtotal}}</td>
+    </tr>
+    {{/each}}
+  </tbody>
+</table>
+
+<hr>
+
+<div style="text-align: right; margin-top: 20px;">
+  <p><strong>Subtotal:</strong> ₹{{subtotal}}</p>
+  {{#if deliveryFee}}
+  <p><strong>Delivery Fee:</strong> ₹{{deliveryFee}}</p>
+  {{/if}}
+  {{#if tax}}
+  <p><strong>Tax:</strong> ₹{{tax}}</p>
+  {{/if}}
+  {{#if discount}}
+  <p><strong>Discount:</strong> -₹{{discount}}</p>
+  {{/if}}
+  <h3 style="color: #FF7A00;"><strong>Total: ₹{{total}}</strong></h3>
+</div>
+
+<hr>
+
+<h3>Payment Information:</h3>
+<p><strong>Payment Method:</strong> {{paymentMethod}}</p>
+<p><strong>Payment Status:</strong> {{paymentStatus}}</p>
+
+<h3>Delivery Information:</h3>
+<p><strong>Delivery Address:</strong> {{deliveryAddress}}</p>
+{{#if deliveryDate}}
+<p><strong>Delivery Date:</strong> {{deliveryDate}}</p>
+{{/if}}
+{{#if deliveryInstructions}}
+<p><strong>Special Instructions:</strong> {{deliveryInstructions}}</p>
+{{/if}}
+

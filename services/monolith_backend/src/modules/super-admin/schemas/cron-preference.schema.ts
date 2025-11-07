@@ -34,5 +34,5 @@ export class CronPreference extends Document {
   updatedAt: Date;
 }
 
-export const CronPreferenceSchema = SchemaFactory.createForClass(CronPreference);
-
+export const CronPreferenceSchema =
+  SchemaFactory.createForClass(CronPreference);

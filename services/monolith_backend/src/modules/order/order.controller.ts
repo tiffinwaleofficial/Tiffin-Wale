@@ -236,17 +236,17 @@ export class OrderController {
   @Roles(UserRole.PARTNER, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Mark order as delivered (Partner only)" })
-  @ApiResponse({ status: 200, description: "Order has been marked as delivered" })
+  @ApiResponse({
+    status: 200,
+    description: "Order has been marked as delivered",
+  })
   @ApiResponse({
     status: 400,
     description: "Bad request or invalid status transition",
   })
   @ApiResponse({ status: 403, description: "Forbidden - not a partner" })
   @ApiResponse({ status: 404, description: "Order not found" })
-  markOrderDelivered(
-    @Param("id") id: string,
-    @GetCurrentUser() user: any,
-  ) {
+  markOrderDelivered(@Param("id") id: string, @GetCurrentUser() user: any) {
     return this.orderService.markOrderDelivered(id, user.id);
   }
 }

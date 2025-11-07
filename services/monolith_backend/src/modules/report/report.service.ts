@@ -1,0 +1,344 @@
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from "@nestjs/common";
+import { PdfService } from "./formats/pdf/pdf.service";
+import { PdfStorageService } from "./formats/pdf/storage/pdf-storage.service";
+import {
+  OrderReceiptDto,
+  SubscriptionReportDto,
+  PartnerContractDto,
+  InvoiceDto,
+  LegalDocumentDto,
+} from "./dto";
+import {
+  OrderReceiptData,
+  SubscriptionReportData,
+  PartnerContractData,
+  InvoiceData,
+  LegalDocumentData,
+} from "./interfaces/report-data.interface";
+import { OrderService } from "../order/order.service";
+import { SubscriptionService } from "../subscription/subscription.service";
+import { SubscriptionPlanService } from "../subscription/subscription-plan.service";
+import { PartnerService } from "../partner/partner.service";
+import { UserService } from "../user/user.service";
+import {
+  OrderReceiptDataGenerator,
+  SubscriptionReportDataGenerator,
+  PartnerContractDataGenerator,
+  InvoiceDataGenerator,
+} from "./generators";
+
+/**
+ * Report Service
+ * Orchestrates PDF generation, validates data, and calls generators
+ */
+@Injectable()
+export class ReportService {
+  private readonly logger = new Logger(ReportService.name);
+
+  constructor(
+    private readonly pdfService: PdfService,
+    private readonly pdfStorageService: PdfStorageService,
+    private readonly orderService: OrderService,
+    private readonly subscriptionService: SubscriptionService,
+    private readonly subscriptionPlanService: SubscriptionPlanService,
+    private readonly partnerService: PartnerService,
+    private readonly userService: UserService,
+    private readonly orderReceiptDataGenerator: OrderReceiptDataGenerator,
+    private readonly subscriptionReportDataGenerator: SubscriptionReportDataGenerator,
+    private readonly partnerContractDataGenerator: PartnerContractDataGenerator,
+    private readonly invoiceDataGenerator: InvoiceDataGenerator,
+  ) {}
+
+  /**
+   * Generate order receipt PDF
+   */
+  async generateOrderReceipt(dto: OrderReceiptDto): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      const orderData = await this.prepareOrderReceiptData(dto.orderId);
+      const pdfBuffer = await this.pdfService.generate("order-receipt", orderData);
+      const filename = this.pdfService.getFilename("order-receipt", orderData);
+      
+      // Only save if auto-save is enabled in config
+      const config = this.pdfService.getConfig();
+      if (config.storage.saveOnGeneration) {
+        await this.pdfStorageService.savePdf(pdfBuffer, filename, "order-receipts");
+      }
+      
+      return { buffer: pdfBuffer, filename };
+    } catch (error) {
+      this.logger.error(`Error generating order receipt: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate subscription report PDF
+   */
+  async generateSubscriptionReport(dto: SubscriptionReportDto): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      const subscriptionData = await this.prepareSubscriptionReportData(
+        dto.subscriptionId,
+        dto.dateRangeStart,
+        dto.dateRangeEnd,
+        dto.includeHistory,
+      );
+
+      const pdfBuffer = await this.pdfService.generate("subscription-report", subscriptionData);
+      const filename = this.pdfService.getFilename("subscription-report", subscriptionData);
+      
+      // Only save if auto-save is enabled in config
+      const config = this.pdfService.getConfig();
+      if (config.storage.saveOnGeneration) {
+        await this.pdfStorageService.savePdf(pdfBuffer, filename, "subscriptions");
+      }
+      
+      return { buffer: pdfBuffer, filename };
+    } catch (error) {
+      this.logger.error(`Error generating subscription report: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate partner contract PDF
+   */
+  async generatePartnerContract(dto: PartnerContractDto): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      const contractData = await this.preparePartnerContractData(
+        dto.partnerId,
+        dto.contractType,
+        dto.terms,
+      );
+
+      const pdfBuffer = await this.pdfService.generate("partner-contract", contractData);
+      const filename = this.pdfService.getFilename("partner-contract", contractData);
+      
+      // Only save if auto-save is enabled in config
+      const config = this.pdfService.getConfig();
+      if (config.storage.saveOnGeneration) {
+        await this.pdfStorageService.savePdf(pdfBuffer, filename, "contracts");
+      }
+      
+      return { buffer: pdfBuffer, filename };
+    } catch (error) {
+      this.logger.error(`Error generating partner contract: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate invoice PDF
+   */
+  async generateInvoice(dto: InvoiceDto): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      const invoiceData = await this.prepareInvoiceData(dto);
+      const pdfBuffer = await this.pdfService.generate("invoice", invoiceData);
+      const filename = this.pdfService.getFilename("invoice", invoiceData);
+      
+      // Only save if auto-save is enabled in config
+      const config = this.pdfService.getConfig();
+      if (config.storage.saveOnGeneration) {
+        await this.pdfStorageService.savePdf(pdfBuffer, filename, "invoices");
+      }
+      
+      return { buffer: pdfBuffer, filename };
+    } catch (error) {
+      this.logger.error(`Error generating invoice: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate legal document PDF
+   */
+  async generateLegalDocument(dto: LegalDocumentDto): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      const legalData: LegalDocumentData = {
+        documentId: `DOC-${Date.now()}`,
+        documentType: dto.documentType,
+        title: dto.title,
+        parties: dto.parties.map((p) => ({
+          name: p.name,
+          role: p.role,
+          address: p.address,
+          contactInfo: p.contactInfo,
+        })),
+        effectiveDate: new Date(dto.effectiveDate),
+        expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : undefined,
+        terms: dto.terms.map((t) => ({
+          section: t.section,
+          clauses: t.clauses,
+        })),
+      };
+
+      const pdfBuffer = await this.pdfService.generate("legal-document", legalData);
+      const filename = this.pdfService.getFilename("legal-document", legalData);
+      
+      // Only save if auto-save is enabled in config
+      const config = this.pdfService.getConfig();
+      if (config.storage.saveOnGeneration) {
+        await this.pdfStorageService.savePdf(pdfBuffer, filename, "legal-documents");
+      }
+      
+      return { buffer: pdfBuffer, filename };
+    } catch (error) {
+      this.logger.error(`Error generating legal document: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Prepare order receipt data from order ID
+   */
+  private async prepareOrderReceiptData(orderId: string): Promise<OrderReceiptData> {
+    const order = await this.orderService.findById(orderId);
+    if (!order) {
+      throw new NotFoundException(`Order with ID ${orderId} not found`);
+    }
+
+    const customer = await this.userService.findById(
+      typeof order.customer === "string" ? order.customer : order.customer._id.toString(),
+    );
+    if (!customer) {
+      throw new NotFoundException("Customer not found");
+    }
+
+    const partnerId = typeof order.businessPartner === "string" 
+      ? order.businessPartner 
+      : order.businessPartner._id.toString();
+
+    const partner = await this.partnerService.findById(partnerId);
+    if (!partner) {
+      throw new NotFoundException("Partner not found");
+    }
+
+    return this.orderReceiptDataGenerator.prepareOrderReceiptData(order, customer, partner);
+  }
+
+  /**
+   * Prepare subscription report data
+   */
+  private async prepareSubscriptionReportData(
+    subscriptionId: string,
+    dateRangeStart?: string,
+    dateRangeEnd?: string,
+    includeHistory?: boolean,
+  ): Promise<SubscriptionReportData> {
+    const subscription = await this.subscriptionService.findOne(subscriptionId);
+    if (!subscription) {
+      throw new NotFoundException(`Subscription with ID ${subscriptionId} not found`);
+    }
+
+    let plan;
+    if (typeof subscription.plan === "object" && subscription.plan !== null) {
+      plan = subscription.plan;
+    } else {
+      const planId = typeof subscription.plan === "string" 
+        ? subscription.plan 
+        : subscription.plan._id.toString();
+      plan = await this.subscriptionPlanService.findOne(planId);
+    }
+
+    if (!plan) {
+      throw new NotFoundException("Subscription plan not found");
+    }
+
+    const customer = await this.userService.findById(
+      typeof subscription.customer === "string" 
+        ? subscription.customer 
+        : subscription.customer._id.toString(),
+    );
+    if (!customer) {
+      throw new NotFoundException("Customer not found");
+    }
+
+    const meals = includeHistory ? [] : undefined;
+    const payments = includeHistory ? [] : undefined;
+
+    return this.subscriptionReportDataGenerator.prepareSubscriptionReportData(
+      subscription,
+      plan,
+      customer,
+      meals,
+      payments,
+    );
+  }
+
+  /**
+   * Prepare partner contract data
+   */
+  private async preparePartnerContractData(
+    partnerId: string,
+    contractType: string,
+    customTerms?: string[],
+  ): Promise<PartnerContractData> {
+    const partner = await this.partnerService.findById(partnerId);
+    if (!partner) {
+      throw new NotFoundException(`Partner with ID ${partnerId} not found`);
+    }
+
+    const partnerUser = await this.userService.findById(partner.user.toString());
+    if (!partnerUser) {
+      throw new NotFoundException("Partner user not found");
+    }
+
+    return this.partnerContractDataGenerator.preparePartnerContractData(
+      partner,
+      partnerUser,
+      contractType,
+      customTerms,
+    );
+  }
+
+  /**
+   * Prepare invoice data
+   */
+  private async prepareInvoiceData(dto: InvoiceDto): Promise<InvoiceData> {
+    if (dto.invoiceId) {
+      throw new BadRequestException("Invoice ID lookup not yet implemented");
+    }
+
+    if (dto.type === "order" && dto.orderId) {
+      const order = await this.orderService.findById(dto.orderId);
+      if (!order) {
+        throw new NotFoundException(`Order with ID ${dto.orderId} not found`);
+      }
+
+      const customer = await this.userService.findById(
+        typeof order.customer === "string" ? order.customer : order.customer._id.toString(),
+      );
+      if (!customer) {
+        throw new NotFoundException("Customer not found");
+      }
+
+      return this.invoiceDataGenerator.prepareInvoiceFromOrder(order, customer);
+    }
+
+    if (dto.type === "subscription" && dto.subscriptionId) {
+      const subscription = await this.subscriptionService.findOne(dto.subscriptionId);
+      if (!subscription) {
+        throw new NotFoundException(`Subscription with ID ${dto.subscriptionId} not found`);
+      }
+
+      const customer = await this.userService.findById(
+        typeof subscription.customer === "string" 
+          ? subscription.customer 
+          : subscription.customer._id.toString(),
+      );
+      if (!customer) {
+        throw new NotFoundException("Customer not found");
+      }
+
+      return this.invoiceDataGenerator.prepareInvoiceFromSubscription(subscription, customer);
+    }
+
+    throw new BadRequestException(
+      "Either orderId or subscriptionId must be provided based on invoice type",
+    );
+  }
+}

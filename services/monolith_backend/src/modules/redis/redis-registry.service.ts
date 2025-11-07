@@ -97,7 +97,8 @@ export class RedisRegistryService implements OnModuleInit, OnModuleDestroy {
     }
 
     await this.initializeInstances();
-    this.startHealthChecks();
+    // DISABLED: Health checks disabled to stop 30-second ping interval
+    // this.startHealthChecks();
     this.startPerformanceTracking();
 
     const healthyCount = this.getHealthyInstances().length;
