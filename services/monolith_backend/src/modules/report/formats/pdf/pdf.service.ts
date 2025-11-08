@@ -117,15 +117,19 @@ interface PdfConfig {
   };
   watermark: {
     enabled: boolean;
+    type?: 'image' | 'text';
+    imagePath?: string;
     text: string;
     opacity: number;
     fontSize: number;
     color: string;
     rotation: number;
+    size?: number;
     position: {
       x: string;
       y: string;
     };
+    note?: string;
   };
   pageMargins?: {
     top: number;
@@ -158,6 +162,8 @@ export class PdfService implements IFormatService, OnModuleInit {
   private logoMimeType: string;
   private iconImageBase64: string;
   private iconMimeType: string;
+  private watermarkImageBase64: string | null;
+  private watermarkMimeType: string | null;
   private poppinsFontsBase64: {
     regular: string;
     bold: string;
@@ -198,6 +204,32 @@ export class PdfService implements IFormatService, OnModuleInit {
                         'image/png'; // default fallback
     this.iconImageBase64 = iconBuffer.toString('base64');
     this.iconMimeType = iconMimeType;
+
+    // Load watermark image (logo_black.png) and convert to base64
+    if (this.config.watermark?.enabled && this.config.watermark?.type === 'image') {
+      const watermarkPathFromConfig = this.config.watermark.imagePath || 'src/modules/report/resources/images/logo_black.png';
+      const watermarkPath = path.join(process.cwd(), watermarkPathFromConfig);
+      try {
+        const watermarkBuffer = await fs.readFile(watermarkPath);
+        
+        // Determine MIME type based on file extension
+        const watermarkExtension = watermarkPathFromConfig.toLowerCase().split('.').pop();
+        const watermarkMimeType = watermarkExtension === 'png' ? 'image/png' : 
+                                  (watermarkExtension === 'jpg' || watermarkExtension === 'jpeg') ? 'image/jpeg' : 
+                                  'image/png'; // default fallback
+        this.watermarkImageBase64 = watermarkBuffer.toString('base64');
+        this.watermarkMimeType = watermarkMimeType;
+        console.log(`✅ Watermark image loaded successfully: ${watermarkPathFromConfig} (${watermarkBuffer.length} bytes)`);
+      } catch (error) {
+        console.warn(`⚠️  Warning: Could not load watermark image from ${watermarkPathFromConfig}. Falling back to text watermark. Error: ${error.message}`);
+        this.watermarkImageBase64 = null;
+        this.watermarkMimeType = null;
+      }
+    } else {
+      // Initialize as null if watermark is disabled or not image type
+      this.watermarkImageBase64 = null;
+      this.watermarkMimeType = null;
+    }
 
     // Load Poppins fonts and convert to base64 (like Platform UK does)
     const fontsDir = path.join(process.cwd(), 'src/modules/report/resources/fonts');
@@ -398,28 +430,106 @@ export class PdfService implements IFormatService, OnModuleInit {
         const leftPos = isCenterX ? '50%' : this.config.watermark.position.x;
         const topPos = isCenterY ? '50%' : this.config.watermark.position.y;
         
-        watermarkCss = `
-        .pdf-watermark {
-          position: fixed;
-          left: ${leftPos};
-          top: ${topPos};
-          transform: ${transform};
-          font-size: ${this.config.watermark.fontSize}px;
-          color: ${this.config.watermark.color};
-          opacity: ${this.config.watermark.opacity};
-          z-index: 0;
-          pointer-events: none;
-          font-weight: bold;
-          white-space: nowrap;
-          font-family: '${this.config.fonts.primary}', ${this.config.fonts.fallback.map(f => `'${f}'`).join(', ')}, sans-serif;
-        }
-        .container {
-          position: relative;
-          z-index: 1;
-        }
-      `;
+        // Check if watermark should be image or text
+        const useImage = this.config.watermark.type === 'image' && this.watermarkImageBase64 && this.watermarkMimeType;
+        const watermarkSize = this.config.watermark.size || 300;
         
-        watermarkHtml = `<div class="pdf-watermark">${this.config.watermark.text}</div>`;
+        if (useImage) {
+          // Image watermark - using body background image for multi-page support
+          // This ensures the watermark appears centered on every page
+          watermarkCss = `
+          body {
+            position: relative;
+            min-height: 100vh;
+            background-image: url('data:${this.watermarkMimeType};base64,${this.watermarkImageBase64}');
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: ${watermarkSize}px auto;
+            background-attachment: local;
+          }
+          body::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: ${transform};
+            width: ${watermarkSize}px;
+            height: ${watermarkSize}px;
+            background-image: url('data:${this.watermarkMimeType};base64,${this.watermarkImageBase64}');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: ${this.config.watermark.opacity};
+            z-index: 0;
+            pointer-events: none;
+            margin-left: -${watermarkSize / 2}px;
+            margin-top: -${watermarkSize / 2}px;
+          }
+          .container {
+            position: relative;
+            z-index: 1;
+            background: white;
+          }
+          /* Ensure watermark on each printed page */
+          @page {
+            size: A4;
+            @top-center {
+              content: "";
+            }
+          }
+        `;
+          
+          watermarkHtml = ''; // Using CSS background instead of HTML element
+        } else {
+          // Text watermark (fallback) - using absolute positioning with page-relative calculations
+          const pageWidthPx = 794; // A4 width in pixels
+          const pageHeightPx = 1123; // A4 height in pixels
+          const centerX = pageWidthPx / 2;
+          const centerY = pageHeightPx / 2;
+          
+          watermarkCss = `
+          .pdf-watermark {
+            position: absolute;
+            left: ${centerX}px;
+            top: ${centerY}px;
+            transform: ${transform};
+            font-size: ${this.config.watermark.fontSize}px;
+            color: ${this.config.watermark.color};
+            opacity: ${this.config.watermark.opacity};
+            z-index: 0;
+            pointer-events: none;
+            font-weight: bold;
+            white-space: nowrap;
+            font-family: '${this.config.fonts.primary}', ${this.config.fonts.fallback.map(f => `'${f}'`).join(', ')}, sans-serif;
+            display: block;
+            margin-left: -${this.config.watermark.fontSize * 2}px;
+            margin-top: -${this.config.watermark.fontSize / 2}px;
+          }
+          body {
+            position: relative;
+            min-height: 100vh;
+          }
+          .container {
+            position: relative;
+            z-index: 1;
+            background: transparent;
+          }
+          /* Repeat watermark on each page */
+          @page {
+            size: A4;
+          }
+          @media print {
+            .pdf-watermark {
+              position: absolute;
+              left: ${centerX}px;
+              top: ${centerY}px;
+              transform: ${transform};
+            }
+          }
+        `;
+          
+          watermarkHtml = `<div class="pdf-watermark">${this.config.watermark.text}</div>`;
+        }
       }
 
       // 5. Set the content of the page with embedded Poppins font and watermark
@@ -470,7 +580,7 @@ export class PdfService implements IFormatService, OnModuleInit {
               ${watermarkCss}
             </style>
           </head>
-          <body style="position: relative;">
+          <body style="position: relative; min-height: 100vh; margin: 0; padding: 0;">
             ${watermarkHtml}
             <div class="container" style="position: relative; z-index: 1;">${contentHtml}</div>
           </body>
@@ -570,7 +680,7 @@ export class PdfService implements IFormatService, OnModuleInit {
               </div>
               <div style="text-align: right; font-family: ${fontFamily}; flex: 1;">
                 ${this.config.header.showCompanyName ? `<div style="font-family: ${fontFamily}; font-size: ${companyNameFontSize}px; font-weight: ${this.config.fonts.weights.bold}; margin: 0; color: ${this.config.header.textColor}; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">${companyName}</div>` : ''}
-                ${this.config.header.showContactInfo ? `<div style="font-family: ${fontFamily}; font-size: ${contactInfoFontSize}px; font-weight: ${this.config.fonts.weights.regular}; margin: 5px 0 0 0; color: ${this.config.header.textColor}; opacity: 0.95;">www.tiffinwale.com | contact@tiffinwale.com</div>` : ''}
+                ${this.config.header.showContactInfo ? `<div style="font-family: ${fontFamily}; font-size: ${contactInfoFontSize}px; font-weight: ${this.config.fonts.weights.regular}; margin: 5px 0 0 0; color: ${this.config.header.textColor}; opacity: 0.95;">www.tiffin-wale.com | contact@tiffin-wale.com</div>` : ''}
               </div>
             </div>
           </div>
@@ -583,16 +693,44 @@ export class PdfService implements IFormatService, OnModuleInit {
       
       const footerWatermark = this.config.footer.watermark.enabled ? `<div style="margin: 4px 0; font-size: ${watermarkFontSize}px; color: ${this.config.footer.watermark.color}; font-style: ${this.config.footer.watermark.style};">${this.config.footer.watermark.text}</div>` : '';
       
+      // Add page watermark to footer template (appears on every page)
+      let pageWatermarkHtml = '';
+      if (this.config.watermark?.enabled) {
+        const useImage = this.config.watermark.type === 'image' && this.watermarkImageBase64 && this.watermarkMimeType;
+        const watermarkSize = this.config.watermark.size || 400;
+        const rotation = this.config.watermark.rotation || -25;
+        const opacity = this.config.watermark.opacity || 0.08;
+        // Use only transform for centering - no margin offsets needed
+        const transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+        
+        if (useImage) {
+          // Watermark image perfectly centered on page
+          pageWatermarkHtml = `
+            <div style="position: fixed; left: 50%; top: 50%; transform: ${transform}; opacity: ${opacity}; z-index: 0; pointer-events: none; width: ${watermarkSize}px; height: auto; margin: 0; padding: 0;">
+              <img src="data:${this.watermarkMimeType};base64,${this.watermarkImageBase64}" style="width: 100%; height: auto; display: block; margin: 0; padding: 0;" alt="Watermark">
+            </div>
+          `;
+        } else {
+          // Text watermark perfectly centered on page
+          pageWatermarkHtml = `
+            <div style="position: fixed; left: 50%; top: 50%; transform: ${transform}; opacity: ${opacity}; z-index: 0; pointer-events: none; font-size: ${this.config.watermark.fontSize}px; color: ${this.config.watermark.color}; font-weight: bold; white-space: nowrap; font-family: Arial, sans-serif; margin: 0; padding: 0; text-align: center;">
+              ${this.config.watermark.text}
+            </div>
+          `;
+        }
+      }
+      
       // Footer: Add page margin padding so footer respects root page margins
       const footerHtml = this.config.footer.enabled ? `
-        <div style="width: 100%; padding-left: ${pageMarginLeftPx}px; padding-right: ${pageMarginRightPx}px; box-sizing: border-box;">
+        ${pageWatermarkHtml}
+        <div style="width: 100%; padding-left: ${pageMarginLeftPx}px; padding-right: ${pageMarginRightPx}px; box-sizing: border-box; position: relative; z-index: 1;">
           <div style="width: 100%; text-align: center; font-family: Arial, Helvetica, sans-serif; padding: ${this.config.footer.padding.top}px ${this.config.footer.padding.right}px ${this.config.footer.padding.bottom}px ${this.config.footer.padding.left}px; border-top: ${this.config.footer.borderWidth}px solid ${this.config.footer.borderColor}; margin: 0; box-sizing: border-box; background-color: ${this.config.footer.backgroundColor};">
             ${this.config.footer.showAddress ? `<div style="margin: 4px 0; font-size: ${addressFontSize}px; font-weight: 500; color: ${this.config.footer.textColor};">📍 Head Office: 23, Vijay Nagar, Indore, MP - 452010</div>` : ''}
-            ${this.config.footer.showContactInfo ? `<div style="margin: 4px 0; font-size: ${contactFontSize}px; font-weight: 600; color: ${this.config.colors.primary};">✉️ contact@tiffinwale.com | ☎️ +91 99999 99999 | 🌐 www.tiffinwale.com</div>` : ''}
+            ${this.config.footer.showContactInfo ? `<div style="margin: 4px 0; font-size: ${contactFontSize}px; font-weight: 600; color: ${this.config.colors.primary};">✉️ contact@tiffin-wale.com | ☎️ +91 91311 14837 | 🌐 www.tiffin-wale.com</div>` : ''}
             ${this.config.footer.showWatermark ? footerWatermark : ''}
           </div>
         </div>
-      ` : '<div></div>';
+      ` : pageWatermarkHtml || '<div></div>';
 
       // Handle margins: Root page margins apply to ALL content (header, footer, body)
       // Then add content margins for header/footer spacing

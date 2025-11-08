@@ -427,6 +427,53 @@ export class ReportService {
    * Prepare Partner MoU data
    */
   private async preparePartnerMouData(dto: PartnerMouDto): Promise<PartnerMouData> {
+    // If partnerData is provided, use it directly; otherwise fetch from database
+    if (dto.partnerData) {
+      // Create mock partner and user objects from provided data
+      const mockPartner = {
+        _id: { toString: () => Date.now().toString(16) },
+        businessName: dto.partnerData.businessName || '',
+        address: dto.partnerData.address || '',
+        contactEmail: dto.partnerData.contactEmail || '',
+        contactPhone: dto.partnerData.contactPhone || '',
+        whatsappNumber: dto.partnerData.whatsappNumber,
+        gstNumber: dto.partnerData.gstNumber,
+        licenseNumber: dto.partnerData.licenseNumber,
+        establishedYear: dto.partnerData.establishedYear,
+        commissionRate: dto.commissionRate || 20,
+        deliveryRadius: 5,
+        minimumOrderAmount: 100,
+      } as any;
+
+      const mockUser = {
+        firstName: dto.partnerData.ownerFirstName || '',
+        lastName: dto.partnerData.ownerLastName || '',
+        email: dto.partnerData.contactEmail || '',
+        phoneNumber: dto.partnerData.contactPhone || '',
+      } as any;
+
+      return this.partnerMouDataGenerator.preparePartnerMouData(
+        mockPartner,
+        mockUser,
+        {
+          commissionRate: dto.commissionRate,
+          paymentTerms: dto.paymentTerms,
+          contractDuration: dto.contractDuration,
+          terminationNotice: dto.terminationNotice,
+          minimumRating: dto.minimumRating,
+          effectiveDate: dto.effectiveDate,
+          expiryDate: dto.expiryDate,
+          companyGstNumber: dto.companyGstNumber,
+          companyPanNumber: dto.companyPanNumber,
+        },
+      );
+    }
+
+    // Fetch from database
+    if (!dto.partnerId) {
+      throw new BadRequestException("Either partnerId or partnerData must be provided");
+    }
+
     const partner = await this.partnerService.findById(dto.partnerId);
     if (!partner) {
       throw new NotFoundException(`Partner with ID ${dto.partnerId} not found`);
@@ -446,6 +493,10 @@ export class ReportService {
         contractDuration: dto.contractDuration,
         terminationNotice: dto.terminationNotice,
         minimumRating: dto.minimumRating,
+        effectiveDate: dto.effectiveDate,
+        expiryDate: dto.expiryDate,
+        companyGstNumber: dto.companyGstNumber,
+        companyPanNumber: dto.companyPanNumber,
       },
     );
   }
@@ -454,6 +505,59 @@ export class ReportService {
    * Prepare Service Agreement data
    */
   private async prepareServiceAgreementData(dto: ServiceAgreementDto): Promise<ServiceAgreementData> {
+    // If partnerData is provided, use it directly; otherwise fetch from database
+    if (dto.partnerData) {
+      const mockPartner = {
+        _id: { toString: () => Date.now().toString(16) },
+        businessName: dto.partnerData.businessName || '',
+        address: dto.partnerData.address || '',
+        contactEmail: dto.partnerData.contactEmail || '',
+        contactPhone: dto.partnerData.contactPhone || '',
+        whatsappNumber: dto.partnerData.whatsappNumber,
+        gstNumber: dto.partnerData.gstNumber,
+        licenseNumber: dto.partnerData.licenseNumber,
+        establishedYear: dto.partnerData.establishedYear,
+        commissionRate: dto.commissionRate || 20,
+        deliveryRadius: 5,
+        minimumOrderAmount: 100,
+        estimatedDeliveryTime: 30,
+      } as any;
+
+      const mockUser = {
+        firstName: dto.partnerData.ownerFirstName || '',
+        lastName: dto.partnerData.ownerLastName || '',
+        email: dto.partnerData.contactEmail || '',
+        phoneNumber: dto.partnerData.contactPhone || '',
+      } as any;
+
+      return this.serviceAgreementDataGenerator.prepareServiceAgreementData(
+        mockPartner,
+        mockUser,
+        {
+          commissionRate: dto.commissionRate,
+          paymentTerms: dto.paymentTerms,
+          contractDuration: dto.contractDuration,
+          terminationNotice: dto.terminationNotice,
+          minimumRating: dto.minimumRating,
+          minimumAcceptanceRate: dto.minimumAcceptanceRate,
+          orderAcceptanceTime: dto.orderAcceptanceTime,
+          cancellationPolicy: dto.cancellationPolicy,
+          commissionChangeNotice: dto.commissionChangeNotice,
+          paymentProcessingDays: dto.paymentProcessingDays,
+          minimumPayoutAmount: dto.minimumPayoutAmount,
+          effectiveDate: dto.effectiveDate,
+          expiryDate: dto.expiryDate,
+          companyGstNumber: dto.companyGstNumber,
+          companyPanNumber: dto.companyPanNumber,
+        },
+      );
+    }
+
+    // Fetch from database
+    if (!dto.partnerId) {
+      throw new BadRequestException("Either partnerId or partnerData must be provided");
+    }
+
     const partner = await this.partnerService.findById(dto.partnerId);
     if (!partner) {
       throw new NotFoundException(`Partner with ID ${dto.partnerId} not found`);
@@ -479,6 +583,10 @@ export class ReportService {
         commissionChangeNotice: dto.commissionChangeNotice,
         paymentProcessingDays: dto.paymentProcessingDays,
         minimumPayoutAmount: dto.minimumPayoutAmount,
+        effectiveDate: dto.effectiveDate,
+        expiryDate: dto.expiryDate,
+        companyGstNumber: dto.companyGstNumber,
+        companyPanNumber: dto.companyPanNumber,
       },
     );
   }
@@ -487,6 +595,44 @@ export class ReportService {
    * Prepare Partner NDA data
    */
   private async preparePartnerNdaData(dto: PartnerNdaDto): Promise<PartnerNdaData> {
+    // If partnerData is provided, use it directly; otherwise fetch from database
+    if (dto.partnerData) {
+      const mockPartner = {
+        _id: { toString: () => Date.now().toString(16) },
+        businessName: dto.partnerData.businessName || '',
+        address: dto.partnerData.address || '',
+        contactEmail: dto.partnerData.contactEmail || '',
+        contactPhone: dto.partnerData.contactPhone || '',
+        gstNumber: dto.partnerData.gstNumber,
+      } as any;
+
+      const mockUser = {
+        firstName: dto.partnerData.ownerFirstName || '',
+        lastName: dto.partnerData.ownerLastName || '',
+        email: dto.partnerData.contactEmail || '',
+        phoneNumber: dto.partnerData.contactPhone || '',
+      } as any;
+
+      return this.partnerNdaDataGenerator.preparePartnerNdaData(
+        mockPartner,
+        mockUser,
+        {
+          purpose: dto.purpose,
+          term: dto.term,
+          survivalPeriod: dto.survivalPeriod,
+          effectiveDate: dto.effectiveDate,
+          expiryDate: dto.expiryDate,
+          companyGstNumber: dto.companyGstNumber,
+          companyPanNumber: dto.companyPanNumber,
+        },
+      );
+    }
+
+    // Fetch from database
+    if (!dto.partnerId) {
+      throw new BadRequestException("Either partnerId or partnerData must be provided");
+    }
+
     const partner = await this.partnerService.findById(dto.partnerId);
     if (!partner) {
       throw new NotFoundException(`Partner with ID ${dto.partnerId} not found`);
@@ -504,6 +650,10 @@ export class ReportService {
         purpose: dto.purpose,
         term: dto.term,
         survivalPeriod: dto.survivalPeriod,
+        effectiveDate: dto.effectiveDate,
+        expiryDate: dto.expiryDate,
+        companyGstNumber: dto.companyGstNumber,
+        companyPanNumber: dto.companyPanNumber,
       },
     );
   }

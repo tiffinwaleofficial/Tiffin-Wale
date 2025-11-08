@@ -95,15 +95,19 @@
   },
   "watermark": {
     "enabled": true,
+    "type": "image",
+    "imagePath": "src/modules/report/resources/images/logo_black.png",
     "text": "Tiffin Wale",
-    "opacity": 0.05,
+    "opacity": 0.08,
     "fontSize": 72,
     "color": "#FF7A00",
-    "rotation": -45,
+    "rotation": -25,
+    "size": 400,
     "position": {
       "x": "center",
       "y": "center"
-    }
+    },
+    "note": "Watermark type: 'image' uses logo_black.png, 'text' uses text. Size is in pixels for image watermark. Opacity increased to 0.08 for better visibility."
   },
   "pageMargins": {
     "top": 0.5,
@@ -116,8 +120,8 @@
   "margins": {
     "top": 130,
     "bottom": 130,
-    "left": 1.0,
-    "right": 1.0,
+    "left": 0.3,
+    "right": 0.3,
     "unit": "px",
     "note": "Content margins: Top/bottom in pixels (for header/footer space), left/right in inches (for content margins)"
   },

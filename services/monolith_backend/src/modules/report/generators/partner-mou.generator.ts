@@ -22,20 +22,31 @@ export class PartnerMouDataGenerator {
       contractDuration?: string;
       terminationNotice?: string;
       minimumRating?: number;
+      effectiveDate?: string;
+      expiryDate?: string;
+      companyGstNumber?: string;
+      companyPanNumber?: string;
     },
   ): Promise<PartnerMouData> {
     const company = companyInfo();
 
+    // Use custom dates if provided, otherwise use current date
+    const effectiveDateObj = customTerms?.effectiveDate 
+      ? new Date(customTerms.effectiveDate) 
+      : new Date();
+    const expiryDateObj = customTerms?.expiryDate 
+      ? new Date(customTerms.expiryDate) 
+      : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+
+    const partnerIdStr = partner._id?.toString ? partner._id.toString().substring(0, 8) : Date.now().toString(16).substring(0, 8);
     return {
-      mouId: `MOU-${Date.now()}-${partner._id.toString().substring(0, 8).toUpperCase()}`,
-      effectiveDate: new Date().toLocaleDateString("en-IN", {
+      mouId: `MOU-${Date.now()}-${partnerIdStr.toUpperCase()}`,
+      effectiveDate: effectiveDateObj.toLocaleDateString("en-IN", {
         year: "numeric",
         month: "long",
         day: "numeric",
       }),
-      expiryDate: new Date(
-        Date.now() + 365 * 24 * 60 * 60 * 1000,
-      ).toLocaleDateString("en-IN", {
+      expiryDate: expiryDateObj.toLocaleDateString("en-IN", {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -47,8 +58,8 @@ export class PartnerMouDataGenerator {
         email: company.email,
         phone: company.phone,
         address: company.address,
-        gstNumber: process.env.COMPANY_GST_NUMBER || undefined,
-        panNumber: process.env.COMPANY_PAN_NUMBER || undefined,
+        gstNumber: customTerms?.companyGstNumber || process.env.COMPANY_GST_NUMBER || undefined,
+        panNumber: customTerms?.companyPanNumber || process.env.COMPANY_PAN_NUMBER || undefined,
       },
       partner: {
         businessName: partner.businessName,
@@ -69,6 +80,13 @@ export class PartnerMouDataGenerator {
         contractDuration: customTerms?.contractDuration || "12 months",
         terminationNotice: customTerms?.terminationNotice || "30 days",
         minimumRating: customTerms?.minimumRating || 4.0,
+      },
+      signatures: {
+        signedAt: effectiveDateObj.toLocaleDateString("en-IN", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
       },
     };
   }

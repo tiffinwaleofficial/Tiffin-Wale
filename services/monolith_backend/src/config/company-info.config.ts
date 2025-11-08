@@ -1,11 +1,11 @@
 import { registerAs } from "@nestjs/config";
 
 export const companyInfo = {
-  name: "RI RA INDUSTRIES PRIVATE LIMITED",
+  name: "RIRA INDUSTRIES PRIVATE LIMITED",
   shortName: "Tiffin Wale",
-  website: "www.tiffinwale.com",
-  email: "contact@tiffinwale.com",
-  phone: "+91 99999 99999",
+  website: "www.tiffin-wale.com",
+  email: "contact@tiffin-wale.com",
+  phone: "+91 91311 14837",
   address: {
     line1: "23, Vijay Nagar",
     city: "Indore",

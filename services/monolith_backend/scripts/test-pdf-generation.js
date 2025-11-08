@@ -1,27 +1,22 @@
 #!/usr/bin/env node
 
 /**
- * Script to test PDF generation endpoints
+ * Interactive PDF Generation Test Script
  * 
  * Usage: node scripts/test-pdf-generation.js
  * 
  * Prerequisites:
  * - Server must be running (npm run start:dev)
- * - MongoDB must have test data (orders, subscriptions, partners)
  */
 
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const readline = require('readline');
 
 const API_BASE_URL = process.env.API_URL || 'http://localhost:3001';
 const API_PREFIX = process.env.API_PREFIX || '/api';
 const OUTPUT_DIR = path.join(__dirname, '../src/modules/report/formats/pdf/storage/generated');
-
-// Default real IDs from MongoDB (queried on 2025-11-06)
-const DEFAULT_ORDER_ID = '6907c1dc041b4ddf848ccf02';
-const DEFAULT_SUBSCRIPTION_ID = '6907c1db041b4ddf848ccefb';
-const DEFAULT_PARTNER_ID = '69038003345c8af2df48c28e';
 
 // Colors for console output
 const colors = {
@@ -32,6 +27,7 @@ const colors = {
   red: '\x1b[31m',
   blue: '\x1b[34m',
   cyan: '\x1b[36m',
+  magenta: '\x1b[35m',
 };
 
 function log(message, color = 'reset') {
@@ -55,72 +51,339 @@ function logWarning(message) {
 }
 
 /**
- * Check if a string is a valid MongoDB ObjectId
+ * Create readline interface for user input
  */
-function isValidObjectId(id) {
-  if (!id || typeof id !== 'string') return false;
-  // MongoDB ObjectId is 24 hex characters
-  return /^[0-9a-fA-F]{24}$/.test(id);
+function createReadlineInterface() {
+  return readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
 }
 
 /**
- * Fetch real IDs from the API (if available)
+ * Ask user a question and return the answer
  */
-async function fetchRealIds() {
-  const ids = {
-    orderId: null,
-    subscriptionId: null,
-    partnerId: null,
-  };
-
-  try {
-    // Try to fetch a recent order
-    try {
-      const ordersResponse = await axios.get(`${API_BASE_URL}${API_PREFIX}/order`, {
-        params: { limit: 1 },
-        timeout: 3000,
-      });
-      if (ordersResponse.data && ordersResponse.data.length > 0) {
-        ids.orderId = ordersResponse.data[0]._id || ordersResponse.data[0].id;
-        logInfo(`Found order ID: ${ids.orderId}`);
-      }
-    } catch (e) {
-      // Order endpoint might not exist or require auth
-    }
-
-    // Try to fetch a recent subscription
-    try {
-      const subsResponse = await axios.get(`${API_BASE_URL}${API_PREFIX}/subscription`, {
-        params: { limit: 1 },
-        timeout: 3000,
-      });
-      if (subsResponse.data && subsResponse.data.length > 0) {
-        ids.subscriptionId = subsResponse.data[0]._id || subsResponse.data[0].id;
-        logInfo(`Found subscription ID: ${ids.subscriptionId}`);
-      }
-    } catch (e) {
-      // Subscription endpoint might not exist or require auth
-    }
-
-    // Try to fetch a partner
-    try {
-      const partnersResponse = await axios.get(`${API_BASE_URL}${API_PREFIX}/partner`, {
-        params: { limit: 1 },
-        timeout: 3000,
-      });
-      if (partnersResponse.data && partnersResponse.data.length > 0) {
-        ids.partnerId = partnersResponse.data[0]._id || partnersResponse.data[0].id;
-        logInfo(`Found partner ID: ${ids.partnerId}`);
-      }
-    } catch (e) {
-      // Partner endpoint might not exist or require auth
-    }
-  } catch (error) {
-    // Silently fail - we'll use provided IDs or skip tests
-  }
-
-  return ids;
+function askQuestion(rl, question) {
+  return new Promise((resolve) => {
+    rl.question(question, (answer) => {
+      resolve(answer.trim());
+    });
+  });
 }
+
+/**
+ * Generate a random date from past 3 months (August to October)
+ */
+function getRandomDateFromPast3Months() {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0-11
+  
+  // Calculate months: August (7), September (8), October (9)
+  // If current month is November (10), past 3 months are Aug, Sep, Oct
+  // If current month is December (11), past 3 months are Sep, Oct, Nov
+  // For simplicity, we'll use Aug, Sep, Oct of current year
+  
+  const months = [7, 8, 9]; // August, September, October (0-indexed: 7, 8, 9)
+  const randomMonth = months[Math.floor(Math.random() * months.length)];
+  
+  // Get days in that month
+  const daysInMonth = new Date(currentYear, randomMonth + 1, 0).getDate();
+  const randomDay = Math.floor(Math.random() * daysInMonth) + 1;
+  
+  const date = new Date(currentYear, randomMonth, randomDay);
+  return date;
+}
+
+/**
+ * Format date for API (ISO string)
+ */
+function formatDateForAPI(date) {
+  return date.toISOString();
+}
+
+/**
+ * Format date for display (DD Month YYYY)
+ */
+function formatDateForDisplay(date) {
+  return date.toLocaleDateString('en-IN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+/**
+ * Generate dummy PAN number (10 chars: 5 letters + 4 digits + 1 letter)
+ */
+function generatePANNumber() {
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const digits = '0123456789';
+  
+  // First 3 letters (usually first letter of name)
+  const first3 = Array.from({ length: 3 }, () => letters[Math.floor(Math.random() * letters.length)]).join('');
+  
+  // 4th letter (usually first letter of surname) - common: A, B, C, F, G, H, L, P, T
+  const fourthLetter = ['A', 'B', 'C', 'F', 'G', 'H', 'L', 'P', 'T'][Math.floor(Math.random() * 9)];
+  
+  // 5th letter (entity type) - common: A, B, C, F, G, H, L, P, T
+  const fifthLetter = ['A', 'B', 'C', 'F', 'G', 'H', 'L', 'P', 'T'][Math.floor(Math.random() * 9)];
+  
+  // 4 digits
+  const fourDigits = Array.from({ length: 4 }, () => digits[Math.floor(Math.random() * digits.length)]).join('');
+  
+  // Last letter (usually first letter of surname)
+  const lastLetter = letters[Math.floor(Math.random() * letters.length)];
+  
+  return `${first3}${fourthLetter}${fifthLetter}${fourDigits}${lastLetter}`;
+}
+
+/**
+ * Generate dummy GST number (15 chars: 2 state + 10 PAN + 3 entity + 1 check + Z)
+ */
+function generateGSTNumber() {
+  const stateCode = '23'; // Madhya Pradesh
+  const pan = generatePANNumber();
+  const entityNumber = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  const checkDigit = Math.floor(Math.random() * 10);
+  return `${stateCode}${pan}${entityNumber}${checkDigit}Z`;
+}
+
+/**
+ * Generate dummy FSSAI license number
+ */
+function generateFSSAILicense() {
+  const stateCode = '23'; // Madhya Pradesh
+  const year = new Date().getFullYear();
+  const randomNum = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+  return `${stateCode}/${year}/${randomNum}`;
+}
+
+/**
+ * Generate dummy email
+ */
+function generateEmail(businessName) {
+  const cleanName = businessName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const randomNum = Math.floor(Math.random() * 1000);
+  return `${cleanName}${randomNum}@gmail.com`;
+}
+
+/**
+ * Generate dummy phone number
+ */
+function generatePhoneNumber() {
+  const prefixes = ['9826', '9827', '9828', '9829', '9893', '9894', '9895', '9896', '9897', '9898'];
+  const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+  const suffix = Math.floor(Math.random() * 100000).toString().padStart(6, '0');
+  return `+91 ${prefix} ${suffix.substring(0, 3)} ${suffix.substring(3)}`;
+}
+
+/**
+ * Tiffin Center Dummy Data
+ * All addresses are from Indore, different locations
+ */
+const TIFFIN_CENTERS = [
+  {
+    businessName: 'Tipinwala Food Services',
+    ownerName: 'Rajesh Kumar Sharma',
+    address: {
+      street: 'Near MIG Thana, Atal Dwar',
+      area: 'New Palasia',
+      city: 'Indore',
+      state: 'Madhya Pradesh',
+      postalCode: '452001',
+      full: 'Near MIG Thana, Atal Dwar, New Palasia, A B Road, Indore, Madhya Pradesh - 452001',
+    },
+    contactEmail: 'tipinwala.food@gmail.com',
+    contactPhone: '+91 9826 123 456',
+    whatsappNumber: '+91 9826 123 456',
+    gstNumber: generateGSTNumber(),
+    fssaiLicense: generateFSSAILicense(),
+    establishedYear: 2018,
+  },
+  {
+    businessName: 'Jay Ranjeet Tiffin Service',
+    ownerName: 'Jay Ranjeet Singh',
+    address: {
+      street: 'Gumasta Nagar, Sector C',
+      area: 'Near Tarakunj Garden, SCH No 71',
+      city: 'Indore',
+      state: 'Madhya Pradesh',
+      postalCode: '452009',
+      full: 'Gumasta Nagar, Sector C, Near Tarakunj Garden, SCH No 71, Indore, Madhya Pradesh - 452009',
+    },
+    contactEmail: 'jayranjeet.tiffin@gmail.com',
+    contactPhone: '+91 9827 234 567',
+    whatsappNumber: '+91 9827 234 567',
+    gstNumber: generateGSTNumber(),
+    fssaiLicense: generateFSSAILicense(),
+    establishedYear: 2019,
+  },
+  {
+    businessName: 'Leven Foods',
+    ownerName: 'Leela Venkatesh',
+    address: {
+      street: 'Vallabh Nagar',
+      area: 'Near Rajkumar Bridge, Chouhan Indane Gas Agency',
+      city: 'Indore',
+      state: 'Madhya Pradesh',
+      postalCode: '452003',
+      full: 'Vallabh Nagar, Near Rajkumar Bridge, Chouhan Indane Gas Agency, Indore, Madhya Pradesh - 452003',
+    },
+    contactEmail: 'leven.foods@gmail.com',
+    contactPhone: '+91 9828 345 678',
+    whatsappNumber: '+91 9828 345 678',
+    gstNumber: generateGSTNumber(),
+    fssaiLicense: generateFSSAILicense(),
+    establishedYear: 2020,
+  },
+  {
+    businessName: 'Annapurna Tiffin Center',
+    ownerName: 'Priya Agarwal',
+    address: {
+      street: '59, Vishnu Puri Main',
+      area: 'Vishnu Puri Colony',
+      city: 'Indore',
+      state: 'Madhya Pradesh',
+      postalCode: '452012',
+      full: '59, Vishnu Puri Main, Vishnu Puri Colony, Indore, Madhya Pradesh - 452012',
+    },
+    contactEmail: 'annapurna.tiffin@gmail.com',
+    contactPhone: '+91 9893 456 789',
+    whatsappNumber: '+91 9893 456 789',
+    gstNumber: generateGSTNumber(),
+    fssaiLicense: generateFSSAILicense(),
+    establishedYear: 2017,
+  },
+  {
+    businessName: 'Samyak Tiffin Centre',
+    ownerName: 'Samyak Jain',
+    address: {
+      street: 'Vijay Nagar',
+      area: 'Near K3 IAS Library',
+      city: 'Indore',
+      state: 'Madhya Pradesh',
+      postalCode: '452010',
+      full: 'Vijay Nagar, Near K3 IAS Library, Indore, Madhya Pradesh - 452010',
+    },
+    contactEmail: 'samyak.tiffin@gmail.com',
+    contactPhone: '+91 9894 567 890',
+    whatsappNumber: '+91 9894 567 890',
+    gstNumber: generateGSTNumber(),
+    fssaiLicense: generateFSSAILicense(),
+    establishedYear: 2019,
+  },
+  {
+    businessName: "Veronica's Kitchen & Tiffin Center",
+    ownerName: 'Veronica D\'Souza',
+    address: {
+      street: 'Hotel Sourabh Inn',
+      area: 'Sanchar Nagar Extension',
+      city: 'Indore',
+      state: 'Madhya Pradesh',
+      postalCode: '452016',
+      full: 'Hotel Sourabh Inn, Sanchar Nagar Extension, Indore, Madhya Pradesh - 452016',
+    },
+    contactEmail: 'veronica.kitchen@gmail.com',
+    contactPhone: '+91 9895 678 901',
+    whatsappNumber: '+91 9895 678 901',
+    gstNumber: generateGSTNumber(),
+    fssaiLicense: generateFSSAILicense(),
+    establishedYear: 2018,
+  },
+  {
+    businessName: 'Ghar Sa Khana Tiffin Services',
+    ownerName: 'Amit Patel',
+    address: {
+      street: 'Near Sri Aurobindo Institute of Pharmacy',
+      area: 'Shri Aurobindo',
+      city: 'Indore',
+      state: 'Madhya Pradesh',
+      postalCode: '452013',
+      full: 'Near Sri Aurobindo Institute of Pharmacy, Shri Aurobindo, Indore, Madhya Pradesh - 452013',
+    },
+    contactEmail: 'gharsakhana.tiffin@gmail.com',
+    contactPhone: '+91 9896 789 012',
+    whatsappNumber: '+91 9896 789 012',
+    gstNumber: generateGSTNumber(),
+    fssaiLicense: generateFSSAILicense(),
+    establishedYear: 2021,
+  },
+  {
+    businessName: 'Shree Thakur Baba Tiffin Service',
+    ownerName: 'Ramesh Thakur',
+    address: {
+      street: 'Scheme 78, Opposite Prestige College',
+      area: 'Vijay Nagar, MR 10 Road',
+      city: 'Indore',
+      state: 'Madhya Pradesh',
+      postalCode: '452010',
+      full: 'Scheme 78, Opposite Prestige College, Vijay Nagar, MR 10 Road, Indore, Madhya Pradesh - 452010',
+    },
+    contactEmail: 'thakurbaba.tiffin@gmail.com',
+    contactPhone: '+91 9897 890 123',
+    whatsappNumber: '+91 9897 890 123',
+    gstNumber: generateGSTNumber(),
+    fssaiLicense: generateFSSAILicense(),
+    establishedYear: 2016,
+  },
+  {
+    businessName: 'Diet Dial',
+    ownerName: 'Dr. Anjali Mehta',
+    address: {
+      street: 'Corporate Office',
+      area: 'Palasia',
+      city: 'Indore',
+      state: 'Madhya Pradesh',
+      postalCode: '452001',
+      full: 'Corporate Office, Palasia, Indore, Madhya Pradesh - 452001',
+    },
+    contactEmail: 'dietdial.indore@gmail.com',
+    contactPhone: '+91 9898 901 234',
+    whatsappNumber: '+91 9898 901 234',
+    gstNumber: generateGSTNumber(),
+    fssaiLicense: generateFSSAILicense(),
+    establishedYear: 2020,
+  },
+  {
+    businessName: 'Bhojankart',
+    ownerName: 'Vikram Singh',
+    address: {
+      street: 'Central Kitchen',
+      area: 'Sapna Sangeeta Road',
+      city: 'Indore',
+      state: 'Madhya Pradesh',
+      postalCode: '452001',
+      full: 'Central Kitchen, Sapna Sangeeta Road, Indore, Madhya Pradesh - 452001',
+    },
+    contactEmail: 'bhojankart.indore@gmail.com',
+    contactPhone: '+91 9826 012 345',
+    whatsappNumber: '+91 9826 012 345',
+    gstNumber: generateGSTNumber(),
+    fssaiLicense: generateFSSAILicense(),
+    establishedYear: 2019,
+  },
+];
+
+/**
+ * Company Info (Rira Industries - Consistent Vijay Nagar Address)
+ */
+const COMPANY_INFO = {
+  name: 'RI RA INDUSTRIES PRIVATE LIMITED',
+  shortName: 'Tiffin Wale',
+  website: 'www.tiffin-wale.com',
+  email: 'contact@tiffin-wale.com',
+  phone: '+91 91311 14837',
+  address: {
+    line1: '23, Vijay Nagar',
+    city: 'Indore',
+    state: 'Madhya Pradesh',
+    zip: '452010',
+    full: '23, Vijay Nagar, Indore, Madhya Pradesh - 452010',
+  },
+  gstNumber: generateGSTNumber(), // Generate proper GST format
+  panNumber: generatePANNumber(), // Generate proper PAN format
+};
 
 /**
  * Save PDF buffer to file
@@ -128,7 +391,6 @@ async function fetchRealIds() {
 async function savePdf(buffer, filename, category) {
   const categoryDir = path.join(OUTPUT_DIR, category);
   
-  // Ensure directory exists
   if (!fs.existsSync(categoryDir)) {
     fs.mkdirSync(categoryDir, { recursive: true });
   }
@@ -139,468 +401,296 @@ async function savePdf(buffer, filename, category) {
 }
 
 /**
- * Test Order Receipt PDF generation with dummy data
+ * Generate Partner MoU PDF
  */
-async function testOrderReceipt() {
+async function generatePartnerMou(centerData, index) {
   try {
-    logInfo('Testing Order Receipt PDF generation with dummy data');
+    // Create a dummy partner ID (24 hex chars)
+    const partnerId = Array.from({ length: 24 }, () => 
+      Math.floor(Math.random() * 16).toString(16)
+    ).join('');
     
-    // Use dummy order ID - backend will handle data fetching
-    const dummyOrderId = '6907c1dc041b4ddf848ccf02';
+    const effectiveDate = getRandomDateFromPast3Months();
+    const expiryDate = new Date(effectiveDate);
+    expiryDate.setFullYear(expiryDate.getFullYear() + 1);
     
-    const response = await axios.post(
-      `${API_BASE_URL}${API_PREFIX}/report/order-receipt`,
-      {
-        orderId: dummyOrderId,
-        includeItems: true,
-        includePayment: true,
-      },
-      {
-        responseType: 'arraybuffer',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    // Split owner name into first and last name
+    const ownerNameParts = centerData.ownerName.split(' ');
+    const ownerFirstName = ownerNameParts[0] || '';
+    const ownerLastName = ownerNameParts.slice(1).join(' ') || '';
 
-    const filename = `order-receipt-${Date.now()}.pdf`;
-    const filePath = await savePdf(response.data, filename, 'order-receipts');
-    
-    logSuccess(`Order Receipt PDF saved to: ${filePath}`);
-    logInfo(`File size: ${(response.data.length / 1024).toFixed(2)} KB`);
-    
-    return { success: true, filePath, size: response.data.length };
-  } catch (error) {
-    logError(`Failed to generate Order Receipt: ${error.response?.data?.message || error.message}`);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Test Subscription Report PDF generation with dummy data
- */
-async function testSubscriptionReport() {
-  try {
-    logInfo('Testing Subscription Report PDF generation with dummy data');
-    
-    // Use dummy subscription ID - backend will handle data fetching
-    const dummySubscriptionId = '6907c1db041b4ddf848ccefb';
-    
-    const response = await axios.post(
-      `${API_BASE_URL}${API_PREFIX}/report/subscription-report`,
-      {
-        subscriptionId: dummySubscriptionId,
-        includeHistory: true,
-      },
-      {
-        responseType: 'arraybuffer',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    const filename = `subscription-report-${Date.now()}.pdf`;
-    const filePath = await savePdf(response.data, filename, 'subscriptions');
-    
-    logSuccess(`Subscription Report PDF saved to: ${filePath}`);
-    logInfo(`File size: ${(response.data.length / 1024).toFixed(2)} KB`);
-    
-    return { success: true, filePath, size: response.data.length };
-  } catch (error) {
-    logError(`Failed to generate Subscription Report: ${error.response?.data?.message || error.message}`);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Test Partner Contract PDF generation with dummy data
- */
-async function testPartnerContract() {
-  try {
-    logInfo('Testing Partner Contract PDF generation with dummy data');
-    
-    // Use dummy partner ID - backend will handle data fetching
-    const dummyPartnerId = '69038003345c8af2df48c28e';
-    
-    const response = await axios.post(
-      `${API_BASE_URL}${API_PREFIX}/report/partner-contract`,
-      {
-        partnerId: dummyPartnerId,
-        contractType: 'agreement',
-        terms: [
-          'Partner agrees to maintain food quality standards as per TiffinMate guidelines.',
-          'Partner agrees to deliver orders within the specified time frame.',
-          'Partner agrees to comply with all local health and safety regulations.',
-        ],
-      },
-      {
-        responseType: 'arraybuffer',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    const filename = `partner-contract-${Date.now()}.pdf`;
-    const filePath = await savePdf(response.data, filename, 'contracts');
-    
-    logSuccess(`Partner Contract PDF saved to: ${filePath}`);
-    logInfo(`File size: ${(response.data.length / 1024).toFixed(2)} KB`);
-    
-    return { success: true, filePath, size: response.data.length };
-  } catch (error) {
-    logError(`Failed to generate Partner Contract: ${error.response?.data?.message || error.message}`);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Test Invoice PDF generation with dummy data
- */
-async function testInvoice() {
-  try {
-    logInfo('Testing Invoice PDF generation with dummy data');
-    
-    // Use dummy order ID for invoice
-    const dummyOrderId = '6907c1dc041b4ddf848ccf02';
-    
-    const response = await axios.post(
-      `${API_BASE_URL}${API_PREFIX}/report/invoice`,
-      {
-        type: 'order',
-        orderId: dummyOrderId,
-      },
-      {
-        responseType: 'arraybuffer',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    const filename = `invoice-order-${Date.now()}.pdf`;
-    const filePath = await savePdf(response.data, filename, 'invoices');
-    
-    logSuccess(`Invoice PDF saved to: ${filePath}`);
-    logInfo(`File size: ${(response.data.length / 1024).toFixed(2)} KB`);
-    
-    return { success: true, filePath, size: response.data.length };
-  } catch (error) {
-    logError(`Failed to generate Invoice: ${error.response?.data?.message || error.message}`);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Test Partner MoU PDF generation with dummy data
- */
-async function testPartnerMou() {
-  try {
-    logInfo('Testing Partner MoU PDF generation with dummy data');
-    
-    // Use dummy partner ID - backend will handle data fetching
-    const dummyPartnerId = '69038003345c8af2df48c28e';
-    
     const response = await axios.post(
       `${API_BASE_URL}${API_PREFIX}/report/partner-mou`,
       {
-        partnerId: dummyPartnerId,
-        commissionRate: 20,
+        partnerData: {
+          businessName: centerData.businessName,
+          ownerFirstName: ownerFirstName,
+          ownerLastName: ownerLastName,
+          address: centerData.address.full,
+          contactEmail: centerData.contactEmail,
+          contactPhone: centerData.contactPhone,
+          whatsappNumber: centerData.whatsappNumber,
+          gstNumber: centerData.gstNumber,
+          licenseNumber: centerData.fssaiLicense,
+          establishedYear: centerData.establishedYear,
+        },
+        commissionRate: 18 + Math.floor(Math.random() * 5), // 18-22%
         paymentTerms: 'Weekly payments via bank transfer',
         contractDuration: '12 months',
         terminationNotice: '30 days',
-        minimumRating: 4.0,
+        minimumRating: 4.0 + (Math.random() * 0.5), // 4.0-4.5
+        effectiveDate: formatDateForAPI(effectiveDate),
+        expiryDate: formatDateForAPI(expiryDate),
       },
       {
         responseType: 'arraybuffer',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 120000, // 2 minutes timeout for PDF generation
       }
     );
 
-    const filename = `partner-mou-${Date.now()}.pdf`;
-    const filePath = await savePdf(response.data, filename, 'contracts');
+    const filename = `partner-mou-${centerData.businessName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${Date.now()}.pdf`;
+    const filePath = await savePdf(response.data, filename, 'legal-documents');
     
-    logSuccess(`Partner MoU PDF saved to: ${filePath}`);
-    logInfo(`File size: ${(response.data.length / 1024).toFixed(2)} KB`);
+    logSuccess(`[${index + 1}] Partner MoU: ${centerData.businessName}`);
+    logInfo(`   Saved: ${filePath}`);
+    logInfo(`   Size: ${(response.data.length / 1024).toFixed(2)} KB`);
     
     return { success: true, filePath, size: response.data.length };
   } catch (error) {
-    logError(`Failed to generate Partner MoU: ${error.response?.data?.message || error.message}`);
+    logError(`[${index + 1}] Failed: ${error.response?.data?.message || error.message}`);
     return { success: false, error: error.message };
   }
 }
 
 /**
- * Test Service Agreement PDF generation with dummy data
+ * Generate Service Agreement PDF
  */
-async function testServiceAgreement() {
+async function generateServiceAgreement(centerData, index) {
   try {
-    logInfo('Testing Service Agreement PDF generation with dummy data');
+    const partnerId = Array.from({ length: 24 }, () => 
+      Math.floor(Math.random() * 16).toString(16)
+    ).join('');
     
-    // Use dummy partner ID - backend will handle data fetching
-    const dummyPartnerId = '69038003345c8af2df48c28e';
+    const effectiveDate = getRandomDateFromPast3Months();
+    const expiryDate = new Date(effectiveDate);
+    expiryDate.setFullYear(expiryDate.getFullYear() + 1);
     
+    // Split owner name into first and last name
+    const ownerNameParts = centerData.ownerName.split(' ');
+    const ownerFirstName = ownerNameParts[0] || '';
+    const ownerLastName = ownerNameParts.slice(1).join(' ') || '';
+
     const response = await axios.post(
       `${API_BASE_URL}${API_PREFIX}/report/service-agreement`,
       {
-        partnerId: dummyPartnerId,
-        commissionRate: 20,
+        partnerData: {
+          businessName: centerData.businessName,
+          ownerFirstName: ownerFirstName,
+          ownerLastName: ownerLastName,
+          address: centerData.address.full,
+          contactEmail: centerData.contactEmail,
+          contactPhone: centerData.contactPhone,
+          whatsappNumber: centerData.whatsappNumber,
+          gstNumber: centerData.gstNumber,
+          licenseNumber: centerData.fssaiLicense,
+          establishedYear: centerData.establishedYear,
+        },
+        commissionRate: 18 + Math.floor(Math.random() * 5),
         paymentTerms: 'Weekly payments via bank transfer',
         contractDuration: '12 months',
         terminationNotice: '30 days',
-        minimumRating: 4.0,
-        minimumAcceptanceRate: 95,
+        minimumRating: 4.0 + (Math.random() * 0.5),
+        minimumAcceptanceRate: 90 + Math.floor(Math.random() * 10), // 90-99%
         orderAcceptanceTime: 5,
         cancellationPolicy: 'Orders can be cancelled within 5 minutes of placement. After that, cancellation is subject to Partner\'s approval.',
         commissionChangeNotice: '30 days',
         paymentProcessingDays: 7,
         minimumPayoutAmount: 1000,
+        companyGstNumber: COMPANY_INFO.gstNumber,
+        companyPanNumber: COMPANY_INFO.panNumber,
+        effectiveDate: formatDateForAPI(effectiveDate),
+        expiryDate: formatDateForAPI(expiryDate),
       },
       {
         responseType: 'arraybuffer',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 120000, // 2 minutes timeout for PDF generation
       }
     );
 
-    const filename = `service-agreement-${Date.now()}.pdf`;
-    const filePath = await savePdf(response.data, filename, 'contracts');
+    const filename = `service-agreement-${centerData.businessName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${Date.now()}.pdf`;
+    const filePath = await savePdf(response.data, filename, 'legal-documents');
     
-    logSuccess(`Service Agreement PDF saved to: ${filePath}`);
-    logInfo(`File size: ${(response.data.length / 1024).toFixed(2)} KB`);
+    logSuccess(`[${index + 1}] Service Agreement: ${centerData.businessName}`);
+    logInfo(`   Saved: ${filePath}`);
+    logInfo(`   Size: ${(response.data.length / 1024).toFixed(2)} KB`);
     
     return { success: true, filePath, size: response.data.length };
   } catch (error) {
-    logError(`Failed to generate Service Agreement: ${error.response?.data?.message || error.message}`);
+    logError(`[${index + 1}] Failed: ${error.response?.data?.message || error.message}`);
     return { success: false, error: error.message };
   }
 }
 
 /**
- * Test Partner NDA PDF generation with dummy data
+ * Generate Partner NDA PDF
  */
-async function testPartnerNda() {
+async function generatePartnerNda(centerData, index) {
   try {
-    logInfo('Testing Partner NDA PDF generation with dummy data');
+    const partnerId = Array.from({ length: 24 }, () => 
+      Math.floor(Math.random() * 16).toString(16)
+    ).join('');
     
-    // Use dummy partner ID - backend will handle data fetching
-    const dummyPartnerId = '69038003345c8af2df48c28e';
+    const effectiveDate = getRandomDateFromPast3Months();
+    const expiryDate = new Date(effectiveDate);
+    expiryDate.setFullYear(expiryDate.getFullYear() + 2);
     
+    // Split owner name into first and last name
+    const ownerNameParts = centerData.ownerName.split(' ');
+    const ownerFirstName = ownerNameParts[0] || '';
+    const ownerLastName = ownerNameParts.slice(1).join(' ') || '';
+
     const response = await axios.post(
       `${API_BASE_URL}${API_PREFIX}/report/partner-nda`,
       {
-        partnerId: dummyPartnerId,
+        partnerData: {
+          businessName: centerData.businessName,
+          ownerFirstName: ownerFirstName,
+          ownerLastName: ownerLastName,
+          address: centerData.address.full,
+          contactEmail: centerData.contactEmail,
+          contactPhone: centerData.contactPhone,
+          whatsappNumber: centerData.whatsappNumber,
+          gstNumber: centerData.gstNumber,
+          licenseNumber: centerData.fssaiLicense,
+          establishedYear: centerData.establishedYear,
+        },
         purpose: 'partnering with Tiffin Wale to offer food services through the Tiffin Wale platform',
         term: '2 years',
         survivalPeriod: '3',
+        companyGstNumber: COMPANY_INFO.gstNumber,
+        companyPanNumber: COMPANY_INFO.panNumber,
+        effectiveDate: formatDateForAPI(effectiveDate),
+        expiryDate: formatDateForAPI(expiryDate),
       },
       {
         responseType: 'arraybuffer',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 120000, // 2 minutes timeout for PDF generation
       }
     );
 
-    const filename = `partner-nda-${Date.now()}.pdf`;
+    const filename = `partner-nda-${centerData.businessName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${Date.now()}.pdf`;
     const filePath = await savePdf(response.data, filename, 'legal-documents');
     
-    logSuccess(`Partner NDA PDF saved to: ${filePath}`);
-    logInfo(`File size: ${(response.data.length / 1024).toFixed(2)} KB`);
+    logSuccess(`[${index + 1}] Partner NDA: ${centerData.businessName}`);
+    logInfo(`   Saved: ${filePath}`);
+    logInfo(`   Size: ${(response.data.length / 1024).toFixed(2)} KB`);
     
     return { success: true, filePath, size: response.data.length };
   } catch (error) {
-    logError(`Failed to generate Partner NDA: ${error.response?.data?.message || error.message}`);
+    logError(`[${index + 1}] Failed: ${error.response?.data?.message || error.message}`);
     return { success: false, error: error.message };
   }
 }
 
 /**
- * Test Legal Document PDF generation with dummy TiffinMate center data
+ * Main interactive function
  */
-async function testLegalDocument() {
-  try {
-    logInfo('Testing Legal Document PDF generation with dummy TiffinMate center data');
-    
-    const response = await axios.post(
-      `${API_BASE_URL}${API_PREFIX}/report/legal-document`,
-      {
-        documentType: 'Service Agreement',
-        title: 'Terms of Service Agreement',
-        parties: [
-          {
-            name: 'TiffinMate Platform',
-            role: 'Service Provider',
-            address: 'TiffinMate Headquarters, 123 Business Street, City, State 12345, India',
-            contactInfo: 'support@tiffinmate.com | +1-800-TIFFINMATE',
-          },
-          {
-            name: 'Test Partner',
-            role: 'Service Partner',
-            address: '456 Partner Street, City, State 67890, India',
-            contactInfo: 'partner@example.com | +1-234-567-8900',
-          },
-        ],
-        effectiveDate: new Date().toISOString(),
-        expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-        terms: [
-          {
-            section: 'Service Terms',
-            clauses: [
-              'TiffinMate agrees to provide platform services for meal delivery.',
-              'The partner agrees to maintain food quality standards as per TiffinMate guidelines.',
-              'Both parties agree to resolve disputes amicably.',
-            ],
-          },
-          {
-            section: 'Payment Terms',
-            clauses: [
-              'Payments will be processed weekly via bank transfer.',
-              'Commission rate: 20% of order value.',
-              'Payment disputes must be reported within 7 days.',
-            ],
-          },
-          {
-            section: 'Termination',
-            clauses: [
-              'Either party can terminate with 30 days written notice.',
-              'Termination does not affect pending orders.',
-              'Refunds will be processed as per policy.',
-            ],
-          },
-        ],
-      },
-      {
-        responseType: 'arraybuffer',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    const filename = `legal-document-${Date.now()}.pdf`;
-    const filePath = await savePdf(response.data, filename, 'legal-documents');
-    
-    logSuccess(`Legal Document PDF saved to: ${filePath}`);
-    logInfo(`File size: ${(response.data.length / 1024).toFixed(2)} KB`);
-    
-    return { success: true, filePath, size: response.data.length };
-  } catch (error) {
-    logError(`Failed to generate Legal Document: ${error.response?.data?.message || error.message}`);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Main test function
- */
-async function runTests() {
-  log('\n' + '='.repeat(60), 'cyan');
-  log('🧪 PDF Generation Test Script', 'bright');
-  log('='.repeat(60) + '\n', 'cyan');
+async function main() {
+  const rl = createReadlineInterface();
+  
+  log('\n' + '='.repeat(70), 'cyan');
+  log('🧪 Interactive PDF Generation Test Script', 'bright');
+  log('='.repeat(70) + '\n', 'cyan');
 
   // Check if server is running
   try {
-    // Try root endpoint for health check (returns { status: "ok", message: "TiffinWale API is running!" })
-    try {
-      const response = await axios.get(`${API_BASE_URL}/`, { timeout: 3000 });
-      if (response.data && response.data.status === 'ok') {
-        logSuccess(`Server is running at ${API_BASE_URL}`);
-        logInfo(`Server message: ${response.data.message}`);
-      } else {
-        throw new Error('Server responded but with unexpected format');
-      }
-    } catch (error) {
-      // If root fails, try /ping
-      try {
-        await axios.get(`${API_BASE_URL}${API_PREFIX}/ping`, { timeout: 3000 });
-        logSuccess(`Server is running at ${API_BASE_URL}`);
-      } catch (pingError) {
-        logError(`Cannot connect to server at ${API_BASE_URL}`);
-        logWarning('Please make sure the server is running: npm run start:dev');
-        logInfo(`Tried endpoints: ${API_BASE_URL}/ and ${API_BASE_URL}${API_PREFIX}/ping`);
-        logInfo(`Error: ${error.message || pingError.message}`);
-        throw error;
-      }
+    const response = await axios.get(`${API_BASE_URL}/`, { timeout: 3000 });
+    if (response.data && response.data.status === 'ok') {
+      logSuccess(`Server is running at ${API_BASE_URL}`);
+    } else {
+      throw new Error('Server responded but with unexpected format');
     }
   } catch (error) {
+    logError(`Cannot connect to server at ${API_BASE_URL}`);
+    logWarning('Please make sure the server is running: npm run start:dev');
+    rl.close();
     process.exit(1);
   }
 
-  const results = {
-    orderReceipt: null,
-    subscriptionReport: null,
-    partnerContract: null,
-    invoice: null,
-    legalDocument: null,
-    partnerMou: null,
-    serviceAgreement: null,
-    partnerNda: null,
-  };
+  // Ask for document category
+  log('\n📋 Available Document Categories:', 'bright');
+  log('   1. Partner MoU (Memorandum of Understanding)', 'cyan');
+  log('   2. Service Agreement', 'cyan');
+  log('   3. Partner NDA (Non-Disclosure Agreement)', 'cyan');
+  log('   4. All Legal Documents (MoU + Service Agreement + NDA)\n', 'cyan');
+  
+  const categoryInput = await askQuestion(rl, 'Select category (1-4): ');
+  const category = parseInt(categoryInput);
+  
+  if (isNaN(category) || category < 1 || category > 4) {
+    logError('Invalid category selection!');
+    rl.close();
+    process.exit(1);
+  }
 
-  log('\n📄 Testing PDF Generation Endpoints with Dummy Data\n', 'bright');
-  logInfo('All tests use dummy data - backend will fetch actual data from database');
+  // Ask for quantity
+  const quantityInput = await askQuestion(rl, 'How many documents to generate? (1-10): ');
+  const quantity = parseInt(quantityInput);
+  
+  if (isNaN(quantity) || quantity < 1 || quantity > 10) {
+    logError('Quantity must be between 1 and 10!');
+    rl.close();
+    process.exit(1);
+  }
 
-  // Test 1: Order Receipt
-  log('\n1️⃣  Order Receipt PDF', 'cyan');
-  log('-'.repeat(40), 'cyan');
-  results.orderReceipt = await testOrderReceipt();
-  await new Promise(resolve => setTimeout(resolve, 500)); // Small delay
+  rl.close();
 
-  // Test 2: Subscription Report
-  log('\n2️⃣  Subscription Report PDF', 'cyan');
-  log('-'.repeat(40), 'cyan');
-  results.subscriptionReport = await testSubscriptionReport();
-  await new Promise(resolve => setTimeout(resolve, 500));
+  // Select centers
+  const selectedCenters = TIFFIN_CENTERS.slice(0, quantity);
+  
+  log('\n' + '='.repeat(70), 'cyan');
+  log(`🚀 Generating ${quantity} document(s) for category: ${category === 1 ? 'Partner MoU' : category === 2 ? 'Service Agreement' : category === 3 ? 'Partner NDA' : 'All Legal Documents'}`, 'bright');
+  log('='.repeat(70) + '\n', 'cyan');
 
-  // Test 3: Partner Contract
-  log('\n3️⃣  Partner Contract PDF', 'cyan');
-  log('-'.repeat(40), 'cyan');
-  results.partnerContract = await testPartnerContract();
-  await new Promise(resolve => setTimeout(resolve, 500));
-
-  // Test 4: Invoice (Order)
-  log('\n4️⃣  Invoice PDF (Order)', 'cyan');
-  log('-'.repeat(40), 'cyan');
-  results.invoice = await testInvoice();
-  await new Promise(resolve => setTimeout(resolve, 500));
-
-  // Test 5: Legal Document
-  log('\n5️⃣  Legal Document PDF', 'cyan');
-  log('-'.repeat(40), 'cyan');
-  results.legalDocument = await testLegalDocument();
-  await new Promise(resolve => setTimeout(resolve, 500));
-
-  // Test 6: Partner MoU
-  log('\n6️⃣  Partner MoU PDF', 'cyan');
-  log('-'.repeat(40), 'cyan');
-  results.partnerMou = await testPartnerMou();
-  await new Promise(resolve => setTimeout(resolve, 500));
-
-  // Test 7: Service Agreement
-  log('\n7️⃣  Service Agreement PDF', 'cyan');
-  log('-'.repeat(40), 'cyan');
-  results.serviceAgreement = await testServiceAgreement();
-  await new Promise(resolve => setTimeout(resolve, 500));
-
-  // Test 8: Partner NDA
-  log('\n8️⃣  Partner NDA PDF', 'cyan');
-  log('-'.repeat(40), 'cyan');
-  results.partnerNda = await testPartnerNda();
+  const results = [];
+  
+  for (let i = 0; i < selectedCenters.length; i++) {
+    const center = selectedCenters[i];
+    
+    if (category === 1 || category === 4) {
+      // Generate MoU
+      const result = await generatePartnerMou(center, i);
+      results.push({ type: 'Partner MoU', center: center.businessName, ...result });
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    if (category === 2 || category === 4) {
+      // Generate Service Agreement
+      const result = await generateServiceAgreement(center, i);
+      results.push({ type: 'Service Agreement', center: center.businessName, ...result });
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    if (category === 3 || category === 4) {
+      // Generate NDA
+      const result = await generatePartnerNda(center, i);
+      results.push({ type: 'Partner NDA', center: center.businessName, ...result });
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
 
   // Summary
-  log('\n' + '='.repeat(60), 'cyan');
-  log('📊 Test Summary', 'bright');
-  log('='.repeat(60), 'cyan');
+  log('\n' + '='.repeat(70), 'cyan');
+  log('📊 Generation Summary', 'bright');
+  log('='.repeat(70), 'cyan');
 
-  const successful = Object.values(results).filter(r => r?.success).length;
-  const total = Object.keys(results).length;
+  const successful = results.filter(r => r.success).length;
+  const total = results.length;
 
-  log(`\nTotal Tests: ${total}`);
+  log(`\nTotal Documents: ${total}`);
   logSuccess(`Successful: ${successful}`);
   if (successful < total) {
     logError(`Failed: ${total - successful}`);
@@ -609,30 +699,29 @@ async function runTests() {
   log('\n📁 Generated PDFs Location:', 'bright');
   log(`   ${OUTPUT_DIR}`, 'cyan');
 
-  log('\n📋 Results:', 'bright');
-  Object.entries(results).forEach(([key, result]) => {
-    if (result?.success) {
-      logSuccess(`${key}: ✓ (${(result.size / 1024).toFixed(2)} KB)`);
+  log('\n📋 Detailed Results:', 'bright');
+  results.forEach((result, idx) => {
+    if (result.success) {
+      logSuccess(`${idx + 1}. ${result.type} - ${result.center} (${(result.size / 1024).toFixed(2)} KB)`);
     } else {
-      logError(`${key}: ✗ (${result?.error || 'Unknown error'})`);
+      logError(`${idx + 1}. ${result.type} - ${result.center} (${result.error})`);
     }
   });
 
-  log('\n' + '='.repeat(60) + '\n', 'cyan');
+  log('\n' + '='.repeat(70) + '\n', 'cyan');
 
   if (successful === total) {
-    logSuccess('All PDF generation tests completed successfully! 🎉');
+    logSuccess('All PDFs generated successfully! 🎉');
     process.exit(0);
   } else {
-    logWarning('Some tests failed. Check the errors above.');
+    logWarning('Some PDFs failed to generate. Check the errors above.');
     process.exit(1);
   }
 }
 
-// Run tests
-runTests().catch((error) => {
-  logError(`Test script failed: ${error.message}`);
+// Run
+main().catch((error) => {
+  logError(`Script failed: ${error.message}`);
   console.error(error);
   process.exit(1);
 });
-

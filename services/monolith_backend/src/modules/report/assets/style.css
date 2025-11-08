@@ -14,7 +14,7 @@ body {
 }
 
 .container {
-  padding: 0.5in 0.3in 0.5in 0.3in; /* Reduced horizontal padding to use full width, top/bottom padding for header/footer space */
+  padding: 0.5in 0.15in 0.5in 0.15in; /* Minimal horizontal padding to maximize content width */
   font-family: 'Poppins', sans-serif;
   width: 100%;
   max-width: 100%;

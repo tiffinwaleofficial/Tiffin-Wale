@@ -28,20 +28,31 @@ export class ServiceAgreementDataGenerator {
       commissionChangeNotice?: string;
       paymentProcessingDays?: number;
       minimumPayoutAmount?: number;
+      effectiveDate?: string;
+      expiryDate?: string;
+      companyGstNumber?: string;
+      companyPanNumber?: string;
     },
   ): Promise<ServiceAgreementData> {
     const company = companyInfo();
 
+    // Use custom dates if provided, otherwise use current date
+    const effectiveDateObj = customTerms?.effectiveDate 
+      ? new Date(customTerms.effectiveDate) 
+      : new Date();
+    const expiryDateObj = customTerms?.expiryDate 
+      ? new Date(customTerms.expiryDate) 
+      : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+
+    const partnerIdStr = partner._id?.toString ? partner._id.toString().substring(0, 8) : Date.now().toString(16).substring(0, 8);
     return {
-      agreementId: `SA-${Date.now()}-${partner._id.toString().substring(0, 8).toUpperCase()}`,
-      effectiveDate: new Date().toLocaleDateString("en-IN", {
+      agreementId: `SA-${Date.now()}-${partnerIdStr.toUpperCase()}`,
+      effectiveDate: effectiveDateObj.toLocaleDateString("en-IN", {
         year: "numeric",
         month: "long",
         day: "numeric",
       }),
-      expiryDate: new Date(
-        Date.now() + 365 * 24 * 60 * 60 * 1000,
-      ).toLocaleDateString("en-IN", {
+      expiryDate: expiryDateObj.toLocaleDateString("en-IN", {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -53,8 +64,8 @@ export class ServiceAgreementDataGenerator {
         email: company.email,
         phone: company.phone,
         address: company.address,
-        gstNumber: process.env.COMPANY_GST_NUMBER || undefined,
-        panNumber: process.env.COMPANY_PAN_NUMBER || undefined,
+        gstNumber: customTerms?.companyGstNumber || process.env.COMPANY_GST_NUMBER || undefined,
+        panNumber: customTerms?.companyPanNumber || process.env.COMPANY_PAN_NUMBER || undefined,
       },
       partner: {
         businessName: partner.businessName,
@@ -94,6 +105,13 @@ export class ServiceAgreementDataGenerator {
             branch: partner.bankAccount.branch,
           }
         : undefined,
+      signatures: {
+        signedAt: effectiveDateObj.toLocaleDateString("en-IN", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+      },
     };
   }
 

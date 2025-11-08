@@ -11,7 +11,7 @@ import {
 
 export class RegisterSuperAdminDto {
   @ApiProperty({
-    example: "admin@tiffinwale.com",
+    example: "admin@tiffin-wale.com",
     description: "Email address",
   })
   @IsEmail({}, { message: "Please provide a valid email address" })

@@ -304,6 +304,7 @@ export interface PartnerNdaData {
       zip: string;
     };
     gstNumber?: string;
+    panNumber?: string;
   };
   partner: {
     businessName: string;
