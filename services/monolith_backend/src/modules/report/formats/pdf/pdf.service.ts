@@ -11,6 +11,9 @@ import {
   PartnerContractData,
   InvoiceData,
   LegalDocumentData,
+  PartnerMouData,
+  ServiceAgreementData,
+  PartnerNdaData,
 } from "../../interfaces/report-data.interface";
 
 /**
@@ -235,7 +238,10 @@ export class PdfService implements IFormatService, OnModuleInit {
       'subscription-report': 'subscription-report', 
       'partner-contract': 'partner-contract',
       'invoice': 'invoice',
-      'legal-document': 'legal-document'
+      'legal-document': 'legal-document',
+      'partner-mou': 'partner-mou',
+      'service-agreement': 'service-agreement',
+      'partner-nda': 'partner-nda'
     };
 
     const templateName = templateMap[type];
@@ -270,6 +276,18 @@ export class PdfService implements IFormatService, OnModuleInit {
       case "legal-document":
         const legalData = data as LegalDocumentData;
         return `${legalData.title} - ${legalData.effectiveDate.toISOString().split('T')[0]}.pdf`;
+
+      case "partner-mou":
+        const mouData = data as PartnerMouData;
+        return `Partner MoU - ${mouData.partner.businessName} - ${mouData.mouId}.pdf`;
+
+      case "service-agreement":
+        const agreementData = data as ServiceAgreementData;
+        return `Service Agreement - ${agreementData.partner.businessName} - ${agreementData.agreementId}.pdf`;
+
+      case "partner-nda":
+        const ndaData = data as PartnerNdaData;
+        return `Partner NDA - ${ndaData.partner.businessName} - ${ndaData.ndaId}.pdf`;
 
       default:
         throw new Error(`Unknown report type: ${type}`);
@@ -433,7 +451,20 @@ export class PdfService implements IFormatService, OnModuleInit {
               
               /* Ensure no self-closing divs and proper indentation */
               * { box-sizing: border-box; }
-              body { margin: 0; padding: 0; position: relative; }
+              body { 
+                margin: 0; 
+                padding: 0; 
+                position: relative; 
+                width: 100%;
+                max-width: 100%;
+              }
+              
+              /* Ensure container uses full width */
+              .container {
+                width: 100%;
+                max-width: 100%;
+                box-sizing: border-box;
+              }
               
               /* Watermark styling */
               ${watermarkCss}

@@ -1,0 +1,286 @@
+<div class="document-header">
+  <h1 style="text-align: center; color: #FF7A00; margin-bottom: 10px;">NON-DISCLOSURE AGREEMENT</h1>
+  <p style="text-align: center; font-size: 14px; color: #666;">NDA ID: <strong>{{ndaId}}</strong></p>
+  <p style="text-align: center; font-size: 14px; color: #666;">Effective Date: <strong>{{effectiveDate}}</strong></p>
+  {{#if expiryDate}}
+  <p style="text-align: center; font-size: 14px; color: #666;">Expiry Date: <strong>{{expiryDate}}</strong></p>
+  {{/if}}
+</div>
+
+<hr style="margin: 30px 0; border: 1px solid #E0E0E0;">
+
+<div class="parties-section">
+  <h2 style="color: #FF7A00; margin-bottom: 20px;">PARTIES</h2>
+  
+  <div style="margin-bottom: 30px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">DISCLOSING PARTY: RIRA INDUSTRIES PRIVATE LIMITED</h3>
+    <p><strong>Brand Name:</strong> Tiffin Wale</p>
+    <p><strong>Registered Office:</strong> {{company.address.line1}}, {{company.address.city}}, {{company.address.state}} - {{company.address.zip}}</p>
+    <p><strong>Email:</strong> {{company.email}}</p>
+    <p><strong>Website:</strong> {{company.website}}</p>
+    <p><strong>Phone:</strong> {{company.phone}}</p>
+    {{#if company.gstNumber}}
+    <p><strong>GST Number:</strong> {{company.gstNumber}}</p>
+    {{/if}}
+    <p style="margin-top: 10px;"><em>Hereinafter referred to as "Disclosing Party" or "Tiffin Wale"</em></p>
+  </div>
+
+  <div style="margin-bottom: 30px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">RECEIVING PARTY: {{partner.businessName}}</h3>
+    <p><strong>Owner/Authorized Representative:</strong> {{partner.ownerName}}</p>
+    <p><strong>Business Address:</strong> {{partner.address}}</p>
+    <p><strong>Email:</strong> {{partner.contactEmail}}</p>
+    <p><strong>Phone:</strong> {{partner.contactPhone}}</p>
+    {{#if partner.gstNumber}}
+    <p><strong>GST Number:</strong> {{partner.gstNumber}}</p>
+    {{/if}}
+    <p style="margin-top: 10px;"><em>Hereinafter referred to as "Receiving Party" or "Partner"</em></p>
+  </div>
+</div>
+
+<hr style="margin: 30px 0; border: 1px solid #E0E0E0;">
+
+<div class="recitals-section">
+  <h2 style="color: #FF7A00; margin-bottom: 20px;">RECITALS</h2>
+  <p style="text-align: justify; line-height: 1.8; margin-bottom: 15px;">
+    <strong>WHEREAS,</strong> Tiffin Wale and the Partner are entering into a business relationship for the purpose of {{purpose}};
+  </p>
+  <p style="text-align: justify; line-height: 1.8; margin-bottom: 15px;">
+    <strong>WHEREAS,</strong> in the course of this business relationship, Tiffin Wale may disclose to the Partner certain confidential, proprietary, and trade secret information;
+  </p>
+  <p style="text-align: justify; line-height: 1.8; margin-bottom: 15px;">
+    <strong>WHEREAS,</strong> the parties recognize that the protection of such confidential information is essential to their business interests;
+  </p>
+  <p style="text-align: justify; line-height: 1.8;">
+    <strong>NOW, THEREFORE,</strong> in consideration of the mutual covenants and agreements contained herein, the parties agree as follows:
+  </p>
+</div>
+
+<hr style="margin: 30px 0; border: 1px solid #E0E0E0;">
+
+<div class="terms-section">
+  <h2 style="color: #FF7A00; margin-bottom: 20px;">TERMS AND CONDITIONS</h2>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">1. DEFINITION OF CONFIDENTIAL INFORMATION</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      For the purposes of this Agreement, "Confidential Information" shall mean all non-public, proprietary, or confidential information disclosed by Tiffin Wale to the Partner, whether orally, in writing, electronically, or in any other form, including but not limited to:
+    </p>
+    <ol style="line-height: 1.8; margin-left: 20px;">
+      <li><strong>Technical Information:</strong> Software code, algorithms, system architecture, database structures, API specifications, technical documentation, and know-how</li>
+      <li><strong>Business Information:</strong> Business plans, strategies, financial data, pricing models, commission structures, revenue sharing formulas, customer data, market research, and competitive intelligence</li>
+      <li><strong>Operational Information:</strong> Operational procedures, processes, workflows, delivery logistics, quality standards, and best practices</li>
+      <li><strong>Intellectual Property:</strong> Trademarks, logos, brand guidelines, proprietary designs, patents, copyrights, and trade secrets</li>
+      <li><strong>Customer Data:</strong> Customer names, contact information, order history, preferences, payment information, and any other personal or sensitive data</li>
+      <li><strong>Partner Data:</strong> Information about other partners, their performance metrics, business terms, and competitive positioning</li>
+      <li><strong>Marketing Information:</strong> Marketing strategies, promotional campaigns, advertising materials, and customer acquisition methods</li>
+      <li><strong>Any other information:</strong> That is marked as "Confidential" or "Proprietary" or that, by its nature, would be understood by a reasonable person to be confidential</li>
+    </ol>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">2. EXCLUSIONS FROM CONFIDENTIAL INFORMATION</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      The following information shall not be considered Confidential Information:
+    </p>
+    <ol style="line-height: 1.8; margin-left: 20px;">
+      <li>Information that is or becomes publicly available through no breach of this Agreement by the Receiving Party</li>
+      <li>Information that was rightfully known to the Receiving Party prior to disclosure by the Disclosing Party, as evidenced by written records</li>
+      <li>Information that is independently developed by the Receiving Party without use of or reference to the Confidential Information</li>
+      <li>Information that is rightfully received by the Receiving Party from a third party without breach of any confidentiality obligation</li>
+      <li>Information that is required to be disclosed by law, regulation, or court order, provided that the Receiving Party gives the Disclosing Party reasonable prior notice and cooperates in any efforts to obtain protective orders</li>
+    </ol>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">3. OBLIGATIONS OF RECEIVING PARTY</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      The Partner (Receiving Party) agrees to:
+    </p>
+    <ol style="line-height: 1.8; margin-left: 20px;">
+      <li><strong>Maintain Confidentiality:</strong> Hold and maintain all Confidential Information in strict confidence and not disclose it to any third party without the prior written consent of Tiffin Wale</li>
+      <li><strong>Use Restrictions:</strong> Use Confidential Information solely for the purpose of {{purpose}} and not for any other purpose, including competitive activities</li>
+      <li><strong>Protection Measures:</strong> Take all reasonable precautions to protect the confidentiality of the Confidential Information, using at least the same degree of care used to protect its own confidential information, but in no event less than reasonable care</li>
+      <li><strong>Access Control:</strong> Restrict access to Confidential Information only to employees, agents, or representatives who have a legitimate need to know such information for the permitted purpose and who are bound by confidentiality obligations at least as restrictive as those in this Agreement</li>
+      <li><strong>No Reverse Engineering:</strong> Not reverse engineer, decompile, or disassemble any software or technology provided as part of the Confidential Information</li>
+      <li><strong>No Copying:</strong> Not make copies of Confidential Information except as necessary for the permitted purpose, and all such copies shall be subject to the same confidentiality obligations</li>
+      <li><strong>Return or Destroy:</strong> Upon termination of the business relationship or upon request by Tiffin Wale, promptly return or destroy all Confidential Information and all copies thereof, and certify in writing that such return or destruction has been completed</li>
+      <li><strong>No Competitive Use:</strong> Not use Confidential Information to compete with Tiffin Wale or to develop competing products or services</li>
+    </ol>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">4. PERMITTED DISCLOSURES</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      The Partner may disclose Confidential Information only in the following circumstances:
+    </p>
+    <ol style="line-height: 1.8; margin-left: 20px;">
+      <li>To its employees, officers, directors, agents, or professional advisors who have a legitimate need to know such information for the permitted purpose, provided that such persons are bound by confidentiality obligations at least as restrictive as those in this Agreement</li>
+      <li>As required by law, regulation, or court order, provided that the Partner gives Tiffin Wale reasonable prior notice (if legally permissible) and cooperates in any efforts to obtain protective orders or other appropriate remedies</li>
+      <li>With the prior written consent of Tiffin Wale</li>
+    </ol>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">5. DATA PROTECTION AND PRIVACY</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      In addition to the confidentiality obligations set forth herein, the Partner agrees to:
+    </p>
+    <ul style="line-height: 1.8; margin-left: 20px;">
+      <li>Comply with all applicable data protection laws, including the Information Technology Act, 2000, the Information Technology (Reasonable Security Practices and Procedures and Sensitive Personal Data or Information) Rules, 2011, and any other applicable privacy laws</li>
+      <li>Implement appropriate technical and organizational measures to protect personal data and sensitive information from unauthorized access, disclosure, alteration, or destruction</li>
+      <li>Not process, store, or transfer personal data outside of India without Tiffin Wale's prior written consent and compliance with applicable data localization requirements</li>
+      <li>Notify Tiffin Wale immediately in case of any data breach or unauthorized access to Confidential Information</li>
+      <li>Cooperate with Tiffin Wale in any data protection audits or investigations</li>
+    </ul>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">6. INTELLECTUAL PROPERTY RIGHTS</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      The Partner acknowledges and agrees that:
+    </p>
+    <ul style="line-height: 1.8; margin-left: 20px;">
+      <li>All Confidential Information, including any intellectual property rights therein, is and shall remain the exclusive property of Tiffin Wale</li>
+      <li>This Agreement does not grant the Partner any license, right, title, or interest in or to any Confidential Information or intellectual property of Tiffin Wale</li>
+      <li>The Partner shall not use Tiffin Wale's trademarks, logos, or other intellectual property without prior written consent</li>
+      <li>Any improvements, modifications, or derivative works based on Confidential Information shall be the exclusive property of Tiffin Wale</li>
+    </ul>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">7. REMEDIES FOR BREACH</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      The Partner acknowledges that:
+    </p>
+    <ul style="line-height: 1.8; margin-left: 20px;">
+      <li>Any breach of this Agreement may cause irreparable harm to Tiffin Wale for which monetary damages may be inadequate</li>
+      <li>Tiffin Wale shall be entitled to seek injunctive relief, specific performance, and other equitable remedies to enforce this Agreement, without prejudice to any other rights or remedies available at law or in equity</li>
+      <li>In case of breach, the Partner shall be liable for all damages, losses, costs, and expenses (including legal fees) incurred by Tiffin Wale as a result of such breach</li>
+      <li>Tiffin Wale may terminate the business relationship immediately upon any breach of this Agreement</li>
+    </ul>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">8. TERM AND TERMINATION</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      <strong>8.1 Term:</strong> This Agreement shall be effective from <strong>{{effectiveDate}}</strong> and shall continue for a period of <strong>{{term}}</strong>, unless terminated earlier in accordance with this clause.
+    </p>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      <strong>8.2 Survival:</strong> The confidentiality obligations set forth in this Agreement shall survive the termination of the business relationship and shall continue for a period of {{survivalPeriod}} years after termination, or until the Confidential Information becomes publicly available through no breach of this Agreement.
+    </p>
+    <p style="text-align: justify; line-height: 1.8;">
+      <strong>8.3 Return of Information:</strong> Upon termination, the Partner shall immediately return or destroy all Confidential Information and provide written certification of such return or destruction.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">9. NO WARRANTIES</h3>
+    <p style="text-align: justify; line-height: 1.8;">
+      Tiffin Wale makes no representations or warranties, express or implied, regarding the accuracy, completeness, or usefulness of any Confidential Information. The Partner acknowledges that it is receiving Confidential Information "as is" and assumes all risks associated with its use.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">10. INDEPENDENT CONTRACTOR RELATIONSHIP</h3>
+    <p style="text-align: justify; line-height: 1.8;">
+      This Agreement does not create any partnership, joint venture, employment, or agency relationship between the parties. The Partner is an independent contractor and shall not represent itself as an agent or employee of Tiffin Wale.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">11. GOVERNING LAW AND DISPUTE RESOLUTION</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      <strong>11.1 Governing Law:</strong> This Agreement shall be governed by and construed in accordance with the laws of India.
+    </p>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      <strong>11.2 Dispute Resolution:</strong> Any dispute arising out of or in connection with this Agreement shall first be resolved through mutual discussion and negotiation. If the dispute cannot be resolved amicably within 30 days, it shall be referred to arbitration in accordance with the Arbitration and Conciliation Act, 2015.
+    </p>
+    <p style="text-align: justify; line-height: 1.8;">
+      <strong>11.3 Jurisdiction:</strong> The courts in {{company.address.city}}, {{company.address.state}} shall have exclusive jurisdiction over any disputes.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">12. GENERAL PROVISIONS</h3>
+    <ul style="line-height: 1.8; margin-left: 20px;">
+      <li>This Agreement constitutes the entire understanding between the parties regarding the subject matter hereof and supersedes all prior discussions, agreements, and understandings</li>
+      <li>This Agreement may not be amended or modified except by written agreement signed by both parties</li>
+      <li>If any provision of this Agreement is found to be invalid or unenforceable, the remaining provisions shall continue in full force and effect</li>
+      <li>No waiver of any provision shall be effective unless in writing and signed by the party waiving such provision</li>
+      <li>The Partner may not assign or transfer this Agreement without Tiffin Wale's prior written consent</li>
+      <li>All notices and communications shall be in writing and sent to the addresses specified in this Agreement</li>
+      <li>This Agreement may be executed in counterparts, each of which shall be deemed an original, but all of which together shall constitute one and the same instrument</li>
+    </ul>
+  </div>
+</div>
+
+<div style="page-break-before: always;"></div>
+
+<div class="signatures-section">
+  <h2 style="color: #FF7A00; margin-bottom: 30px; text-align: center;">SIGNATURES</h2>
+  
+  <p style="text-align: center; margin-bottom: 30px; font-style: italic;">
+    IN WITNESS WHEREOF, the parties have executed this Non-Disclosure Agreement on the date first written above.
+  </p>
+
+  <div style="display: flex; justify-content: space-between; margin-top: 50px;">
+    <div style="width: 45%; text-align: center;">
+      <h3 style="color: #222831; margin-bottom: 20px;">DISCLOSING PARTY</h3>
+      <p style="margin-bottom: 15px;"><strong>Rira Industries Private Limited</strong></p>
+      <p style="margin-bottom: 15px;">Tiffin Wale</p>
+      {{#if signatures.companySignature}}
+      <img src="data:image/png;base64,{{signatures.companySignature}}" alt="Company Signature" style="width: 200px; height: auto; margin: 20px auto; display: block;">
+      {{else}}
+      <div style="border-bottom: 2px solid #333; width: 250px; height: 60px; margin: 20px auto;"></div>
+      {{/if}}
+      <p style="margin-top: 20px;"><strong>Authorized Signatory</strong></p>
+      <p>Name: _____________</p>
+      <p>Designation: _____________</p>
+      <p style="margin-top: 15px;">Date: {{#if signatures.signedAt}}{{signatures.signedAt}}{{else}}_____________{{/if}}</p>
+    </div>
+
+    <div style="width: 45%; text-align: center;">
+      <h3 style="color: #222831; margin-bottom: 20px;">RECEIVING PARTY</h3>
+      <p style="margin-bottom: 15px;"><strong>{{partner.businessName}}</strong></p>
+      {{#if signatures.partnerSignature}}
+      <img src="data:image/png;base64,{{signatures.partnerSignature}}" alt="Partner Signature" style="width: 200px; height: auto; margin: 20px auto; display: block;">
+      {{else}}
+      <div style="border-bottom: 2px solid #333; width: 250px; height: 60px; margin: 20px auto;"></div>
+      {{/if}}
+      <p style="margin-top: 20px;"><strong>{{partner.ownerName}}</strong></p>
+      <p>Owner/Authorized Representative</p>
+      <p style="margin-top: 15px;">Date: {{#if signatures.signedAt}}{{signatures.signedAt}}{{else}}_____________{{/if}}</p>
+    </div>
+  </div>
+
+  <div style="margin-top: 50px; padding: 20px; background-color: #FAFAFA; border: 1px solid #E0E0E0; border-radius: 5px;">
+    <p style="text-align: center; font-size: 11px; color: #666; margin-bottom: 20px;">
+      <strong>WITNESSES</strong>
+    </p>
+    <div style="display: flex; justify-content: space-around;">
+      <div style="text-align: center; width: 40%;">
+        <div style="border-bottom: 1px solid #333; width: 200px; height: 40px; margin: 0 auto 10px;"></div>
+        <p style="font-size: 11px;"><strong>Witness 1</strong></p>
+        <p style="font-size: 10px;">Name: _____________</p>
+        <p style="font-size: 10px;">Address: _____________</p>
+        <p style="font-size: 10px;">Signature: _____________</p>
+      </div>
+      <div style="text-align: center; width: 40%;">
+        <div style="border-bottom: 1px solid #333; width: 200px; height: 40px; margin: 0 auto 10px;"></div>
+        <p style="font-size: 11px;"><strong>Witness 2</strong></p>
+        <p style="font-size: 10px;">Name: _____________</p>
+        <p style="font-size: 10px;">Address: _____________</p>
+        <p style="font-size: 10px;">Signature: _____________</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="text-align: center; margin-top: 40px; font-size: 10px; color: #888; font-style: italic;">
+  This document was generated electronically by Tiffin Wale Report System © Rira Industries. 
+  This is a legally binding document. Please review all terms carefully before signing.
+</p>
+
+
+

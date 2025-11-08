@@ -1,0 +1,286 @@
+<div class="document-header">
+  <h1 style="text-align: center; color: #FF7A00; margin-bottom: 10px;">MEMORANDUM OF UNDERSTANDING</h1>
+  <p style="text-align: center; font-size: 14px; color: #666;">MoU ID: <strong>{{mouId}}</strong></p>
+  <p style="text-align: center; font-size: 14px; color: #666;">Effective Date: <strong>{{effectiveDate}}</strong></p>
+  {{#if expiryDate}}
+  <p style="text-align: center; font-size: 14px; color: #666;">Expiry Date: <strong>{{expiryDate}}</strong></p>
+  {{/if}}
+</div>
+
+<hr style="margin: 30px 0; border: 1px solid #E0E0E0;">
+
+<div class="parties-section">
+  <h2 style="color: #FF7A00; margin-bottom: 20px;">PARTIES</h2>
+  
+  <div style="margin-bottom: 30px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">PARTY A: RIRA INDUSTRIES PRIVATE LIMITED</h3>
+    <p><strong>Brand Name:</strong> Tiffin Wale</p>
+    <p><strong>Registered Office:</strong> {{company.address.line1}}, {{company.address.city}}, {{company.address.state}} - {{company.address.zip}}</p>
+    <p><strong>Email:</strong> {{company.email}}</p>
+    <p><strong>Website:</strong> {{company.website}}</p>
+    <p><strong>Phone:</strong> {{company.phone}}</p>
+    <p><strong>GST Number:</strong> {{company.gstNumber}}</p>
+    <p><strong>PAN Number:</strong> {{company.panNumber}}</p>
+    <p style="margin-top: 10px;"><em>Hereinafter referred to as "Tiffin Wale" or "Company"</em></p>
+  </div>
+
+  <div style="margin-bottom: 30px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">PARTY B: {{partner.businessName}}</h3>
+    <p><strong>Owner/Authorized Representative:</strong> {{partner.ownerName}}</p>
+    <p><strong>Business Address:</strong> {{partner.address}}</p>
+    <p><strong>Email:</strong> {{partner.contactEmail}}</p>
+    <p><strong>Phone:</strong> {{partner.contactPhone}}</p>
+    {{#if partner.whatsappNumber}}
+    <p><strong>WhatsApp:</strong> {{partner.whatsappNumber}}</p>
+    {{/if}}
+    {{#if partner.gstNumber}}
+    <p><strong>GST Number:</strong> {{partner.gstNumber}}</p>
+    {{/if}}
+    {{#if partner.licenseNumber}}
+    <p><strong>License Number:</strong> {{partner.licenseNumber}}</p>
+    {{/if}}
+    {{#if partner.establishedYear}}
+    <p><strong>Established Year:</strong> {{partner.establishedYear}}</p>
+    {{/if}}
+    <p style="margin-top: 10px;"><em>Hereinafter referred to as "Partner" or "Business Partner"</em></p>
+  </div>
+</div>
+
+<hr style="margin: 30px 0; border: 1px solid #E0E0E0;">
+
+<div class="preamble-section">
+  <h2 style="color: #FF7A00; margin-bottom: 20px;">PREAMBLE</h2>
+  <p style="text-align: justify; line-height: 1.8; margin-bottom: 15px;">
+    This Memorandum of Understanding ("MoU") is entered into on <strong>{{effectiveDate}}</strong> between Rira Industries Private Limited, operating under the brand name "Tiffin Wale" (hereinafter referred to as "Tiffin Wale" or "Company"), and <strong>{{partner.businessName}}</strong> (hereinafter referred to as "Partner").
+  </p>
+  <p style="text-align: justify; line-height: 1.8; margin-bottom: 15px;">
+    WHEREAS, Tiffin Wale operates a technology platform that connects customers with food service providers for the delivery of meals and food items;
+  </p>
+  <p style="text-align: justify; line-height: 1.8; margin-bottom: 15px;">
+    WHEREAS, the Partner is engaged in the business of preparing and providing food items and wishes to partner with Tiffin Wale to offer its services through the Tiffin Wale platform;
+  </p>
+  <p style="text-align: justify; line-height: 1.8; margin-bottom: 15px;">
+    WHEREAS, both parties wish to establish a collaborative relationship for the mutual benefit of providing quality food services to customers;
+  </p>
+  <p style="text-align: justify; line-height: 1.8;">
+    NOW, THEREFORE, the parties agree to the following terms and conditions:
+  </p>
+</div>
+
+<hr style="margin: 30px 0; border: 1px solid #E0E0E0;">
+
+<div class="terms-section">
+  <h2 style="color: #FF7A00; margin-bottom: 20px;">TERMS AND CONDITIONS</h2>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">1. OBJECTIVE</h3>
+    <p style="text-align: justify; line-height: 1.8;">
+      The objective of this MoU is to establish a framework for collaboration between Tiffin Wale and the Partner for:
+    </p>
+    <ul style="line-height: 1.8; margin-left: 20px;">
+      <li>Listing the Partner's food services on the Tiffin Wale platform</li>
+      <li>Facilitating order placement and processing through the platform</li>
+      <li>Ensuring quality food delivery to customers</li>
+      <li>Establishing operational standards and compliance requirements</li>
+      <li>Defining revenue sharing and payment terms</li>
+    </ul>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">2. PARTNER OBLIGATIONS</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      The Partner agrees to:
+    </p>
+    <ol style="line-height: 1.8; margin-left: 20px;">
+      <li>Maintain all necessary licenses, permits, and certifications required for food preparation and sale, including but not limited to FSSAI license, GST registration, and local municipal licenses</li>
+      <li>Comply with all applicable food safety and hygiene standards as prescribed by the Food Safety and Standards Authority of India (FSSAI) and local health authorities</li>
+      <li>Prepare and deliver food items in accordance with the quality standards specified by Tiffin Wale</li>
+      <li>Accept and fulfill orders received through the Tiffin Wale platform within the agreed timeframes</li>
+      <li>Maintain accurate menu information, pricing, and availability on the platform</li>
+      <li>Handle customer complaints and grievances promptly and professionally</li>
+      <li>Provide accurate business information, including contact details, operating hours, and delivery capabilities</li>
+      <li>Maintain proper records of all transactions and orders</li>
+      <li>Comply with all applicable laws, rules, and regulations governing food service operations</li>
+    </ol>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">3. TIFFIN WALE OBLIGATIONS</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      Tiffin Wale agrees to:
+    </p>
+    <ol style="line-height: 1.8; margin-left: 20px;">
+      <li>Provide the technology platform for order placement and management</li>
+      <li>Facilitate customer access to the Partner's services through the platform</li>
+      <li>Process customer payments and remit Partner's share as per agreed terms</li>
+      <li>Provide technical support and training for platform usage</li>
+      <li>Maintain platform security and data privacy in accordance with applicable laws</li>
+      <li>Conduct periodic quality checks and audits to ensure compliance with standards</li>
+      <li>Provide marketing and promotional support as mutually agreed</li>
+    </ol>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">4. COMMISSION AND PAYMENT TERMS</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      The financial terms of this MoU are as follows:
+    </p>
+    <ul style="line-height: 1.8; margin-left: 20px;">
+      <li><strong>Commission Rate:</strong> {{terms.commissionRate}}% of the order value (excluding taxes and delivery charges)</li>
+      <li><strong>Payment Frequency:</strong> {{terms.paymentTerms}}</li>
+      <li><strong>Payment Method:</strong> Electronic transfer to the Partner's registered bank account</li>
+      <li><strong>Minimum Order Amount:</strong> ₹{{terms.minimumOrderAmount}}</li>
+      <li><strong>Delivery Radius:</strong> {{terms.deliveryRadius}} kilometers from Partner's business location</li>
+    </ul>
+    <p style="text-align: justify; line-height: 1.8; margin-top: 10px;">
+      Tiffin Wale shall deduct the commission from the order value and remit the remaining amount to the Partner. All payments shall be subject to applicable tax deductions as per Indian tax laws.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">5. QUALITY STANDARDS</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      The Partner agrees to maintain the following quality standards:
+    </p>
+    <ul style="line-height: 1.8; margin-left: 20px;">
+      <li>Use fresh, quality ingredients in food preparation</li>
+      <li>Maintain proper hygiene and sanitation in kitchen and preparation areas</li>
+      <li>Ensure food is prepared and stored at appropriate temperatures</li>
+      <li>Use proper packaging materials that maintain food quality during delivery</li>
+      <li>Comply with all labeling and nutritional information requirements</li>
+      <li>Maintain a minimum customer rating of {{terms.minimumRating}} stars (if applicable)</li>
+    </ul>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">6. INTELLECTUAL PROPERTY</h3>
+    <p style="text-align: justify; line-height: 1.8;">
+      All intellectual property rights in the Tiffin Wale platform, including but not limited to software, trademarks, logos, and proprietary information, shall remain the exclusive property of Tiffin Wale. The Partner shall not use, reproduce, or distribute any Tiffin Wale intellectual property without prior written consent.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">7. DATA PRIVACY AND CONFIDENTIALITY</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      Both parties agree to:
+    </p>
+    <ul style="line-height: 1.8; margin-left: 20px;">
+      <li>Maintain confidentiality of all proprietary and confidential information shared between them</li>
+      <li>Comply with applicable data protection laws, including the Information Technology Act, 2000 and the Personal Data Protection Bill</li>
+      <li>Not disclose customer data or business information to third parties without consent</li>
+      <li>Implement appropriate security measures to protect sensitive information</li>
+    </ul>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">8. TERM AND TERMINATION</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      This MoU shall be effective from <strong>{{effectiveDate}}</strong> and shall continue for a period of <strong>{{terms.contractDuration}}</strong>, unless terminated earlier in accordance with the following:
+    </p>
+    <ul style="line-height: 1.8; margin-left: 20px;">
+      <li>Either party may terminate this MoU by giving {{terms.terminationNotice}} days' written notice to the other party</li>
+      <li>Tiffin Wale may terminate immediately in case of breach of quality standards, legal violations, or fraudulent activities by the Partner</li>
+      <li>The Partner may terminate immediately if Tiffin Wale fails to make payments as per agreed terms</li>
+      <li>Upon termination, all pending payments shall be settled within 30 days</li>
+    </ul>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">9. DISPUTE RESOLUTION</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      In case of any dispute or difference arising out of or in connection with this MoU, the parties shall first attempt to resolve the matter through mutual discussion and negotiation. If the dispute cannot be resolved amicably within 30 days, the matter shall be referred to:
+    </p>
+    <ul style="line-height: 1.8; margin-left: 20px;">
+      <li><strong>Arbitration:</strong> The dispute shall be referred to a sole arbitrator appointed by mutual consent, or in the absence of such consent, by the competent court in {{company.address.city}}, {{company.address.state}}</li>
+      <li><strong>Governing Law:</strong> This MoU shall be governed by and construed in accordance with the laws of India</li>
+      <li><strong>Jurisdiction:</strong> The courts in {{company.address.city}}, {{company.address.state}} shall have exclusive jurisdiction over any disputes</li>
+    </ul>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">10. FORCE MAJEURE</h3>
+    <p style="text-align: justify; line-height: 1.8;">
+      Neither party shall be liable for any failure or delay in performance under this MoU due to circumstances beyond their reasonable control, including but not limited to natural disasters, pandemics, government actions, war, terrorism, or other force majeure events.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">11. AMENDMENTS</h3>
+    <p style="text-align: justify; line-height: 1.8;">
+      This MoU may be amended or modified only by written agreement signed by both parties. Any amendments shall be effective from the date specified in such written agreement.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">12. GENERAL PROVISIONS</h3>
+    <ul style="line-height: 1.8; margin-left: 20px;">
+      <li>This MoU does not create any partnership, joint venture, or agency relationship between the parties</li>
+      <li>Neither party shall have the authority to bind the other party in any manner</li>
+      <li>If any provision of this MoU is found to be invalid or unenforceable, the remaining provisions shall continue in full force and effect</li>
+      <li>This MoU constitutes the entire understanding between the parties and supersedes all prior discussions and agreements</li>
+      <li>No waiver of any provision shall be effective unless in writing and signed by the party waiving such provision</li>
+    </ul>
+  </div>
+</div>
+
+<div style="page-break-before: always;"></div>
+
+<div class="signatures-section">
+  <h2 style="color: #FF7A00; margin-bottom: 30px; text-align: center;">SIGNATURES</h2>
+  
+  <div style="display: flex; justify-content: space-between; margin-top: 50px;">
+    <div style="width: 45%; text-align: center;">
+      <h3 style="color: #222831; margin-bottom: 20px;">PARTY A: RIRA INDUSTRIES PRIVATE LIMITED</h3>
+      {{#if signatures.companySignature}}
+      <img src="data:image/png;base64,{{signatures.companySignature}}" alt="Company Signature" style="width: 200px; height: auto; margin-bottom: 20px;">
+      {{else}}
+      <div style="border-bottom: 2px solid #333; width: 250px; height: 60px; margin: 0 auto 20px;"></div>
+      {{/if}}
+      <p style="margin-top: 10px;"><strong>Authorized Signatory</strong></p>
+      <p>Rira Industries Private Limited</p>
+      <p>Tiffin Wale</p>
+      <p style="margin-top: 15px;">Date: {{#if signatures.signedAt}}{{signatures.signedAt}}{{else}}_____________{{/if}}</p>
+    </div>
+
+    <div style="width: 45%; text-align: center;">
+      <h3 style="color: #222831; margin-bottom: 20px;">PARTY B: {{partner.businessName}}</h3>
+      {{#if signatures.partnerSignature}}
+      <img src="data:image/png;base64,{{signatures.partnerSignature}}" alt="Partner Signature" style="width: 200px; height: auto; margin-bottom: 20px;">
+      {{else}}
+      <div style="border-bottom: 2px solid #333; width: 250px; height: 60px; margin: 0 auto 20px;"></div>
+      {{/if}}
+      <p style="margin-top: 10px;"><strong>{{partner.ownerName}}</strong></p>
+      <p>{{partner.businessName}}</p>
+      <p style="margin-top: 15px;">Date: {{#if signatures.signedAt}}{{signatures.signedAt}}{{else}}_____________{{/if}}</p>
+    </div>
+  </div>
+
+  <div style="margin-top: 50px; padding: 20px; background-color: #FAFAFA; border: 1px solid #E0E0E0; border-radius: 5px;">
+    <p style="text-align: center; font-size: 11px; color: #666; margin: 0;">
+      <strong>WITNESS</strong><br>
+      This Memorandum of Understanding has been executed in the presence of witnesses on {{effectiveDate}}.
+    </p>
+    <div style="display: flex; justify-content: space-around; margin-top: 20px;">
+      <div style="text-align: center; width: 40%;">
+        <div style="border-bottom: 1px solid #333; width: 200px; height: 40px; margin: 0 auto 10px;"></div>
+        <p style="font-size: 11px;"><strong>Witness 1</strong></p>
+        <p style="font-size: 10px;">Name: _____________</p>
+        <p style="font-size: 10px;">Signature: _____________</p>
+      </div>
+      <div style="text-align: center; width: 40%;">
+        <div style="border-bottom: 1px solid #333; width: 200px; height: 40px; margin: 0 auto 10px;"></div>
+        <p style="font-size: 11px;"><strong>Witness 2</strong></p>
+        <p style="font-size: 10px;">Name: _____________</p>
+        <p style="font-size: 10px;">Signature: _____________</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="text-align: center; margin-top: 40px; font-size: 10px; color: #888; font-style: italic;">
+  This document was generated electronically by Tiffin Wale Report System © Rira Industries. 
+  This is a legally binding document. Please review all terms carefully before signing.
+</p>
+
+
+

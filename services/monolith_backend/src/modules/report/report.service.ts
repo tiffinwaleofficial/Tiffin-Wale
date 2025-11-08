@@ -12,6 +12,9 @@ import {
   PartnerContractDto,
   InvoiceDto,
   LegalDocumentDto,
+  PartnerMouDto,
+  ServiceAgreementDto,
+  PartnerNdaDto,
 } from "./dto";
 import {
   OrderReceiptData,
@@ -19,6 +22,9 @@ import {
   PartnerContractData,
   InvoiceData,
   LegalDocumentData,
+  PartnerMouData,
+  ServiceAgreementData,
+  PartnerNdaData,
 } from "./interfaces/report-data.interface";
 import { OrderService } from "../order/order.service";
 import { SubscriptionService } from "../subscription/subscription.service";
@@ -30,6 +36,9 @@ import {
   SubscriptionReportDataGenerator,
   PartnerContractDataGenerator,
   InvoiceDataGenerator,
+  PartnerMouDataGenerator,
+  ServiceAgreementDataGenerator,
+  PartnerNdaDataGenerator,
 } from "./generators";
 
 /**
@@ -52,6 +61,9 @@ export class ReportService {
     private readonly subscriptionReportDataGenerator: SubscriptionReportDataGenerator,
     private readonly partnerContractDataGenerator: PartnerContractDataGenerator,
     private readonly invoiceDataGenerator: InvoiceDataGenerator,
+    private readonly partnerMouDataGenerator: PartnerMouDataGenerator,
+    private readonly serviceAgreementDataGenerator: ServiceAgreementDataGenerator,
+    private readonly partnerNdaDataGenerator: PartnerNdaDataGenerator,
   ) {}
 
   /**
@@ -339,6 +351,160 @@ export class ReportService {
 
     throw new BadRequestException(
       "Either orderId or subscriptionId must be provided based on invoice type",
+    );
+  }
+
+  /**
+   * Generate Partner MoU PDF
+   */
+  async generatePartnerMou(dto: PartnerMouDto): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      const mouData = await this.preparePartnerMouData(dto);
+
+      const pdfBuffer = await this.pdfService.generate("partner-mou", mouData);
+      const filename = this.pdfService.getFilename("partner-mou", mouData);
+      
+      // Only save if auto-save is enabled in config
+      const config = this.pdfService.getConfig();
+      if (config.storage.saveOnGeneration) {
+        await this.pdfStorageService.savePdf(pdfBuffer, filename, "contracts");
+      }
+      
+      return { buffer: pdfBuffer, filename };
+    } catch (error) {
+      this.logger.error(`Error generating partner MoU: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate Service Agreement PDF
+   */
+  async generateServiceAgreement(dto: ServiceAgreementDto): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      const agreementData = await this.prepareServiceAgreementData(dto);
+
+      const pdfBuffer = await this.pdfService.generate("service-agreement", agreementData);
+      const filename = this.pdfService.getFilename("service-agreement", agreementData);
+      
+      // Only save if auto-save is enabled in config
+      const config = this.pdfService.getConfig();
+      if (config.storage.saveOnGeneration) {
+        await this.pdfStorageService.savePdf(pdfBuffer, filename, "contracts");
+      }
+      
+      return { buffer: pdfBuffer, filename };
+    } catch (error) {
+      this.logger.error(`Error generating service agreement: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate Partner NDA PDF
+   */
+  async generatePartnerNda(dto: PartnerNdaDto): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      const ndaData = await this.preparePartnerNdaData(dto);
+
+      const pdfBuffer = await this.pdfService.generate("partner-nda", ndaData);
+      const filename = this.pdfService.getFilename("partner-nda", ndaData);
+      
+      // Only save if auto-save is enabled in config
+      const config = this.pdfService.getConfig();
+      if (config.storage.saveOnGeneration) {
+        await this.pdfStorageService.savePdf(pdfBuffer, filename, "legal-documents");
+      }
+      
+      return { buffer: pdfBuffer, filename };
+    } catch (error) {
+      this.logger.error(`Error generating partner NDA: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Prepare Partner MoU data
+   */
+  private async preparePartnerMouData(dto: PartnerMouDto): Promise<PartnerMouData> {
+    const partner = await this.partnerService.findById(dto.partnerId);
+    if (!partner) {
+      throw new NotFoundException(`Partner with ID ${dto.partnerId} not found`);
+    }
+
+    const partnerUser = await this.userService.findById(partner.user.toString());
+    if (!partnerUser) {
+      throw new NotFoundException("Partner user not found");
+    }
+
+    return this.partnerMouDataGenerator.preparePartnerMouData(
+      partner,
+      partnerUser,
+      {
+        commissionRate: dto.commissionRate,
+        paymentTerms: dto.paymentTerms,
+        contractDuration: dto.contractDuration,
+        terminationNotice: dto.terminationNotice,
+        minimumRating: dto.minimumRating,
+      },
+    );
+  }
+
+  /**
+   * Prepare Service Agreement data
+   */
+  private async prepareServiceAgreementData(dto: ServiceAgreementDto): Promise<ServiceAgreementData> {
+    const partner = await this.partnerService.findById(dto.partnerId);
+    if (!partner) {
+      throw new NotFoundException(`Partner with ID ${dto.partnerId} not found`);
+    }
+
+    const partnerUser = await this.userService.findById(partner.user.toString());
+    if (!partnerUser) {
+      throw new NotFoundException("Partner user not found");
+    }
+
+    return this.serviceAgreementDataGenerator.prepareServiceAgreementData(
+      partner,
+      partnerUser,
+      {
+        commissionRate: dto.commissionRate,
+        paymentTerms: dto.paymentTerms,
+        contractDuration: dto.contractDuration,
+        terminationNotice: dto.terminationNotice,
+        minimumRating: dto.minimumRating,
+        minimumAcceptanceRate: dto.minimumAcceptanceRate,
+        orderAcceptanceTime: dto.orderAcceptanceTime,
+        cancellationPolicy: dto.cancellationPolicy,
+        commissionChangeNotice: dto.commissionChangeNotice,
+        paymentProcessingDays: dto.paymentProcessingDays,
+        minimumPayoutAmount: dto.minimumPayoutAmount,
+      },
+    );
+  }
+
+  /**
+   * Prepare Partner NDA data
+   */
+  private async preparePartnerNdaData(dto: PartnerNdaDto): Promise<PartnerNdaData> {
+    const partner = await this.partnerService.findById(dto.partnerId);
+    if (!partner) {
+      throw new NotFoundException(`Partner with ID ${dto.partnerId} not found`);
+    }
+
+    const partnerUser = await this.userService.findById(partner.user.toString());
+    if (!partnerUser) {
+      throw new NotFoundException("Partner user not found");
+    }
+
+    return this.partnerNdaDataGenerator.preparePartnerNdaData(
+      partner,
+      partnerUser,
+      {
+        purpose: dto.purpose,
+        term: dto.term,
+        survivalPeriod: dto.survivalPeriod,
+      },
     );
   }
 }

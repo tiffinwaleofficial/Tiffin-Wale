@@ -12,6 +12,9 @@ import {
   SubscriptionReportDataGenerator,
   PartnerContractDataGenerator,
   InvoiceDataGenerator,
+  PartnerMouDataGenerator,
+  ServiceAgreementDataGenerator,
+  PartnerNdaDataGenerator,
 } from './generators';
 import { ReportLog, ReportLogSchema } from './schemas/report-log.schema';
 import { PdfService } from './formats/pdf/pdf.service';
@@ -33,6 +36,9 @@ import { PdfService } from './formats/pdf/pdf.service';
     SubscriptionReportDataGenerator,
     PartnerContractDataGenerator,
     InvoiceDataGenerator,
+    PartnerMouDataGenerator,
+    ServiceAgreementDataGenerator,
+    PartnerNdaDataGenerator,
   ],
   exports: [ReportService],
 })

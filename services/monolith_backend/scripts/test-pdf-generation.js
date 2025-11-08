@@ -293,6 +293,133 @@ async function testInvoice() {
 }
 
 /**
+ * Test Partner MoU PDF generation with dummy data
+ */
+async function testPartnerMou() {
+  try {
+    logInfo('Testing Partner MoU PDF generation with dummy data');
+    
+    // Use dummy partner ID - backend will handle data fetching
+    const dummyPartnerId = '69038003345c8af2df48c28e';
+    
+    const response = await axios.post(
+      `${API_BASE_URL}${API_PREFIX}/report/partner-mou`,
+      {
+        partnerId: dummyPartnerId,
+        commissionRate: 20,
+        paymentTerms: 'Weekly payments via bank transfer',
+        contractDuration: '12 months',
+        terminationNotice: '30 days',
+        minimumRating: 4.0,
+      },
+      {
+        responseType: 'arraybuffer',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const filename = `partner-mou-${Date.now()}.pdf`;
+    const filePath = await savePdf(response.data, filename, 'contracts');
+    
+    logSuccess(`Partner MoU PDF saved to: ${filePath}`);
+    logInfo(`File size: ${(response.data.length / 1024).toFixed(2)} KB`);
+    
+    return { success: true, filePath, size: response.data.length };
+  } catch (error) {
+    logError(`Failed to generate Partner MoU: ${error.response?.data?.message || error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Test Service Agreement PDF generation with dummy data
+ */
+async function testServiceAgreement() {
+  try {
+    logInfo('Testing Service Agreement PDF generation with dummy data');
+    
+    // Use dummy partner ID - backend will handle data fetching
+    const dummyPartnerId = '69038003345c8af2df48c28e';
+    
+    const response = await axios.post(
+      `${API_BASE_URL}${API_PREFIX}/report/service-agreement`,
+      {
+        partnerId: dummyPartnerId,
+        commissionRate: 20,
+        paymentTerms: 'Weekly payments via bank transfer',
+        contractDuration: '12 months',
+        terminationNotice: '30 days',
+        minimumRating: 4.0,
+        minimumAcceptanceRate: 95,
+        orderAcceptanceTime: 5,
+        cancellationPolicy: 'Orders can be cancelled within 5 minutes of placement. After that, cancellation is subject to Partner\'s approval.',
+        commissionChangeNotice: '30 days',
+        paymentProcessingDays: 7,
+        minimumPayoutAmount: 1000,
+      },
+      {
+        responseType: 'arraybuffer',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const filename = `service-agreement-${Date.now()}.pdf`;
+    const filePath = await savePdf(response.data, filename, 'contracts');
+    
+    logSuccess(`Service Agreement PDF saved to: ${filePath}`);
+    logInfo(`File size: ${(response.data.length / 1024).toFixed(2)} KB`);
+    
+    return { success: true, filePath, size: response.data.length };
+  } catch (error) {
+    logError(`Failed to generate Service Agreement: ${error.response?.data?.message || error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Test Partner NDA PDF generation with dummy data
+ */
+async function testPartnerNda() {
+  try {
+    logInfo('Testing Partner NDA PDF generation with dummy data');
+    
+    // Use dummy partner ID - backend will handle data fetching
+    const dummyPartnerId = '69038003345c8af2df48c28e';
+    
+    const response = await axios.post(
+      `${API_BASE_URL}${API_PREFIX}/report/partner-nda`,
+      {
+        partnerId: dummyPartnerId,
+        purpose: 'partnering with Tiffin Wale to offer food services through the Tiffin Wale platform',
+        term: '2 years',
+        survivalPeriod: '3',
+      },
+      {
+        responseType: 'arraybuffer',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const filename = `partner-nda-${Date.now()}.pdf`;
+    const filePath = await savePdf(response.data, filename, 'legal-documents');
+    
+    logSuccess(`Partner NDA PDF saved to: ${filePath}`);
+    logInfo(`File size: ${(response.data.length / 1024).toFixed(2)} KB`);
+    
+    return { success: true, filePath, size: response.data.length };
+  } catch (error) {
+    logError(`Failed to generate Partner NDA: ${error.response?.data?.message || error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Test Legal Document PDF generation with dummy TiffinMate center data
  */
 async function testLegalDocument() {
@@ -410,6 +537,9 @@ async function runTests() {
     partnerContract: null,
     invoice: null,
     legalDocument: null,
+    partnerMou: null,
+    serviceAgreement: null,
+    partnerNda: null,
   };
 
   log('\n📄 Testing PDF Generation Endpoints with Dummy Data\n', 'bright');
@@ -443,6 +573,24 @@ async function runTests() {
   log('\n5️⃣  Legal Document PDF', 'cyan');
   log('-'.repeat(40), 'cyan');
   results.legalDocument = await testLegalDocument();
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  // Test 6: Partner MoU
+  log('\n6️⃣  Partner MoU PDF', 'cyan');
+  log('-'.repeat(40), 'cyan');
+  results.partnerMou = await testPartnerMou();
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  // Test 7: Service Agreement
+  log('\n7️⃣  Service Agreement PDF', 'cyan');
+  log('-'.repeat(40), 'cyan');
+  results.serviceAgreement = await testServiceAgreement();
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  // Test 8: Partner NDA
+  log('\n8️⃣  Partner NDA PDF', 'cyan');
+  log('-'.repeat(40), 'cyan');
+  results.partnerNda = await testPartnerNda();
 
   // Summary
   log('\n' + '='.repeat(60), 'cyan');

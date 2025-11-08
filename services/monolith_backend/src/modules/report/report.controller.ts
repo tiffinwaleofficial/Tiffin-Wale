@@ -14,6 +14,9 @@ import {
   PartnerContractDto,
   InvoiceDto,
   LegalDocumentDto,
+  PartnerMouDto,
+  ServiceAgreementDto,
+  PartnerNdaDto,
 } from './dto';
 import { Public } from 'src/common/decorators/public.decorator';
 
@@ -114,6 +117,68 @@ export class ReportController {
     try {
       const { buffer, filename } =
         await this.reportService.generateLegalDocument(legalDocumentDto);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+      res.send(buffer);
+    } catch (error) {
+      throw new HttpException(
+        error.message,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Public()
+  @Post('partner-mou')
+  async generatePartnerMou(
+    @Body() partnerMouDto: PartnerMouDto,
+    @Res() res: Response,
+  ) {
+    try {
+      const { buffer, filename } = await this.reportService.generatePartnerMou(
+        partnerMouDto,
+      );
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+      res.send(buffer);
+    } catch (error) {
+      throw new HttpException(
+        error.message,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Public()
+  @Post('service-agreement')
+  async generateServiceAgreement(
+    @Body() serviceAgreementDto: ServiceAgreementDto,
+    @Res() res: Response,
+  ) {
+    try {
+      const { buffer, filename } =
+        await this.reportService.generateServiceAgreement(serviceAgreementDto);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+      res.send(buffer);
+    } catch (error) {
+      throw new HttpException(
+        error.message,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Public()
+  @Post('partner-nda')
+  async generatePartnerNda(
+    @Body() partnerNdaDto: PartnerNdaDto,
+    @Res() res: Response,
+  ) {
+    try {
+      const { buffer, filename } = await this.reportService.generatePartnerNda(
+        partnerNdaDto,
+      );
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
       res.send(buffer);

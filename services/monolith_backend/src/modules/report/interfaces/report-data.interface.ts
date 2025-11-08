@@ -168,3 +168,154 @@ export interface LegalDocumentData {
   }>;
   attachments?: string[];
 }
+
+/**
+ * Partner MoU (Memorandum of Understanding) data structure
+ */
+export interface PartnerMouData {
+  mouId: string;
+  effectiveDate: string;
+  expiryDate?: string;
+  company: {
+    name: string;
+    shortName: string;
+    website: string;
+    email: string;
+    phone: string;
+    address: {
+      line1: string;
+      city: string;
+      state: string;
+      zip: string;
+    };
+    gstNumber?: string;
+    panNumber?: string;
+  };
+  partner: {
+    businessName: string;
+    ownerName: string;
+    address: string;
+    contactEmail: string;
+    contactPhone: string;
+    whatsappNumber?: string;
+    gstNumber?: string;
+    licenseNumber?: string;
+    establishedYear?: number;
+  };
+  terms: {
+    commissionRate: number;
+    paymentTerms: string;
+    deliveryRadius: number;
+    minimumOrderAmount: number;
+    contractDuration: string;
+    terminationNotice: string;
+    minimumRating?: number;
+  };
+  signatures?: {
+    partnerSignature?: string;
+    companySignature?: string;
+    signedAt?: string;
+  };
+}
+
+/**
+ * Service Agreement data structure
+ */
+export interface ServiceAgreementData {
+  agreementId: string;
+  effectiveDate: string;
+  expiryDate?: string;
+  company: {
+    name: string;
+    shortName: string;
+    website: string;
+    email: string;
+    phone: string;
+    address: {
+      line1: string;
+      city: string;
+      state: string;
+      zip: string;
+    };
+    gstNumber?: string;
+    panNumber?: string;
+  };
+  partner: {
+    businessName: string;
+    ownerName: string;
+    address: string;
+    contactEmail: string;
+    contactPhone: string;
+    whatsappNumber?: string;
+    gstNumber?: string;
+    licenseNumber?: string;
+    establishedYear?: number;
+  };
+  terms: {
+    commissionRate: number;
+    paymentTerms: string;
+    deliveryRadius: number;
+    minimumOrderAmount: number;
+    estimatedDeliveryTime: number;
+    contractDuration: string;
+    terminationNotice: string;
+    minimumRating: number;
+    minimumAcceptanceRate: number;
+    orderAcceptanceTime: number;
+    cancellationPolicy: string;
+    commissionChangeNotice: string;
+    paymentProcessingDays: number;
+    minimumPayoutAmount: number;
+  };
+  bankDetails?: {
+    accountHolderName: string;
+    accountNumber: string;
+    ifscCode: string;
+    bankName: string;
+    branch?: string;
+  };
+  signatures?: {
+    partnerSignature?: string;
+    companySignature?: string;
+    signedAt?: string;
+  };
+}
+
+/**
+ * NDA (Non-Disclosure Agreement) data structure
+ */
+export interface PartnerNdaData {
+  ndaId: string;
+  effectiveDate: string;
+  expiryDate?: string;
+  purpose: string;
+  term: string;
+  survivalPeriod: string;
+  company: {
+    name: string;
+    shortName: string;
+    website: string;
+    email: string;
+    phone: string;
+    address: {
+      line1: string;
+      city: string;
+      state: string;
+      zip: string;
+    };
+    gstNumber?: string;
+  };
+  partner: {
+    businessName: string;
+    ownerName: string;
+    address: string;
+    contactEmail: string;
+    contactPhone: string;
+    gstNumber?: string;
+  };
+  signatures?: {
+    partnerSignature?: string;
+    companySignature?: string;
+    signedAt?: string;
+  };
+}

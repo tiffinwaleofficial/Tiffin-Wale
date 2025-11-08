@@ -3,3 +3,6 @@ export * from "./subscription-report.dto";
 export * from "./partner-contract.dto";
 export * from "./invoice.dto";
 export * from "./legal-document.dto";
+export * from "./partner-mou.dto";
+export * from "./service-agreement.dto";
+export * from "./partner-nda.dto";

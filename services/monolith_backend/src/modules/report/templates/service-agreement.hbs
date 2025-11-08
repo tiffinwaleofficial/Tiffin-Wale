@@ -1,0 +1,391 @@
+<div class="document-header">
+  <h1 style="text-align: center; color: #FF7A00; margin-bottom: 10px;">SERVICE AGREEMENT</h1>
+  <p style="text-align: center; font-size: 14px; color: #666;">Agreement ID: <strong>{{agreementId}}</strong></p>
+  <p style="text-align: center; font-size: 14px; color: #666;">Effective Date: <strong>{{effectiveDate}}</strong></p>
+  {{#if expiryDate}}
+  <p style="text-align: center; font-size: 14px; color: #666;">Expiry Date: <strong>{{expiryDate}}</strong></p>
+  {{/if}}
+</div>
+
+<hr style="margin: 30px 0; border: 1px solid #E0E0E0;">
+
+<div class="parties-section">
+  <h2 style="color: #FF7A00; margin-bottom: 20px;">PARTIES TO THE AGREEMENT</h2>
+  
+  <div style="margin-bottom: 30px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">SERVICE PROVIDER: RIRA INDUSTRIES PRIVATE LIMITED</h3>
+    <p><strong>Brand Name:</strong> Tiffin Wale</p>
+    <p><strong>Registered Office:</strong> {{company.address.line1}}, {{company.address.city}}, {{company.address.state}} - {{company.address.zip}}</p>
+    <p><strong>Email:</strong> {{company.email}}</p>
+    <p><strong>Website:</strong> {{company.website}}</p>
+    <p><strong>Phone:</strong> {{company.phone}}</p>
+    {{#if company.gstNumber}}
+    <p><strong>GST Number:</strong> {{company.gstNumber}}</p>
+    {{/if}}
+    {{#if company.panNumber}}
+    <p><strong>PAN Number:</strong> {{company.panNumber}}</p>
+    {{/if}}
+    <p style="margin-top: 10px;"><em>Hereinafter referred to as "Service Provider" or "Tiffin Wale"</em></p>
+  </div>
+
+  <div style="margin-bottom: 30px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">SERVICE RECIPIENT: {{partner.businessName}}</h3>
+    <p><strong>Owner/Authorized Representative:</strong> {{partner.ownerName}}</p>
+    <p><strong>Business Address:</strong> {{partner.address}}</p>
+    <p><strong>Email:</strong> {{partner.contactEmail}}</p>
+    <p><strong>Phone:</strong> {{partner.contactPhone}}</p>
+    {{#if partner.whatsappNumber}}
+    <p><strong>WhatsApp:</strong> {{partner.whatsappNumber}}</p>
+    {{/if}}
+    {{#if partner.gstNumber}}
+    <p><strong>GST Number:</strong> {{partner.gstNumber}}</p>
+    {{/if}}
+    {{#if partner.licenseNumber}}
+    <p><strong>FSSAI License:</strong> {{partner.licenseNumber}}</p>
+    {{/if}}
+    {{#if partner.establishedYear}}
+    <p><strong>Established Year:</strong> {{partner.establishedYear}}</p>
+    {{/if}}
+    <p style="margin-top: 10px;"><em>Hereinafter referred to as "Service Recipient" or "Partner"</em></p>
+  </div>
+</div>
+
+<hr style="margin: 30px 0; border: 1px solid #E0E0E0;">
+
+<div class="recitals-section">
+  <h2 style="color: #FF7A00; margin-bottom: 20px;">RECITALS</h2>
+  <p style="text-align: justify; line-height: 1.8; margin-bottom: 15px;">
+    <strong>WHEREAS,</strong> Tiffin Wale is engaged in the business of providing technology-enabled platform services for food ordering and delivery, connecting customers with food service providers;
+  </p>
+  <p style="text-align: justify; line-height: 1.8; margin-bottom: 15px;">
+    <strong>WHEREAS,</strong> the Partner is engaged in the business of preparing and providing food items and wishes to utilize Tiffin Wale's platform services to reach customers and manage orders;
+  </p>
+  <p style="text-align: justify; line-height: 1.8; margin-bottom: 15px;">
+    <strong>WHEREAS,</strong> both parties desire to enter into a service agreement to define the terms and conditions under which Tiffin Wale shall provide platform services to the Partner;
+  </p>
+  <p style="text-align: justify; line-height: 1.8;">
+    <strong>NOW, THEREFORE,</strong> in consideration of the mutual covenants and agreements contained herein, the parties agree as follows:
+  </p>
+</div>
+
+<hr style="margin: 30px 0; border: 1px solid #E0E0E0;">
+
+<div class="terms-section">
+  <h2 style="color: #FF7A00; margin-bottom: 20px;">TERMS AND CONDITIONS</h2>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">1. DEFINITIONS</h3>
+    <ul style="line-height: 1.8; margin-left: 20px;">
+      <li><strong>"Platform"</strong> means the Tiffin Wale mobile application, website, and related technology infrastructure</li>
+      <li><strong>"Services"</strong> means the platform services provided by Tiffin Wale, including order management, payment processing, customer support, and related services</li>
+      <li><strong>"Orders"</strong> means food orders placed by customers through the Platform for the Partner's food items</li>
+      <li><strong>"Commission"</strong> means the percentage of order value charged by Tiffin Wale for providing platform services</li>
+      <li><strong>"Partner Content"</strong> means all information, images, menu items, pricing, and other content provided by the Partner for display on the Platform</li>
+    </ul>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">2. SCOPE OF SERVICES</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      Tiffin Wale agrees to provide the following services to the Partner:
+    </p>
+    <ol style="line-height: 1.8; margin-left: 20px;">
+      <li><strong>Platform Access:</strong> Provide access to the Tiffin Wale platform for listing food items and receiving orders</li>
+      <li><strong>Order Management:</strong> Facilitate order placement, processing, and tracking through the platform</li>
+      <li><strong>Payment Processing:</strong> Collect payments from customers and remit Partner's share after deducting commission and applicable charges</li>
+      <li><strong>Customer Support:</strong> Provide customer support services for platform-related queries and issues</li>
+      <li><strong>Analytics and Reporting:</strong> Provide access to sales reports, order analytics, and performance metrics</li>
+      <li><strong>Marketing Support:</strong> Provide promotional and marketing support as mutually agreed upon</li>
+      <li><strong>Technical Support:</strong> Provide technical assistance for platform usage and troubleshooting</li>
+    </ol>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">3. PARTNER OBLIGATIONS</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      The Partner agrees to:
+    </p>
+    <ol style="line-height: 1.8; margin-left: 20px;">
+      <li>Maintain all necessary licenses, permits, and registrations required for food service operations, including FSSAI license, GST registration, and local municipal licenses</li>
+      <li>Comply with all applicable food safety, hygiene, and quality standards prescribed by FSSAI and local health authorities</li>
+      <li>Provide accurate and up-to-date information about menu items, pricing, availability, and business hours on the platform</li>
+      <li>Accept and fulfill orders received through the platform within the agreed timeframes and maintain a minimum order acceptance rate of {{terms.minimumAcceptanceRate}}%</li>
+      <li>Prepare and deliver food items in accordance with the quality standards and specifications displayed on the platform</li>
+      <li>Handle customer complaints, refunds, and grievances promptly and in accordance with Tiffin Wale's policies</li>
+      <li>Maintain proper records of all orders, transactions, and related documentation</li>
+      <li>Comply with all applicable laws, rules, and regulations, including but not limited to food safety laws, consumer protection laws, and tax laws</li>
+      <li>Not engage in any fraudulent, illegal, or unethical activities that may harm Tiffin Wale's reputation or business</li>
+      <li>Provide necessary documentation and information as requested by Tiffin Wale for verification and compliance purposes</li>
+    </ol>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">4. COMMISSION AND PAYMENT TERMS</h3>
+    <div style="background-color: #FAFAFA; padding: 15px; border-left: 4px solid #FF7A00; margin-bottom: 15px;">
+      <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+        <strong>4.1 Commission Structure:</strong>
+      </p>
+      <ul style="line-height: 1.8; margin-left: 20px;">
+        <li>Commission Rate: <strong>{{terms.commissionRate}}%</strong> of the order value (excluding taxes and delivery charges)</li>
+        <li>Commission shall be calculated on the net order value after any discounts or promotions</li>
+        <li>Tiffin Wale reserves the right to adjust commission rates with {{terms.commissionChangeNotice}} days' prior written notice</li>
+      </ul>
+    </div>
+    <div style="background-color: #FAFAFA; padding: 15px; border-left: 4px solid #FF7A00; margin-bottom: 15px;">
+      <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+        <strong>4.2 Payment Terms:</strong>
+      </p>
+      <ul style="line-height: 1.8; margin-left: 20px;">
+        <li>Payment Frequency: <strong>{{terms.paymentTerms}}</strong></li>
+        <li>Payment Method: Electronic transfer (NEFT/RTGS/IMPS) to the Partner's registered bank account</li>
+        <li>Payment Processing: Payments shall be processed within {{terms.paymentProcessingDays}} business days from the end of each payment cycle</li>
+        <li>Minimum Payout: ₹{{terms.minimumPayoutAmount}} (if applicable)</li>
+      </ul>
+    </div>
+    <div style="background-color: #FAFAFA; padding: 15px; border-left: 4px solid #FF7A00;">
+      <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+        <strong>4.3 Deductions and Charges:</strong>
+      </p>
+      <ul style="line-height: 1.8; margin-left: 20px;">
+        <li>Commission as specified above</li>
+        <li>Applicable taxes (GST, TDS) as per Indian tax laws</li>
+        <li>Any penalties, charges, or deductions for non-compliance, cancellations, or quality issues</li>
+        <li>Bank transfer charges, if any</li>
+      </ul>
+    </div>
+    {{#if bankDetails}}
+    <div style="margin-top: 15px;">
+      <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+        <strong>4.4 Bank Account Details:</strong>
+      </p>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+        <tr>
+          <td style="padding: 8px; border: 1px solid #E0E0E0; width: 40%;"><strong>Account Holder Name:</strong></td>
+          <td style="padding: 8px; border: 1px solid #E0E0E0;">{{bankDetails.accountHolderName}}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; border: 1px solid #E0E0E0;"><strong>Account Number:</strong></td>
+          <td style="padding: 8px; border: 1px solid #E0E0E0;">{{bankDetails.accountNumber}}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; border: 1px solid #E0E0E0;"><strong>IFSC Code:</strong></td>
+          <td style="padding: 8px; border: 1px solid #E0E0E0;">{{bankDetails.ifscCode}}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; border: 1px solid #E0E0E0;"><strong>Bank Name:</strong></td>
+          <td style="padding: 8px; border: 1px solid #E0E0E0;">{{bankDetails.bankName}}</td>
+        </tr>
+        {{#if bankDetails.branch}}
+        <tr>
+          <td style="padding: 8px; border: 1px solid #E0E0E0;"><strong>Branch:</strong></td>
+          <td style="padding: 8px; border: 1px solid #E0E0E0;">{{bankDetails.branch}}</td>
+        </tr>
+        {{/if}}
+      </table>
+    </div>
+    {{/if}}
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">5. OPERATIONAL TERMS</h3>
+    <ul style="line-height: 1.8; margin-left: 20px;">
+      <li><strong>Delivery Radius:</strong> {{terms.deliveryRadius}} kilometers from Partner's business location</li>
+      <li><strong>Minimum Order Amount:</strong> ₹{{terms.minimumOrderAmount}}</li>
+      <li><strong>Estimated Delivery Time:</strong> {{terms.estimatedDeliveryTime}} minutes</li>
+      <li><strong>Operating Hours:</strong> As specified by the Partner on the platform</li>
+      <li><strong>Order Acceptance:</strong> Partner must accept or reject orders within {{terms.orderAcceptanceTime}} minutes of receipt</li>
+      <li><strong>Cancellation Policy:</strong> {{terms.cancellationPolicy}}</li>
+    </ul>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">6. QUALITY ASSURANCE AND COMPLIANCE</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      The Partner agrees to:
+    </p>
+    <ol style="line-height: 1.8; margin-left: 20px;">
+      <li>Maintain food quality standards as per FSSAI guidelines and Tiffin Wale's quality requirements</li>
+      <li>Undergo periodic quality audits and inspections by Tiffin Wale or its authorized representatives</li>
+      <li>Maintain a minimum customer rating of {{terms.minimumRating}} stars on the platform</li>
+      <li>Address quality complaints and issues within 24 hours of notification</li>
+      <li>Comply with all food safety, labeling, and packaging requirements</li>
+      <li>Maintain proper documentation of food sourcing, preparation, and storage</li>
+    </ol>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">7. INTELLECTUAL PROPERTY RIGHTS</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      <strong>7.1 Tiffin Wale's IP:</strong> All intellectual property rights in the Platform, including software, trademarks, logos, designs, and proprietary information, shall remain the exclusive property of Tiffin Wale. The Partner shall not use, reproduce, modify, or distribute any Tiffin Wale intellectual property without prior written consent.
+    </p>
+    <p style="text-align: justify; line-height: 1.8;">
+      <strong>7.2 Partner's IP:</strong> The Partner retains all rights to its business name, logo, menu items, recipes, and other proprietary content. By providing content to Tiffin Wale, the Partner grants Tiffin Wale a non-exclusive, royalty-free license to use such content on the Platform for the duration of this Agreement.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">8. DATA PROTECTION AND PRIVACY</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      Both parties agree to:
+    </p>
+    <ul style="line-height: 1.8; margin-left: 20px;">
+      <li>Comply with applicable data protection laws, including the Information Technology Act, 2000 and related rules</li>
+      <li>Maintain confidentiality of customer data and business information</li>
+      <li>Implement appropriate security measures to protect personal and sensitive information</li>
+      <li>Not disclose or share customer data with third parties without consent, except as required by law</li>
+      <li>Cooperate in case of data breach incidents and take necessary remedial measures</li>
+    </ul>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">9. LIABILITY AND INDEMNIFICATION</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      <strong>9.1 Partner's Liability:</strong> The Partner shall be solely responsible for:
+    </p>
+    <ul style="line-height: 1.8; margin-left: 20px;">
+      <li>Quality, safety, and compliance of food items prepared and delivered</li>
+      <li>Any claims, damages, or liabilities arising from food quality issues, food poisoning, or health hazards</li>
+      <li>Compliance with all applicable laws and regulations</li>
+      <li>Any misrepresentation or false information provided to Tiffin Wale or customers</li>
+    </ul>
+    <p style="text-align: justify; line-height: 1.8; margin-top: 15px;">
+      <strong>9.2 Indemnification:</strong> The Partner agrees to indemnify, defend, and hold harmless Tiffin Wale, its affiliates, officers, directors, employees, and agents from and against any claims, damages, losses, liabilities, costs, and expenses (including legal fees) arising from the Partner's breach of this Agreement, violation of laws, or any act or omission of the Partner.
+    </p>
+    <p style="text-align: justify; line-height: 1.8; margin-top: 15px;">
+      <strong>9.3 Limitation of Liability:</strong> Tiffin Wale's liability under this Agreement shall be limited to the commission amount received from the Partner in the 12 months preceding the claim. Tiffin Wale shall not be liable for any indirect, incidental, special, or consequential damages.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">10. TERM AND TERMINATION</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      <strong>10.1 Term:</strong> This Agreement shall commence on <strong>{{effectiveDate}}</strong> and continue for a period of <strong>{{terms.contractDuration}}</strong>, unless terminated earlier in accordance with this clause.
+    </p>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      <strong>10.2 Termination by Either Party:</strong> Either party may terminate this Agreement by giving {{terms.terminationNotice}} days' written notice to the other party.
+    </p>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      <strong>10.3 Termination by Tiffin Wale:</strong> Tiffin Wale may terminate this Agreement immediately without notice in case of:
+    </p>
+    <ul style="line-height: 1.8; margin-left: 20px;">
+      <li>Breach of quality standards or food safety regulations</li>
+      <li>Fraudulent activities or misrepresentation</li>
+      <li>Violation of applicable laws or regulations</li>
+      <li>Failure to maintain minimum quality ratings</li>
+      <li>Non-payment of dues or charges</li>
+    </ul>
+    <p style="text-align: justify; line-height: 1.8; margin-top: 15px;">
+      <strong>10.4 Effect of Termination:</strong> Upon termination, all pending payments shall be settled within 30 days, and the Partner's access to the Platform shall be revoked. The Partner shall immediately cease using Tiffin Wale's intellectual property and remove all references to Tiffin Wale from its marketing materials.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">11. DISPUTE RESOLUTION</h3>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      <strong>11.1 Amicable Resolution:</strong> The parties shall first attempt to resolve any dispute through mutual discussion and negotiation within 30 days.
+    </p>
+    <p style="text-align: justify; line-height: 1.8; margin-bottom: 10px;">
+      <strong>11.2 Arbitration:</strong> If the dispute cannot be resolved amicably, it shall be referred to arbitration by a sole arbitrator appointed by mutual consent, or in the absence of such consent, by the competent court in {{company.address.city}}, {{company.address.state}}. The arbitration shall be conducted in accordance with the Arbitration and Conciliation Act, 2015.
+    </p>
+    <p style="text-align: justify; line-height: 1.8;">
+      <strong>11.3 Governing Law and Jurisdiction:</strong> This Agreement shall be governed by and construed in accordance with the laws of India. The courts in {{company.address.city}}, {{company.address.state}} shall have exclusive jurisdiction over any disputes.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">12. FORCE MAJEURE</h3>
+    <p style="text-align: justify; line-height: 1.8;">
+      Neither party shall be liable for any failure or delay in performance under this Agreement due to circumstances beyond their reasonable control, including but not limited to natural disasters, pandemics, epidemics, government actions, war, terrorism, strikes, lockouts, or other force majeure events. The affected party shall notify the other party promptly and take reasonable steps to mitigate the impact.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">13. AMENDMENTS AND MODIFICATIONS</h3>
+    <p style="text-align: justify; line-height: 1.8;">
+      This Agreement may be amended or modified only by written agreement signed by both parties. Tiffin Wale may update platform policies, terms of service, and operational guidelines from time to time, and such updates shall be binding on the Partner upon notification.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 25px;">
+    <h3 style="color: #222831; margin-bottom: 10px;">14. GENERAL PROVISIONS</h3>
+    <ul style="line-height: 1.8; margin-left: 20px;">
+      <li>This Agreement does not create any partnership, joint venture, employment, or agency relationship between the parties</li>
+      <li>Neither party shall have the authority to bind the other party or create obligations on behalf of the other party</li>
+      <li>If any provision of this Agreement is found to be invalid or unenforceable, the remaining provisions shall continue in full force and effect</li>
+      <li>This Agreement constitutes the entire understanding between the parties and supersedes all prior discussions, agreements, and understandings</li>
+      <li>No waiver of any provision shall be effective unless in writing and signed by the party waiving such provision</li>
+      <li>The Partner may not assign or transfer this Agreement without Tiffin Wale's prior written consent</li>
+      <li>All notices and communications shall be in writing and sent to the addresses specified in this Agreement</li>
+    </ul>
+  </div>
+</div>
+
+<div style="page-break-before: always;"></div>
+
+<div class="signatures-section">
+  <h2 style="color: #FF7A00; margin-bottom: 30px; text-align: center;">SIGNATURES</h2>
+  
+  <p style="text-align: center; margin-bottom: 30px; font-style: italic;">
+    IN WITNESS WHEREOF, the parties have executed this Service Agreement on the date first written above.
+  </p>
+
+  <div style="display: flex; justify-content: space-between; margin-top: 50px;">
+    <div style="width: 45%; text-align: center;">
+      <h3 style="color: #222831; margin-bottom: 20px;">SERVICE PROVIDER</h3>
+      <p style="margin-bottom: 15px;"><strong>Rira Industries Private Limited</strong></p>
+      <p style="margin-bottom: 15px;">Tiffin Wale</p>
+      {{#if signatures.companySignature}}
+      <img src="data:image/png;base64,{{signatures.companySignature}}" alt="Company Signature" style="width: 200px; height: auto; margin: 20px auto; display: block;">
+      {{else}}
+      <div style="border-bottom: 2px solid #333; width: 250px; height: 60px; margin: 20px auto;"></div>
+      {{/if}}
+      <p style="margin-top: 20px;"><strong>Authorized Signatory</strong></p>
+      <p>Name: _____________</p>
+      <p>Designation: _____________</p>
+      <p style="margin-top: 15px;">Date: {{#if signatures.signedAt}}{{signatures.signedAt}}{{else}}_____________{{/if}}</p>
+    </div>
+
+    <div style="width: 45%; text-align: center;">
+      <h3 style="color: #222831; margin-bottom: 20px;">SERVICE RECIPIENT</h3>
+      <p style="margin-bottom: 15px;"><strong>{{partner.businessName}}</strong></p>
+      {{#if signatures.partnerSignature}}
+      <img src="data:image/png;base64,{{signatures.partnerSignature}}" alt="Partner Signature" style="width: 200px; height: auto; margin: 20px auto; display: block;">
+      {{else}}
+      <div style="border-bottom: 2px solid #333; width: 250px; height: 60px; margin: 20px auto;"></div>
+      {{/if}}
+      <p style="margin-top: 20px;"><strong>{{partner.ownerName}}</strong></p>
+      <p>Owner/Authorized Representative</p>
+      <p style="margin-top: 15px;">Date: {{#if signatures.signedAt}}{{signatures.signedAt}}{{else}}_____________{{/if}}</p>
+    </div>
+  </div>
+
+  <div style="margin-top: 50px; padding: 20px; background-color: #FAFAFA; border: 1px solid #E0E0E0; border-radius: 5px;">
+    <p style="text-align: center; font-size: 11px; color: #666; margin-bottom: 20px;">
+      <strong>WITNESSES</strong>
+    </p>
+    <div style="display: flex; justify-content: space-around;">
+      <div style="text-align: center; width: 40%;">
+        <div style="border-bottom: 1px solid #333; width: 200px; height: 40px; margin: 0 auto 10px;"></div>
+        <p style="font-size: 11px;"><strong>Witness 1</strong></p>
+        <p style="font-size: 10px;">Name: _____________</p>
+        <p style="font-size: 10px;">Address: _____________</p>
+        <p style="font-size: 10px;">Signature: _____________</p>
+      </div>
+      <div style="text-align: center; width: 40%;">
+        <div style="border-bottom: 1px solid #333; width: 200px; height: 40px; margin: 0 auto 10px;"></div>
+        <p style="font-size: 11px;"><strong>Witness 2</strong></p>
+        <p style="font-size: 10px;">Name: _____________</p>
+        <p style="font-size: 10px;">Address: _____________</p>
+        <p style="font-size: 10px;">Signature: _____________</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="text-align: center; margin-top: 40px; font-size: 10px; color: #888; font-style: italic;">
+  This document was generated electronically by Tiffin Wale Report System © Rira Industries. 
+  This is a legally binding document. Please review all terms carefully before signing.
+</p>
+
+
+

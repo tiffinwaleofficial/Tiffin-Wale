@@ -2,3 +2,6 @@ export * from "./order-receipt.generator";
 export * from "./subscription-report.generator";
 export * from "./partner-contract.generator";
 export * from "./invoice.generator";
+export * from "./partner-mou.generator";
+export * from "./service-agreement.generator";
+export * from "./partner-nda.generator";
