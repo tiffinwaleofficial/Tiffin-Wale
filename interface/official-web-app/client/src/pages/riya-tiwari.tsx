@@ -84,13 +84,15 @@ export default function RiyaTiwariPage() {
               <div className="md:w-1/3">
                 <div className="relative">
                   <img 
-                    src="https://res.cloudinary.com/dols3w27e/image/upload/v1761637006/qvmwdrprx2gciejp0awi.jpg" 
+                    src="https://res.cloudinary.com/dols3w27e/image/upload/v1763070356/swkcemedmaf3wscfcubi.jpg" 
                     alt="Riya Tiwari, Founder & CFO" 
                     className="rounded-full shadow-2xl w-full max-w-xs mx-auto border-8 border-white/50"
                   />
                   <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex gap-4">
                     <a 
-                      href="#" 
+                      href="https://www.linkedin.com/in/riya-tiwari-69bbb51b5/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
                       className="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
                       onClick={() => trackSocialMediaClick('linkedin', 'profile_view', { page: 'riya-tiwari' })}
                     >

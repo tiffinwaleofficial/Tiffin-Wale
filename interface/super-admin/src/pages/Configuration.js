@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,9 +20,13 @@ export default function Configuration() {
   const [executing, setExecuting] = useState(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedCommand, setSelectedCommand] = useState(null);
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
-    fetchConfigurationData();
+    if (!hasLoadedRef.current) {
+      fetchConfigurationData();
+      hasLoadedRef.current = true;
+    }
   }, []);
 
   const fetchConfigurationData = async () => {
@@ -51,7 +55,9 @@ export default function Configuration() {
     try {
       await apiClient.patch('/super-admin/system/config', updates);
       toast.success('Configuration updated successfully');
-      fetchConfigurationData();
+      // Silently refresh config without showing loading state
+      const configRes = await apiClient.get('/super-admin/system/config');
+      setSystemConfig(configRes.data);
     } catch (error) {
       console.error('Config update error:', error);
       toast.error('Failed to update configuration');
@@ -61,23 +67,62 @@ export default function Configuration() {
   };
 
   const handleToggleFeature = async (feature, enabled) => {
+    // Store previous state for revert (deep copy) - only if config exists
+    const previousConfig = systemConfig ? JSON.parse(JSON.stringify(systemConfig)) : null;
+    
+    // Optimistically update local state
+    const updatedConfig = {
+      ...systemConfig,
+      features: {
+        ...(systemConfig?.features || {}),
+        [feature]: enabled,
+      },
+    };
+    setSystemConfig(updatedConfig);
+
+    // Update via API
     const updates = {
       features: {
         ...(systemConfig?.features || {}),
         [feature]: enabled,
       },
     };
-    await handleUpdateConfig(updates);
+    
+    try {
+      await apiClient.patch('/super-admin/system/config', updates);
+      toast.success(`Feature ${enabled ? 'enabled' : 'disabled'} successfully`);
+    } catch (error) {
+      console.error('Feature toggle error:', error);
+      toast.error('Failed to update feature');
+      // Revert on error - silently refresh to get correct state
+      try {
+        const configRes = await apiClient.get('/super-admin/system/config');
+        setSystemConfig(configRes.data);
+      } catch (refreshError) {
+        // If refresh fails, revert to previous
+        if (previousConfig) {
+          setSystemConfig(previousConfig);
+        }
+      }
+    }
   };
 
   const handleToggleCron = async (cronName, enabled) => {
+    // Optimistically update local state
+    setCrons(crons.map(cron => 
+      cron.name === cronName ? { ...cron, enabled } : cron
+    ));
+
     try {
       await apiClient.patch(`/super-admin/system/crons/${cronName}/status`, { enabled });
       toast.success(`Cron job ${enabled ? 'enabled' : 'disabled'} successfully`);
-      fetchConfigurationData();
     } catch (error) {
       console.error('Cron toggle error:', error);
       toast.error('Failed to update cron job status');
+      // Revert on error - refetch to get correct state
+      const cronsRes = await apiClient.get('/super-admin/system/crons').catch(() => ({ data: [] }));
+      const cronsData = Array.isArray(cronsRes.data) ? cronsRes.data : (cronsRes.data?.data || []);
+      setCrons(cronsData);
     }
   };
 
@@ -86,7 +131,10 @@ export default function Configuration() {
     try {
       await apiClient.post(`/super-admin/system/crons/${cronName}/trigger`);
       toast.success('Cron job triggered successfully');
-      fetchConfigurationData();
+      // Silently refresh cron data without showing loading state
+      const cronsRes = await apiClient.get('/super-admin/system/crons').catch(() => ({ data: [] }));
+      const cronsData = Array.isArray(cronsRes.data) ? cronsRes.data : (cronsRes.data?.data || []);
+      setCrons(cronsData);
     } catch (error) {
       console.error('Cron trigger error:', error);
       toast.error('Failed to trigger cron job');
@@ -100,7 +148,9 @@ export default function Configuration() {
     try {
       await apiClient.post(`/super-admin/system/commands/${command}`, params);
       toast.success('Command executed successfully');
-      fetchConfigurationData();
+      // Silently refresh stats if needed, without showing loading state
+      const statsRes = await apiClient.get('/super-admin/system/stats').catch(() => ({ data: null }));
+      setSystemStats(statsRes.data);
     } catch (error) {
       console.error('Command execution error:', error);
       toast.error(error.response?.data?.message || 'Failed to execute command');
@@ -120,7 +170,8 @@ export default function Configuration() {
     }
   };
 
-  if (loading) {
+  // Only show loading on initial load when we have no data
+  if (loading && systemConfig === null && crons.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -369,7 +420,23 @@ export default function Configuration() {
                 </div>
                 <Switch
                   checked={systemConfig?.maintenanceMode || false}
-                  onCheckedChange={(checked) => handleUpdateConfig({ maintenanceMode: checked })}
+                  onCheckedChange={async (checked) => {
+                    // Optimistically update
+                    setSystemConfig({ ...systemConfig, maintenanceMode: checked });
+                    try {
+                      await apiClient.patch('/super-admin/system/config', { maintenanceMode: checked });
+                      toast.success(`Maintenance mode ${checked ? 'enabled' : 'disabled'}`);
+                      // Silently refresh
+                      const configRes = await apiClient.get('/super-admin/system/config');
+                      setSystemConfig(configRes.data);
+                    } catch (error) {
+                      console.error('Maintenance mode toggle error:', error);
+                      toast.error('Failed to update maintenance mode');
+                      // Revert
+                      const configRes = await apiClient.get('/super-admin/system/config');
+                      setSystemConfig(configRes.data);
+                    }
+                  }}
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -379,7 +446,23 @@ export default function Configuration() {
                 </div>
                 <Switch
                   checked={systemConfig?.debugMode || false}
-                  onCheckedChange={(checked) => handleUpdateConfig({ debugMode: checked })}
+                  onCheckedChange={async (checked) => {
+                    // Optimistically update
+                    setSystemConfig({ ...systemConfig, debugMode: checked });
+                    try {
+                      await apiClient.patch('/super-admin/system/config', { debugMode: checked });
+                      toast.success(`Debug mode ${checked ? 'enabled' : 'disabled'}`);
+                      // Silently refresh
+                      const configRes = await apiClient.get('/super-admin/system/config');
+                      setSystemConfig(configRes.data);
+                    } catch (error) {
+                      console.error('Debug mode toggle error:', error);
+                      toast.error('Failed to update debug mode');
+                      // Revert
+                      const configRes = await apiClient.get('/super-admin/system/config');
+                      setSystemConfig(configRes.data);
+                    }
+                  }}
                 />
               </div>
               <Button onClick={() => handleUpdateConfig(systemConfig)} disabled={saving}>

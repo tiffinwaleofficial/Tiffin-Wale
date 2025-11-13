@@ -56,7 +56,8 @@ export default function Support() {
 
   const updateStatus = async (ticketId, newStatus) => {
     try {
-      await apiClient.patch(`/super-admin/support/tickets/${ticketId}/status`, { status: newStatus });
+      const id = ticketId?.id || ticketId?._id || ticketId;
+      await apiClient.patch(`/super-admin/support/tickets/${id}/status`, { status: newStatus });
       toast.success('Ticket status updated');
       fetchTickets();
     } catch (error) {
@@ -67,7 +68,8 @@ export default function Support() {
 
   const viewTicketDetails = async (ticketId) => {
     try {
-      const response = await apiClient.get(`/super-admin/support/tickets/${ticketId}`);
+      const id = ticketId?.id || ticketId?._id || ticketId;
+      const response = await apiClient.get(`/super-admin/support/tickets/${id}`);
       setSelectedTicket(response.data);
     } catch (error) {
       console.error('Ticket details fetch error:', error);
@@ -75,14 +77,37 @@ export default function Support() {
     }
   };
 
+  // Helper function to extract customer name from populated user object
+  const getCustomerName = (ticket) => {
+    if (ticket.customer_name) return ticket.customer_name;
+    if (ticket.user) {
+      if (typeof ticket.user === 'string') return null;
+      const firstName = ticket.user.firstName || '';
+      const lastName = ticket.user.lastName || '';
+      if (firstName || lastName) return `${firstName} ${lastName}`.trim();
+      if (ticket.user.name) return ticket.user.name;
+      if (ticket.user.email) return ticket.user.email;
+    }
+    if (ticket.customer) {
+      if (typeof ticket.customer === 'string') return null;
+      const firstName = ticket.customer.firstName || '';
+      const lastName = ticket.customer.lastName || '';
+      if (firstName || lastName) return `${firstName} ${lastName}`.trim();
+      if (ticket.customer.name) return ticket.customer.name;
+      if (ticket.customer.email) return ticket.customer.email;
+    }
+    return null;
+  };
+
   const filteredTickets = tickets.filter(ticket => {
     if (!ticket) return false;
     const searchLower = searchQuery.toLowerCase();
-    const idMatch = ticket.id?.toLowerCase().includes(searchLower) || 
-                    ticket._id?.toLowerCase().includes(searchLower) || false;
-    const customerMatch = ticket.customer_name?.toLowerCase().includes(searchLower) ||
-                         ticket.customer?.name?.toLowerCase().includes(searchLower) || false;
-    const subjectMatch = ticket.subject?.toLowerCase().includes(searchLower) || false;
+    const ticketId = (ticket.id || ticket._id || ticket.ticketId || '').toString().toLowerCase();
+    const idMatch = ticketId.includes(searchLower);
+    const customerName = getCustomerName(ticket) || '';
+    const customerMatch = customerName.toLowerCase().includes(searchLower);
+    const subject = ticket.subject || '';
+    const subjectMatch = subject.toLowerCase().includes(searchLower);
     return idMatch || customerMatch || subjectMatch;
   });
 
@@ -155,31 +180,36 @@ export default function Support() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredTickets.map((ticket) => (
-                  <TableRow key={ticket.id || ticket._id} data-testid={`ticket-row-${ticket.id || ticket._id}`}>
-                    <TableCell className="font-medium">#{ticket.id || ticket._id || 'N/A'}</TableCell>
-                    <TableCell>{ticket.customer_name || ticket.customer?.name || 'N/A'}</TableCell>
+                {filteredTickets.map((ticket) => {
+                  const ticketId = ticket.id || ticket._id || ticket.ticketId || 'N/A';
+                  const customerName = getCustomerName(ticket) || 'N/A';
+                  const createdAt = ticket.createdAt || ticket.created_at;
+                  
+                  return (
+                  <TableRow key={ticketId} data-testid={`ticket-row-${ticketId}`}>
+                    <TableCell className="font-medium">#{ticketId}</TableCell>
+                    <TableCell>{customerName}</TableCell>
                     <TableCell>
-                      <div className="max-w-[200px] truncate">{ticket.subject}</div>
+                      <div className="max-w-[200px] truncate">{ticket.subject || 'N/A'}</div>
                     </TableCell>
                     <TableCell>
                       <Badge
-                        className={priorityColors[ticket.priority]}
-                        data-testid={`ticket-priority-${ticket.id}`}
+                        className={priorityColors[ticket.priority] || 'bg-gray-500'}
+                        data-testid={`ticket-priority-${ticketId}`}
                       >
-                        {ticket.priority}
+                        {ticket.priority || 'N/A'}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <Badge
-                        className={statusColors[ticket.status]}
-                        data-testid={`ticket-status-${ticket.id}`}
+                        className={statusColors[ticket.status] || 'bg-gray-500'}
+                        data-testid={`ticket-status-${ticketId}`}
                       >
-                        {ticket.status}
+                        {ticket.status || 'N/A'}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {ticket.created_at ? new Date(ticket.created_at).toLocaleDateString() : 'N/A'}
+                      {createdAt ? new Date(createdAt).toLocaleDateString() : 'N/A'}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -188,8 +218,8 @@ export default function Support() {
                             <Button
                               variant="outline"
                               size="icon"
-                              onClick={() => viewTicketDetails(ticket.id || ticket._id)}
-                              data-testid={`ticket-view-${ticket.id || ticket._id}`}
+                              onClick={() => viewTicketDetails(ticketId)}
+                              data-testid={`ticket-view-${ticketId}`}
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
@@ -206,11 +236,11 @@ export default function Support() {
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Ticket ID</p>
-                                    <p className="text-base">#{selectedTicket.id || selectedTicket._id || 'N/A'}</p>
+                                    <p className="text-base">#{selectedTicket.id || selectedTicket._id || selectedTicket.ticketId || 'N/A'}</p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Customer</p>
-                                    <p className="text-base">{selectedTicket.customer_name || selectedTicket.customer?.name || 'N/A'}</p>
+                                    <p className="text-base">{getCustomerName(selectedTicket) || 'N/A'}</p>
                                   </div>
                                   <div className="col-span-2">
                                     <p className="text-sm font-medium text-gray-500">Subject</p>
@@ -242,8 +272,8 @@ export default function Support() {
                           </DialogContent>
                         </Dialog>
                         <Select
-                          onValueChange={(value) => updateStatus(ticket.id || ticket._id, value)}
-                          data-testid={`ticket-action-${ticket.id || ticket._id}`}
+                          onValueChange={(value) => updateStatus(ticketId, value)}
+                          data-testid={`ticket-action-${ticketId}`}
                         >
                           <SelectTrigger className="w-32">
                             <SelectValue placeholder="Update" />
@@ -258,7 +288,8 @@ export default function Support() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

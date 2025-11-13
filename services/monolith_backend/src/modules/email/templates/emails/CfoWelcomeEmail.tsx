@@ -19,7 +19,7 @@ export const CfoWelcomeEmail = ({
   dashboardUrl = 'https://www.tiffin-wale.com',
 }: CfoWelcomeEmailProps) => {
   const preview = `A personal welcome from Riya Tiwari, CFO of ${appName}`;
-  const cfoPhotoUrl = 'https://res.cloudinary.com/dols3w27e/image/upload/v1761637006/qvmwdrprx2gciejp0awi.jpg'; // Placeholder
+  const cfoPhotoUrl = 'https://res.cloudinary.com/dols3w27e/image/upload/v1763070356/swkcemedmaf3wscfcubi.jpg'; // Placeholder
 
   return (
     <EmailLayout

@@ -58,12 +58,17 @@ export default function RahulVishwakarmaPage() {
               <div className="md:w-1/3">
                 <div className="relative">
                   <img 
-                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80" 
+                    src="https://res.cloudinary.com/dols3w27e/image/upload/v1762012087/wakk2qrg6hlud881nkit.jpg" 
                     alt="Rahul Vishwakarma, Founder & CEO" 
                     className="rounded-full shadow-2xl w-full max-w-xs mx-auto border-8 border-white/50"
                   />
                   <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex gap-4">
-                    <a href="#" className="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                    <a 
+                      href="https://www.linkedin.com/in/rahul-vishwakarma-101346192/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                    >
                       <Linkedin className="h-6 w-6 text-white" />
                     </a>
                     <a href="#" className="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform">

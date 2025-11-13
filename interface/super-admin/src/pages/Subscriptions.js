@@ -35,9 +35,9 @@ export default function Subscriptions() {
         ...(statusFilter !== 'all' && { status: statusFilter })
       };
       const response = await apiClient.get('/super-admin/subscriptions', { params });
-      // Handle paginated response
+      // Handle paginated response - backend returns { data, total, page, limit }
       const data = response.data?.data || response.data?.subscriptions || (Array.isArray(response.data) ? response.data : []);
-      setSubscriptions(data);
+      setSubscriptions(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Subscriptions fetch error:', error);
       toast.error('Failed to load subscriptions');
@@ -48,7 +48,8 @@ export default function Subscriptions() {
 
   const updateStatus = async (subscriptionId, newStatus) => {
     try {
-      await apiClient.patch(`/super-admin/subscriptions/${subscriptionId}/status`, { status: newStatus });
+      const id = subscriptionId?.id || subscriptionId?._id || subscriptionId;
+      await apiClient.patch(`/super-admin/subscriptions/${id}/status`, { status: newStatus });
       toast.success('Subscription status updated');
       fetchSubscriptions();
     } catch (error) {
@@ -57,15 +58,54 @@ export default function Subscriptions() {
     }
   };
 
+  // Helper function to extract customer name from populated object
+  const getCustomerName = (sub) => {
+    if (sub.customer_name) return sub.customer_name;
+    if (sub.customer) {
+      if (typeof sub.customer === 'string') return null;
+      const firstName = sub.customer.firstName || '';
+      const lastName = sub.customer.lastName || '';
+      if (firstName || lastName) return `${firstName} ${lastName}`.trim();
+      if (sub.customer.name) return sub.customer.name;
+      if (sub.customer.email) return sub.customer.email;
+    }
+    return null;
+  };
+
+  // Helper function to extract partner name from plan
+  const getPartnerName = (sub) => {
+    if (sub.partner_name) return sub.partner_name;
+    if (sub.plan) {
+      if (typeof sub.plan === 'string') return null;
+      if (sub.plan.partner) {
+        if (typeof sub.plan.partner === 'string') return null;
+        if (sub.plan.partner.businessName) return sub.plan.partner.businessName;
+        if (sub.plan.partner.name) return sub.plan.partner.name;
+      }
+    }
+    if (sub.partner?.name) return sub.partner.name;
+    return null;
+  };
+
+  // Helper function to extract plan name
+  const getPlanName = (sub) => {
+    if (sub.plan_name) return sub.plan_name;
+    if (sub.plan) {
+      if (typeof sub.plan === 'string') return null;
+      if (sub.plan.name) return sub.plan.name;
+    }
+    return null;
+  };
+
   const filteredSubscriptions = subscriptions.filter(sub => {
     if (!sub) return false;
     const searchLower = searchQuery.toLowerCase();
-    const idMatch = sub.id?.toLowerCase().includes(searchLower) || 
-                    sub._id?.toLowerCase().includes(searchLower) || false;
-    const customerMatch = sub.customer_name?.toLowerCase().includes(searchLower) ||
-                         sub.customer?.name?.toLowerCase().includes(searchLower) || false;
-    const partnerMatch = sub.partner_name?.toLowerCase().includes(searchLower) ||
-                        sub.partner?.name?.toLowerCase().includes(searchLower) || false;
+    const subId = (sub.id || sub._id || '').toString().toLowerCase();
+    const idMatch = subId.includes(searchLower);
+    const customerName = getCustomerName(sub) || '';
+    const customerMatch = customerName.toLowerCase().includes(searchLower);
+    const partnerName = getPartnerName(sub) || '';
+    const partnerMatch = partnerName.toLowerCase().includes(searchLower);
     return idMatch || customerMatch || partnerMatch;
   });
 
@@ -140,27 +180,36 @@ export default function Subscriptions() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSubscriptions.map((sub) => (
-                  <TableRow key={sub.id || sub._id} data-testid={`subscription-row-${sub.id || sub._id}`}>
-                    <TableCell className="font-medium">#{sub.id || sub._id || 'N/A'}</TableCell>
-                    <TableCell>{sub.customer_name || sub.customer?.name || 'N/A'}</TableCell>
-                    <TableCell>{sub.partner_name || sub.partner?.name || 'N/A'}</TableCell>
-                    <TableCell>{sub.plan_name || sub.plan?.name || 'N/A'}</TableCell>
-                    <TableCell>{sub.start_date ? new Date(sub.start_date).toLocaleDateString() : 'N/A'}</TableCell>
-                    <TableCell>{sub.end_date ? new Date(sub.end_date).toLocaleDateString() : 'N/A'}</TableCell>
-                    <TableCell>₹{sub.amount ? sub.amount.toFixed(2) : '0.00'}</TableCell>
+                {filteredSubscriptions.map((sub) => {
+                  const subId = sub.id || sub._id || 'N/A';
+                  const customerName = getCustomerName(sub) || 'N/A';
+                  const partnerName = getPartnerName(sub) || 'N/A';
+                  const planName = getPlanName(sub) || 'N/A';
+                  const startDate = sub.startDate || sub.start_date;
+                  const endDate = sub.endDate || sub.end_date;
+                  const amount = sub.totalAmount || sub.amount || 0;
+                  
+                  return (
+                  <TableRow key={subId} data-testid={`subscription-row-${subId}`}>
+                    <TableCell className="font-medium">#{subId}</TableCell>
+                    <TableCell>{customerName}</TableCell>
+                    <TableCell>{partnerName}</TableCell>
+                    <TableCell>{planName}</TableCell>
+                    <TableCell>{startDate ? new Date(startDate).toLocaleDateString() : 'N/A'}</TableCell>
+                    <TableCell>{endDate ? new Date(endDate).toLocaleDateString() : 'N/A'}</TableCell>
+                    <TableCell>₹{amount.toFixed(2)}</TableCell>
                     <TableCell>
                       <Badge
                         className={statusColors[sub.status] || 'bg-gray-500'}
-                        data-testid={`subscription-status-${sub.id || sub._id}`}
+                        data-testid={`subscription-status-${subId}`}
                       >
-                        {sub.status}
+                        {sub.status || 'N/A'}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <Select
-                        onValueChange={(value) => updateStatus(sub.id, value)}
-                        data-testid={`subscription-action-${sub.id}`}
+                        onValueChange={(value) => updateStatus(subId, value)}
+                        data-testid={`subscription-action-${subId}`}
                       >
                         <SelectTrigger className="w-32">
                           <SelectValue placeholder="Update" />
@@ -174,7 +223,8 @@ export default function Subscriptions() {
                       </Select>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

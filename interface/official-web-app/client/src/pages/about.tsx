@@ -355,7 +355,7 @@ export default function AboutPage() {
                 <Link href="/rahul-vishwakarma">
                   <a onClick={() => trackClick('Rahul Vishwakarma Profile', 'Leadership Section')}>
                     <img 
-                      src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&h=200&q=80" 
+                      src="https://res.cloudinary.com/dols3w27e/image/upload/v1762012087/wakk2qrg6hlud881nkit.jpg" 
                       alt="Rahul Vishwakarma, Founder & CEO" 
                       className="w-40 h-40 rounded-full mx-auto object-cover border-4 border-primary/20 group-hover:border-primary transition-all duration-300 shadow-lg cursor-pointer" 
                     />
@@ -375,7 +375,7 @@ export default function AboutPage() {
                 <Link href="/riya-tiwari">
                   <a onClick={() => trackClick('Riya Tiwari Profile', 'Leadership Section')}>
                     <img 
-                      src="https://res.cloudinary.com/dols3w27e/image/upload/v1761637006/qvmwdrprx2gciejp0awi.jpg" 
+                      src="https://res.cloudinary.com/dols3w27e/image/upload/v1763070356/swkcemedmaf3wscfcubi.jpg" 
                       alt="Riya Tiwari, Founder & CFO" 
                       className="w-40 h-40 rounded-full mx-auto object-cover border-4 border-primary/20 group-hover:border-primary transition-all duration-300 shadow-lg cursor-pointer" 
                     />

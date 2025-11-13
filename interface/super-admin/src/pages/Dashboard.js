@@ -65,7 +65,7 @@ export default function Dashboard() {
   const statCards = [
     { 
       title: 'Total Partners', 
-      value: stats?.total_partners || 0, 
+      value: stats?.totalPartners || stats?.total_partners || 0, 
       icon: Users, 
       color: 'from-blue-500 to-cyan-500', 
       testId: 'stat-partners',
@@ -73,7 +73,7 @@ export default function Dashboard() {
     },
     { 
       title: 'Total Customers', 
-      value: stats?.total_customers || 0, 
+      value: stats?.totalCustomers || stats?.total_customers || 0, 
       icon: Users, 
       color: 'from-purple-500 to-pink-500', 
       testId: 'stat-customers',
@@ -81,7 +81,7 @@ export default function Dashboard() {
     },
     { 
       title: 'Total Orders', 
-      value: stats?.total_orders || 0, 
+      value: stats?.totalOrders || stats?.total_orders || 0, 
       icon: ShoppingBag, 
       color: 'from-green-500 to-emerald-500', 
       testId: 'stat-orders',
@@ -89,7 +89,7 @@ export default function Dashboard() {
     },
     { 
       title: 'Active Subscriptions', 
-      value: stats?.active_subscriptions || 0, 
+      value: stats?.activeSubscriptions || stats?.active_subscriptions || 0, 
       icon: Calendar, 
       color: 'from-orange-500 to-red-500', 
       testId: 'stat-subscriptions',
@@ -97,7 +97,7 @@ export default function Dashboard() {
     },
     { 
       title: 'Total Revenue', 
-      value: `₹${(stats?.total_revenue || 0).toLocaleString()}`, 
+      value: `₹${(stats?.totalRevenue || stats?.total_revenue || 0).toLocaleString()}`, 
       icon: DollarSign, 
       color: 'from-indigo-500 to-purple-500', 
       testId: 'stat-revenue',
@@ -105,7 +105,7 @@ export default function Dashboard() {
     },
     { 
       title: 'Pending Tickets', 
-      value: stats?.pending_tickets || 0, 
+      value: stats?.pendingTickets || stats?.pending_tickets || 0, 
       icon: AlertCircle, 
       color: 'from-pink-500 to-rose-500', 
       testId: 'stat-tickets',
@@ -289,7 +289,7 @@ export default function Dashboard() {
               data-testid="review-tickets-btn"
             >
               <AlertCircle className="w-4 h-4 mr-2" />
-              Review Support Tickets ({stats?.pending_tickets || 0})
+              Review Support Tickets ({stats?.pendingTickets || stats?.pending_tickets || 0})
             </Button>
             <Button 
               variant="outline" 

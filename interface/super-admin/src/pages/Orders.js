@@ -40,9 +40,9 @@ export default function Orders() {
         ...(statusFilter !== 'all' && { status: statusFilter })
       };
       const response = await apiClient.get('/super-admin/orders', { params });
-      // Handle paginated response
-      const data = response.data?.data || response.data?.orders || (Array.isArray(response.data) ? response.data : []);
-      setOrders(data);
+      // Handle paginated response - backend returns { orders, total, page, limit }
+      const data = response.data?.orders || response.data?.data || (Array.isArray(response.data) ? response.data : []);
+      setOrders(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Orders fetch error:', error);
       toast.error('Failed to load orders');
@@ -74,15 +74,41 @@ export default function Orders() {
     }
   };
 
+  // Helper function to extract customer name from populated object
+  const getCustomerName = (order) => {
+    if (order.customer_name) return order.customer_name;
+    if (order.customer) {
+      if (typeof order.customer === 'string') return null;
+      const firstName = order.customer.firstName || '';
+      const lastName = order.customer.lastName || '';
+      if (firstName || lastName) return `${firstName} ${lastName}`.trim();
+      if (order.customer.name) return order.customer.name;
+      if (order.customer.email) return order.customer.email;
+    }
+    return null;
+  };
+
+  // Helper function to extract partner name from populated object
+  const getPartnerName = (order) => {
+    if (order.partner_name) return order.partner_name;
+    if (order.businessPartner) {
+      if (typeof order.businessPartner === 'string') return null;
+      if (order.businessPartner.businessName) return order.businessPartner.businessName;
+      if (order.businessPartner.name) return order.businessPartner.name;
+    }
+    if (order.partner?.name) return order.partner.name;
+    return null;
+  };
+
   const filteredOrders = orders.filter(order => {
     if (!order) return false;
     const searchLower = searchQuery.toLowerCase();
-    const idMatch = order.id?.toLowerCase().includes(searchLower) || 
-                    order._id?.toLowerCase().includes(searchLower) || false;
-    const customerMatch = order.customer_name?.toLowerCase().includes(searchLower) ||
-                         order.customer?.name?.toLowerCase().includes(searchLower) || false;
-    const partnerMatch = order.partner_name?.toLowerCase().includes(searchLower) ||
-                        order.businessPartner?.name?.toLowerCase().includes(searchLower) || false;
+    const orderId = (order.id || order._id || '').toString().toLowerCase();
+    const idMatch = orderId.includes(searchLower);
+    const customerName = getCustomerName(order) || '';
+    const customerMatch = customerName.toLowerCase().includes(searchLower);
+    const partnerName = getPartnerName(order) || '';
+    const partnerMatch = partnerName.toLowerCase().includes(searchLower);
     return idMatch || customerMatch || partnerMatch;
   });
 
@@ -162,8 +188,8 @@ export default function Orders() {
               <TableBody>
                 {filteredOrders.map((order) => {
                   const orderId = order.id || order._id || 'N/A';
-                  const customerName = order.customer_name || order.customer?.name || 'N/A';
-                  const partnerName = order.partner_name || order.businessPartner?.name || order.partner?.name || 'N/A';
+                  const customerName = getCustomerName(order) || 'N/A';
+                  const partnerName = getPartnerName(order) || 'N/A';
                   const items = order.items || order.orderItems || [];
                   const totalAmount = order.total_amount || order.totalAmount || order.amount || 0;
                   const orderStatus = order.status || 'pending';
@@ -223,11 +249,11 @@ export default function Orders() {
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Customer</p>
-                                    <p className="text-base">{selectedOrder.customer_name || selectedOrder.customer?.name || 'N/A'}</p>
+                                    <p className="text-base">{getCustomerName(selectedOrder) || 'N/A'}</p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Partner</p>
-                                    <p className="text-base">{selectedOrder.partner_name || selectedOrder.businessPartner?.name || selectedOrder.partner?.name || 'N/A'}</p>
+                                    <p className="text-base">{getPartnerName(selectedOrder) || 'N/A'}</p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">Amount</p>
