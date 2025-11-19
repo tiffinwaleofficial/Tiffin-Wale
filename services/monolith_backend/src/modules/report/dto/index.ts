@@ -6,3 +6,5 @@ export * from "./legal-document.dto";
 export * from "./partner-mou.dto";
 export * from "./service-agreement.dto";
 export * from "./partner-nda.dto";
+export * from "./customer-financial-report.dto";
+export * from "./partner-financial-report.dto";

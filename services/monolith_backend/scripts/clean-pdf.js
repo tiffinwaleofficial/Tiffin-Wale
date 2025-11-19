@@ -13,7 +13,8 @@ const PDF_DIRECTORIES = [
   'invoices',
   'legal-documents',
   'order-receipts',
-  'subscriptions'
+  'subscriptions',
+  'financial-reports'
 ];
 
 function deletePdfFiles(directory) {

@@ -186,9 +186,9 @@ export class OrderController {
   acceptOrder(
     @Param("id") id: string,
     @Body() acceptOrderDto: AcceptOrderDto,
-    @GetCurrentUser() user: any,
+    @GetCurrentUser("_id") userId: string,
   ) {
-    return this.orderService.acceptOrder(id, acceptOrderDto, user.id);
+    return this.orderService.acceptOrder(id, acceptOrderDto, userId);
   }
 
   @Patch(":id/reject")
@@ -206,9 +206,9 @@ export class OrderController {
   rejectOrder(
     @Param("id") id: string,
     @Body() rejectOrderDto: RejectOrderDto,
-    @GetCurrentUser() user: any,
+    @GetCurrentUser("_id") userId: string,
   ) {
-    return this.orderService.rejectOrder(id, rejectOrderDto, user.id);
+    return this.orderService.rejectOrder(id, rejectOrderDto, userId);
   }
 
   @Patch(":id/ready")
@@ -226,9 +226,9 @@ export class OrderController {
   markOrderReady(
     @Param("id") id: string,
     @Body() readyOrderDto: ReadyOrderDto,
-    @GetCurrentUser() user: any,
+    @GetCurrentUser("_id") userId: string,
   ) {
-    return this.orderService.markOrderReady(id, readyOrderDto, user.id);
+    return this.orderService.markOrderReady(id, readyOrderDto, userId);
   }
 
   @Patch(":id/delivered")
@@ -246,7 +246,10 @@ export class OrderController {
   })
   @ApiResponse({ status: 403, description: "Forbidden - not a partner" })
   @ApiResponse({ status: 404, description: "Order not found" })
-  markOrderDelivered(@Param("id") id: string, @GetCurrentUser() user: any) {
-    return this.orderService.markOrderDelivered(id, user.id);
+  markOrderDelivered(
+    @Param("id") id: string,
+    @GetCurrentUser("_id") userId: string,
+  ) {
+    return this.orderService.markOrderDelivered(id, userId);
   }
 }

@@ -5,3 +5,5 @@ export * from "./invoice.generator";
 export * from "./partner-mou.generator";
 export * from "./service-agreement.generator";
 export * from "./partner-nda.generator";
+export * from "./customer-financial-report.generator";
+export * from "./partner-financial-report.generator";

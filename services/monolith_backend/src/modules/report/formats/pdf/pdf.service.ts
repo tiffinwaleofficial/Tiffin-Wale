@@ -247,6 +247,54 @@ export class PdfService implements IFormatService, OnModuleInit {
     handlebars.registerHelper('add', function (a, b) {
       return a + b;
     });
+
+    handlebars.registerHelper('gt', function (a, b) {
+      return a > b;
+    });
+
+    handlebars.registerHelper('lt', function (a, b) {
+      return a < b;
+    });
+
+    handlebars.registerHelper('formatCurrency', function (value) {
+      if (typeof value !== 'number') {
+        return value;
+      }
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(value);
+    });
+
+    handlebars.registerHelper('formatPercent', function (value) {
+      if (typeof value !== 'number') {
+        return value;
+      }
+      return new Intl.NumberFormat('en-IN', {
+        style: 'percent',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(value / 100);
+    });
+
+    handlebars.registerHelper('json', function (context) {
+      return JSON.stringify(context);
+    });
+
+    // Register header and footer partials
+    const headerPath = path.join(process.cwd(), 'src/modules/report/templates/header.hbs');
+    const footerPath = path.join(process.cwd(), 'src/modules/report/templates/footer.hbs');
+    
+    try {
+      const headerTemplate = await fs.readFile(headerPath, 'utf-8');
+      const footerTemplate = await fs.readFile(footerPath, 'utf-8');
+      handlebars.registerPartial('header', headerTemplate);
+      handlebars.registerPartial('footer', footerTemplate);
+    } catch (error) {
+      console.warn('Warning: Could not load header/footer partials:', error.message);
+    }
   }
 
   /**
@@ -254,6 +302,13 @@ export class PdfService implements IFormatService, OnModuleInit {
    */
   getConfig(): PdfConfig {
     return this.config;
+  }
+
+  /**
+   * Get logo image as base64 string
+   */
+  getLogoImageBase64(): string {
+    return this.logoImageBase64;
   }
 
   /**
@@ -273,7 +328,9 @@ export class PdfService implements IFormatService, OnModuleInit {
       'legal-document': 'legal-document',
       'partner-mou': 'partner-mou',
       'service-agreement': 'service-agreement',
-      'partner-nda': 'partner-nda'
+      'partner-nda': 'partner-nda',
+      'finance/customer-financial-report': 'finance/customer-financial-report',
+      'finance/partner-financial-report': 'finance/partner-financial-report',
     };
 
     const templateName = templateMap[type];
@@ -320,6 +377,12 @@ export class PdfService implements IFormatService, OnModuleInit {
       case "partner-nda":
         const ndaData = data as PartnerNdaData;
         return `Partner NDA - ${ndaData.partner.businessName} - ${ndaData.ndaId}.pdf`;
+
+      case "finance/customer-financial-report":
+        return `Customer Financial Report - ${new Date().toISOString().split('T')[0]}.pdf`;
+
+      case "finance/partner-financial-report":
+        return `Partner Financial Report - ${new Date().toISOString().split('T')[0]}.pdf`;
 
       default:
         throw new Error(`Unknown report type: ${type}`);
@@ -374,17 +437,28 @@ export class PdfService implements IFormatService, OnModuleInit {
       // Set a reasonable timeout for page operations
       await page.setDefaultTimeout(30000);
       await page.setDefaultNavigationTimeout(30000);
-      // 1. Load and compile the main content template
+      // 1. Ensure header and footer partials are registered
+      if (!handlebars.partials['header'] || !handlebars.partials['footer']) {
+        const headerPath = path.join(process.cwd(), 'src/modules/report/templates/header.hbs');
+        const footerPath = path.join(process.cwd(), 'src/modules/report/templates/footer.hbs');
+        const headerTemplate = await fs.readFile(headerPath, 'utf-8');
+        const footerTemplate = await fs.readFile(footerPath, 'utf-8');
+        handlebars.registerPartial('header', headerTemplate);
+        handlebars.registerPartial('footer', footerTemplate);
+      }
+
+      // 2. Load and compile the main content template
+      // Handle nested template paths (e.g., finance/customer-financial-report)
       const templatePath = path.join(process.cwd(), `src/modules/report/templates/${templateName}.hbs`);
       const templateHtml = await fs.readFile(templatePath, 'utf-8');
       const template = handlebars.compile(templateHtml);
       const contentHtml = template(data);
 
-      // 2. Load global CSS
+      // 3. Load global CSS
       const cssPath = path.join(process.cwd(), 'src/modules/report/assets/style.css');
       const css = await fs.readFile(cssPath, 'utf-8');
 
-      // 3. Embed Poppins fonts as base64 (like Platform UK does)
+      // 4. Embed Poppins fonts as base64 (like Platform UK does)
       const poppinsFontFace = `
         @font-face {
           font-family: 'Poppins';
@@ -409,7 +483,7 @@ export class PdfService implements IFormatService, OnModuleInit {
         }
       `;
 
-      // 4. Generate watermark HTML and CSS if enabled
+      // 5. Generate watermark HTML and CSS if enabled
       let watermarkHtml = '';
       let watermarkCss = '';
       if (this.config.watermark.enabled) {
@@ -588,12 +662,9 @@ export class PdfService implements IFormatService, OnModuleInit {
       `;
       
       await page.setContent(htmlContent, { 
-        waitUntil: 'networkidle0', // Wait for fonts to load
-        timeout: 30000 // 30 second timeout for content loading
+        waitUntil: 'networkidle0' // Wait for fonts to load
       });
 
-      // Wait a bit more for fonts to fully load using setTimeout
-      await new Promise(resolve => setTimeout(resolve, 3000));
 
       // 6. Generate header and footer templates using config
       const borderRadius = this.config.header.borderRadius || 12;

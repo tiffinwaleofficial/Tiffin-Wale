@@ -15,6 +15,8 @@ import {
   PartnerMouDataGenerator,
   ServiceAgreementDataGenerator,
   PartnerNdaDataGenerator,
+  CustomerFinancialReportDataGenerator,
+  PartnerFinancialReportDataGenerator,
 } from './generators';
 import { ReportLog, ReportLogSchema } from './schemas/report-log.schema';
 import { PdfService } from './formats/pdf/pdf.service';
@@ -39,6 +41,8 @@ import { PdfService } from './formats/pdf/pdf.service';
     PartnerMouDataGenerator,
     ServiceAgreementDataGenerator,
     PartnerNdaDataGenerator,
+    CustomerFinancialReportDataGenerator,
+    PartnerFinancialReportDataGenerator,
   ],
   exports: [ReportService],
 })

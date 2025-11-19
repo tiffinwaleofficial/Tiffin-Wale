@@ -17,6 +17,8 @@ import {
   PartnerMouDto,
   ServiceAgreementDto,
   PartnerNdaDto,
+  CustomerFinancialReportDto,
+  PartnerFinancialReportDto,
 } from './dto';
 import { Public } from 'src/common/decorators/public.decorator';
 
@@ -178,6 +180,48 @@ export class ReportController {
     try {
       const { buffer, filename } = await this.reportService.generatePartnerNda(
         partnerNdaDto,
+      );
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+      res.send(buffer);
+    } catch (error) {
+      throw new HttpException(
+        error.message,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Public()
+  @Post('customer-financial-report')
+  async generateCustomerFinancialReport(
+    @Body() customerFinancialReportDto: CustomerFinancialReportDto,
+    @Res() res: Response,
+  ) {
+    try {
+      const { buffer, filename } = await this.reportService.generateCustomerFinancialReport(
+        customerFinancialReportDto,
+      );
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+      res.send(buffer);
+    } catch (error) {
+      throw new HttpException(
+        error.message,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Public()
+  @Post('partner-financial-report')
+  async generatePartnerFinancialReport(
+    @Body() partnerFinancialReportDto: PartnerFinancialReportDto,
+    @Res() res: Response,
+  ) {
+    try {
+      const { buffer, filename } = await this.reportService.generatePartnerFinancialReport(
+        partnerFinancialReportDto,
       );
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename=${filename}`);

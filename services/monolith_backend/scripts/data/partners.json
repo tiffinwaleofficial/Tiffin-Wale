@@ -1,0 +1,184 @@
+[
+  {
+    "businessName": "Tipinwala Food Services",
+    "ownerName": "Rajesh Kumar Sharma",
+    "address": {
+      "street": "Near MIG Thana, Atal Dwar",
+      "area": "New Palasia",
+      "city": "Indore",
+      "state": "Madhya Pradesh",
+      "postalCode": "452001",
+      "full": "Near MIG Thana, Atal Dwar, New Palasia, A B Road, Indore, Madhya Pradesh - 452001"
+    },
+    "contactEmail": "tipinwala.food@gmail.com",
+    "contactPhone": "+91 9826 123 456",
+    "whatsappNumber": "+91 9826 123 456",
+    "gstNumber": "23ABCDE1234F1Z",
+    "fssaiLicense": "23/2024/123456",
+    "establishedYear": 2018
+  },
+  {
+    "businessName": "Jay Ranjeet Tiffin Service",
+    "ownerName": "Jay Ranjeet Singh",
+    "address": {
+      "street": "Gumasta Nagar, Sector C",
+      "area": "Near Tarakunj Garden, SCH No 71",
+      "city": "Indore",
+      "state": "Madhya Pradesh",
+      "postalCode": "452009",
+      "full": "Gumasta Nagar, Sector C, Near Tarakunj Garden, SCH No 71, Indore, Madhya Pradesh - 452009"
+    },
+    "contactEmail": "jayranjeet.tiffin@gmail.com",
+    "contactPhone": "+91 9827 234 567",
+    "whatsappNumber": "+91 9827 234 567",
+    "gstNumber": "23FGHIJ5678K2Z",
+    "fssaiLicense": "23/2024/234567",
+    "establishedYear": 2019
+  },
+  {
+    "businessName": "Leven Foods",
+    "ownerName": "Leela Venkatesh",
+    "address": {
+      "street": "Vallabh Nagar",
+      "area": "Near Rajkumar Bridge, Chouhan Indane Gas Agency",
+      "city": "Indore",
+      "state": "Madhya Pradesh",
+      "postalCode": "452003",
+      "full": "Vallabh Nagar, Near Rajkumar Bridge, Chouhan Indane Gas Agency, Indore, Madhya Pradesh - 452003"
+    },
+    "contactEmail": "leven.foods@gmail.com",
+    "contactPhone": "+91 9828 345 678",
+    "whatsappNumber": "+91 9828 345 678",
+    "gstNumber": "23KLMNO9012P3Z",
+    "fssaiLicense": "23/2024/345678",
+    "establishedYear": 2020
+  },
+  {
+    "businessName": "Annapurna Tiffin Center",
+    "ownerName": "Priya Agarwal",
+    "address": {
+      "street": "59, Vishnu Puri Main",
+      "area": "Vishnu Puri Colony",
+      "city": "Indore",
+      "state": "Madhya Pradesh",
+      "postalCode": "452012",
+      "full": "59, Vishnu Puri Main, Vishnu Puri Colony, Indore, Madhya Pradesh - 452012"
+    },
+    "contactEmail": "annapurna.tiffin@gmail.com",
+    "contactPhone": "+91 9893 456 789",
+    "whatsappNumber": "+91 9893 456 789",
+    "gstNumber": "23QRSTU3456V4Z",
+    "fssaiLicense": "23/2024/456789",
+    "establishedYear": 2017
+  },
+  {
+    "businessName": "Samyak Tiffin Centre",
+    "ownerName": "Samyak Jain",
+    "address": {
+      "street": "Vijay Nagar",
+      "area": "Near K3 IAS Library",
+      "city": "Indore",
+      "state": "Madhya Pradesh",
+      "postalCode": "452010",
+      "full": "Vijay Nagar, Near K3 IAS Library, Indore, Madhya Pradesh - 452010"
+    },
+    "contactEmail": "samyak.tiffin@gmail.com",
+    "contactPhone": "+91 9894 567 890",
+    "whatsappNumber": "+91 9894 567 890",
+    "gstNumber": "23WXYZA7890B5Z",
+    "fssaiLicense": "23/2024/567890",
+    "establishedYear": 2019
+  },
+  {
+    "businessName": "Veronica's Kitchen & Tiffin Center",
+    "ownerName": "Veronica D'Souza",
+    "address": {
+      "street": "Hotel Sourabh Inn",
+      "area": "Sanchar Nagar Extension",
+      "city": "Indore",
+      "state": "Madhya Pradesh",
+      "postalCode": "452016",
+      "full": "Hotel Sourabh Inn, Sanchar Nagar Extension, Indore, Madhya Pradesh - 452016"
+    },
+    "contactEmail": "veronica.kitchen@gmail.com",
+    "contactPhone": "+91 9895 678 901",
+    "whatsappNumber": "+91 9895 678 901",
+    "gstNumber": "23CDEFG1234H6Z",
+    "fssaiLicense": "23/2024/678901",
+    "establishedYear": 2018
+  },
+  {
+    "businessName": "Ghar Sa Khana Tiffin Services",
+    "ownerName": "Amit Patel",
+    "address": {
+      "street": "Near Sri Aurobindo Institute of Pharmacy",
+      "area": "Shri Aurobindo",
+      "city": "Indore",
+      "state": "Madhya Pradesh",
+      "postalCode": "452013",
+      "full": "Near Sri Aurobindo Institute of Pharmacy, Shri Aurobindo, Indore, Madhya Pradesh - 452013"
+    },
+    "contactEmail": "gharsakhana.tiffin@gmail.com",
+    "contactPhone": "+91 9896 789 012",
+    "whatsappNumber": "+91 9896 789 012",
+    "gstNumber": "23HIJKL5678M7Z",
+    "fssaiLicense": "23/2024/789012",
+    "establishedYear": 2021
+  },
+  {
+    "businessName": "Shree Thakur Baba Tiffin Service",
+    "ownerName": "Ramesh Thakur",
+    "address": {
+      "street": "Scheme 78, Opposite Prestige College",
+      "area": "Vijay Nagar, MR 10 Road",
+      "city": "Indore",
+      "state": "Madhya Pradesh",
+      "postalCode": "452010",
+      "full": "Scheme 78, Opposite Prestige College, Vijay Nagar, MR 10 Road, Indore, Madhya Pradesh - 452010"
+    },
+    "contactEmail": "thakurbaba.tiffin@gmail.com",
+    "contactPhone": "+91 9897 890 123",
+    "whatsappNumber": "+91 9897 890 123",
+    "gstNumber": "23NOPQR9012S8Z",
+    "fssaiLicense": "23/2024/890123",
+    "establishedYear": 2016
+  },
+  {
+    "businessName": "Diet Dial",
+    "ownerName": "Dr. Anjali Mehta",
+    "address": {
+      "street": "Corporate Office",
+      "area": "Palasia",
+      "city": "Indore",
+      "state": "Madhya Pradesh",
+      "postalCode": "452001",
+      "full": "Corporate Office, Palasia, Indore, Madhya Pradesh - 452001"
+    },
+    "contactEmail": "dietdial.indore@gmail.com",
+    "contactPhone": "+91 9898 901 234",
+    "whatsappNumber": "+91 9898 901 234",
+    "gstNumber": "23TUVWX3456Y9Z",
+    "fssaiLicense": "23/2024/901234",
+    "establishedYear": 2020
+  },
+  {
+    "businessName": "Bhojankart",
+    "ownerName": "Vikram Singh",
+    "address": {
+      "street": "Central Kitchen",
+      "area": "Sapna Sangeeta Road",
+      "city": "Indore",
+      "state": "Madhya Pradesh",
+      "postalCode": "452001",
+      "full": "Central Kitchen, Sapna Sangeeta Road, Indore, Madhya Pradesh - 452001"
+    },
+    "contactEmail": "bhojankart.indore@gmail.com",
+    "contactPhone": "+91 9826 012 345",
+    "whatsappNumber": "+91 9826 012 345",
+    "gstNumber": "23ZABCD7890E0Z",
+    "fssaiLicense": "23/2024/012345",
+    "establishedYear": 2019
+  }
+]
+
+

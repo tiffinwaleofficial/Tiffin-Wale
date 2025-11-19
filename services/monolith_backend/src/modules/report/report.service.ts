@@ -15,6 +15,8 @@ import {
   PartnerMouDto,
   ServiceAgreementDto,
   PartnerNdaDto,
+  CustomerFinancialReportDto,
+  PartnerFinancialReportDto,
 } from "./dto";
 import {
   OrderReceiptData,
@@ -25,6 +27,8 @@ import {
   PartnerMouData,
   ServiceAgreementData,
   PartnerNdaData,
+  CustomerFinancialReportData,
+  PartnerFinancialReportData,
 } from "./interfaces/report-data.interface";
 import { OrderService } from "../order/order.service";
 import { SubscriptionService } from "../subscription/subscription.service";
@@ -39,6 +43,8 @@ import {
   PartnerMouDataGenerator,
   ServiceAgreementDataGenerator,
   PartnerNdaDataGenerator,
+  CustomerFinancialReportDataGenerator,
+  PartnerFinancialReportDataGenerator,
 } from "./generators";
 
 /**
@@ -64,6 +70,8 @@ export class ReportService {
     private readonly partnerMouDataGenerator: PartnerMouDataGenerator,
     private readonly serviceAgreementDataGenerator: ServiceAgreementDataGenerator,
     private readonly partnerNdaDataGenerator: PartnerNdaDataGenerator,
+    private readonly customerFinancialReportDataGenerator: CustomerFinancialReportDataGenerator,
+    private readonly partnerFinancialReportDataGenerator: PartnerFinancialReportDataGenerator,
   ) {}
 
   /**
@@ -656,5 +664,61 @@ export class ReportService {
         companyPanNumber: dto.companyPanNumber,
       },
     );
+  }
+
+  /**
+   * Generate Customer Financial Report PDF
+   */
+  async generateCustomerFinancialReport(
+    dto: CustomerFinancialReportDto,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      const logoImageBase64 = this.pdfService.getLogoImageBase64();
+      const reportData = await this.customerFinancialReportDataGenerator.prepareCustomerFinancialReportData(
+        dto,
+        logoImageBase64,
+      );
+
+      const pdfBuffer = await this.pdfService.generate("finance/customer-financial-report", reportData);
+      const filename = `Customer Financial Report - ${reportData.generationDate}.pdf`;
+
+      const config = this.pdfService.getConfig();
+      if (config.storage.saveOnGeneration) {
+        await this.pdfStorageService.savePdf(pdfBuffer, filename, "financial-reports");
+      }
+
+      return { buffer: pdfBuffer, filename };
+    } catch (error) {
+      this.logger.error(`Error generating customer financial report: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate Partner Financial Report PDF
+   */
+  async generatePartnerFinancialReport(
+    dto: PartnerFinancialReportDto,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    try {
+      const logoImageBase64 = this.pdfService.getLogoImageBase64();
+      const reportData = await this.partnerFinancialReportDataGenerator.preparePartnerFinancialReportData(
+        dto,
+        logoImageBase64,
+      );
+
+      const pdfBuffer = await this.pdfService.generate("finance/partner-financial-report", reportData);
+      const filename = `Partner Financial Report - ${reportData.generationDate}.pdf`;
+
+      const config = this.pdfService.getConfig();
+      if (config.storage.saveOnGeneration) {
+        await this.pdfStorageService.savePdf(pdfBuffer, filename, "financial-reports");
+      }
+
+      return { buffer: pdfBuffer, filename };
+    } catch (error) {
+      this.logger.error(`Error generating partner financial report: ${error.message}`, error.stack);
+      throw error;
+    }
   }
 }

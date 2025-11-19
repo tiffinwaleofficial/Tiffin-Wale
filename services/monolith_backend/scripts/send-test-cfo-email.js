@@ -1,8 +1,8 @@
 const axios = require('axios');
 
 const BASE_URL = 'http://127.0.0.1:3001';
-const TEST_EMAIL = 'riyat4408@gmail.com';
-const TEST_NAME = 'Irum';
+const TEST_EMAIL = 'karmarahul67@gmail.com';
+const TEST_NAME = 'Kapin';
 
 // Colors for console output, consistent with other scripts
 const colors = {

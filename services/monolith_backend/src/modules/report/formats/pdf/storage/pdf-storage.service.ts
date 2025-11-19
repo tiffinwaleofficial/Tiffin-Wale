@@ -31,6 +31,7 @@ export class PdfStorageService {
       "contracts",
       "invoices",
       "legal-documents",
+      "financial-reports",
     ];
 
     directories.forEach((dir) => {

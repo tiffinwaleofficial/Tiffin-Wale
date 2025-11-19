@@ -320,3 +320,220 @@ export interface PartnerNdaData {
     signedAt?: string;
   };
 }
+
+/**
+ * Customer Financial Report data structure
+ */
+export interface CustomerFinancialReportData {
+  generationDate: string;
+  reportPeriod: string;
+  company: {
+    name: string;
+    shortName: string;
+    website: string;
+    email: string;
+    phone: string;
+    address: {
+      line1: string;
+      city: string;
+      state: string;
+      zip: string;
+    };
+  };
+  logoImage: string;
+  summary: {
+    totalUsers: number;
+    activeSubscriptions: number;
+    totalRevenue: number;
+    gstCollected: number;
+    netRevenue: number;
+    currentMonthRevenue: number;
+  };
+  metrics: {
+    currentMonth: {
+      newSubscriptions: number;
+      usersOnboarded: number;
+      revenue: number;
+      growthPercent: number;
+    };
+    lastMonth: {
+      newSubscriptions: number;
+      usersOnboarded: number;
+      revenue: number;
+      growthPercent: number;
+    };
+    past3Months: Array<{
+      month: string;
+      newSubscriptions: number;
+      usersOnboarded: number;
+      revenue: number;
+      growthPercent: number;
+    }>;
+  };
+  revenueBreakdown: {
+    totalRevenue: number;
+    gstCollected: number;
+    netRevenue: number;
+    byPlanType: Array<{
+      planName: string;
+      subscribers: number;
+      monthlyRevenue: number;
+      totalRevenue: number;
+      percentage: number;
+    }>;
+  };
+  users: Array<{
+    userId: string;
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    planName: string;
+    price: number;
+    purchaseDate: string;
+    gst: number;
+    totalAmount: number;
+    status: string;
+    renewalDate: string;
+  }>;
+  charts: {
+    subscriptionTrend: {
+      labels: string[];
+      data: number[];
+    };
+    revenueBar: {
+      labels: string[];
+      data: number[];
+    };
+    planDistribution: {
+      labels: string[];
+      data: number[];
+    };
+  };
+}
+
+/**
+ * Partner Financial Report data structure
+ */
+export interface PartnerFinancialReportData {
+  generationDate: string;
+  reportPeriod: string;
+  company: {
+    name: string;
+    shortName: string;
+    website: string;
+    email: string;
+    phone: string;
+    address: {
+      line1: string;
+      city: string;
+      state: string;
+      zip: string;
+    };
+  };
+  logoImage: string;
+  summary: {
+    totalPartners: number;
+    activePartners: number;
+    totalCompanyRevenue: number;
+    totalPartnerPayouts: number;
+    netProfit: number;
+    profitMargin: number;
+  };
+  metrics: {
+    currentMonth: {
+      newPartners: number;
+      totalRevenue: number;
+      totalOrders: number;
+      growthPercent: number;
+    };
+    lastMonth: {
+      newPartners: number;
+      totalRevenue: number;
+      totalOrders: number;
+      growthPercent: number;
+    };
+    past3Months: Array<{
+      month: string;
+      newPartners: number;
+      totalRevenue: number;
+      totalOrders: number;
+      growthPercent: number;
+    }>;
+  };
+  financialMetrics: {
+    totalCompanyRevenue: number;
+    totalPartnerPayouts: number;
+    gstCollected: number;
+    otherTaxes: number;
+    netRevenue: number;
+    operatingCosts: number;
+    netProfit: number;
+    profitMargin: number;
+  };
+  costAnalysis: {
+    cac: number;
+    cacPercent: number;
+    advertisementExpenses: number;
+    advertisementPercent: number;
+    marketingCosts: number;
+    marketingPercent: number;
+    operationalCosts: number;
+    operationalPercent: number;
+    totalOperatingCosts: number;
+    totalPercent: number;
+    monthlyAdvertisementBreakdown: Array<{
+      month: string;
+      advertisementSpend: number;
+      newCustomers: number;
+      cac: number;
+    }>;
+  };
+  perPartnerBreakdown: Array<{
+    partnerId: string;
+    businessName: string;
+    cashBurnPerMonth: number;
+    avgOrderValue: number;
+    totalOrders: number;
+    totalRevenue: number;
+    partnerShare: number;
+    companyShare: number;
+    commissionEarned: number;
+  }>;
+  partners: Array<{
+    partnerId: string;
+    businessName: string;
+    ownerName: string;
+    address: string;
+    onboardingDate: string;
+    status: string;
+    totalOrders: number;
+    totalRevenue: number;
+    partnerShare: number;
+    companyShare: number;
+    gstBreakdown: number;
+  }>;
+  charts: {
+    partnerOnboarding: {
+      labels: string[];
+      data: number[];
+    };
+    revenueTrend: {
+      labels: string[];
+      companyData: number[];
+      partnerData: number[];
+    };
+    revenueDistribution: {
+      labels: string[];
+      data: number[];
+    };
+    costBreakdown: {
+      labels: string[];
+      data: number[];
+    };
+    profitMargin: {
+      labels: string[];
+      data: number[];
+    };
+  };
+}
