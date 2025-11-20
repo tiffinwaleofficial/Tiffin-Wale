@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Image, Dimensions, Animated, Modal, StatusBar } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -6,21 +6,59 @@ const { width, height } = Dimensions.get('window');
 
 interface SplashScreenProps {
   onComplete?: () => void;
+  visible?: boolean;
 }
 
-export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
+const LOADING_MESSAGES = [
+  'Preparing your delicious meals...',
+  'Fetching fresh menu items...',
+  'Loading your subscriptions...',
+  'Setting up your dashboard...',
+  'Almost ready...',
+];
+
+export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, visible = true }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
+  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+  const messageOpacity = useRef(new Animated.Value(1)).current;
+
+  // Rotate through loading messages
+  useEffect(() => {
+    if (!visible) return;
+
+    const messageInterval = setInterval(() => {
+      // Fade out current message
+      Animated.timing(messageOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        // Change message
+        setCurrentMessageIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
+        // Fade in new message
+        Animated.timing(messageOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      });
+    }, 1500); // Change message every 1.5 seconds
+
+    return () => clearInterval(messageInterval);
+  }, [visible, messageOpacity]);
 
   useEffect(() => {
+    if (!visible) return;
+
     // Animate splash screen elements
     Animated.sequence([
       // Fade in and scale logo
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 800,
+          duration: 600,
           useNativeDriver: true,
         }),
         Animated.spring(scaleAnim, {
@@ -33,21 +71,23 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
       // Slide up text
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 600,
+        duration: 500,
         useNativeDriver: true,
       }),
     ]).start();
 
-    // Auto-complete after animation (fallback)
+    // Minimum display time of 2.5 seconds
     const timer = setTimeout(() => {
       onComplete?.();
-    }, 3000);
+    }, 2500);
 
     return () => clearTimeout(timer);
-  }, [fadeAnim, scaleAnim, slideAnim, onComplete]);
+  }, [fadeAnim, scaleAnim, slideAnim, onComplete, visible]);
+
+  if (!visible) return null;
 
   return (
-    <Modal visible={true} transparent={false} animationType="fade" statusBarTranslucent>
+    <Modal visible={visible} transparent={false} animationType="none" statusBarTranslucent>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <View style={styles.container}>
         <LinearGradient
@@ -90,14 +130,21 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
               <Text style={styles.tagline}>Delicious meals for bachelors</Text>
             </Animated.View>
 
-            {/* Loading Indicator */}
+            {/* Animated Loading Messages */}
             <Animated.View
               style={[
                 styles.loadingContainer,
                 { opacity: fadeAnim }
               ]}
             >
-              <Text style={styles.loadingText}>Setting up your dashboard...</Text>
+              <Animated.Text
+                style={[
+                  styles.loadingText,
+                  { opacity: messageOpacity }
+                ]}
+              >
+                {LOADING_MESSAGES[currentMessageIndex]}
+              </Animated.Text>
               <LoadingDots />
             </Animated.View>
           </View>
@@ -109,20 +156,20 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
 
 // Animated loading dots component
 const LoadingDots: React.FC = () => {
-  const dot1 = useRef(new Animated.Value(0)).current;
-  const dot2 = useRef(new Animated.Value(0)).current;
-  const dot3 = useRef(new Animated.Value(0)).current;
+  const dot1 = useRef(new Animated.Value(0.3)).current;
+  const dot2 = useRef(new Animated.Value(0.3)).current;
+  const dot3 = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
     const animateDots = () => {
       Animated.sequence([
-        Animated.timing(dot1, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.timing(dot2, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.timing(dot3, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.timing(dot1, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.timing(dot2, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.timing(dot3, { toValue: 1, duration: 400, useNativeDriver: true }),
         Animated.parallel([
-          Animated.timing(dot1, { toValue: 0.3, duration: 300, useNativeDriver: true }),
-          Animated.timing(dot2, { toValue: 0.3, duration: 300, useNativeDriver: true }),
-          Animated.timing(dot3, { toValue: 0.3, duration: 300, useNativeDriver: true }),
+          Animated.timing(dot1, { toValue: 0.3, duration: 400, useNativeDriver: true }),
+          Animated.timing(dot2, { toValue: 0.3, duration: 400, useNativeDriver: true }),
+          Animated.timing(dot3, { toValue: 0.3, duration: 400, useNativeDriver: true }),
         ]),
       ]).start(() => animateDots());
     };
@@ -178,10 +225,10 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     alignItems: 'center',
-    marginBottom: 60,
+    marginBottom: 80,
   },
   brandName: {
-    fontSize: 42,
+    fontSize: 48,
     fontFamily: 'Poppins-Bold',
     color: '#FFFFFF',
     textAlign: 'center',
@@ -192,34 +239,36 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
   tagline: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: 'Poppins-Medium',
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: 'rgba(255, 255, 255, 0.95)',
     textAlign: 'center',
     letterSpacing: 0.5,
   },
   loadingContainer: {
     position: 'absolute',
-    bottom: 80,
+    bottom: 100,
     alignItems: 'center',
-    gap: 16,
+    gap: 20,
+    paddingHorizontal: 40,
   },
   loadingText: {
-    fontSize: 14,
-    fontFamily: 'Poppins-Regular',
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 8,
+    fontSize: 16,
+    fontFamily: 'Poppins-Medium',
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+    minHeight: 24,
   },
   dotsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 10,
   },
   dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: '#FFFFFF',
   },
 });

@@ -94,15 +94,16 @@ export default function HomeScreen() {
     const isSubscriptionReady = !subscriptionLoading;
 
     if (isAuthReady && isSubscriptionReady) {
-      if (__DEV__) console.log('🎬 Splash: Auth and subscription ready, hiding splash screen', {
+      if (__DEV__) console.log('🎬 Splash: Auth and subscription ready, will hide splash after minimum time', {
         currentSubscription: !!currentSubscription,
         subscriptionLoading
       });
 
-      // Dashboard is ready with definitive subscription status, hide splash
+      // Ensure splash shows for minimum 2.5 seconds (handled by SplashScreen component)
+      // No additional delay needed here
       const timer = setTimeout(() => {
         setShowSplash(false);
-      }, 1000); // Give enough time for smooth transition
+      }, 100); // Minimal delay for smooth state update
       return () => clearTimeout(timer);
     }
   }, [isInitialized, authLoading, subscriptionLoading, currentSubscription]);
@@ -214,26 +215,16 @@ export default function HomeScreen() {
     }
   };
 
-  // Show loading screen while auth is initializing
-  if (!isInitialized || authLoading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF9B42" />
-          <Text style={styles.loadingText}>{t('loading')}</Text>
-        </View>
-      </View>
-    );
-  }
+  // Always show splash screen first - no intermediate loading
+  // The splash screen will handle all loading states
 
   return (
     <View style={styles.container}>
-      {/* Splash Screen Overlay */}
-      {showSplash && (
-        <SplashScreen
-          onComplete={() => setShowSplash(false)}
-        />
-      )}
+      {/* Splash Screen Overlay - Always visible during initial load */}
+      <SplashScreen
+        visible={showSplash}
+        onComplete={() => setShowSplash(false)}
+      />
       {/* Header - Only show when no active subscription */}
       {!currentSubscription && (
         <View style={styles.header}>
