@@ -56,6 +56,11 @@ export class MailjetService {
     cc?: string[];
     bcc?: string[];
     replyTo?: string;
+    attachments?: Array<{
+      filename: string;
+      content: Buffer | string;
+      contentType?: string;
+    }>;
   }): Promise<EmailResult> {
     if (!this.isServiceEnabled) {
       this.logger.warn("Mailjet email service is disabled.");
@@ -101,6 +106,13 @@ export class MailjetService {
             ReplyTo: emailData.replyTo
               ? { Email: emailData.replyTo }
               : undefined,
+            Attachments: emailData.attachments?.map((att) => ({
+              ContentType: att.contentType || "application/pdf",
+              Filename: att.filename,
+              Base64Content: Buffer.isBuffer(att.content)
+                ? att.content.toString("base64")
+                : att.content,
+            })),
           },
         ],
       };

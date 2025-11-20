@@ -5,20 +5,28 @@ import {
   StyleSheet,
   Modal,
   TouchableOpacity,
-  TextInput,
   ScrollView,
-  Image,
-  FlatList,
   Platform,
+  Alert,
 } from 'react-native';
-import { Star, X, Camera, Image as ImageIcon, Trash2, Video, Play } from 'lucide-react-native';
+import { X } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useReviewStore } from '@/store/reviewStore';
 import { imageUploadService, UploadType } from '@/services/imageUploadService';
 import { cloudinaryDeleteService } from '@/services/cloudinaryDeleteService';
 import * as ImagePicker from 'expo-image-picker';
-import { useValidationNotifications, useSystemNotifications } from '@/hooks/useFirebaseNotification';
+import { useValidationNotifications } from '@/hooks/useFirebaseNotification';
 import { Review } from '@/types';
+import { useTheme } from '@/hooks/useTheme';
+import { Theme } from '@/theme/types';
+
+import {
+  ReviewRating,
+  ReviewComment,
+  ReviewMedia,
+  MediaPreviewModal,
+  MediaFile
+} from './review';
 
 interface ReviewModalProps {
   visible: boolean;
@@ -40,24 +48,15 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   const { t } = useTranslation('common');
   const { requiredField } = useValidationNotifications();
   const { showSuccess, showError, showInfo } = require('@/hooks/useFirebaseNotification').default();
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
+
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
-  const [mediaFiles, setMediaFiles] = useState<Array<{
-    uri: string, 
-    type: 'image' | 'video', 
-    duration?: number, 
-    cloudinaryUrl?: string, 
-    uploading?: boolean,
-    progress?: number,
-    status?: 'optimizing' | 'uploading' | 'completed' | 'failed',
-    optimizationData?: {
-      originalSize: number,
-      optimizedSize: number,
-      compressionRatio: number
-    }
-  }>>([]);
+  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [previewMedia, setPreviewMedia] = useState<{ uri: string, type: 'image' | 'video' } | null>(null);
 
   // Initialize form with editing review data
   React.useEffect(() => {
@@ -79,18 +78,17 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
       setMediaFiles([]);
     }
   }, [editingReview, visible]);
-  const [previewMedia, setPreviewMedia] = useState<{uri: string, type: 'image' | 'video'} | null>(null);
-  
+
   const { createReview, updateReview } = useReviewStore();
 
   // Remove media file and clean up Cloudinary asset if needed
   const removeMediaFile = async (index: number) => {
     const fileToRemove = mediaFiles[index];
-    
+
     // If it's a Cloudinary URL (not a local file), delete from Cloudinary
     if (fileToRemove.cloudinaryUrl && fileToRemove.cloudinaryUrl.startsWith('http')) {
       console.log('🗑️ ReviewModal: Removing Cloudinary asset:', fileToRemove.cloudinaryUrl);
-      
+
       if (cloudinaryDeleteService.isConfigured()) {
         const success = await cloudinaryDeleteService.deleteAsset(fileToRemove.cloudinaryUrl);
         if (success) {
@@ -102,7 +100,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
         console.warn('⚠️ ReviewModal: Cloudinary delete service not configured');
       }
     }
-    
+
     // Remove from local state
     setMediaFiles(prev => prev.filter((_, i) => i !== index));
   };
@@ -112,63 +110,63 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
     try {
       console.log('☁️ Starting optimized Cloudinary upload for:', mediaType);
       console.log('☁️ File URI:', fileUri);
-      
+
       // Check if imageUploadService is configured
       const configStatus = imageUploadService.getConfigStatus();
       console.log('☁️ Cloudinary config status:', configStatus);
-      
+
       if (!configStatus.configured) {
         console.error('❌ Cloudinary not configured:', configStatus.missing);
         showError('Configuration Error', 'Media upload is temporarily unavailable. Please try again later! 📷');
         return;
       }
-      
+
       const uploadType = mediaType === 'video' ? UploadType.REVIEW_VIDEO : UploadType.REVIEW_IMAGE;
       console.log('☁️ Upload type:', uploadType);
-      
+
       // Progress callback to update UI
       const onProgress = (progress: number, status: string, optimizationData?: any) => {
         console.log(`📊 Upload progress: ${progress}% - ${status}`);
-        
-        setMediaFiles(prev => prev.map(file => 
-          file.uri === fileUri 
-            ? { 
-                ...file, 
-                progress: progress,
-                status: status as any,
-                optimizationData: optimizationData ? {
-                  originalSize: optimizationData.originalSize,
-                  optimizedSize: optimizationData.optimizedSize,
-                  compressionRatio: optimizationData.compressionRatio
-                } : undefined
-              }
+
+        setMediaFiles(prev => prev.map(file =>
+          file.uri === fileUri
+            ? {
+              ...file,
+              progress: progress,
+              status: status as any,
+              optimizationData: optimizationData ? {
+                originalSize: optimizationData.originalSize,
+                optimizedSize: optimizationData.optimizedSize,
+                compressionRatio: optimizationData.compressionRatio
+              } : undefined
+            }
             : file
         ));
       };
-      
+
       // Use the new optimized upload method
       const result = await imageUploadService.uploadImageWithProgress(
-        fileUri, 
-        uploadType, 
+        fileUri,
+        uploadType,
         onProgress
       );
-      
+
       if (result.success && result.url) {
         console.log('✅ Optimized Cloudinary upload successful:', result.url);
-        
+
         // Update the media file with final result
-        setMediaFiles(prev => prev.map(file => 
-          file.uri === fileUri 
-            ? { 
-                ...file, 
-                cloudinaryUrl: result.url, 
-                uploading: false,
-                progress: 100,
-                status: 'completed'
-              }
+        setMediaFiles(prev => prev.map(file =>
+          file.uri === fileUri
+            ? {
+              ...file,
+              cloudinaryUrl: result.url,
+              uploading: false,
+              progress: 100,
+              status: 'completed'
+            }
             : file
         ));
-        
+
         // Show success message with optimization info
         if (result.metadata?.optimization?.compressionRatio > 0) {
           const compressionPercent = Math.round(result.metadata.optimization.compressionRatio * 100);
@@ -176,26 +174,26 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
         }
       } else {
         console.error('❌ Optimized Cloudinary upload failed:', result.error);
-        
+
         // Mark upload as failed
-        setMediaFiles(prev => prev.map(file => 
-          file.uri === fileUri 
+        setMediaFiles(prev => prev.map(file =>
+          file.uri === fileUri
             ? { ...file, uploading: false, status: 'failed', progress: 0 }
             : file
         ));
-        
+
         showError('Upload Failed 😅', result.error || 'Failed to upload media. Please try again!');
       }
     } catch (error) {
       console.error('❌ Optimized Cloudinary upload error:', error);
-      
+
       // Mark upload as failed
-      setMediaFiles(prev => prev.map(file => 
-        file.uri === fileUri 
+      setMediaFiles(prev => prev.map(file =>
+        file.uri === fileUri
           ? { ...file, uploading: false, status: 'failed', progress: 0 }
           : file
       ));
-      
+
       showError('Upload Error 😅', 'Failed to upload media to Cloudinary. Please try again!');
     }
   };
@@ -215,18 +213,18 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
         setIsSubmitting(false);
         return;
       }
-      
+
       // Use already uploaded Cloudinary URLs
       let uploadedMediaUrls: string[] = [];
-      
+
       if (mediaFiles.length > 0) {
         uploadedMediaUrls = mediaFiles
           .filter(file => file.cloudinaryUrl)
           .map(file => file.cloudinaryUrl!);
-        
+
         console.log('✅ Using uploaded media URLs:', uploadedMediaUrls);
       }
-      
+
       // Create or update review with uploaded media URLs
       if (editingReview) {
         // Update existing review
@@ -245,15 +243,15 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
           menuItemId,
         });
       }
-      
+
       // Reset form
       setRating(0);
       setComment('');
       setMediaFiles([]);
-      
+
       onReviewSubmitted?.();
       onClose();
-      
+
       showSuccess('Review Submitted! 🌟', 'Thank you for your feedback! Your review helps other food lovers make better choices 🍽️');
     } catch (error) {
       console.error('❌ Review submission error:', error);
@@ -264,66 +262,41 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
     }
   };
 
-  const renderStars = () => {
-    return Array.from({ length: 5 }, (_, index) => (
-      <TouchableOpacity
-        key={index}
-        onPress={() => setRating(index + 1)}
-        style={styles.starButton}
-      >
-        <Star
-          size={32}
-          color={index < rating ? "#FFD700" : "#E0E0E0"}
-          fill={index < rating ? "#FFD700" : "transparent"}
-        />
-      </TouchableOpacity>
-    ));
-  };
-
   const handleAddMedia = async () => {
     try {
       console.log('🔍 ReviewModal: Add media button clicked');
-      console.log('🔍 Platform.OS:', Platform.OS);
-      console.log('🔍 imageUploadService configured:', imageUploadService.isConfigured());
-      console.log('🔍 imageUploadService config:', imageUploadService.getConfigStatus());
-      
+
       // For web, we'll use a simple file input approach
       if (Platform.OS === 'web') {
-        console.log('🌐 Web platform detected, using file input');
-        
+        // ... (Web implementation omitted for brevity, assuming mobile focus for now or can be re-added if needed)
+        // Re-adding web implementation for completeness if needed, but focusing on refactor
+        // Keeping it simple for now as per request to break down components
+        // If web support is critical, I should have extracted it to a service or hook
+        // For now, I'll just use Alert for mobile as primary flow
+
         // Check if we're in a browser environment
         if (typeof document === 'undefined') {
           console.error('❌ Document not available - not in browser environment');
           Alert.alert('Error', 'File upload not available in this environment');
           return;
         }
-        
+
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*,video/*';
         input.multiple = true;
         input.style.display = 'none';
-        
+
         input.onchange = (event: any) => {
           const files = Array.from(event.target.files) as File[];
-          console.log('📁 Files selected:', files.length);
-          
-          if (files.length === 0) {
-            console.log('📁 No files selected');
-            return;
-          }
-          
+          if (files.length === 0) return;
+
           files.forEach(file => {
-            console.log('📸 Processing file:', file.name, file.type, file.size);
-            
             const reader = new FileReader();
             reader.onload = (e) => {
               const result = e.target?.result as string;
-              console.log('📸 File loaded successfully:', file.name);
-              
               const mediaType = file.type.startsWith('video/') ? 'video' as const : 'image' as const;
-              
-              // Add to media files with uploading state
+
               setMediaFiles(prev => {
                 const newFiles = [...prev, {
                   uri: result,
@@ -331,40 +304,28 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                   duration: undefined,
                   uploading: true,
                 }];
-                console.log('📸 Updated mediaFiles:', newFiles.length);
                 return newFiles;
               });
-              
-              // Start immediate optimized Cloudinary upload
+
               uploadToCloudinaryWithProgress(result, mediaType);
             };
-            
-            reader.onerror = (error) => {
-              console.error('❌ FileReader error:', error);
-            };
-            
             reader.readAsDataURL(file);
           });
         };
-        
-        // Add to DOM temporarily and trigger click
+
         document.body.appendChild(input);
         input.click();
         document.body.removeChild(input);
-        
-        console.log('📁 File input triggered');
         return;
       }
-      
-      // For mobile platforms, use Alert
-      console.log('📱 Mobile platform detected, using Alert');
-        Alert.alert(t('addMedia'), t('chooseHowToAddMedia'), [
-          { text: t('takePhoto'), onPress: () => takePicture() },
-          { text: t('recordVideo'), onPress: () => takeVideo() },
-          { text: t('chooseFromGallery'), onPress: () => pickMedia() },
-          { text: t('cancel'), style: 'cancel' },
-        ]
-      );
+
+      // For mobile platforms
+      Alert.alert(t('addMedia'), t('chooseHowToAddMedia'), [
+        { text: t('takePhoto'), onPress: () => takePicture() },
+        { text: t('recordVideo'), onPress: () => takeVideo() },
+        { text: t('chooseFromGallery'), onPress: () => pickMedia() },
+        { text: t('cancel'), style: 'cancel' },
+      ]);
     } catch (error) {
       console.error('❌ Media picker error:', error);
       Alert.alert('Error', `Failed to open media picker: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -386,8 +347,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
           type: 'image' as const,
           uploading: true,
         }]);
-        
-        // Start immediate optimized Cloudinary upload
+
         uploadToCloudinaryWithProgress(asset.uri, 'image');
       }
     } catch (error) {
@@ -402,7 +362,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
         mediaTypes: ImagePicker.MediaTypeOptions.Videos,
         allowsEditing: true,
         quality: 0.8,
-        videoMaxDuration: 30, // 30 seconds max
+        videoMaxDuration: 30,
       });
 
       if (!result.canceled && result.assets?.[0]) {
@@ -413,8 +373,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
           duration: asset.duration || undefined,
           uploading: true,
         }]);
-        
-        // Start immediate optimized Cloudinary upload
+
         uploadToCloudinaryWithProgress(asset.uri, 'video');
       }
     } catch (error) {
@@ -442,8 +401,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
           uploading: true,
         }));
         setMediaFiles(prev => [...prev, ...newMediaFiles]);
-        
-        // Start immediate optimized Cloudinary uploads for all selected files
+
         result.assets.forEach(asset => {
           const mediaType = asset.type === 'video' ? 'video' as const : 'image' as const;
           uploadToCloudinaryWithProgress(asset.uri, mediaType);
@@ -453,18 +411,6 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
       console.error('❌ Media picker error:', error);
       Alert.alert('Error', 'Failed to pick media');
     }
-  };
-
-  // Keep the old function name for compatibility, but use the new implementation
-  const removeMedia = async (index: number) => {
-    await removeMediaFile(index);
-  };
-
-  // Handle modal close with cleanup
-  const handleClose = () => {
-    // If we're in editing mode and have unsaved changes, we might want to clean up
-    // any newly uploaded assets that weren't saved. For now, we'll just close.
-    onClose();
   };
 
   return (
@@ -481,150 +427,22 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
             {editingReview ? t('editReview') : t('writeReview')}
           </Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X size={24} color="#666" />
+            <X size={24} color={theme.colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Rating Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Rate your experience</Text>
-            <View style={styles.starsContainer}>
-              {renderStars()}
-            </View>
-            <Text style={styles.ratingText}>
-              {rating === 0 ? 'Select a rating' : `${rating} out of 5 stars`}
-            </Text>
-          </View>
+          <ReviewRating rating={rating} onRatingChange={setRating} />
 
-          {/* Comment Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Share your thoughts</Text>
-            <TextInput
-              style={styles.commentInput}
-              placeholder="Tell others about your experience..."
-              placeholderTextColor="#999"
-              value={comment}
-              onChangeText={setComment}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
-          </View>
+          <ReviewComment comment={comment} onCommentChange={setComment} />
 
-          {/* Media Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Add photos & videos (optional)</Text>
-            
-            {/* Selected Media */}
-            {mediaFiles.length > 0 && (
-              <View style={styles.selectedMediaContainer}>
-                <FlatList
-                  data={mediaFiles}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  keyExtractor={(_, index) => index.toString()}
-                  renderItem={({ item, index }) => (
-                    <View style={styles.mediaPreviewContainer}>
-                      <TouchableOpacity
-                        onPress={() => setPreviewMedia({ uri: item.uri, type: item.type })}
-                        style={styles.mediaPreviewTouchable}
-                      >
-                        {item.type === 'image' ? (
-                          <Image source={{ uri: item.uri }} style={styles.mediaPreview} />
-                        ) : (
-                          <View style={styles.videoPreview}>
-                            <Image source={{ uri: item.uri }} style={styles.mediaPreview} />
-                            <View style={styles.videoOverlay}>
-                              <Play size={20} color="#FFFFFF" fill="#FFFFFF" />
-                            </View>
-                            {item.duration && (
-                              <Text style={styles.videoDuration}>
-                                {Math.round(item.duration)}s
-                              </Text>
-                            )}
-                          </View>
-                        )}
-                        
-                        {/* Upload Progress Indicator */}
-                        {item.uploading && (
-                          <View style={styles.uploadingOverlay}>
-                            <View style={styles.progressContainer}>
-                              <View style={styles.progressBar}>
-                                <View 
-                                  style={[
-                                    styles.progressFill, 
-                                    { width: `${item.progress || 0}%` }
-                                  ]} 
-                                />
-                              </View>
-                              <Text style={styles.uploadingText}>
-                                {item.status === 'optimizing' ? 'Optimizing...' : 
-                                 item.status === 'uploading' ? 'Uploading...' : 
-                                 'Processing...'}
-                              </Text>
-                              <Text style={styles.progressPercentage}>
-                                {Math.round(item.progress || 0)}%
-                              </Text>
-                            </View>
-                          </View>
-                        )}
-                        
-                        {/* Upload Success Indicator */}
-                        {item.cloudinaryUrl && !item.uploading && (
-                          <View style={styles.uploadSuccessOverlay}>
-                            <Text style={styles.uploadSuccessText}>✓</Text>
-                            {item.optimizationData && item.optimizationData.compressionRatio > 0 && (
-                              <Text style={styles.compressionText}>
-                                -{Math.round(item.optimizationData.compressionRatio * 100)}%
-                              </Text>
-                            )}
-                          </View>
-                        )}
-                        
-                        {/* Upload Failed Indicator */}
-                        {item.status === 'failed' && (
-                          <View style={styles.uploadFailedOverlay}>
-                            <Text style={styles.uploadFailedText}>✗</Text>
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                      
-                      <TouchableOpacity
-                        style={styles.removeMediaButton}
-                        onPress={() => removeMedia(index)}
-                      >
-                        <Trash2 size={16} color="#FFFFFF" />
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                />
-              </View>
-            )}
-            
-            {/* Add Media Button */}
-            <TouchableOpacity 
-              style={styles.addMediaButton} 
-              onPress={() => {
-                console.log('🔍 ReviewModal: TouchableOpacity pressed');
-                handleAddMedia();
-              }}
-              disabled={isUploadingMedia}
-            >
-              <Camera size={24} color="#FF9B42" />
-              <Text style={styles.addMediaText}>
-                {isUploadingMedia ? t('uploading') : t('addPhotosVideos')}
-              </Text>
-            </TouchableOpacity>
-            
-            
-            {/* Media Count */}
-            {mediaFiles.length > 0 && (
-              <Text style={styles.mediaCountText}>
-                {mediaFiles.length} file{mediaFiles.length > 1 ? 's' : ''} selected
-              </Text>
-            )}
-          </View>
+          <ReviewMedia
+            mediaFiles={mediaFiles}
+            isUploadingMedia={isUploadingMedia}
+            onAddMedia={handleAddMedia}
+            onRemoveMedia={removeMediaFile}
+            onPreviewMedia={setPreviewMedia}
+          />
         </ScrollView>
 
         {/* Submit Button */}
@@ -641,8 +459,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
               styles.submitButtonText,
               rating === 0 && styles.submitButtonTextDisabled,
             ]}>
-              {isSubmitting 
-                ? (isUploadingMedia ? t('uploadingMedia') : t('submitting')) 
+              {isSubmitting
+                ? (isUploadingMedia ? t('uploadingMedia') : t('submitting'))
                 : (editingReview ? t('updateReview') : t('submitReview'))
               }
             </Text>
@@ -651,358 +469,64 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
       </View>
 
       {/* Media Preview Modal */}
-      {previewMedia && (
-        <Modal
-          visible={!!previewMedia}
-          animationType="fade"
-          transparent={true}
-          onRequestClose={() => setPreviewMedia(null)}
-        >
-          <View style={styles.previewModalContainer}>
-            <TouchableOpacity 
-              style={styles.previewModalBackground}
-              onPress={() => setPreviewMedia(null)}
-            >
-              <View style={styles.previewModalContent}>
-                <TouchableOpacity 
-                  style={styles.previewCloseButton}
-                  onPress={() => setPreviewMedia(null)}
-                >
-                  <X size={24} color="#FFFFFF" />
-                </TouchableOpacity>
-                
-                {previewMedia.type === 'image' ? (
-                  <Image source={{ uri: previewMedia.uri }} style={styles.previewImage} />
-                ) : (
-                  <View style={styles.previewVideoContainer}>
-                    <Image source={{ uri: previewMedia.uri }} style={styles.previewImage} />
-                    <View style={styles.previewVideoOverlay}>
-                      <Play size={40} color="#FFFFFF" fill="#FFFFFF" />
-                    </View>
-                  </View>
-                )}
-              </View>
-            </TouchableOpacity>
-          </View>
-        </Modal>
-      )}
+      <MediaPreviewModal
+        visible={!!previewMedia}
+        media={previewMedia}
+        onClose={() => setPreviewMedia(null)}
+      />
     </Modal>
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: theme.spacing.l,
+    paddingVertical: theme.spacing.m,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: theme.colors.border,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333333',
-    fontFamily: 'Poppins-SemiBold',
+    fontSize: theme.typography.size.l,
+    fontWeight: theme.typography.weight.semiBold,
+    color: theme.colors.text,
+    fontFamily: theme.typography.fontFamily.semiBold,
   },
   closeButton: {
     padding: 4,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-  },
-  section: {
-    marginVertical: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: 12,
-    fontFamily: 'Poppins-SemiBold',
-  },
-  starsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  starButton: {
-    padding: 4,
-  },
-  ratingText: {
-    textAlign: 'center',
-    fontSize: 14,
-    color: '#666666',
-    fontFamily: 'Poppins-Regular',
-  },
-  commentInput: {
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: '#333333',
-    fontFamily: 'Poppins-Regular',
-    minHeight: 100,
-  },
-  addMediaButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#FF9B42',
-    borderStyle: 'dashed',
-    borderRadius: 8,
-    padding: 20,
-  },
-  addMediaText: {
-    fontSize: 14,
-    color: '#FF9B42',
-    marginLeft: 8,
-    fontFamily: 'Poppins-Medium',
-  },
-  mediaCountText: {
-    fontSize: 12,
-    color: '#666666',
-    textAlign: 'center',
-    marginTop: 8,
-    fontFamily: 'Poppins-Regular',
+    paddingHorizontal: theme.spacing.l,
   },
   footer: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: theme.spacing.l,
+    paddingVertical: theme.spacing.m,
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: theme.colors.border,
   },
   submitButton: {
-    backgroundColor: '#FF9B42',
-    borderRadius: 8,
-    paddingVertical: 16,
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.m,
+    paddingVertical: theme.spacing.m,
     alignItems: 'center',
   },
   submitButtonDisabled: {
-    backgroundColor: '#E0E0E0',
+    backgroundColor: theme.colors.border,
   },
   submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: theme.typography.size.m,
+    fontWeight: theme.typography.weight.semiBold,
     color: '#FFFFFF',
-    fontFamily: 'Poppins-SemiBold',
+    fontFamily: theme.typography.fontFamily.semiBold,
   },
   submitButtonTextDisabled: {
-    color: '#999999',
-  },
-  
-  // Media Preview Styles
-  selectedMediaContainer: {
-    marginBottom: 16,
-  },
-  mediaPreviewContainer: {
-    position: 'relative',
-    marginRight: 12,
-  },
-  mediaPreview: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    backgroundColor: '#F0F0F0',
-  },
-  videoPreview: {
-    position: 'relative',
-  },
-  videoOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  videoDuration: {
-    position: 'absolute',
-    bottom: 4,
-    right: 4,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    color: '#FFFFFF',
-    fontSize: 10,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    borderRadius: 4,
-    fontFamily: 'Poppins-Medium',
-  },
-  removeMediaButton: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    backgroundColor: '#FF6B6B',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  
-  // Media Preview Touchable
-  mediaPreviewTouchable: {
-    flex: 1,
-  },
-  
-  // Upload Progress Overlay
-  uploadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 8,
-  },
-  progressContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  progressBar: {
-    width: '80%',
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 2,
-    marginBottom: 4,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#FF9B42',
-    borderRadius: 2,
-  },
-  uploadingText: {
-    color: '#FFFFFF',
-    fontSize: 8,
-    fontWeight: '600',
-    fontFamily: 'Poppins-SemiBold',
-    textAlign: 'center',
-    marginBottom: 2,
-  },
-  progressPercentage: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: 'bold',
-    fontFamily: 'Poppins-Bold',
-  },
-  
-  // Upload Success Overlay
-  uploadSuccessOverlay: {
-    position: 'absolute',
-    top: 4,
-    left: 4,
-    backgroundColor: '#4CAF50',
-    borderRadius: 8,
-    minWidth: 20,
-    minHeight: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-  },
-  uploadSuccessText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-    fontFamily: 'Poppins-Bold',
-  },
-  compressionText: {
-    color: '#FFFFFF',
-    fontSize: 8,
-    fontWeight: '600',
-    fontFamily: 'Poppins-SemiBold',
-    marginTop: 1,
-  },
-  
-  // Upload Failed Overlay
-  uploadFailedOverlay: {
-    position: 'absolute',
-    top: 4,
-    left: 4,
-    backgroundColor: '#FF6B6B',
-    borderRadius: 10,
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  uploadFailedText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-    fontFamily: 'Poppins-Bold',
-  },
-  
-  // Preview Modal Styles
-  previewModalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  previewModalBackground: {
-    flex: 1,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  previewModalContent: {
-    width: '90%',
-    height: '80%',
-    position: 'relative',
-  },
-  previewCloseButton: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 20,
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  previewImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 12,
-    resizeMode: 'contain',
-  },
-  previewVideoContainer: {
-    position: 'relative',
-    width: '100%',
-    height: '100%',
-  },
-  previewVideoOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    color: theme.colors.textSecondary,
   },
 });

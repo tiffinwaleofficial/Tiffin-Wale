@@ -32,7 +32,7 @@ import {
   MessageSquare,
 } from 'lucide-react-native';
 import { BackButton } from '../../components/BackButton';
-import { PlanCard } from '../../components/PlanCard';
+import { PlanCard } from '@/components/cards/PlanCard';
 import { api, Partner, PartnerStats, SubscriptionPlan } from '@/lib/api';
 
 const { width } = Dimensions.get('window');
@@ -76,7 +76,7 @@ export default function PartnerDetailScreen() {
         api.plans.getPartnerPlans(partnerId),
         api.partners.getPartnerStats(partnerId).catch(() => null),
       ]);
-      
+
       setPartner(partnerData);
       setPlans(plansData.filter((p) => p.isActive));
       setStats(statsData);
@@ -111,8 +111,8 @@ export default function PartnerDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView 
-        style={styles.scrollView} 
+      <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -131,15 +131,15 @@ export default function PartnerDetailScreen() {
               </Text>
             </View>
           )}
-          
+
           {/* Gradient Overlay */}
           <View style={styles.bannerOverlay} />
-          
+
           {/* Back Button */}
           <View style={styles.floatingBackButton}>
             <BackButton />
           </View>
-          
+
           {/* Verified Badge */}
           {partner.status === 'approved' && (
             <View style={styles.verifiedBadge}>
@@ -157,16 +157,16 @@ export default function PartnerDetailScreen() {
               <Text style={styles.businessName} numberOfLines={2}>
                 {partner.businessName}
               </Text>
-            {partner.isAcceptingOrders && (
+              {partner.isAcceptingOrders && (
                 <View style={styles.openBadge}>
                   <View style={styles.openDot} />
                   <Text style={styles.openText}>Open</Text>
-              </View>
-            )}
-          </View>
+                </View>
+              )}
+            </View>
 
             {/* Rating Highlight */}
-          {partner.averageRating && partner.averageRating > 0 ? (
+            {partner.averageRating && partner.averageRating > 0 ? (
               <View style={styles.ratingHighlight}>
                 <View style={styles.ratingBadge}>
                   <Star size={16} color="#FFF" fill="#FFF" />
@@ -174,9 +174,9 @@ export default function PartnerDetailScreen() {
                 </View>
                 <Text style={styles.reviewsText}>
                   Based on {partner.totalReviews || 0} reviews
-              </Text>
-            </View>
-          ) : (
+                </Text>
+              </View>
+            ) : (
               <View style={styles.newPartnerHighlight}>
                 <View style={styles.newBadge}>
                   <Text style={styles.newText}>New Partner</Text>
@@ -189,7 +189,7 @@ export default function PartnerDetailScreen() {
           {/* Beautiful Info Grid */}
           <View style={styles.infoGrid}>
             {/* Location Card */}
-          {partner.address && (
+            {partner.address && (
               <View style={styles.infoCard}>
                 <View style={styles.infoCardIconCircle}>
                   <MapPin size={20} color="#FF9B42" />
@@ -198,13 +198,13 @@ export default function PartnerDetailScreen() {
                   <Text style={styles.infoCardLabel}>Location</Text>
                   <Text style={styles.infoCardValue} numberOfLines={2}>
                     {partner.address.city}, {partner.address.state}
-              </Text>
+                  </Text>
                 </View>
-            </View>
-          )}
+              </View>
+            )}
 
             {/* Hours Card */}
-          {partner.businessHours && (
+            {partner.businessHours && (
               <View style={[styles.infoCard, styles.hoursInfoCard]}>
                 <View style={[styles.infoCardIconCircle, styles.hoursIconCircle]}>
                   <Clock size={20} color="#10B981" />
@@ -213,10 +213,10 @@ export default function PartnerDetailScreen() {
                   <Text style={[styles.infoCardLabel, styles.hoursLabel]}>Open Hours</Text>
                   <Text style={[styles.infoCardValue, styles.hoursValue]}>
                     {partner.businessHours.open} - {partner.businessHours.close}
-              </Text>
+                  </Text>
                 </View>
-            </View>
-          )}
+              </View>
+            )}
           </View>
 
           {/* Premium Dietary Highlight */}
@@ -230,8 +230,8 @@ export default function PartnerDetailScreen() {
                 <Text style={styles.vegPremiumSubtitle}>All dishes are vegetarian</Text>
               </View>
               <Check size={24} color="#10B981" strokeWidth={3} />
-              </View>
-            )}
+            </View>
+          )}
 
           {/* Additional Dietary Options */}
           {(partner.dietaryOptions?.includes('vegan') || partner.dietaryOptions?.includes('jain')) && (
@@ -240,12 +240,12 @@ export default function PartnerDetailScreen() {
                 <View style={styles.veganMiniCard}>
                   <Leaf size={16} color="#10B981" />
                   <Text style={styles.veganMiniText}>Vegan</Text>
-              </View>
-            )}
+                </View>
+              )}
               {partner.dietaryOptions?.includes('jain') && (
                 <View style={styles.jainMiniCard}>
                   <Text style={styles.jainMiniText}>Jain Food</Text>
-          </View>
+                </View>
               )}
             </View>
           )}
@@ -257,19 +257,19 @@ export default function PartnerDetailScreen() {
             <View style={styles.statCard}>
               <View style={[styles.statIconContainer, { backgroundColor: '#FFF5E6' }]}>
                 <Users size={22} color="#FF9B42" />
-            </View>
+              </View>
               <Text style={styles.statValue}>{stats.totalCustomers || 0}</Text>
               <Text style={styles.statLabel}>Happy Customers</Text>
             </View>
-            
+
             <View style={styles.statCard}>
               <View style={[styles.statIconContainer, { backgroundColor: '#ECFDF5' }]}>
                 <TrendingUp size={22} color="#10B981" />
-            </View>
+              </View>
               <Text style={styles.statValue}>{stats.totalOrders || 0}</Text>
               <Text style={styles.statLabel}>Orders Delivered</Text>
             </View>
-            
+
             <View style={styles.statCard}>
               <View style={[styles.statIconContainer, { backgroundColor: '#EEF2FF' }]}>
                 <Award size={22} color="#6366F1" />
@@ -286,21 +286,21 @@ export default function PartnerDetailScreen() {
             <Text style={styles.sectionTitle}>Specialties</Text>
             <View style={styles.cuisineGrid}>
               {partner.cuisineTypes.map((cuisine, index) => (
-                <View 
-                  key={index} 
+                <View
+                  key={index}
                   style={[
                     styles.cuisinePill,
                     index === 0 && styles.featuredCuisinePill
                   ]}
-          >
-                  <Text 
+                >
+                  <Text
                     style={[
                       styles.cuisinePillText,
                       index === 0 && styles.featuredCuisinePillText
                     ]}
                   >
                     {cuisine}
-            </Text>
+                  </Text>
                 </View>
               ))}
             </View>
@@ -310,7 +310,7 @@ export default function PartnerDetailScreen() {
         {/* Modern Tabs with Better Spacing */}
         <View style={styles.tabsContainer}>
           {tabs.map((tab, index) => (
-          <TouchableOpacity
+            <TouchableOpacity
               key={tab.key}
               style={[styles.modernTab, activeTab === tab.key && styles.modernTabActive]}
               onPress={() => {
@@ -318,11 +318,11 @@ export default function PartnerDetailScreen() {
                 setActiveTabIndex(index);
                 tabScrollRef.current?.scrollToOffset({ offset: width * index, animated: true });
               }}
-          >
+            >
               <View style={styles.tabContent}>
                 {tab.icon && (
-                  <tab.icon 
-                    size={18} 
+                  <tab.icon
+                    size={18}
                     color={activeTab === tab.key ? '#FFF' : '#9CA3AF'}
                     style={styles.tabIcon}
                   />
@@ -330,9 +330,9 @@ export default function PartnerDetailScreen() {
                 <Text style={[styles.modernTabText, activeTab === tab.key && styles.modernTabTextActive]}>
                   {tab.label}
                   {tab.key === 'plans' && plans.length > 0 && ` (${plans.length})`}
-            </Text>
+                </Text>
               </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
           ))}
         </View>
 
@@ -366,108 +366,108 @@ export default function PartnerDetailScreen() {
           renderItem={({ item }) => (
             <View style={{ width, flex: 1, overflow: 'hidden' }}>
               {item.key === 'plans' && (
-          <View style={styles.plansContent}>
-            {plans.length === 0 ? (
-              <View style={styles.emptyPlans}>
-                <View style={styles.emptyIcon}>
-                  <Award size={48} color="#FFC1A1" />
+                <View style={styles.plansContent}>
+                  {plans.length === 0 ? (
+                    <View style={styles.emptyPlans}>
+                      <View style={styles.emptyIcon}>
+                        <Award size={48} color="#FFC1A1" />
+                      </View>
+                      <Text style={styles.emptyTitle}>No Packages Yet</Text>
+                      <Text style={styles.emptySubtext}>
+                        This partner is setting up their packages.{'\n'}Check back soon for exclusive offers!
+                      </Text>
+                      <TouchableOpacity style={styles.notifyButton}>
+                        <Text style={styles.notifyButtonText}>Notify Me When Available</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View style={styles.plansGrid}>
+                      {plans.map((plan) => <PlanCard key={plan._id} plan={plan} />)}
+                    </View>
+                  )}
                 </View>
-                <Text style={styles.emptyTitle}>No Packages Yet</Text>
-                <Text style={styles.emptySubtext}>
-                  This partner is setting up their packages.{'\n'}Check back soon for exclusive offers!
-                </Text>
-                <TouchableOpacity style={styles.notifyButton}>
-                  <Text style={styles.notifyButtonText}>Notify Me When Available</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.plansGrid}>
-                {plans.map((plan) => <PlanCard key={plan._id} plan={plan} />)}
-              </View>
-            )}
-          </View>
-        )}
+              )}
 
               {item.key === 'about' && (
-          <View style={styles.aboutContent}>
-            {/* Description Card */}
-            {partner.description && (
-              <View style={styles.aboutCard}>
-                <Text style={styles.aboutCardTitle}>Our Story</Text>
-                <Text style={styles.aboutCardText}>{partner.description}</Text>
-              </View>
-            )}
-
-            {/* Contact Card */}
-            <View style={styles.aboutCard}>
-              <Text style={styles.aboutCardTitle}>Contact Information</Text>
-              {partner.contactPhone && (
-                <TouchableOpacity style={styles.contactButton}>
-                  <View style={styles.contactIconWrapper}>
-                    <Phone size={18} color="#FF9B42" />
+                <View style={styles.aboutContent}>
+                  {/* Description Card */}
+                  {partner.description && (
+                    <View style={styles.aboutCard}>
+                      <Text style={styles.aboutCardTitle}>Our Story</Text>
+                      <Text style={styles.aboutCardText}>{partner.description}</Text>
                     </View>
-                  <View style={styles.contactInfo}>
-                    <Text style={styles.contactLabel}>Phone</Text>
-                    <Text style={styles.contactValue}>{partner.contactPhone}</Text>
-                </View>
-                  <ChevronRight size={20} color="#CCC" />
-                </TouchableOpacity>
-              )}
-              {partner.contactEmail && (
-                <TouchableOpacity style={styles.contactButton}>
-                  <View style={styles.contactIconWrapper}>
-                    <Mail size={18} color="#FF9B42" />
-              </View>
-                  <View style={styles.contactInfo}>
-                    <Text style={styles.contactLabel}>Email</Text>
-                    <Text style={styles.contactValue}>{partner.contactEmail}</Text>
-                  </View>
-                  <ChevronRight size={20} color="#CCC" />
-                </TouchableOpacity>
-              )}
-              {partner.address && (
-                <View style={styles.contactButton}>
-                  <View style={styles.contactIconWrapper}>
-                    <MapPin size={18} color="#FF9B42" />
-                    </View>
-                  <View style={styles.contactInfo}>
-                    <Text style={styles.contactLabel}>Address</Text>
-                    <Text style={styles.contactValue}>
-                      {partner.address.street}, {partner.address.city}, {partner.address.state} - {partner.address.postalCode}
-                    </Text>
-                </View>
-              </View>
-            )}
-            </View>
+                  )}
 
-            {/* Delivery Info Card */}
-            {partner.deliveryRadius && (
-              <View style={styles.aboutCard}>
-                <Text style={styles.aboutCardTitle}>Delivery Coverage</Text>
-                <View style={styles.deliveryInfo}>
-                  <View style={styles.deliveryHighlight}>
-                    <Text style={styles.deliveryRadius}>{partner.deliveryRadius} km</Text>
-                    <Text style={styles.deliveryLabel}>Delivery Radius</Text>
+                  {/* Contact Card */}
+                  <View style={styles.aboutCard}>
+                    <Text style={styles.aboutCardTitle}>Contact Information</Text>
+                    {partner.contactPhone && (
+                      <TouchableOpacity style={styles.contactButton}>
+                        <View style={styles.contactIconWrapper}>
+                          <Phone size={18} color="#FF9B42" />
+                        </View>
+                        <View style={styles.contactInfo}>
+                          <Text style={styles.contactLabel}>Phone</Text>
+                          <Text style={styles.contactValue}>{partner.contactPhone}</Text>
+                        </View>
+                        <ChevronRight size={20} color="#CCC" />
+                      </TouchableOpacity>
+                    )}
+                    {partner.contactEmail && (
+                      <TouchableOpacity style={styles.contactButton}>
+                        <View style={styles.contactIconWrapper}>
+                          <Mail size={18} color="#FF9B42" />
+                        </View>
+                        <View style={styles.contactInfo}>
+                          <Text style={styles.contactLabel}>Email</Text>
+                          <Text style={styles.contactValue}>{partner.contactEmail}</Text>
+                        </View>
+                        <ChevronRight size={20} color="#CCC" />
+                      </TouchableOpacity>
+                    )}
+                    {partner.address && (
+                      <View style={styles.contactButton}>
+                        <View style={styles.contactIconWrapper}>
+                          <MapPin size={18} color="#FF9B42" />
+                        </View>
+                        <View style={styles.contactInfo}>
+                          <Text style={styles.contactLabel}>Address</Text>
+                          <Text style={styles.contactValue}>
+                            {partner.address.street}, {partner.address.city}, {partner.address.state} - {partner.address.postalCode}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
                   </View>
+
+                  {/* Delivery Info Card */}
+                  {partner.deliveryRadius && (
+                    <View style={styles.aboutCard}>
+                      <Text style={styles.aboutCardTitle}>Delivery Coverage</Text>
+                      <View style={styles.deliveryInfo}>
+                        <View style={styles.deliveryHighlight}>
+                          <Text style={styles.deliveryRadius}>{partner.deliveryRadius} km</Text>
+                          <Text style={styles.deliveryLabel}>Delivery Radius</Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
                 </View>
-              </View>
-            )}
-          </View>
-        )}
+              )}
 
               {item.key === 'reviews' && (
-          <View style={styles.reviewsContent}>
-            <View style={styles.emptyReviews}>
-              <View style={styles.emptyIcon}>
-                <Star size={48} color="#FFC1A1" />
-              </View>
-              <Text style={styles.emptyTitle}>No Reviews Yet</Text>
-              <Text style={styles.emptySubtext}>
-                Be the first to review this partner!{'\n'}Subscribe and share your experience.
-              </Text>
-            </View>
-          </View>
-        )}
+                <View style={styles.reviewsContent}>
+                  <View style={styles.emptyReviews}>
+                    <View style={styles.emptyIcon}>
+                      <Star size={48} color="#FFC1A1" />
+                    </View>
+                    <Text style={styles.emptyTitle}>No Reviews Yet</Text>
+                    <Text style={styles.emptySubtext}>
+                      Be the first to review this partner!{'\n'}Subscribe and share your experience.
+                    </Text>
+                  </View>
+                </View>
+              )}
             </View>
           )}
         />

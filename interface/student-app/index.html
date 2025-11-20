@@ -94,6 +94,16 @@
           transform: rotate(360deg);
         }
       }
+
+      /* Hide reCAPTCHA badge and container */
+      .grecaptcha-badge { 
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+      }
+      #recaptcha-container {
+        display: none;
+      }
     </style>
   </head>
   <body>

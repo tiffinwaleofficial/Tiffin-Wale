@@ -18,11 +18,13 @@ export class PartnerFinancialReportDataGenerator {
     const company = companyInfo();
 
     // Format dates
-    const generationDate = dummyData.generationDate || new Date().toLocaleDateString("en-IN", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    const generationDate =
+      dummyData.generationDate ||
+      new Date().toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
 
     const reportPeriod = dummyData.reportPeriod || "All Time";
 
@@ -32,8 +34,12 @@ export class PartnerFinancialReportDataGenerator {
     // Prepare summary
     const totalCompanyRevenue = dummyData.summary?.totalCompanyRevenue || 0;
     const totalPartnerPayouts = dummyData.summary?.totalPartnerPayouts || 0;
-    const netProfit = totalCompanyRevenue - totalPartnerPayouts - (dummyData.financialMetrics?.operatingCosts || 0);
-    const profitMargin = totalCompanyRevenue > 0 ? (netProfit / totalCompanyRevenue) * 100 : 0;
+    const netProfit =
+      totalCompanyRevenue -
+      totalPartnerPayouts -
+      (dummyData.financialMetrics?.operatingCosts || 0);
+    const profitMargin =
+      totalCompanyRevenue > 0 ? (netProfit / totalCompanyRevenue) * 100 : 0;
 
     const summary = {
       totalPartners: dummyData.summary?.totalPartners || 0,
@@ -66,8 +72,10 @@ export class PartnerFinancialReportDataGenerator {
     const otherTaxes = dummyData.financialMetrics?.otherTaxes || 0;
     const netRevenue = totalCompanyRevenue - gstCollected - otherTaxes;
     const operatingCosts = dummyData.financialMetrics?.operatingCosts || 0;
-    const calculatedNetProfit = netRevenue - totalPartnerPayouts - operatingCosts;
-    const calculatedProfitMargin = netRevenue > 0 ? (calculatedNetProfit / netRevenue) * 100 : 0;
+    const calculatedNetProfit =
+      netRevenue - totalPartnerPayouts - operatingCosts;
+    const calculatedProfitMargin =
+      netRevenue > 0 ? (calculatedNetProfit / netRevenue) * 100 : 0;
 
     const financialMetrics = {
       totalCompanyRevenue,
@@ -83,23 +91,47 @@ export class PartnerFinancialReportDataGenerator {
     // Prepare cost analysis
     const costAnalysis = {
       cac: dummyData.costAnalysis?.cac || 0,
-      cacPercent: totalCompanyRevenue > 0 ? ((dummyData.costAnalysis?.cac || 0) / totalCompanyRevenue) * 100 : 0,
+      cacPercent:
+        totalCompanyRevenue > 0
+          ? ((dummyData.costAnalysis?.cac || 0) / totalCompanyRevenue) * 100
+          : 0,
       advertisementExpenses: dummyData.costAnalysis?.advertisementExpenses || 0,
-      advertisementPercent: totalCompanyRevenue > 0 ? ((dummyData.costAnalysis?.advertisementExpenses || 0) / totalCompanyRevenue) * 100 : 0,
+      advertisementPercent:
+        totalCompanyRevenue > 0
+          ? ((dummyData.costAnalysis?.advertisementExpenses || 0) /
+              totalCompanyRevenue) *
+            100
+          : 0,
       marketingCosts: dummyData.costAnalysis?.marketingCosts || 0,
-      marketingPercent: totalCompanyRevenue > 0 ? ((dummyData.costAnalysis?.marketingCosts || 0) / totalCompanyRevenue) * 100 : 0,
+      marketingPercent:
+        totalCompanyRevenue > 0
+          ? ((dummyData.costAnalysis?.marketingCosts || 0) /
+              totalCompanyRevenue) *
+            100
+          : 0,
       operationalCosts: dummyData.costAnalysis?.operationalCosts || 0,
-      operationalPercent: totalCompanyRevenue > 0 ? ((dummyData.costAnalysis?.operationalCosts || 0) / totalCompanyRevenue) * 100 : 0,
-      totalOperatingCosts: (dummyData.costAnalysis?.cac || 0) + 
-                          (dummyData.costAnalysis?.advertisementExpenses || 0) + 
-                          (dummyData.costAnalysis?.marketingCosts || 0) + 
-                          (dummyData.costAnalysis?.operationalCosts || 0),
-      totalPercent: totalCompanyRevenue > 0 ? 
-        (((dummyData.costAnalysis?.cac || 0) + 
-          (dummyData.costAnalysis?.advertisementExpenses || 0) + 
-          (dummyData.costAnalysis?.marketingCosts || 0) + 
-          (dummyData.costAnalysis?.operationalCosts || 0)) / totalCompanyRevenue) * 100 : 0,
-      monthlyAdvertisementBreakdown: dummyData.costAnalysis?.monthlyAdvertisementBreakdown || [],
+      operationalPercent:
+        totalCompanyRevenue > 0
+          ? ((dummyData.costAnalysis?.operationalCosts || 0) /
+              totalCompanyRevenue) *
+            100
+          : 0,
+      totalOperatingCosts:
+        (dummyData.costAnalysis?.cac || 0) +
+        (dummyData.costAnalysis?.advertisementExpenses || 0) +
+        (dummyData.costAnalysis?.marketingCosts || 0) +
+        (dummyData.costAnalysis?.operationalCosts || 0),
+      totalPercent:
+        totalCompanyRevenue > 0
+          ? (((dummyData.costAnalysis?.cac || 0) +
+              (dummyData.costAnalysis?.advertisementExpenses || 0) +
+              (dummyData.costAnalysis?.marketingCosts || 0) +
+              (dummyData.costAnalysis?.operationalCosts || 0)) /
+              totalCompanyRevenue) *
+            100
+          : 0,
+      monthlyAdvertisementBreakdown:
+        dummyData.costAnalysis?.monthlyAdvertisementBreakdown || [],
     };
 
     // Prepare per partner breakdown
@@ -167,4 +199,3 @@ export class PartnerFinancialReportDataGenerator {
     };
   }
 }
-

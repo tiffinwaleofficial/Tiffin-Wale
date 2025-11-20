@@ -14,6 +14,11 @@ export interface EmailData {
   replyTo?: string;
   cc?: string[];
   bcc?: string[];
+  attachments?: Array<{
+    filename: string;
+    content: Buffer | string;
+    contentType?: string;
+  }>;
 }
 
 export interface EmailResult {

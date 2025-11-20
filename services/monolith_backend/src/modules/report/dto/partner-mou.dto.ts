@@ -1,4 +1,9 @@
-import { IsString, IsOptional, IsNumber, ValidateNested } from "class-validator";
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  ValidateNested,
+} from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 
@@ -55,12 +60,17 @@ export class PartnerDataDto {
 }
 
 export class PartnerMouDto {
-  @ApiPropertyOptional({ description: "Partner ID (required if partnerData not provided)" })
+  @ApiPropertyOptional({
+    description: "Partner ID (required if partnerData not provided)",
+  })
   @IsOptional()
   @IsString()
   partnerId?: string;
 
-  @ApiPropertyOptional({ description: "Partner data (required if partnerId not provided)", type: PartnerDataDto })
+  @ApiPropertyOptional({
+    description: "Partner data (required if partnerId not provided)",
+    type: PartnerDataDto,
+  })
   @IsOptional()
   @ValidateNested()
   @Type(() => PartnerDataDto)
@@ -111,6 +121,3 @@ export class PartnerMouDto {
   @IsString()
   companyPanNumber?: string;
 }
-
-
-

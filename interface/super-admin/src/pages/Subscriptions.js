@@ -5,9 +5,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Trash2 } from 'lucide-react';
 import apiClient from '@/config/api';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const statusColors = {
   active: 'bg-green-500',
@@ -21,6 +31,9 @@ export default function Subscriptions() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [subscriptionToDelete, setSubscriptionToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchSubscriptions();
@@ -39,6 +52,10 @@ export default function Subscriptions() {
       const data = response.data?.data || response.data?.subscriptions || (Array.isArray(response.data) ? response.data : []);
       setSubscriptions(Array.isArray(data) ? data : []);
     } catch (error) {
+      // Ignore cancelled requests
+      if (error.name === 'CanceledError' || error.message?.includes('cancelled')) {
+        return;
+      }
       console.error('Subscriptions fetch error:', error);
       toast.error('Failed to load subscriptions');
     } finally {
@@ -55,6 +72,29 @@ export default function Subscriptions() {
     } catch (error) {
       console.error('Status update error:', error);
       toast.error('Failed to update status');
+    }
+  };
+
+  const handleDeleteClick = (subscription) => {
+    setSubscriptionToDelete(subscription);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!subscriptionToDelete) return;
+    setDeleting(true);
+    try {
+      const id = subscriptionToDelete?.id || subscriptionToDelete?._id || subscriptionToDelete;
+      await apiClient.delete(`/super-admin/subscriptions/${id}`);
+      toast.success('Subscription deleted successfully');
+      fetchSubscriptions();
+      setDeleteDialogOpen(false);
+      setSubscriptionToDelete(null);
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('Failed to delete subscription');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -176,7 +216,7 @@ export default function Subscriptions() {
                   <TableHead>End Date</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="w-[200px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -188,41 +228,51 @@ export default function Subscriptions() {
                   const startDate = sub.startDate || sub.start_date;
                   const endDate = sub.endDate || sub.end_date;
                   const amount = sub.totalAmount || sub.amount || 0;
-                  
+
                   return (
-                  <TableRow key={subId} data-testid={`subscription-row-${subId}`}>
-                    <TableCell className="font-medium">#{subId}</TableCell>
-                    <TableCell>{customerName}</TableCell>
-                    <TableCell>{partnerName}</TableCell>
-                    <TableCell>{planName}</TableCell>
-                    <TableCell>{startDate ? new Date(startDate).toLocaleDateString() : 'N/A'}</TableCell>
-                    <TableCell>{endDate ? new Date(endDate).toLocaleDateString() : 'N/A'}</TableCell>
-                    <TableCell>₹{amount.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Badge
-                        className={statusColors[sub.status] || 'bg-gray-500'}
-                        data-testid={`subscription-status-${subId}`}
-                      >
-                        {sub.status || 'N/A'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        onValueChange={(value) => updateStatus(subId, value)}
-                        data-testid={`subscription-action-${subId}`}
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue placeholder="Update" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="paused">Paused</SelectItem>
-                          <SelectItem value="cancelled">Cancelled</SelectItem>
-                          <SelectItem value="expired">Expired</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                  </TableRow>
+                    <TableRow key={subId} data-testid={`subscription-row-${subId}`}>
+                      <TableCell className="font-medium">#{subId}</TableCell>
+                      <TableCell>{customerName}</TableCell>
+                      <TableCell>{partnerName}</TableCell>
+                      <TableCell>{planName}</TableCell>
+                      <TableCell>{startDate ? new Date(startDate).toLocaleDateString() : 'N/A'}</TableCell>
+                      <TableCell>{endDate ? new Date(endDate).toLocaleDateString() : 'N/A'}</TableCell>
+                      <TableCell>₹{amount.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Badge
+                          className={statusColors[sub.status] || 'bg-gray-500'}
+                          data-testid={`subscription-status-${subId}`}
+                        >
+                          {sub.status || 'N/A'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Select
+                            onValueChange={(value) => updateStatus(subId, value)}
+                            data-testid={`subscription-action-${subId}`}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue placeholder="Update" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="active">Active</SelectItem>
+                              <SelectItem value="paused">Paused</SelectItem>
+                              <SelectItem value="cancelled">Cancelled</SelectItem>
+                              <SelectItem value="expired">Expired</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => handleDeleteClick(sub)}
+                            data-testid={`subscription-delete-${subId}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
               </TableBody>
@@ -230,6 +280,33 @@ export default function Subscriptions() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Subscription</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this subscription? This action cannot be undone.
+              {subscriptionToDelete && (
+                <span className="block mt-2 font-medium">
+                  Subscription ID: {subscriptionToDelete?.id || subscriptionToDelete?._id}
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

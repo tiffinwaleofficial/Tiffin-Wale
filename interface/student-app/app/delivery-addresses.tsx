@@ -1,17 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, Switch } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Plus, X, Trash2, Edit, MapPin, Home, Building, MapPin as OtherIcon } from 'lucide-react-native';
+import { Plus, Trash2, Edit, MapPin, Home, Building, MapPin as OtherIcon } from 'lucide-react-native';
 import { useCustomerStore } from '@/store/customerStore';
 import { DeliveryAddress } from '@/types/api';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { showNotification } from '@/utils/notificationService';
 import { BackButton } from '@/components/BackButton';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useTheme } from '@/hooks/useTheme';
+import { Theme } from '@/theme/types';
+import { BaseModal, ConfirmDialog, FormInput, FormTagGroup, FormToggle, IconButton } from '@/components/ui';
+
 
 export default function DeliveryAddressesScreen() {
   const router = useRouter();
   const { t } = useTranslation('profile');
+  const { theme } = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const { addresses, isLoading, error, fetchAddresses, addAddress, updateAddress, deleteAddress } = useCustomerStore();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<DeliveryAddress | null>(null);
@@ -49,11 +55,11 @@ export default function DeliveryAddressesScreen() {
     setDeleteModalVisible(false);
     setAddressToDelete(null);
   };
-  
-  const AddressForm = ({ address, mode, onSave, onCancel, onEdit }: { 
-    address: DeliveryAddress | null, 
+
+  const AddressForm = ({ address, mode, onSave, onCancel, onEdit }: {
+    address: DeliveryAddress | null,
     mode: 'view' | 'edit' | 'add',
-    onSave: (addr: DeliveryAddress) => void, 
+    onSave: (addr: DeliveryAddress) => void,
     onCancel: () => void,
     onEdit: () => void
   }) => {
@@ -76,30 +82,30 @@ export default function DeliveryAddressesScreen() {
 
     const getTypeIcon = (type?: string) => {
       switch (type) {
-        case 'Home': return <Home size={20} color="#FF9B42" />;
-        case 'Office': return <Building size={20} color="#FF9B42" />;
-        default: return <OtherIcon size={20} color="#FF9B42" />;
+        case 'Home': return <Home size={20} color={theme.colors.primary} />;
+        case 'Office': return <Building size={20} color={theme.colors.primary} />;
+        default: return <OtherIcon size={20} color={theme.colors.primary} />;
       }
     };
-  
+
     const handleSave = () => {
-        if (!formState.type) {
-          alert('Please select an address type');
-          return;
-        }
-        
-        const dataToSave = { 
-          ...formState, 
-          id: address?.id,
-          displayName: formState.type, // Use type as display name for UI
-        };
-        onSave(dataToSave as DeliveryAddress);
+      if (!formState.type) {
+        alert('Please select an address type');
+        return;
+      }
+
+      const dataToSave = {
+        ...formState,
+        id: address?.id,
+        displayName: formState.type, // Use type as display name for UI
+      };
+      onSave(dataToSave as DeliveryAddress);
     };
-  
+
     const isViewMode = mode === 'view';
     const isEditMode = mode === 'edit';
     const isAddMode = mode === 'add';
-  
+
     return (
       <ScrollView style={styles.modalContent}>
         <View style={styles.modalHeader}>
@@ -108,7 +114,7 @@ export default function DeliveryAddressesScreen() {
           </Text>
           {isViewMode && (
             <TouchableOpacity style={styles.editButton} onPress={onEdit}>
-              <Edit size={20} color="#FF9B42" />
+              <Edit size={20} color={theme.colors.primary} />
               <Text style={styles.editButtonText}>Edit</Text>
             </TouchableOpacity>
           )}
@@ -124,41 +130,41 @@ export default function DeliveryAddressesScreen() {
                 <Text style={styles.viewTypeText}>{formState.type}</Text>
               </View>
             </View>
-            
+
             <View style={styles.viewField}>
               <Text style={styles.viewLabel}>{t('fullAddress')}</Text>
               <Text style={styles.viewValue}>{formState.address}</Text>
             </View>
-            
+
             <View style={styles.viewField}>
               <Text style={styles.viewLabel}>City</Text>
               <Text style={styles.viewValue}>{formState.city}</Text>
             </View>
-            
+
             <View style={styles.viewField}>
               <Text style={styles.viewLabel}>State</Text>
               <Text style={styles.viewValue}>{formState.state}</Text>
             </View>
-            
+
             <View style={styles.viewField}>
               <Text style={styles.viewLabel}>Zip Code</Text>
               <Text style={styles.viewValue}>{formState.zipCode}</Text>
             </View>
-            
+
             {formState.phoneNumber && (
               <View style={styles.viewField}>
                 <Text style={styles.viewLabel}>Phone Number</Text>
                 <Text style={styles.viewValue}>{formState.phoneNumber}</Text>
               </View>
             )}
-            
+
             {formState.landmark && (
               <View style={styles.viewField}>
                 <Text style={styles.viewLabel}>Landmark</Text>
                 <Text style={styles.viewValue}>{formState.landmark}</Text>
               </View>
             )}
-            
+
             <View style={styles.viewField}>
               <Text style={styles.viewLabel}>Default Address</Text>
               <Text style={styles.viewValue}>{formState.isDefault ? 'Yes' : 'No'}</Text>
@@ -167,56 +173,56 @@ export default function DeliveryAddressesScreen() {
         ) : (
           // Edit/Add mode
           <>
-            <TextInput 
-              style={styles.input} 
-              placeholder="Full Address" 
-              value={formState.address} 
-              onChangeText={t => setFormState({...formState, address: t})} 
+            <FormInput
+              label="Full Address"
+              value={formState.address}
+              onChange={(value) => setFormState({ ...formState, address: value })}
+              placeholder="Enter your full address"
               multiline
-              numberOfLines={3}
             />
-        <TextInput style={styles.input} placeholder="City" value={formState.city} onChangeText={t => setFormState({...formState, city: t})} />
-        <TextInput style={styles.input} placeholder="State" value={formState.state} onChangeText={t => setFormState({...formState, state: t})} />
-            <TextInput style={styles.input} placeholder="Zip Code" value={formState.zipCode} onChangeText={t => setFormState({...formState, zipCode: t})} keyboardType="numeric" />
-            <TextInput style={styles.input} placeholder="Phone Number (optional)" value={formState.phoneNumber} onChangeText={t => setFormState({...formState, phoneNumber: t})} keyboardType="phone-pad" />
-            <TextInput style={styles.input} placeholder="Landmark (optional)" value={formState.landmark} onChangeText={t => setFormState({...formState, landmark: t})} />
-            
-            {/* Default Address Toggle */}
-            <View style={styles.defaultContainer}>
-              <Text style={styles.defaultLabel}>Set as Default Address</Text>
-              <Switch
-                value={formState.isDefault}
-                onValueChange={(value) => setFormState({...formState, isDefault: value})}
-                trackColor={{ false: '#E5E5E5', true: '#FF9B42' }}
-                thumbColor={formState.isDefault ? '#FFFFFF' : '#FFFFFF'}
-              />
-            </View>
+            <FormInput
+              label="City"
+              value={formState.city}
+              onChange={(value) => setFormState({ ...formState, city: value })}
+              placeholder="Enter city"
+            />
+            <FormInput
+              label="State"
+              value={formState.state}
+              onChange={(value) => setFormState({ ...formState, state: value })}
+              placeholder="Enter state"
+            />
+            <FormInput
+              label="Zip Code"
+              value={formState.zipCode}
+              onChange={(value) => setFormState({ ...formState, zipCode: value })}
+              placeholder="Enter zip code"
+            />
+            <FormInput
+              label="Phone Number (optional)"
+              value={formState.phoneNumber}
+              onChange={(value) => setFormState({ ...formState, phoneNumber: value })}
+              placeholder="Enter phone number"
+            />
+            <FormInput
+              label="Landmark (optional)"
+              value={formState.landmark}
+              onChange={(value) => setFormState({ ...formState, landmark: value })}
+              placeholder="Enter landmark"
+            />
 
-            {/* Address Type Selection - Small Tags */}
-            <Text style={styles.fieldLabel}>Address Type *</Text>
-            <View style={styles.tagContainer}>
-              {addressTypes.map((type) => {
-                const IconComponent = type.icon;
-                return (
-                  <TouchableOpacity
-                    key={type.value}
-                    style={[
-                      styles.tagButton,
-                      formState.type === type.value && styles.tagButtonActive
-                    ]}
-                    onPress={() => setFormState({...formState, type: type.value as 'Home' | 'Office' | 'Other'})}
-                  >
-                    <IconComponent size={16} color={formState.type === type.value ? '#FFFFFF' : '#FF9B42'} />
-                    <Text style={[
-                      styles.tagButtonText,
-                      formState.type === type.value && styles.tagButtonTextActive
-                    ]}>
-                      {type.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <FormToggle
+              label="Set as Default Address"
+              value={formState.isDefault}
+              onChange={(value) => setFormState({ ...formState, isDefault: value })}
+            />
+
+            <FormTagGroup
+              label="Address Type *"
+              value={formState.type}
+              onChange={(value) => setFormState({ ...formState, type: value as 'Home' | 'Office' | 'Other' })}
+              options={addressTypes}
+            />
           </>
         )}
 
@@ -229,7 +235,7 @@ export default function DeliveryAddressesScreen() {
                   handleDelete(address);
                 }
               }}>
-                <Trash2 size={20} color="#FFFFFF" />
+                <Trash2 size={20} color={theme.colors.card} />
                 <Text style={styles.deleteButtonText}>{t('delete')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.closeButton} onPress={onCancel}>
@@ -253,10 +259,10 @@ export default function DeliveryAddressesScreen() {
 
   const handleSaveAddress = async (address: DeliveryAddress) => {
     if (address.id) {
-        await updateAddress(address);
+      await updateAddress(address);
     } else {
-        const { id, ...rest } = address;
-        await addAddress(rest);
+      const { id, ...rest } = address;
+      await addAddress(rest);
     }
     setModalVisible(false);
   };
@@ -267,489 +273,477 @@ export default function DeliveryAddressesScreen() {
         <BackButton />
         <Text style={styles.headerTitle}>{t('deliveryAddresses')}</Text>
         <TouchableOpacity onPress={() => openModal()} style={styles.addButton}>
-          <Plus size={24} color="#FF9B42" />
+          <Plus size={24} color={theme.colors.primary} />
         </TouchableOpacity>
       </View>
       {isLoading && addresses.length === 0 ? (
-        <ActivityIndicator style={{ flex: 1 }} size="large" color="#FF9B42" />
+        <ActivityIndicator style={{ flex: 1 }} size="large" color={theme.colors.primary} />
       ) : error ? (
         <View style={styles.centerContainer}><Text style={styles.errorText}>{error}</Text></View>
       ) : addresses.length === 0 ? (
         <View style={styles.centerContainer}>
-            <MapPin size={64} color="#CCCCCC" />
-            <Text style={styles.emptyTitle}>{t('noAddressesFound')}</Text>
-            <Text style={styles.emptyDescription}>{t('addYourFirstAddress')}</Text>
+          <MapPin size={64} color={theme.colors.tabIconDefault} />
+          <Text style={styles.emptyTitle}>{t('noAddressesFound')}</Text>
+          <Text style={styles.emptyDescription}>{t('addYourFirstAddress')}</Text>
         </View>
       ) : (
-      <ScrollView style={styles.content}>
-        {addresses.map((address, index) => {
-          console.log('📍 Rendering address:', address);
-          console.log('📍 Address ID:', address.id);
-          const getTypeIcon = (type?: string) => {
-            switch (type) {
-              case 'Home': return <Home size={20} color="#FF9B42" />;
-              case 'Office': return <Building size={20} color="#FF9B42" />;
-              default: return <OtherIcon size={20} color="#FF9B42" />;
-            }
-          };
+        <ScrollView style={styles.content}>
+          {addresses.map((address, index) => {
+            console.log('📍 Rendering address:', address);
+            console.log('📍 Address ID:', address.id);
+            const getTypeIcon = (type?: string) => {
+              switch (type) {
+                case 'Home': return <Home size={20} color={theme.colors.primary} />;
+                case 'Office': return <Building size={20} color={theme.colors.primary} />;
+                default: return <OtherIcon size={20} color={theme.colors.primary} />;
+              }
+            };
 
-          return (
-            <Animated.View key={address.id || index} entering={FadeInDown.delay(index * 100).duration(400)}>
-              <View style={[
-                styles.addressCard,
-                address.isDefault && styles.defaultAddressCard
-              ]}>
-                <TouchableOpacity 
-                  style={styles.addressInfo}
-                  onPress={() => openModal(address, 'view')}
-                >
-                  <View style={styles.addressHeader}>
-                    <View style={styles.addressTypeContainer}>
-                      {getTypeIcon(address.type)}
-                      <Text style={styles.addressName}>
-                        {address.displayName || address.type || 'Address'}
-                      </Text>
-                    </View>
-                    <View style={styles.headerActions}>
-                      {address.isDefault && (
-                        <View style={styles.defaultBadge}>
-                          <Text style={styles.defaultBadgeText}>DEFAULT</Text>
-                        </View>
-                      )}
-                      <View style={styles.actionButtons}>
-                        <TouchableOpacity 
-                          style={styles.actionButton}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            openModal(address, 'edit');
-                          }}
-                        >
-                          <Edit size={20} color="#FF9B42" />
-                        </TouchableOpacity>
-                        <TouchableOpacity 
-                          style={styles.actionButton}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            console.log('🗑️ Delete button clicked for address:', address);
-                            handleDelete(address);
-                          }}
-                        >
-                          <Trash2 size={20} color="#E53935" />
-                        </TouchableOpacity>
+            return (
+              <Animated.View key={address.id || index} entering={FadeInDown.delay(index * 100).duration(400)}>
+                <View style={[
+                  styles.addressCard,
+                  address.isDefault && styles.defaultAddressCard
+                ]}>
+                  <TouchableOpacity
+                    style={styles.addressInfo}
+                    onPress={() => openModal(address, 'view')}
+                  >
+                    <View style={styles.addressHeader}>
+                      <View style={styles.addressTypeContainer}>
+                        {getTypeIcon(address.type)}
+                        <Text style={styles.addressName}>
+                          {address.displayName || address.type || 'Address'}
+                        </Text>
                       </View>
-                  </View>
-                  </View>
-                  <Text style={styles.addressText}>
-                    {address.address}
-                  </Text>
-                  <Text style={styles.addressDetails}>
-                    {`${address.city}, ${address.state} ${address.zipCode || ''}`}
-                  </Text>
-                  {address.phoneNumber && (
-                    <Text style={styles.addressPhone}>Phone: {address.phoneNumber}</Text>
-                  )}
-                  {address.landmark && (
-                    <Text style={styles.addressLandmark}>Near: {address.landmark}</Text>
-                  )}
-                </TouchableOpacity>
+                      <View style={styles.headerActions}>
+                        {address.isDefault && (
+                          <View style={styles.defaultBadge}>
+                            <Text style={styles.defaultBadgeText}>DEFAULT</Text>
+                          </View>
+                        )}
+                        <View style={styles.actionButtons}>
+                          <TouchableOpacity
+                            style={styles.actionButton}
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              openModal(address, 'edit');
+                            }}
+                          >
+                            <Edit size={20} color={theme.colors.primary} />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.actionButton}
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              console.log('🗑️ Delete button clicked for address:', address);
+                              handleDelete(address);
+                            }}
+                          >
+                            <Trash2 size={20} color={theme.colors.error} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </View>
+                    <Text style={styles.addressText}>
+                      {address.address}
+                    </Text>
+                    <Text style={styles.addressDetails}>
+                      {`${address.city}, ${address.state} ${address.zipCode || ''}`}
+                    </Text>
+                    {address.phoneNumber && (
+                      <Text style={styles.addressPhone}>Phone: {address.phoneNumber}</Text>
+                    )}
+                    {address.landmark && (
+                      <Text style={styles.addressLandmark}>Near: {address.landmark}</Text>
+                    )}
+                  </TouchableOpacity>
                 </View>
-          </Animated.View>
-          );
-        })}
-      </ScrollView>
+              </Animated.View>
+            );
+          })}
+        </ScrollView>
       )}
 
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <AddressForm 
-            address={selectedAddress} 
-            mode={modalMode}
-            onSave={handleSaveAddress} 
-            onCancel={() => setModalVisible(false)}
-            onEdit={() => setModalMode('edit')}
-          />
-        </View>
-      </Modal>
 
-      {/* Delete Confirmation Modal */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={deleteModalVisible}
-        onRequestClose={cancelDelete}
+      <BaseModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        size="medium"
+        showCloseButton={false}
       >
-        <View style={styles.deleteModalOverlay}>
-          <View style={styles.deleteModalContent}>
-            <Text style={styles.deleteModalTitle}>Delete Address</Text>
-            <Text style={styles.deleteModalMessage}>
-              Are you sure you want to delete this address? This action cannot be undone.
-            </Text>
-            <View style={styles.deleteModalButtons}>
-              <TouchableOpacity style={styles.deleteModalCancelButton} onPress={cancelDelete}>
-                <Text style={styles.deleteModalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.deleteModalConfirmButton} onPress={confirmDelete}>
-                <Text style={styles.deleteModalConfirmText}>Delete</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        <AddressForm
+          address={selectedAddress}
+          mode={modalMode}
+          onSave={handleSaveAddress}
+          onCancel={() => setModalVisible(false)}
+          onEdit={() => setModalMode('edit')}
+        />
+      </BaseModal>
+
+      <ConfirmDialog
+        visible={deleteModalVisible}
+        title="Delete Address"
+        message="Are you sure you want to delete this address? This action cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmVariant="danger"
+      />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#F8F8F8' },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16, backgroundColor: '#FFFFFF' },
-    backButton: { padding: 8 },
-    headerTitle: { fontSize: 18, fontWeight: 'bold' },
-    addButton: { padding: 8 },
-    content: { padding: 16 },
-    addressCard: { 
-      backgroundColor: '#FFFFFF', 
-      padding: 16, 
-      borderRadius: 12, 
-      marginBottom: 12,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
-    },
-    defaultAddressCard: {
-      borderWidth: 2,
-      borderColor: '#FF9B42',
-    },
-    addressInfo: { flex: 1 },
-    addressHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 8,
-    },
-    headerActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-    actionButtons: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-    },
-    addressTypeContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    addressName: { 
-      fontSize: 16, 
-      fontWeight: 'bold', 
-      marginLeft: 8,
-      color: '#333',
-    },
-    defaultBadge: {
-      backgroundColor: '#FF9B42',
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
-    },
-    defaultBadgeText: {
-      color: '#FFFFFF',
-      fontSize: 10,
-      fontWeight: 'bold',
-    },
-    addressText: { 
-      color: '#333',
-      fontSize: 14,
-      marginBottom: 4,
-    },
-    addressDetails: {
-      color: '#666',
-      fontSize: 13,
-      marginBottom: 2,
-    },
-    addressPhone: {
-      color: '#666',
-      fontSize: 13,
-      marginBottom: 2,
-    },
-    addressLandmark: {
-      color: '#999',
-      fontSize: 12,
-      fontStyle: 'italic',
-    },
-    modalContainer: { 
-      flex: 1, 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      backgroundColor: 'rgba(0,0,0,0.5)' 
-    },
-    modalContent: { 
-      backgroundColor: '#FFFFFF', 
-      padding: 20, 
-      borderRadius: 12, 
-      width: '90%',
-      maxHeight: '80%',
-    },
-    modalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 20,
-    },
-    modalTitle: { 
-      fontSize: 18, 
-      fontWeight: 'bold',
-    },
-    editButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: '#FF9B42',
-      backgroundColor: '#FFFFFF',
-    },
-    editButtonText: {
-      marginLeft: 4,
-      fontSize: 12,
-      fontWeight: '500',
-      color: '#FF9B42',
-    },
-    viewContainer: {
-      marginBottom: 20,
-    },
-    viewField: {
-      marginBottom: 16,
-    },
-    viewLabel: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: '#333',
-      marginBottom: 4,
-    },
-    viewValue: {
-      fontSize: 16,
-      color: '#666',
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      backgroundColor: '#F8F8F8',
-      borderRadius: 8,
-    },
-    viewTypeContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      backgroundColor: '#F8F8F8',
-      borderRadius: 8,
-    },
-    viewTypeText: {
-      marginLeft: 8,
-      fontSize: 16,
-      color: '#666',
-    },
-    fieldLabel: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: '#333',
-      marginBottom: 8,
-      marginTop: 4,
-    },
-    tagContainer: {
-      flexDirection: 'row',
-      marginBottom: 16,
-      gap: 8,
-      flexWrap: 'wrap',
-    },
-    tagButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: 6,
-      paddingHorizontal: 12,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: '#FF9B42',
-      backgroundColor: '#FFFFFF',
-    },
-    tagButtonActive: {
-      backgroundColor: '#FF9B42',
-    },
-    tagButtonText: {
-      marginLeft: 4,
-      fontSize: 12,
-      fontWeight: '500',
-      color: '#FF9B42',
-    },
-    tagButtonTextActive: {
-      color: '#FFFFFF',
-    },
-    input: { 
-      borderWidth: 1, 
-      borderColor: '#ddd', 
-      padding: 12, 
-      borderRadius: 8, 
-      marginBottom: 12,
-      fontSize: 14,
-    },
-    defaultContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 20,
-      paddingVertical: 8,
-    },
-    defaultLabel: {
-      fontSize: 14,
-      fontWeight: '500',
-      color: '#333',
-    },
-    modalButtons: { 
-      flexDirection: 'row', 
-      justifyContent: 'space-between', 
-      marginTop: 20,
-      gap: 12,
-    },
-    cancelButton: { 
-      flex: 1,
-      padding: 12,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: '#ddd',
-      alignItems: 'center',
-    },
-    cancelButtonText: { 
-      color: '#666',
-      fontWeight: '500',
-    },
-    saveButton: { 
-      flex: 2,
-      backgroundColor: '#FF9B42', 
-      padding: 12, 
-      borderRadius: 8,
-      alignItems: 'center',
-    },
-    saveButtonText: { 
-      color: '#FFFFFF', 
-      fontWeight: 'bold',
-    },
-    closeButton: { 
-      flex: 1,
-      padding: 12,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: '#ddd',
-      alignItems: 'center',
-    },
-    closeButtonText: { 
-      color: '#666',
-      fontWeight: '500',
-    },
-    deleteButton: { 
-      flex: 1,
-      backgroundColor: '#E53935', 
-      padding: 12, 
-      borderRadius: 8,
-      alignItems: 'center',
-      flexDirection: 'row',
-      justifyContent: 'center',
-      marginRight: 8,
-    },
-    deleteButtonText: { 
-      color: '#FFFFFF', 
-      fontWeight: 'bold',
-      marginLeft: 4,
-    },
-    actionButton: {
-      padding: 4,
-      borderRadius: 4,
-      backgroundColor: '#F8F8F8',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    centerContainer: { 
-      flex: 1, 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      padding: 20 
-    },
-    emptyTitle: { 
-      fontSize: 22, 
-      fontWeight: 'bold', 
-      marginTop: 20, 
-      color: '#333' 
-    },
-    emptyDescription: { 
-      fontSize: 16, 
-      color: '#666', 
-      marginTop: 10, 
-      textAlign: 'center' 
-    },
-    errorText: { 
-      fontSize: 16, 
-      color: 'red' 
-    },
-    deleteModalOverlay: {
-      flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    deleteModalContent: {
-      backgroundColor: 'white',
-      borderRadius: 12,
-      padding: 24,
-      margin: 20,
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
-      elevation: 5,
-    },
-    deleteModalTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: '#333',
-      marginBottom: 8,
-    },
-    deleteModalMessage: {
-      fontSize: 16,
-      color: '#666',
-      textAlign: 'center',
-      marginBottom: 24,
-    },
-    deleteModalButtons: {
-      flexDirection: 'row',
-      gap: 12,
-    },
-    deleteModalCancelButton: {
-      backgroundColor: '#E5E5E5',
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      borderRadius: 8,
-    },
-    deleteModalCancelText: {
-      color: '#333',
-      fontSize: 16,
-      fontWeight: '500',
-    },
-    deleteModalConfirmButton: {
-      backgroundColor: '#E53935',
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      borderRadius: 8,
-    },
-    deleteModalConfirmText: {
-      color: 'white',
-      fontSize: 16,
-      fontWeight: '500',
-    },
-}); 
+const makeStyles = (theme: Theme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.colors.background },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: theme.spacing.l, paddingTop: theme.spacing.xxl + theme.spacing.xxl + theme.spacing.xs, paddingBottom: theme.spacing.l, backgroundColor: theme.colors.card },
+  backButton: { padding: theme.spacing.s },
+  headerTitle: { fontSize: theme.typography.size.xl, fontWeight: theme.typography.weight.bold, color: theme.colors.text },
+  addButton: { padding: theme.spacing.s },
+  content: { padding: theme.spacing.l },
+  addressCard: {
+    backgroundColor: theme.colors.card,
+    padding: theme.spacing.l,
+    borderRadius: theme.borderRadius.m,
+    marginBottom: theme.spacing.m,
+    shadowColor: theme.colors.shadowColor,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  defaultAddressCard: {
+    borderWidth: theme.spacing.xs / 2,
+    borderColor: theme.colors.primary,
+  },
+  addressInfo: { flex: 1 },
+  addressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.s,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.s,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+  },
+  addressTypeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  addressName: {
+    fontSize: theme.typography.size.l,
+    fontWeight: theme.typography.weight.bold,
+    marginLeft: theme.spacing.s,
+    color: theme.colors.text,
+  },
+  defaultBadge: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: theme.spacing.s,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.borderRadius.m,
+  },
+  defaultBadgeText: {
+    color: theme.colors.card,
+    fontSize: theme.typography.size.xs,
+    fontWeight: theme.typography.weight.bold,
+  },
+  addressText: {
+    color: theme.colors.text,
+    fontSize: theme.typography.size.m,
+    marginBottom: theme.spacing.xs,
+  },
+  addressDetails: {
+    color: theme.colors.textSecondary,
+    fontSize: theme.typography.size.s,
+    marginBottom: 2,
+  },
+  addressPhone: {
+    color: theme.colors.textSecondary,
+    fontSize: theme.typography.size.s,
+    marginBottom: 2,
+  },
+  addressLandmark: {
+    color: theme.colors.textTertiary,
+    fontSize: theme.typography.size.s,
+    fontStyle: 'italic',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.modalOverlay
+  },
+  modalContent: {
+    backgroundColor: theme.colors.card,
+    padding: theme.spacing.xl - theme.spacing.xs,
+    borderRadius: theme.borderRadius.m,
+    width: '90%',
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.xl - theme.spacing.xs,
+  },
+  modalTitle: {
+    fontSize: theme.typography.size.xl,
+    fontWeight: theme.typography.weight.bold,
+    color: theme.colors.text,
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.m,
+    paddingVertical: theme.spacing.s - 2,
+    borderRadius: theme.borderRadius.l,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.card,
+  },
+  editButtonText: {
+    marginLeft: theme.spacing.xs,
+    fontSize: theme.typography.size.s,
+    fontWeight: theme.typography.weight.medium,
+    color: theme.colors.primary,
+  },
+  viewContainer: {
+    marginBottom: theme.spacing.xl - theme.spacing.xs,
+  },
+  viewField: {
+    marginBottom: theme.spacing.l,
+  },
+  viewLabel: {
+    fontSize: theme.typography.size.m,
+    fontWeight: theme.typography.weight.semiBold,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.xs,
+  },
+  viewValue: {
+    fontSize: theme.typography.size.l,
+    color: theme.colors.textSecondary,
+    paddingVertical: theme.spacing.s,
+    paddingHorizontal: theme.spacing.m,
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.s,
+  },
+  viewTypeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.s,
+    paddingHorizontal: theme.spacing.m,
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.s,
+  },
+  viewTypeText: {
+    marginLeft: theme.spacing.s,
+    fontSize: theme.typography.size.l,
+    color: theme.colors.textSecondary,
+  },
+  fieldLabel: {
+    fontSize: theme.typography.size.m,
+    fontWeight: theme.typography.weight.semiBold,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.s,
+    marginTop: theme.spacing.xs,
+  },
+  tagContainer: {
+    flexDirection: 'row',
+    marginBottom: theme.spacing.l,
+    gap: theme.spacing.s,
+    flexWrap: 'wrap',
+  },
+  tagButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.s - 2,
+    paddingHorizontal: theme.spacing.m,
+    borderRadius: theme.borderRadius.l,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.card,
+  },
+  tagButtonActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  tagButtonText: {
+    marginLeft: theme.spacing.xs,
+    fontSize: theme.typography.size.s,
+    fontWeight: theme.typography.weight.medium,
+    color: theme.colors.primary,
+  },
+  tagButtonTextActive: {
+    color: theme.colors.card,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.m,
+    borderRadius: theme.borderRadius.s,
+    marginBottom: theme.spacing.m,
+    fontSize: theme.typography.size.m,
+    color: theme.colors.text,
+    backgroundColor: theme.colors.card,
+  },
+  defaultContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.xl - theme.spacing.xs,
+    paddingVertical: theme.spacing.s,
+  },
+  defaultLabel: {
+    fontSize: theme.typography.size.m,
+    fontWeight: theme.typography.weight.medium,
+    color: theme.colors.text,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: theme.spacing.xl - theme.spacing.xs,
+    gap: theme.spacing.m,
+  },
+  cancelButton: {
+    flex: 1,
+    padding: theme.spacing.m,
+    borderRadius: theme.borderRadius.s,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: theme.colors.textSecondary,
+    fontWeight: theme.typography.weight.medium,
+  },
+  saveButton: {
+    flex: 2,
+    backgroundColor: theme.colors.primary,
+    padding: theme.spacing.m,
+    borderRadius: theme.borderRadius.s,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    color: theme.colors.card,
+    fontWeight: theme.typography.weight.bold,
+  },
+  closeButton: {
+    flex: 1,
+    padding: theme.spacing.m,
+    borderRadius: theme.borderRadius.s,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: theme.colors.textSecondary,
+    fontWeight: theme.typography.weight.medium,
+  },
+  deleteButton: {
+    flex: 1,
+    backgroundColor: theme.colors.error,
+    padding: theme.spacing.m,
+    borderRadius: theme.borderRadius.s,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginRight: theme.spacing.s,
+  },
+  deleteButtonText: {
+    color: theme.colors.card,
+    fontWeight: theme.typography.weight.bold,
+    marginLeft: theme.spacing.xs,
+  },
+  actionButton: {
+    padding: theme.spacing.xs,
+    borderRadius: theme.borderRadius.xs,
+    backgroundColor: theme.colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: theme.spacing.xl - theme.spacing.xs
+  },
+  emptyTitle: {
+    fontSize: theme.typography.size.xxl,
+    fontWeight: theme.typography.weight.bold,
+    marginTop: theme.spacing.xl - theme.spacing.xs,
+    color: theme.colors.text
+  },
+  emptyDescription: {
+    fontSize: theme.typography.size.l,
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing.m - 2,
+    textAlign: 'center'
+  },
+  errorText: {
+    fontSize: theme.typography.size.l,
+    color: theme.colors.error
+  },
+  deleteModalOverlay: {
+    flex: 1,
+    backgroundColor: theme.colors.modalOverlay,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteModalContent: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.m,
+    padding: theme.spacing.xl,
+    margin: theme.spacing.xl - theme.spacing.xs,
+    alignItems: 'center',
+    shadowColor: theme.colors.shadowColor,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  deleteModalTitle: {
+    fontSize: theme.typography.size.xl,
+    fontWeight: theme.typography.weight.bold,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.s,
+  },
+  deleteModalMessage: {
+    fontSize: theme.typography.size.l,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: theme.spacing.xl,
+  },
+  deleteModalButtons: {
+    flexDirection: 'row',
+    gap: theme.spacing.m,
+  },
+  deleteModalCancelButton: {
+    backgroundColor: theme.colors.border,
+    paddingHorizontal: theme.spacing.xl - theme.spacing.xs,
+    paddingVertical: theme.spacing.m,
+    borderRadius: theme.borderRadius.s,
+  },
+  deleteModalCancelText: {
+    color: theme.colors.text,
+    fontSize: theme.typography.size.l,
+    fontWeight: theme.typography.weight.medium,
+  },
+  deleteModalConfirmButton: {
+    backgroundColor: theme.colors.error,
+    paddingHorizontal: theme.spacing.xl - theme.spacing.xs,
+    paddingVertical: theme.spacing.m,
+    borderRadius: theme.borderRadius.s,
+  },
+  deleteModalConfirmText: {
+    color: theme.colors.card,
+    fontSize: theme.typography.size.l,
+    fontWeight: theme.typography.weight.medium,
+  },
+});

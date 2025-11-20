@@ -16,7 +16,7 @@ import { Star, Clock, Utensils, AlertTriangle, ShoppingCart, Edit, Trash2 } from
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import api from '@/utils/apiClient';
 import { useReviewStore } from '@/store/reviewStore';
-import { ReviewCard } from '@/components/ReviewCard';
+import { ReviewCard } from '@/components/cards/ReviewCard';
 import { ReviewModal } from '@/components/ReviewModal';
 import { BackButton } from '@/components/BackButton';
 import { MenuItem, Review } from '@/types';
@@ -32,21 +32,21 @@ export default function FoodItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuthStore();
   const { showError, success } = useNotification();
-  
+
   const [menuItem, setMenuItem] = useState<MenuItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [editingReview, setEditingReview] = useState<Review | null>(null);
-  
-  const { 
-    menuItemReviews, 
-    fetchMenuItemReviews, 
+
+  const {
+    menuItemReviews,
+    fetchMenuItemReviews,
     markHelpful,
     updateReview,
     deleteReview: deleteReviewFromStore,
-    isLoading: reviewsLoading 
+    isLoading: reviewsLoading
   } = useReviewStore();
 
   useEffect(() => {
@@ -60,7 +60,7 @@ export default function FoodItemDetailScreen() {
   const getUserReview = () => {
     if (!user?.id) return null;
     const userId = user.id;
-    return menuItemReviews.find(review => 
+    return menuItemReviews.find(review =>
       review.user?.id === userId
     );
   };
@@ -96,8 +96,8 @@ export default function FoodItemDetailScreen() {
       'Are you sure you want to delete your review? This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
+        {
+          text: 'Delete',
           style: 'destructive',
           onPress: () => deleteReview(userReview.id)
         }
@@ -109,7 +109,7 @@ export default function FoodItemDetailScreen() {
     try {
       await deleteReviewFromStore(reviewId);
       success('Review deleted successfully');
-      
+
       // Refresh reviews
       if (id) {
         fetchMenuItemReviews(id);
@@ -152,7 +152,7 @@ export default function FoodItemDetailScreen() {
 
   const renderRatingBreakdown = () => {
     if (!menuItem?.averageRating || !menuItem?.totalReviews) return null;
-    
+
     return (
       <View style={styles.ratingBreakdown}>
         <View style={styles.ratingSummary}>
@@ -186,7 +186,7 @@ export default function FoodItemDetailScreen() {
           )}
           keyExtractor={(_, index) => index.toString()}
         />
-        
+
         {/* Image indicators */}
         {images.length > 1 && (
           <View style={styles.imageIndicators}>
@@ -209,7 +209,7 @@ export default function FoodItemDetailScreen() {
     if (!menuItem?.nutritionalInfo) return null;
 
     const { calories, protein, carbs, fat } = menuItem.nutritionalInfo;
-    
+
     return (
       <View style={styles.nutritionSection}>
         <Text style={styles.sectionTitle}>Nutritional Information</Text>
@@ -238,7 +238,7 @@ export default function FoodItemDetailScreen() {
   const renderTagsAndAllergens = () => {
     const tags = menuItem?.tags || [];
     const allergens = menuItem?.allergens || [];
-    
+
     if (tags.length === 0 && allergens.length === 0) return null;
 
     return (
@@ -255,7 +255,7 @@ export default function FoodItemDetailScreen() {
             </View>
           </View>
         )}
-        
+
         {allergens.length > 0 && (
           <View style={styles.tagGroup}>
             <Text style={styles.tagGroupTitle}>Allergens</Text>
@@ -304,7 +304,7 @@ export default function FoodItemDetailScreen() {
             </TouchableOpacity>
           )}
         </View>
-        
+
         {reviewsLoading ? (
           <ActivityIndicator size="small" color="#FF9B42" />
         ) : menuItemReviews.length > 0 ? (
@@ -359,10 +359,10 @@ export default function FoodItemDetailScreen() {
         <View style={styles.detailsSection}>
           <Text style={styles.itemName}>{menuItem.name}</Text>
           <Text style={styles.itemDescription}>{menuItem.description}</Text>
-          
+
           {/* Rating */}
           {renderRatingBreakdown()}
-          
+
           {/* Price */}
           <Text style={styles.price}>₹{menuItem.price.toFixed(2)}</Text>
         </View>

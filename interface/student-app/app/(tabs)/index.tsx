@@ -19,21 +19,21 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user, isInitialized, isLoading: authLoading } = useAuth();
   const { t } = useTranslation('common');
-  const { 
-    todayMeals, 
+  const {
+    todayMeals,
     upcomingMeals,
-    isLoading: mealsLoading, 
-    error: mealsError, 
+    isLoading: mealsLoading,
+    error: mealsError,
     fetchTodayMeals,
     fetchUpcomingMeals
   } = useMealStore();
-  const { 
-    currentSubscription, 
-    isLoading: subscriptionLoading, 
-    fetchCurrentSubscription 
+  const {
+    currentSubscription,
+    isLoading: subscriptionLoading,
+    fetchCurrentSubscription
   } = useSubscriptionStore();
-  const { 
-    getUnreadCount, 
+  const {
+    getUnreadCount,
     notifications,
     fetchNotifications
   } = useNotificationStore();
@@ -42,32 +42,32 @@ export default function HomeScreen() {
     isLoading: restaurantsLoading,
     fetchRestaurants,
   } = useRestaurantStore();
-  
+
   const [refreshing, setRefreshing] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
 
   // Load initial data ONLY once when component mounts
   useEffect(() => {
     const loadInitialData = async () => {
-      if (__DEV__) console.log('🔍 Dashboard: Initial load check:', { 
-        isInitialized, 
-        authLoading, 
+      if (__DEV__) console.log('🔍 Dashboard: Initial load check:', {
+        isInitialized,
+        authLoading,
         userId: user?.id,
         isAuthenticated: !!user
       });
-      
+
       if (!isInitialized || authLoading) {
         if (__DEV__) console.log('⏳ Dashboard: Waiting for auth initialization...');
         return;
       }
-      
+
       const userId = user?.id || user?.id;
       if (userId) {
         if (__DEV__) console.log('🚀 Dashboard: Loading data for user:', userId);
         try {
           // Load subscription first to check if user has active subscription
           await fetchCurrentSubscription(false); // Use cache if available
-          
+
           // Load all data in parallel - single call per resource
           const { currentSubscription } = useSubscriptionStore.getState();
           await Promise.all([
@@ -76,7 +76,7 @@ export default function HomeScreen() {
             fetchRestaurants(), // Use cache if available
             fetchNotifications(userId, false), // Use cache if available
           ]);
-          
+
           if (__DEV__) console.log('✅ Dashboard: Data loaded');
         } catch (error) {
           if (__DEV__) console.error('❌ Dashboard: Error loading initial data:', error);
@@ -92,13 +92,13 @@ export default function HomeScreen() {
     // Wait for auth to be initialized and subscription loading to complete
     const isAuthReady = isInitialized && !authLoading;
     const isSubscriptionReady = !subscriptionLoading;
-    
+
     if (isAuthReady && isSubscriptionReady) {
       if (__DEV__) console.log('🎬 Splash: Auth and subscription ready, hiding splash screen', {
         currentSubscription: !!currentSubscription,
         subscriptionLoading
       });
-      
+
       // Dashboard is ready with definitive subscription status, hide splash
       const timer = setTimeout(() => {
         setShowSplash(false);
@@ -113,15 +113,15 @@ export default function HomeScreen() {
     React.useCallback(() => {
       const userId = user?.id || user?.id;
       if (!isInitialized || authLoading || !userId) return;
-      
+
       // Skip refresh on initial mount (handled by useEffect)
       if (isInitialMount.current) {
         isInitialMount.current = false;
         return;
       }
-      
+
       if (__DEV__) console.log('👁️ Dashboard: Screen refocused, refreshing data');
-      
+
       // Single refresh call when screen comes back into focus
       const timer = setTimeout(() => {
         Promise.all([
@@ -131,7 +131,7 @@ export default function HomeScreen() {
           fetchNotifications(userId, false),
         ]).catch(err => console.error('Focus refresh error:', err));
       }, 300); // Small delay to avoid duplicate calls
-      
+
       return () => clearTimeout(timer);
     }, [isInitialized, authLoading, user?.id, fetchCurrentSubscription, fetchTodayMeals, fetchUpcomingMeals, fetchNotifications])
   );
@@ -144,7 +144,7 @@ export default function HomeScreen() {
       setRefreshing(false);
       return;
     }
-    
+
     setRefreshing(true);
     try {
       console.log('🔄 Dashboard: Manual refresh triggered');
@@ -166,10 +166,10 @@ export default function HomeScreen() {
   const formatTime = (dateString: string) => {
     try {
       const date = new Date(dateString);
-      return date.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
         minute: '2-digit',
-        hour12: true 
+        hour12: true
       });
     } catch {
       return t('invalidTime');
@@ -179,7 +179,7 @@ export default function HomeScreen() {
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { 
+      return date.toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -230,7 +230,7 @@ export default function HomeScreen() {
     <View style={styles.container}>
       {/* Splash Screen Overlay */}
       {showSplash && (
-        <SplashScreen 
+        <SplashScreen
           onComplete={() => setShowSplash(false)}
         />
       )}
@@ -248,8 +248,8 @@ export default function HomeScreen() {
               </Text>
             </View>
           </View>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.notificationButton}
             onPress={() => router.push('/notifications' as never)}
           >
@@ -265,12 +265,12 @@ export default function HomeScreen() {
         </View>
       )}
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
+          <RefreshControl
+            refreshing={refreshing}
             onRefresh={onRefresh}
             colors={['#FF9B42']}
             tintColor="#FF9B42"
@@ -286,9 +286,9 @@ export default function HomeScreen() {
                 status: currentSubscription.status,
                 planName: currentSubscription.plan?.name
               })}
-              <ActiveSubscriptionDashboard 
-                user={user} 
-                todayMeals={todayMeals} 
+              <ActiveSubscriptionDashboard
+                user={user}
+                todayMeals={todayMeals}
                 upcomingMeals={upcomingMeals || []}
                 isLoading={mealsLoading && todayMeals.length === 0}
               />
@@ -304,117 +304,122 @@ export default function HomeScreen() {
         {/* Today's Meals - Only show when no active subscription */}
         {!currentSubscription && (
           <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{t('todaysMeals')}</Text>
-            <Text style={styles.sectionSubtitle}>
-              {formatDate(new Date().toISOString())}
-            </Text>
-          </View>
-
-          {mealsError ? (
-            <View style={styles.errorCard}>
-              <Text style={styles.errorText}>{mealsError}</Text>
-              <TouchableOpacity 
-                onPress={() => fetchTodayMeals()}
-                style={styles.retryButton}
-              >
-                <Text style={styles.retryButtonText}>{t('retry')}</Text>
-              </TouchableOpacity>
-            </View>
-          ) : todayMeals.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Calendar size={48} color="#CCCCCC" />
-              <Text style={styles.emptyTitle}>{t('noMealsScheduled')}</Text>
-              <Text style={styles.emptyDescription}>
-                {t('subscribeToGetStarted')}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>{t('todaysMeals')}</Text>
+              <Text style={styles.sectionSubtitle}>
+                {formatDate(new Date().toISOString())}
               </Text>
-              <TouchableOpacity 
-                onPress={() => router.push('/plans')}
-                style={styles.exploreButton}
-              >
-                <Text style={styles.exploreButtonText}>{t('explorePlans')}</Text>
-              </TouchableOpacity>
             </View>
-          ) : (
-            <View style={styles.mealsContainer}>
-              {todayMeals.map((meal) => (
+
+            {mealsError ? (
+              <View style={styles.errorCard}>
+                <Text style={styles.errorText}>{mealsError}</Text>
                 <TouchableOpacity
-                  key={meal.id}
-                  style={styles.mealCard}
-                  onPress={() => router.push(`/track?id=${meal.id}`)}
+                  onPress={() => fetchTodayMeals()}
+                  style={styles.retryButton}
                 >
-                  <View style={styles.mealHeader}>
-                    <View>
-                      <Text style={styles.mealType}>
-                        {(meal.mealType || meal.deliverySlot || 'lunch')
-                          .charAt(0)
-                          .toUpperCase() + 
-                          (meal.mealType || meal.deliverySlot || 'lunch').slice(1)}
-                      </Text>
-                      <Text style={styles.mealRestaurant}>
-                        {meal.partnerName || meal.restaurantName || 'Restaurant'}
-                      </Text>
-                    </View>
-                    <View style={[
-                      styles.statusBadge,
-                      { backgroundColor: getStatusColor(meal.status || 'pending') }
-                    ]}>
-                      <Text style={styles.statusText}>
-                        {getStatusText(meal.status || 'pending')}
-                      </Text>
-                    </View>
-                  </View>
-                  
-                  <View style={styles.mealContent}>
-                    <Text style={styles.mealName}>
-                      {meal.items?.[0]?.name || meal.menu?.[0]?.name || t('meal')}
-                    </Text>
-                    <Text style={styles.mealDescription}>
-                      {meal.items?.[0]?.description || meal.menu?.[0]?.description || t('deliciousMealPrepared')}
-                    </Text>
-                  </View>
-                  
-                  <View style={styles.mealFooter}>
-                    <View style={styles.timeContainer}>
-                      <Clock size={14} color="#666666" />
-                      <Text style={styles.timeText}>
-                        {meal.deliveryTime || meal.deliveryTimeRange || formatTime(String(meal.deliveryDate || meal.date || new Date()))}
-                      </Text>
-                    </View>
-                    <Text style={styles.trackText}>{t('track')}</Text>
-                  </View>
+                  <Text style={styles.retryButtonText}>{t('retry')}</Text>
                 </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </Animated.View>
+              </View>
+            ) : todayMeals.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Calendar size={48} color="#CCCCCC" />
+                <Text style={styles.emptyTitle}>{t('noMealsScheduled')}</Text>
+                <Text style={styles.emptyDescription}>
+                  {t('subscribeToGetStarted')}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => router.push('/plans')}
+                  style={styles.exploreButton}
+                >
+                  <Text style={styles.exploreButtonText}>{t('explorePlans')}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.mealsContainer}>
+                {todayMeals.map((meal) => (
+                  <TouchableOpacity
+                    key={meal.id}
+                    style={styles.mealCard}
+                    onPress={() => router.push(`/track?id=${meal.id}`)}
+                  >
+                    <View style={styles.mealHeader}>
+                      <View>
+                        <Text style={styles.mealType}>
+                          {(meal.mealType || meal.deliverySlot || 'lunch')
+                            .charAt(0)
+                            .toUpperCase() +
+                            (meal.mealType || meal.deliverySlot || 'lunch').slice(1)}
+                        </Text>
+                        <Text style={styles.mealRestaurant}>
+                          {meal.partnerName || meal.restaurantName || 'Restaurant'}
+                        </Text>
+                      </View>
+                      <View style={[
+                        styles.statusBadge,
+                        { backgroundColor: getStatusColor(meal.status || 'pending') }
+                      ]}>
+                        <Text style={styles.statusText}>
+                          {getStatusText(meal.status || 'pending')}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.mealContent}>
+                      <Text style={styles.mealName}>
+                        {meal.items?.[0]?.name || meal.menu?.[0]?.name || t('meal')}
+                      </Text>
+                      <Text style={styles.mealDescription}>
+                        {meal.items?.[0]?.description || meal.menu?.[0]?.description || t('deliciousMealPrepared')}
+                      </Text>
+                    </View>
+
+                    <View style={styles.mealFooter}>
+                      <View style={styles.timeContainer}>
+                        <Clock size={14} color="#666666" />
+                        <Text style={styles.timeText}>
+                          {meal.deliveryTime || meal.deliveryTimeRange || formatTime(String(meal.deliveryDate || meal.date || new Date()))}
+                        </Text>
+                      </View>
+                      <Text style={styles.trackText}>{t('track')}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </Animated.View>
         )}
 
         {/* Quick Actions */}
-        <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('quickActions')}</Text>
-          
+        <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.quickActionsSection}>
+          <View style={styles.quickActionsHeader}>
+            <Text style={styles.quickActionsTitle}>{t('quickActions')}</Text>
+            <Text style={styles.quickActionsSubtitle}>Access key features quickly</Text>
+          </View>
+
           <View style={styles.quickActionsGrid}>
-            <TouchableOpacity 
-              style={styles.quickActionCard}
+            <TouchableOpacity
+              style={[styles.quickActionCard, styles.quickActionCardPrimary]}
               onPress={() => router.push('/(tabs)/orders')}
+              activeOpacity={0.7}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: '#E3F2FD' }]}>
-                <Calendar size={24} color="#2196F3" />
+              <View style={[styles.quickActionIconContainer, { backgroundColor: '#E3F2FD' }]}>
+                <Calendar size={28} color="#2196F3" strokeWidth={2.5} />
               </View>
               <Text style={styles.quickActionTitle}>{t('orderHistory')}</Text>
-              <Text style={styles.quickActionSubtitle}>{t('viewPastOrders')}</Text>
+              <Text style={styles.quickActionDescription}>{t('viewPastOrders')}</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.quickActionCard}
+
+            <TouchableOpacity
+              style={[styles.quickActionCard, styles.quickActionCardSecondary]}
               onPress={() => router.push('/help-support')}
+              activeOpacity={0.7}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: '#FFF3E0' }]}>
-                <Bell size={24} color="#FF9B42" />
+              <View style={[styles.quickActionIconContainer, { backgroundColor: '#FFF3E0' }]}>
+                <Bell size={28} color="#FF9B42" strokeWidth={2.5} />
               </View>
               <Text style={styles.quickActionTitle}>{t('support')}</Text>
-              <Text style={styles.quickActionSubtitle}>{t('getHelpFaq')}</Text>
+              <Text style={styles.quickActionDescription}>{t('getHelpFaq')}</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -443,6 +448,7 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 24,
     fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     color: '#333333',
     marginBottom: 4,
   },
@@ -453,6 +459,7 @@ const styles = StyleSheet.create({
   },
   location: {
     fontSize: 14,
+    fontFamily: 'Poppins-Regular',
     color: '#666666',
   },
   notificationButton: {
@@ -480,6 +487,7 @@ const styles = StyleSheet.create({
   notificationBadgeText: {
     fontSize: 10,
     fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     color: '#FFFFFF',
   },
   content: {
@@ -495,11 +503,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     color: '#333333',
     marginBottom: 4,
   },
   sectionSubtitle: {
     fontSize: 14,
+    fontFamily: 'Poppins-Regular',
     color: '#666666',
   },
   loadingCard: {
@@ -526,6 +536,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
+    fontFamily: 'Poppins-Medium',
     color: '#F44336',
     textAlign: 'center',
     marginBottom: 16,
@@ -540,6 +551,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
@@ -555,12 +567,14 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     color: '#333333',
     marginTop: 16,
     marginBottom: 8,
   },
   emptyDescription: {
     fontSize: 14,
+    fontFamily: 'Poppins-Regular',
     color: '#666666',
     textAlign: 'center',
     marginBottom: 24,
@@ -575,6 +589,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
   },
   mealsContainer: {
     gap: 12,
@@ -598,11 +613,13 @@ const styles = StyleSheet.create({
   mealType: {
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     color: '#333333',
     marginBottom: 2,
   },
   mealRestaurant: {
     fontSize: 12,
+    fontFamily: 'Poppins-Regular',
     color: '#666666',
   },
   statusBadge: {
@@ -613,6 +630,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 10,
     fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     color: '#FFFFFF',
     textTransform: 'uppercase',
   },
@@ -622,11 +640,13 @@ const styles = StyleSheet.create({
   mealName: {
     fontSize: 14,
     fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     color: '#333333',
     marginBottom: 4,
   },
   mealDescription: {
     fontSize: 12,
+    fontFamily: 'Poppins-Regular',
     color: '#666666',
     lineHeight: 16,
   },
@@ -642,29 +662,90 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 12,
+    fontFamily: 'Poppins-Regular',
     color: '#666666',
   },
   trackText: {
     fontSize: 12,
+    fontFamily: 'Poppins-SemiBold',
     color: '#FF9B42',
     fontWeight: '600',
   },
+  // New Quick Actions Styles
+  quickActionsSection: {
+    marginBottom: 24,
+    paddingHorizontal: 16,
+  },
+  quickActionsHeader: {
+    marginBottom: 20,
+  },
+  quickActionsTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
+    color: '#333333',
+    marginBottom: 4,
+  },
+  quickActionsSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#666666',
+  },
   quickActionsGrid: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
   },
   quickActionCard: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
+    padding: 20,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.04)',
+  },
+  quickActionCardPrimary: {
+    borderTopWidth: 3,
+    borderTopColor: '#2196F3',
+  },
+  quickActionCardSecondary: {
+    borderTopWidth: 3,
+    borderTopColor: '#FF9B42',
+  },
+  quickActionIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowRadius: 4,
+    elevation: 2,
   },
+  quickActionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
+    color: '#333333',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  quickActionDescription: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: '#999999',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  // Legacy styles (kept for compatibility)
   quickActionIcon: {
     width: 48,
     height: 48,
@@ -673,14 +754,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  quickActionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: 4,
-  },
   quickActionSubtitle: {
     fontSize: 12,
+    fontFamily: 'Poppins-Regular',
     color: '#666666',
     textAlign: 'center',
   },
@@ -710,6 +786,7 @@ const styles = StyleSheet.create({
   },
   restaurantName: {
     fontWeight: 'bold',
+    fontFamily: 'Poppins-Bold',
     fontSize: 14,
   },
   restaurantRating: {
@@ -720,6 +797,7 @@ const styles = StyleSheet.create({
   restaurantRatingText: {
     marginLeft: 5,
     fontSize: 12,
+    fontFamily: 'Poppins-Regular',
     color: '#666',
   },
   loadingContainer: {

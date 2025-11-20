@@ -26,6 +26,7 @@
     "clean:pdf": "node scripts/clean-pdf.js",
     "email:dev": "email dev --dir src/modules/email/templates/emails",
     "email:export": "email export --dir src/modules/email/templates/emails",
+    "export:swagger": "bun run src/utils/swagger-export.ts",
     "vercel-build": "nest build"
   },
   "dependencies": {

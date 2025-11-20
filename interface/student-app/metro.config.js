@@ -10,7 +10,7 @@ config.resolver.sourceExts.push('cjs');
 config.resolver.platforms = ['ios', 'android', 'native', 'web'];
 
 // Add asset extensions
-config.resolver.assetExts.push('png', 'jpg', 'jpeg', 'gif', 'svg', 'ico');
+config.resolver.assetExts.push('png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'yaml', 'yml');
 
 // Configure transformer for SDK 54 with code splitting optimization
 config.transformer.minifierConfig = {

@@ -1,4 +1,10 @@
-import { IsOptional, IsString, IsArray, ValidateNested, IsObject } from "class-validator";
+import {
+  IsOptional,
+  IsString,
+  IsArray,
+  ValidateNested,
+  IsObject,
+} from "class-validator";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 
@@ -125,14 +131,20 @@ export class PartnerFinancialReportDto {
   @IsObject()
   costAnalysis?: any;
 
-  @ApiPropertyOptional({ description: "Per partner breakdown", type: [PerPartnerBreakdownDto] })
+  @ApiPropertyOptional({
+    description: "Per partner breakdown",
+    type: [PerPartnerBreakdownDto],
+  })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => PerPartnerBreakdownDto)
   perPartnerBreakdown?: PerPartnerBreakdownDto[];
 
-  @ApiPropertyOptional({ description: "List of partners", type: [PartnerFinancialDataDto] })
+  @ApiPropertyOptional({
+    description: "List of partners",
+    type: [PartnerFinancialDataDto],
+  })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
@@ -144,4 +156,3 @@ export class PartnerFinancialReportDto {
   @IsObject()
   charts?: any;
 }
-

@@ -49,33 +49,33 @@ export interface Restaurant {
   totalReviews: number;
   createdAt: string;
   updatedAt: string;
-  
+
   // Business details
   gstNumber?: string;
   licenseNumber?: string;
   establishedYear?: number;
-  
+
   // Contact information
   contactEmail?: string;
   contactPhone?: string;
   whatsappNumber?: string;
-  
+
   // Delivery information
   deliveryRadius?: number;
   minimumOrderAmount?: number;
   deliveryFee?: number;
   estimatedDeliveryTime?: number;
-  
+
   // Financial information
   commissionRate?: number;
-  
+
   // Social media
   socialMedia?: {
     instagram?: string;
     facebook?: string;
     twitter?: string;
   };
-  
+
   // Operational details
   isVegetarian?: boolean;
   hasDelivery?: boolean;
@@ -83,7 +83,7 @@ export interface Restaurant {
   acceptsCash?: boolean;
   acceptsCard?: boolean;
   acceptsUPI?: boolean;
-  
+
   // Computed properties for UI
   name?: string;
   rating?: number;
@@ -91,6 +91,8 @@ export interface Restaurant {
   image?: string;
   formattedAddress?: string;
   cuisineType?: string[];
+  featuredDish?: string;
+  distance?: string;
 }
 
 export interface MenuItem {

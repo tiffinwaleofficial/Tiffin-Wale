@@ -41,6 +41,7 @@ async function bootstrap() {
       "Content-Type",
       "Accept",
       "Authorization",
+      "Idempotency-Key",
       "Cache-Control",
       "Pragma",
       "Expires",
@@ -49,7 +50,7 @@ async function bootstrap() {
       "User-Agent",
       "Referer",
     ],
-    exposedHeaders: ["Authorization", "Content-Length", "X-Requested-With"],
+    exposedHeaders: ["Authorization", "Content-Length", "X-Requested-With", "X-Idempotency-Key", "X-Idempotency-Replayed"],
     preflightContinue: false,
     optionsSuccessStatus: 204,
   });

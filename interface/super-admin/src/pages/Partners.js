@@ -6,9 +6,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Eye, Download, RefreshCw } from 'lucide-react';
+import { Eye, Download, RefreshCw, Trash2 } from 'lucide-react';
 import apiClient from '@/config/api';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function Partners() {
   const [partners, setPartners] = useState([]);
@@ -18,6 +28,9 @@ export default function Partners() {
   const [selectedPartner, setSelectedPartner] = useState(null);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [partnerToDelete, setPartnerToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchPartners();
@@ -32,12 +45,29 @@ export default function Partners() {
         ...(statusFilter !== 'all' && { status: statusFilter })
       };
       const response = await apiClient.get('/super-admin/partners', { params });
-      // Handle paginated response - check for partners array first
-      const data = response.data?.partners || response.data?.data || (Array.isArray(response.data) ? response.data : []);
-      setPartners(Array.isArray(data) ? data : []);
+      console.log('Partners API Response:', response.data); // Debug log
+
+      // Handle different response formats
+      let data = [];
+      if (response.data?.partners) {
+        data = Array.isArray(response.data.partners) ? response.data.partners : [];
+      } else if (response.data?.data) {
+        data = Array.isArray(response.data.data) ? response.data.data : [];
+      } else if (Array.isArray(response.data)) {
+        data = response.data;
+      }
+
+      setPartners(data);
+      console.log(`Loaded ${data.length} partners`);
     } catch (error) {
       console.error('Partners fetch error:', error);
-      toast.error('Failed to load partners');
+      // Only show error toast on actual API failure
+      if (error.response) {
+        toast.error(`Failed to load partners: ${error.response.data?.message || error.message}`);
+      } else {
+        toast.error('Failed to load partners');
+      }
+      setPartners([]);
     } finally {
       setLoading(false);
     }
@@ -69,6 +99,29 @@ export default function Partners() {
   const exportToCSV = () => {
     toast.success('Exporting partners to CSV...');
     // TODO: Implement CSV export
+  };
+
+  const handleDeleteClick = (partner) => {
+    setPartnerToDelete(partner);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!partnerToDelete) return;
+    setDeleting(true);
+    try {
+      const id = partnerToDelete?.id || partnerToDelete?._id || partnerToDelete;
+      await apiClient.delete(`/super-admin/partners/${id}`);
+      toast.success('Partner deleted successfully');
+      fetchPartners();
+      setDeleteDialogOpen(false);
+      setPartnerToDelete(null);
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('Failed to delete partner');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const filteredPartners = partners.filter(partner => {
@@ -168,7 +221,7 @@ export default function Partners() {
                   const partnerRating = partner.rating || partner.avgRating || 0;
                   const partnerOrders = partner.totalOrders || partner.total_orders || 0;
                   const partnerStatus = partner.status || partner.isActive ? 'active' : 'pending';
-                  
+
                   return (
                     <TableRow key={partnerId} data-testid={`partner-row-${partnerId}`}>
                       <TableCell className="font-medium">{partnerName}</TableCell>
@@ -191,84 +244,92 @@ export default function Partners() {
                           {partnerStatus}
                         </Badge>
                       </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => viewPartnerDetails(partnerId)}
-                              data-testid={`view-partner-${partnerId}`}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-2xl">
-                            <DialogHeader>
-                              <DialogTitle>Partner Details</DialogTitle>
-                            </DialogHeader>
-                            {selectedPartner && (
-                              <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-500">Name</p>
-                                    <p className="text-base">{selectedPartner.businessName || selectedPartner.name || 'N/A'}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-500">Email</p>
-                                    <p className="text-base">{selectedPartner.contactEmail || selectedPartner.email || 'N/A'}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-500">Phone</p>
-                                    <p className="text-base">{selectedPartner.phoneNumber || selectedPartner.phone || 'N/A'}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-500">Location</p>
-                                    <p className="text-base">{selectedPartner.address?.city || selectedPartner.address?.fullAddress || selectedPartner.address || 'N/A'}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-500">Rating</p>
-                                    <p className="text-base flex items-center gap-1">
-                                      <span className="text-yellow-500">★</span>
-                                      {((selectedPartner.rating || selectedPartner.averageRating || 0)).toFixed(1)}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-500">Total Orders</p>
-                                    <p className="text-base">{selectedPartner.totalOrders || selectedPartner.total_orders || 0}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-500">Status</p>
-                                    <Badge className={selectedPartner.status === 'active' || selectedPartner.status === 'approved' ? 'bg-green-500' : 'bg-gray-500'}>
-                                      {selectedPartner.status || 'N/A'}
-                                    </Badge>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-500">Joined Date</p>
-                                    <p className="text-base">{selectedPartner.createdAt || selectedPartner.created_at ? new Date(selectedPartner.createdAt || selectedPartner.created_at).toLocaleDateString() : 'N/A'}</p>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => viewPartnerDetails(partnerId)}
+                                data-testid={`view-partner-${partnerId}`}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle>Partner Details</DialogTitle>
+                              </DialogHeader>
+                              {selectedPartner && (
+                                <div className="space-y-4">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-500">Name</p>
+                                      <p className="text-base">{selectedPartner.businessName || selectedPartner.name || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-500">Email</p>
+                                      <p className="text-base">{selectedPartner.contactEmail || selectedPartner.email || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-500">Phone</p>
+                                      <p className="text-base">{selectedPartner.phoneNumber || selectedPartner.phone || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-500">Location</p>
+                                      <p className="text-base">{selectedPartner.address?.city || selectedPartner.address?.fullAddress || selectedPartner.address || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-500">Rating</p>
+                                      <p className="text-base flex items-center gap-1">
+                                        <span className="text-yellow-500">★</span>
+                                        {((selectedPartner.rating || selectedPartner.averageRating || 0)).toFixed(1)}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-500">Total Orders</p>
+                                      <p className="text-base">{selectedPartner.totalOrders || selectedPartner.total_orders || 0}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-500">Status</p>
+                                      <Badge className={selectedPartner.status === 'active' || selectedPartner.status === 'approved' ? 'bg-green-500' : 'bg-gray-500'}>
+                                        {selectedPartner.status || 'N/A'}
+                                      </Badge>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-500">Joined Date</p>
+                                      <p className="text-base">{selectedPartner.createdAt || selectedPartner.created_at ? new Date(selectedPartner.createdAt || selectedPartner.created_at).toLocaleDateString() : 'N/A'}</p>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            )}
-                          </DialogContent>
-                        </Dialog>
-                        <Select
-                          onValueChange={(value) => updateStatus(partnerId, value)}
-                          data-testid={`partner-action-${partnerId}`}
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue placeholder="Actions" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="active">Activate</SelectItem>
-                            <SelectItem value="suspended">Suspend</SelectItem>
-                            <SelectItem value="pending">Set Pending</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                              )}
+                            </DialogContent>
+                          </Dialog>
+                          <Select
+                            onValueChange={(value) => updateStatus(partnerId, value)}
+                            data-testid={`partner-action-${partnerId}`}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue placeholder="Actions" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="active">Activate</SelectItem>
+                              <SelectItem value="suspended">Suspend</SelectItem>
+                              <SelectItem value="pending">Set Pending</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => handleDeleteClick(partner)}
+                            data-testid={`partner-delete-${partnerId}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
               </TableBody>
@@ -281,6 +342,33 @@ export default function Partners() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Partner</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this partner? This action cannot be undone.
+              {partnerToDelete && (
+                <span className="block mt-2 font-medium">
+                  Partner: {partnerToDelete?.businessName || partnerToDelete?.name || partnerToDelete?.id || partnerToDelete?._id}
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

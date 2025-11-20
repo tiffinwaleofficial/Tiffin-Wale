@@ -6,9 +6,19 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
-import { Eye, RefreshCw } from 'lucide-react';
+import { Eye, RefreshCw, Trash2 } from 'lucide-react';
 import apiClient from '@/config/api';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const statusColors = {
   open: 'bg-red-500',
@@ -29,6 +39,9 @@ export default function Support() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [ticketToDelete, setTicketToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchTickets();
@@ -43,12 +56,32 @@ export default function Support() {
         ...(statusFilter !== 'all' && { status: statusFilter })
       };
       const response = await apiClient.get('/super-admin/support/tickets', { params });
-      // Handle paginated response
-      const data = response.data?.data || response.data?.tickets || (Array.isArray(response.data) ? response.data : []);
-      setTickets(Array.isArray(data) ? data : []);
+      
+      // Handle different response structures
+      let data = [];
+      if (Array.isArray(response.data)) {
+        data = response.data;
+      } else if (response.data?.data && Array.isArray(response.data.data)) {
+        data = response.data.data;
+      } else if (response.data?.tickets && Array.isArray(response.data.tickets)) {
+        data = response.data.tickets;
+      } else if (response.data?.items && Array.isArray(response.data.items)) {
+        data = response.data.items;
+      }
+      
+      setTickets(data);
+      
+      // Only show error if we got a response but no valid data structure
+      if (response.data && data.length === 0 && !Array.isArray(response.data)) {
+        console.warn('Unexpected response structure:', response.data);
+      }
     } catch (error) {
-      console.error('Tickets fetch error:', error);
-      toast.error('Failed to load tickets');
+      // Only show error toast if it's an actual error (not a cancelled request)
+      // Cancelled requests are handled by api.js interceptor, so we only show real errors
+      if (error.response?.status !== 200 && error.message !== 'Duplicate request cancelled - another identical request is already in progress') {
+        console.error('Tickets fetch error:', error);
+        toast.error('Failed to load tickets');
+      }
     } finally {
       setLoading(false);
     }
@@ -74,6 +107,29 @@ export default function Support() {
     } catch (error) {
       console.error('Ticket details fetch error:', error);
       toast.error('Failed to load ticket details');
+    }
+  };
+
+  const handleDeleteClick = (ticket) => {
+    setTicketToDelete(ticket);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!ticketToDelete) return;
+    setDeleting(true);
+    try {
+      const id = ticketToDelete?.id || ticketToDelete?._id || ticketToDelete?.ticketId || ticketToDelete;
+      await apiClient.delete(`/super-admin/support/tickets/${id}`);
+      toast.success('Ticket deleted successfully');
+      fetchTickets();
+      setDeleteDialogOpen(false);
+      setTicketToDelete(null);
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('Failed to delete ticket');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -176,7 +232,7 @@ export default function Support() {
                   <TableHead>Priority</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="w-[250px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -285,6 +341,14 @@ export default function Support() {
                             <SelectItem value="closed">Closed</SelectItem>
                           </SelectContent>
                         </Select>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={() => handleDeleteClick(ticket)}
+                          data-testid={`ticket-delete-${ticketId}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -295,6 +359,33 @@ export default function Support() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Support Ticket</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this ticket? This action cannot be undone.
+              {ticketToDelete && (
+                <span className="block mt-2 font-medium">
+                  Ticket ID: {ticketToDelete?.ticketId || ticketToDelete?.id || ticketToDelete?._id}
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,4 +1,10 @@
-import { IsOptional, IsString, IsArray, ValidateNested, IsObject } from "class-validator";
+import {
+  IsOptional,
+  IsString,
+  IsArray,
+  ValidateNested,
+  IsObject,
+} from "class-validator";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 
@@ -99,4 +105,3 @@ export class CustomerFinancialReportDto {
   @IsObject()
   charts?: any;
 }
-

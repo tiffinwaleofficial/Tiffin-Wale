@@ -1,15 +1,25 @@
-import { IsString, IsOptional, IsNumber, ValidateNested } from "class-validator";
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  ValidateNested,
+} from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 import { PartnerDataDto } from "./partner-mou.dto";
 
 export class ServiceAgreementDto {
-  @ApiPropertyOptional({ description: "Partner ID (required if partnerData not provided)" })
+  @ApiPropertyOptional({
+    description: "Partner ID (required if partnerData not provided)",
+  })
   @IsOptional()
   @IsString()
   partnerId?: string;
 
-  @ApiPropertyOptional({ description: "Partner data (required if partnerId not provided)", type: PartnerDataDto })
+  @ApiPropertyOptional({
+    description: "Partner data (required if partnerId not provided)",
+    type: PartnerDataDto,
+  })
   @IsOptional()
   @ValidateNested()
   @Type(() => PartnerDataDto)
@@ -40,7 +50,9 @@ export class ServiceAgreementDto {
   @IsNumber()
   minimumRating?: number;
 
-  @ApiPropertyOptional({ description: "Minimum order acceptance rate (percentage)" })
+  @ApiPropertyOptional({
+    description: "Minimum order acceptance rate (percentage)",
+  })
   @IsOptional()
   @IsNumber()
   minimumAcceptanceRate?: number;
@@ -90,6 +102,3 @@ export class ServiceAgreementDto {
   @IsString()
   companyPanNumber?: string;
 }
-
-
-

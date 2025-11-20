@@ -138,19 +138,19 @@ export interface OrderItem {
   special_instructions?: string;
 }
 
-export type OrderStatus = 
-  | 'pending' 
-  | 'confirmed' 
-  | 'preparing' 
-  | 'ready' 
-  | 'delivering' 
-  | 'delivered' 
+export type OrderStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'preparing'
+  | 'ready'
+  | 'delivering'
+  | 'delivered'
   | 'canceled';
 
-export type PaymentStatus = 
-  | 'pending' 
-  | 'paid' 
-  | 'failed' 
+export type PaymentStatus =
+  | 'pending'
+  | 'paid'
+  | 'failed'
   | 'refunded';
 
 // Subscription types
@@ -166,6 +166,8 @@ export interface Subscription {
   createdAt: string;
   updatedAt: string;
 }
+
+export type CustomerSubscription = Subscription;
 
 export interface SubscriptionPlan {
   id: string;
@@ -188,11 +190,11 @@ export interface SubscriptionPlan {
   updatedAt: string;
 }
 
-export type SubscriptionStatus = 
-  | 'active' 
-  | 'canceled' 
-  | 'expired' 
-  | 'pending'; 
+export type SubscriptionStatus =
+  | 'active'
+  | 'canceled'
+  | 'expired'
+  | 'pending';
 
 // Additional types needed for apiClient
 export interface LoginResponse {

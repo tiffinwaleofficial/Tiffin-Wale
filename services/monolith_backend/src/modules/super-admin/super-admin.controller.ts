@@ -7,8 +7,8 @@ import {
   Param,
   Delete,
   Query,
-  UseGuards,
   Put,
+  Res,
 } from "@nestjs/common";
 import { SuperAdminService } from "./super-admin.service";
 import {
@@ -33,7 +33,7 @@ import { InviteUserDto } from "./dto/invite-user.dto";
 @Roles(UserRole.SUPER_ADMIN)
 @Controller("super-admin")
 export class SuperAdminController {
-  constructor(private readonly superAdminService: SuperAdminService) {}
+  constructor(private readonly superAdminService: SuperAdminService) { }
 
   @Get("dashboard-stats")
   @ApiOperation({ summary: "Get dashboard stats" })
@@ -195,6 +195,14 @@ export class SuperAdminController {
     return this.superAdminService.updateOrderStatus(id, body.status);
   }
 
+  @Delete("orders/:id")
+  @ApiOperation({ summary: "Delete an order" })
+  @ApiResponse({ status: 200, description: "Order deleted successfully" })
+  @ApiResponse({ status: 404, description: "Order not found" })
+  deleteOrder(@Param("id") id: string) {
+    return this.superAdminService.deleteOrder(id);
+  }
+
   // Subscription Management
   @Get("subscriptions")
   @ApiOperation({ summary: "Get all subscriptions" })
@@ -248,6 +256,17 @@ export class SuperAdminController {
     return this.superAdminService.updateSubscriptionStatus(id, body.status);
   }
 
+  @Delete("subscriptions/:id")
+  @ApiOperation({ summary: "Delete a subscription" })
+  @ApiResponse({
+    status: 200,
+    description: "Subscription deleted successfully",
+  })
+  @ApiResponse({ status: 404, description: "Subscription not found" })
+  deleteSubscription(@Param("id") id: string) {
+    return this.superAdminService.deleteSubscription(id);
+  }
+
   // Support/Ticket Management
   @Get("support/tickets")
   @ApiOperation({ summary: "Get all support tickets" })
@@ -294,6 +313,14 @@ export class SuperAdminController {
     @Body() body: { status: string },
   ) {
     return this.superAdminService.updateTicketStatus(id, body.status);
+  }
+
+  @Delete("support/tickets/:id")
+  @ApiOperation({ summary: "Delete a support ticket" })
+  @ApiResponse({ status: 200, description: "Ticket deleted successfully" })
+  @ApiResponse({ status: 404, description: "Ticket not found" })
+  deleteTicket(@Param("id") id: string) {
+    return this.superAdminService.deleteTicket(id);
   }
 
   // Menu Management
@@ -386,6 +413,39 @@ export class SuperAdminController {
   })
   getEarnings(@Query("period") period: string = "month") {
     return this.superAdminService.getEarningsData(period);
+  }
+
+  @Get("analytics/order-stats")
+  @ApiOperation({ summary: "Get order statistics" })
+  @ApiQuery({ name: "period", required: false, type: String })
+  @ApiResponse({
+    status: 200,
+    description: "Order statistics retrieved successfully",
+  })
+  getOrderStats(@Query("period") period: string = "week") {
+    return this.superAdminService.getOrderStats(period);
+  }
+
+  @Get("analytics/user-growth")
+  @ApiOperation({ summary: "Get user growth metrics" })
+  @ApiQuery({ name: "months", required: false, type: Number })
+  @ApiResponse({
+    status: 200,
+    description: "User growth metrics retrieved successfully",
+  })
+  getUserGrowth(@Query("months") months: number = 6) {
+    return this.superAdminService.getUserGrowth(Number(months));
+  }
+
+  @Get("analytics/partner-performance")
+  @ApiOperation({ summary: "Get partner performance analytics" })
+  @ApiQuery({ name: "partnerId", required: false, type: String })
+  @ApiResponse({
+    status: 200,
+    description: "Partner performance analytics retrieved successfully",
+  })
+  getPartnerPerformance(@Query("partnerId") partnerId?: string) {
+    return this.superAdminService.getPartnerPerformance(partnerId);
   }
 
   // Partner Management - Create
@@ -515,6 +575,73 @@ export class SuperAdminController {
   getSystemStats() {
     return this.superAdminService.getSystemStats();
   }
+
+  @Get("system/health")
+  @ApiOperation({ summary: "Get system health check" })
+  @ApiResponse({
+    status: 200,
+    description: "System health check retrieved successfully",
+  })
+  getSystemHealth() {
+    return this.superAdminService.getSystemHealth();
+  }
+
+  @Get("system/db-stats")
+  @ApiOperation({ summary: "Get database statistics" })
+  @ApiResponse({
+    status: 200,
+    description: "Database statistics retrieved successfully",
+  })
+  getDatabaseStats() {
+    return this.superAdminService.getDatabaseStats();
+  }
+
+  @Post("system/commands/clean-db")
+  @ApiOperation({ summary: "Clean database collections" })
+  @ApiResponse({
+    status: 200,
+    description: "Database cleaned successfully",
+  })
+  cleanDatabase(@Body() body: { target: string }) {
+    return this.superAdminService.cleanDatabase(body.target);
+  }
+
+  @Get("system/collections/:collectionName/documents")
+  @ApiOperation({ summary: "Get documents from a collection" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiResponse({
+    status: 200,
+    description: "Collection documents retrieved successfully",
+  })
+  getCollectionDocuments(
+    @Param("collectionName") collectionName: string,
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 50,
+  ) {
+    return this.superAdminService.getCollectionDocuments(
+      collectionName,
+      Number(page),
+      Number(limit),
+    );
+  }
+
+  @Delete("system/collections/:collectionName/documents")
+  @ApiOperation({ summary: "Delete specific documents from a collection" })
+  @ApiResponse({
+    status: 200,
+    description: "Documents deleted successfully",
+  })
+  deleteCollectionDocuments(
+    @Param("collectionName") collectionName: string,
+    @Body() body: { ids: string[] },
+  ) {
+    return this.superAdminService.deleteCollectionDocuments(
+      collectionName,
+      body.ids,
+    );
+  }
+
 
   // Notifications Management
   @Post("notifications")
@@ -843,5 +970,119 @@ export class SuperAdminController {
   @ApiResponse({ status: 404, description: "Cron preference not found" })
   deleteCronPreference(@Param("name") name: string) {
     return this.superAdminService.deleteCronPreference(name);
+  }
+
+  // Review Management
+  @Get("reviews")
+  @ApiOperation({ summary: "Get all reviews" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiResponse({ status: 200, description: "Reviews retrieved successfully" })
+  getAllReviews(
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10,
+  ) {
+    return this.superAdminService.getAllReviews(Number(page), Number(limit));
+  }
+
+  @Get("reviews/:id")
+  @ApiOperation({ summary: "Get review by ID" })
+  @ApiResponse({ status: 200, description: "Review retrieved successfully" })
+  @ApiResponse({ status: 404, description: "Review not found" })
+  getReviewById(@Param("id") id: string) {
+    return this.superAdminService.getReviewById(id);
+  }
+
+  @Delete("reviews/:id")
+  @ApiOperation({ summary: "Delete a review" })
+  @ApiResponse({ status: 200, description: "Review deleted successfully" })
+  @ApiResponse({ status: 404, description: "Review not found" })
+  deleteReview(@Param("id") id: string) {
+    return this.superAdminService.deleteReview(id);
+  }
+
+  // Meal Management
+  @Get("meals")
+  @ApiOperation({ summary: "Get all meals" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiResponse({ status: 200, description: "Meals retrieved successfully" })
+  getAllMeals(
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10,
+  ) {
+    return this.superAdminService.getAllMeals(Number(page), Number(limit));
+  }
+
+  @Get("meals/:id")
+  @ApiOperation({ summary: "Get meal by ID" })
+  @ApiResponse({ status: 200, description: "Meal retrieved successfully" })
+  @ApiResponse({ status: 404, description: "Meal not found" })
+  getMealById(@Param("id") id: string) {
+    return this.superAdminService.getMealById(id);
+  }
+
+  @Post("meals")
+  @ApiOperation({ summary: "Create a meal" })
+  @ApiResponse({ status: 201, description: "Meal created successfully" })
+  createMeal(@Body() data: any) {
+    return this.superAdminService.createMeal(data);
+  }
+
+  @Put("meals/:id")
+  @ApiOperation({ summary: "Update a meal" })
+  @ApiResponse({ status: 200, description: "Meal updated successfully" })
+  @ApiResponse({ status: 404, description: "Meal not found" })
+  updateMeal(@Param("id") id: string, @Body() data: any) {
+    return this.superAdminService.updateMeal(id, data);
+  }
+
+  @Delete("meals/:id")
+  @ApiOperation({ summary: "Delete a meal" })
+  @ApiResponse({ status: 200, description: "Meal deleted successfully" })
+  @ApiResponse({ status: 404, description: "Meal not found" })
+  deleteMeal(@Param("id") id: string) {
+    return this.superAdminService.deleteMeal(id);
+  }
+
+  // Report Management
+  @Get("reports")
+  @ApiOperation({ summary: "Get available reports" })
+  @ApiResponse({
+    status: 200,
+    description: "Available reports retrieved successfully",
+  })
+  getAvailableReports() {
+    return this.superAdminService.getAvailableReports();
+  }
+
+  @Post("reports/generate")
+  @ApiOperation({ summary: "Generate a report (preview, download, or email)" })
+  @ApiResponse({
+    status: 200,
+    description: "Report generated successfully",
+  })
+  @ApiResponse({ status: 400, description: "Invalid report type or payload" })
+  async generateReport(@Body() dto: any, @Res() res: any) {
+    const result = await this.superAdminService.generateReport(dto);
+
+    // If action is email, just return success message
+    if (dto.action === 'email') {
+      return res.json(result);
+    }
+
+    // For preview/download, stream the PDF
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${result.filename}"`);
+    return res.send(result.buffer);
+  }
+
+  // Feedback Delete
+  @Delete("feedback/:id")
+  @ApiOperation({ summary: "Delete feedback" })
+  @ApiResponse({ status: 200, description: "Feedback deleted successfully" })
+  @ApiResponse({ status: 404, description: "Feedback not found" })
+  deleteFeedback(@Param("id") id: string) {
+    return this.superAdminService.deleteFeedback(id);
   }
 }

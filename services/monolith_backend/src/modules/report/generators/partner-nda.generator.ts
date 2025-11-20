@@ -29,14 +29,16 @@ export class PartnerNdaDataGenerator {
     const company = companyInfo();
 
     // Use custom dates if provided, otherwise use current date
-    const effectiveDateObj = customTerms?.effectiveDate 
-      ? new Date(customTerms.effectiveDate) 
+    const effectiveDateObj = customTerms?.effectiveDate
+      ? new Date(customTerms.effectiveDate)
       : new Date();
-    const expiryDateObj = customTerms?.expiryDate 
-      ? new Date(customTerms.expiryDate) 
+    const expiryDateObj = customTerms?.expiryDate
+      ? new Date(customTerms.expiryDate)
       : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 
-    const partnerIdStr = partner._id?.toString ? partner._id.toString().substring(0, 8) : Date.now().toString(16).substring(0, 8);
+    const partnerIdStr = partner._id?.toString
+      ? partner._id.toString().substring(0, 8)
+      : Date.now().toString(16).substring(0, 8);
     return {
       ndaId: `NDA-${Date.now()}-${partnerIdStr.toUpperCase()}`,
       effectiveDate: effectiveDateObj.toLocaleDateString("en-IN", {
@@ -61,8 +63,14 @@ export class PartnerNdaDataGenerator {
         email: company.email,
         phone: company.phone,
         address: company.address,
-        gstNumber: customTerms?.companyGstNumber || process.env.COMPANY_GST_NUMBER || undefined,
-        panNumber: customTerms?.companyPanNumber || process.env.COMPANY_PAN_NUMBER || undefined,
+        gstNumber:
+          customTerms?.companyGstNumber ||
+          process.env.COMPANY_GST_NUMBER ||
+          undefined,
+        panNumber:
+          customTerms?.companyPanNumber ||
+          process.env.COMPANY_PAN_NUMBER ||
+          undefined,
       },
       partner: {
         businessName: partner.businessName,
@@ -102,6 +110,3 @@ export class PartnerNdaDataGenerator {
     return "";
   }
 }
-
-
-

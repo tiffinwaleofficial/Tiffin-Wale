@@ -6,9 +6,19 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Eye, Download, RefreshCw } from 'lucide-react';
+import { Eye, Download, RefreshCw, Trash2 } from 'lucide-react';
 import apiClient from '@/config/api';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
@@ -16,6 +26,9 @@ export default function Customers() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchCustomers();
@@ -30,12 +43,37 @@ export default function Customers() {
         ...(statusFilter !== 'all' && { status: statusFilter })
       };
       const response = await apiClient.get('/super-admin/customers', { params });
-      // Handle paginated response
-      const data = response.data?.data || response.data?.customers || (Array.isArray(response.data) ? response.data : []);
+      console.log('Customers API Response:', response.data); // Debug log
+
+      // Handle different response formats
+      let data = [];
+      if (response.data?.data) {
+        data = Array.isArray(response.data.data) ? response.data.data : [];
+      } else if (response.data?.customers) {
+        data = Array.isArray(response.data.customers) ? response.data.customers : [];
+      } else if (Array.isArray(response.data)) {
+        data = response.data;
+      }
+
       setCustomers(data);
+
+      // Only show success message on manual refresh, not on initial load
+      if (!loading && data.length > 0) {
+        console.log(`Loaded ${data.length} customers`);
+      }
     } catch (error) {
+      // Ignore cancelled requests
+      if (error.name === 'CanceledError' || error.message?.includes('cancelled')) {
+        return;
+      }
       console.error('Customers fetch error:', error);
-      toast.error('Failed to load customers');
+      // Only show error toast on actual API failure, not on empty data
+      if (error.response) {
+        toast.error(`Failed to load customers: ${error.response.data?.message || error.message}`);
+      } else {
+        toast.error('Failed to load customers');
+      }
+      setCustomers([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -59,6 +97,29 @@ export default function Customers() {
     } catch (error) {
       console.error('Customer details fetch error:', error);
       toast.error('Failed to load customer details');
+    }
+  };
+
+  const handleDeleteClick = (customer) => {
+    setCustomerToDelete(customer);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!customerToDelete) return;
+    setDeleting(true);
+    try {
+      const id = customerToDelete?.id || customerToDelete?._id || customerToDelete;
+      await apiClient.delete(`/super-admin/customers/${id}`);
+      toast.success('Customer deleted successfully');
+      fetchCustomers();
+      setDeleteDialogOpen(false);
+      setCustomerToDelete(null);
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('Failed to delete customer');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -142,12 +203,12 @@ export default function Customers() {
                   <TableHead>Total Orders</TableHead>
                   <TableHead>Active Subscriptions</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="w-[200px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCustomers.map((customer) => (
-                  <TableRow key={customer.id} data-testid={`customer-row-${customer.id}`}>
+                {filteredCustomers.map((customer, index) => (
+                  <TableRow key={customer.id || customer._id || index} data-testid={`customer-row-${customer.id || index}`}>
                     <TableCell className="font-medium">{customer.name}</TableCell>
                     <TableCell>{customer.email}</TableCell>
                     <TableCell>{customer.phone}</TableCell>
@@ -229,6 +290,14 @@ export default function Customers() {
                             <SelectItem value="suspended">Suspend</SelectItem>
                           </SelectContent>
                         </Select>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={() => handleDeleteClick(customer)}
+                          data-testid={`customer-delete-${customer.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -238,6 +307,33 @@ export default function Customers() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Customer</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this customer? This action cannot be undone.
+              {customerToDelete && (
+                <span className="block mt-2 font-medium">
+                  Customer: {customerToDelete?.name || customerToDelete?.email || customerToDelete?.id || customerToDelete?._id}
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

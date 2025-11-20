@@ -4,36 +4,42 @@ import { Type } from "class-transformer";
 import { PartnerDataDto } from "./partner-mou.dto";
 
 export class PartnerNdaDto {
-  @ApiPropertyOptional({ description: "Partner ID (required if partnerData not provided)" })
+  @ApiPropertyOptional({
+    description: "Partner ID (required if partnerData not provided)",
+  })
   @IsOptional()
   @IsString()
   partnerId?: string;
 
-  @ApiPropertyOptional({ description: "Partner data (required if partnerId not provided)", type: PartnerDataDto })
+  @ApiPropertyOptional({
+    description: "Partner data (required if partnerId not provided)",
+    type: PartnerDataDto,
+  })
   @IsOptional()
   @ValidateNested()
   @Type(() => PartnerDataDto)
   partnerData?: PartnerDataDto;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: "Purpose of the NDA",
-    default: "partnering with Tiffin Wale to offer food services through the Tiffin Wale platform"
+    default:
+      "partnering with Tiffin Wale to offer food services through the Tiffin Wale platform",
   })
   @IsOptional()
   @IsString()
   purpose?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: "Term of the NDA",
-    default: "2 years"
+    default: "2 years",
   })
   @IsOptional()
   @IsString()
   term?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: "Survival period after termination (in years)",
-    default: "3"
+    default: "3",
   })
   @IsOptional()
   @IsString()
@@ -59,6 +65,3 @@ export class PartnerNdaDto {
   @IsString()
   companyPanNumber?: string;
 }
-
-
-

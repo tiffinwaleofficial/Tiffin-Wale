@@ -27,22 +27,26 @@ export default function Dashboard() {
   const fetchDashboardData = async (silent = false) => {
     if (!silent) setLoading(true);
     else setRefreshing(true);
-    
+
     try {
       const [statsRes, activitiesRes, revenueRes] = await Promise.all([
         apiClient.get('/super-admin/dashboard-stats'),
         apiClient.get('/super-admin/dashboard/activities?limit=10'),
         apiClient.get('/super-admin/analytics/revenue-history?months=6')
       ]);
-      
+
       setStats(statsRes.data);
       setActivities(activitiesRes.data);
       setRevenueHistory(revenueRes.data);
-      
+
       if (silent) {
         toast.success('Dashboard refreshed', { duration: 2000 });
       }
     } catch (error) {
+      // Ignore cancelled requests
+      if (error.name === 'CanceledError' || error.message?.includes('cancelled')) {
+        return;
+      }
       console.error('Dashboard fetch error:', error);
       toast.error('Failed to load dashboard data');
     } finally {
@@ -63,51 +67,51 @@ export default function Dashboard() {
   }
 
   const statCards = [
-    { 
-      title: 'Total Partners', 
-      value: stats?.totalPartners || stats?.total_partners || 0, 
-      icon: Users, 
-      color: 'from-blue-500 to-cyan-500', 
+    {
+      title: 'Total Partners',
+      value: stats?.totalPartners || stats?.total_partners || 0,
+      icon: Users,
+      color: 'from-blue-500 to-cyan-500',
       testId: 'stat-partners',
       trend: '+12%'
     },
-    { 
-      title: 'Total Customers', 
-      value: stats?.totalCustomers || stats?.total_customers || 0, 
-      icon: Users, 
-      color: 'from-purple-500 to-pink-500', 
+    {
+      title: 'Total Customers',
+      value: stats?.totalCustomers || stats?.total_customers || 0,
+      icon: Users,
+      color: 'from-purple-500 to-pink-500',
       testId: 'stat-customers',
       trend: '+8%'
     },
-    { 
-      title: 'Total Orders', 
-      value: stats?.totalOrders || stats?.total_orders || 0, 
-      icon: ShoppingBag, 
-      color: 'from-green-500 to-emerald-500', 
+    {
+      title: 'Total Orders',
+      value: stats?.totalOrders || stats?.total_orders || 0,
+      icon: ShoppingBag,
+      color: 'from-green-500 to-emerald-500',
       testId: 'stat-orders',
       trend: '+15%'
     },
-    { 
-      title: 'Active Subscriptions', 
-      value: stats?.activeSubscriptions || stats?.active_subscriptions || 0, 
-      icon: Calendar, 
-      color: 'from-orange-500 to-red-500', 
+    {
+      title: 'Active Subscriptions',
+      value: stats?.activeSubscriptions || stats?.active_subscriptions || 0,
+      icon: Calendar,
+      color: 'from-orange-500 to-red-500',
       testId: 'stat-subscriptions',
       trend: '+5%'
     },
-    { 
-      title: 'Total Revenue', 
-      value: `₹${(stats?.totalRevenue || stats?.total_revenue || 0).toLocaleString()}`, 
-      icon: DollarSign, 
-      color: 'from-indigo-500 to-purple-500', 
+    {
+      title: 'Total Revenue',
+      value: `₹${(stats?.totalRevenue || stats?.total_revenue || 0).toLocaleString()}`,
+      icon: DollarSign,
+      color: 'from-indigo-500 to-purple-500',
       testId: 'stat-revenue',
       trend: '+18%'
     },
-    { 
-      title: 'Pending Tickets', 
-      value: stats?.pendingTickets || stats?.pending_tickets || 0, 
-      icon: AlertCircle, 
-      color: 'from-pink-500 to-rose-500', 
+    {
+      title: 'Pending Tickets',
+      value: stats?.pendingTickets || stats?.pending_tickets || 0,
+      icon: AlertCircle,
+      color: 'from-pink-500 to-rose-500',
       testId: 'stat-tickets',
       trend: '-3%'
     },
@@ -163,9 +167,8 @@ export default function Dashboard() {
                   <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
                     {stat.value}
                   </div>
-                  <div className={`text-xs font-medium ${
-                    isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                  }`}>
+                  <div className={`text-xs font-medium ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                    }`}>
                     {stat.trend}
                   </div>
                 </div>
@@ -189,28 +192,28 @@ export default function Dashboard() {
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={revenueHistory}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis 
-                  dataKey="month" 
+                <XAxis
+                  dataKey="month"
                   stroke="#6b7280"
                   style={{ fontSize: '12px' }}
                 />
-                <YAxis 
+                <YAxis
                   stroke="#6b7280"
                   style={{ fontSize: '12px' }}
                   tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
                 />
-                <Tooltip 
+                <Tooltip
                   formatter={(value) => [`₹${value.toLocaleString()}`, 'Revenue']}
-                  contentStyle={{ 
+                  contentStyle={{
                     backgroundColor: 'rgba(255, 255, 255, 0.95)',
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px'
                   }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="revenue" 
-                  stroke="#6366f1" 
+                <Line
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#6366f1"
                   strokeWidth={3}
                   dot={{ fill: '#6366f1', r: 4 }}
                   activeDot={{ r: 6 }}
@@ -245,9 +248,9 @@ export default function Dashboard() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip 
+                <Tooltip
                   formatter={(value) => [`${value} orders`, 'Count']}
-                  contentStyle={{ 
+                  contentStyle={{
                     backgroundColor: 'rgba(255, 255, 255, 0.95)',
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px'
@@ -267,32 +270,32 @@ export default function Dashboard() {
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full justify-start"
               data-testid="approve-partners-btn"
             >
               <CheckCircle className="w-4 h-4 mr-2" />
               Approve Pending Partners (12)
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full justify-start"
               data-testid="process-payouts-btn"
             >
               <DollarSign className="w-4 h-4 mr-2" />
               Process Payouts (₹1.2L)
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full justify-start"
               data-testid="review-tickets-btn"
             >
               <AlertCircle className="w-4 h-4 mr-2" />
               Review Support Tickets ({stats?.pendingTickets || stats?.pending_tickets || 0})
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full justify-start"
               data-testid="view-orders-btn"
             >
@@ -312,21 +315,31 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {activities.map((activity) => (
-                <div 
-                  key={activity.id} 
-                  className="flex items-start gap-3 pb-4 border-b border-gray-200 dark:border-gray-800 last:border-0" 
-                  data-testid={`activity-${activity.id}`}
-                >
-                  <div className="w-2 h-2 mt-2 rounded-full bg-indigo-500 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-900 dark:text-white">{activity.message}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {new Date(activity.timestamp).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              ))}
+              {activities.length === 0 ? (
+                <p className="text-center text-gray-500 dark:text-gray-400 py-8">No recent activities</p>
+              ) : (
+                activities.map((activity) => {
+                  const activityId = activity.id || activity._id || Math.random();
+                  const message = activity.message || activity.description || 'Activity';
+                  const timestamp = activity.timestamp || activity.time || activity.createdAt || new Date();
+
+                  return (
+                    <div
+                      key={activityId}
+                      className="flex items-start gap-3 pb-4 border-b border-gray-200 dark:border-gray-800 last:border-0"
+                      data-testid={`activity-${activityId}`}
+                    >
+                      <div className="w-2 h-2 mt-2 rounded-full bg-indigo-500 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-900 dark:text-white">{message}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {new Date(timestamp).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </CardContent>
         </Card>

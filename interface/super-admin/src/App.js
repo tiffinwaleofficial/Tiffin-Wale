@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import '@/App.css';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from '@/pages/Login';
+import Signup from '@/pages/Signup';
 import Dashboard from '@/pages/Dashboard';
 import Partners from '@/pages/Partners';
 import Customers from '@/pages/Customers';
@@ -12,6 +13,9 @@ import Menu from '@/pages/Menu';
 import Revenue from '@/pages/Revenue';
 import Profile from '@/pages/Profile';
 import Configuration from '@/pages/Configuration';
+import Payments from '@/pages/Payments';
+import Reviews from '@/pages/Reviews';
+import Feedback from '@/pages/Feedback';
 import Layout from '@/components/Layout';
 import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from '@/contexts/ThemeContext';
@@ -27,6 +31,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
           <Route
             path="/"
             element={
@@ -45,6 +50,9 @@ function App() {
             <Route path="revenue" element={<Revenue />} />
             <Route path="profile" element={<Profile />} />
             <Route path="configuration" element={<Configuration />} />
+            <Route path="payments" element={<Payments />} />
+            <Route path="reviews" element={<Reviews />} />
+            <Route path="feedback" element={<Feedback />} />
           </Route>
         </Routes>
         <Toaster position="top-right" />

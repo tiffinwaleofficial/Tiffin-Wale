@@ -10,16 +10,24 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Settings, Play, Pause, RefreshCw, Database, Trash2, AlertTriangle, CheckCircle, Clock, Power, Save } from 'lucide-react';
 import apiClient from '@/config/api';
 import { toast } from 'sonner';
+import CollectionViewerModal from '@/components/CollectionViewerModal';
 
 export default function Configuration() {
   const [systemConfig, setSystemConfig] = useState(null);
   const [systemStats, setSystemStats] = useState(null);
+  const [dbStats, setDbStats] = useState([]);
   const [crons, setCrons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [executing, setExecuting] = useState(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedCommand, setSelectedCommand] = useState(null);
+  const [cleanTarget, setCleanTarget] = useState(null); // 'all' or collection name
+  const [reportType, setReportType] = useState('customer-financial');
+  const [reportAction, setReportAction] = useState('preview');
+  const [generating, setGenerating] = useState(false);
+  const [collectionViewerOpen, setCollectionViewerOpen] = useState(false);
+  const [selectedCollection, setSelectedCollection] = useState(null);
   const hasLoadedRef = useRef(false);
 
   useEffect(() => {
@@ -32,16 +40,18 @@ export default function Configuration() {
   const fetchConfigurationData = async () => {
     setLoading(true);
     try {
-      const [configRes, statsRes, cronsRes] = await Promise.all([
+      const [configRes, statsRes, cronsRes, dbStatsRes] = await Promise.all([
         apiClient.get('/super-admin/system/config'),
         apiClient.get('/super-admin/system/stats').catch(() => ({ data: null })),
         apiClient.get('/super-admin/system/crons').catch(() => ({ data: [] })),
+        apiClient.get('/super-admin/system/db-stats').catch(() => ({ data: [] })),
       ]);
       setSystemConfig(configRes.data);
       setSystemStats(statsRes.data);
       // Handle both array and object responses
       const cronsData = Array.isArray(cronsRes.data) ? cronsRes.data : (cronsRes.data?.data || []);
       setCrons(cronsData);
+      setDbStats(dbStatsRes.data || []);
     } catch (error) {
       console.error('Configuration fetch error:', error);
       toast.error('Failed to load configuration');
@@ -69,7 +79,7 @@ export default function Configuration() {
   const handleToggleFeature = async (feature, enabled) => {
     // Store previous state for revert (deep copy) - only if config exists
     const previousConfig = systemConfig ? JSON.parse(JSON.stringify(systemConfig)) : null;
-    
+
     // Optimistically update local state
     const updatedConfig = {
       ...systemConfig,
@@ -87,7 +97,7 @@ export default function Configuration() {
         [feature]: enabled,
       },
     };
-    
+
     try {
       await apiClient.patch('/super-admin/system/config', updates);
       toast.success(`Feature ${enabled ? 'enabled' : 'disabled'} successfully`);
@@ -109,7 +119,7 @@ export default function Configuration() {
 
   const handleToggleCron = async (cronName, enabled) => {
     // Optimistically update local state
-    setCrons(crons.map(cron => 
+    setCrons(crons.map(cron =>
       cron.name === cronName ? { ...cron, enabled } : cron
     ));
 
@@ -161,12 +171,77 @@ export default function Configuration() {
     }
   };
 
+  const handleCleanDatabase = async (target) => {
+    setExecuting(`clean-${target}`);
+    try {
+      await apiClient.post('/super-admin/system/commands/clean-db', { target });
+      toast.success(target === 'all' ? 'Entire database cleaned successfully' : `Collection ${target} cleaned successfully`);
+      // Refresh stats
+      const dbStatsRes = await apiClient.get('/super-admin/system/db-stats').catch(() => ({ data: [] }));
+      setDbStats(dbStatsRes.data || []);
+    } catch (error) {
+      console.error('Database cleanup error:', error);
+      toast.error('Failed to clean database');
+    } finally {
+      setExecuting(null);
+      setConfirmDialogOpen(false);
+      setCleanTarget(null);
+    }
+  };
+
   const handleCommandClick = (command, requiresConfirmation = true) => {
     setSelectedCommand(command);
     if (requiresConfirmation) {
       setConfirmDialogOpen(true);
     } else {
       handleExecuteCommand(command);
+    }
+  };
+
+  const handleCleanClick = (target) => {
+    setCleanTarget(target);
+    setConfirmDialogOpen(true);
+  };
+
+  const handleGenerateReport = async () => {
+    setGenerating(true);
+    try {
+      const response = await apiClient.post('/super-admin/reports/generate', {
+        reportType,
+        action: reportAction,
+        email: reportAction === 'email' ? prompt('Enter your email address:') : undefined,
+      }, {
+        responseType: reportAction !== 'email' ? 'blob' : 'json',
+      });
+
+      if (reportAction === 'email') {
+        toast.success('Report sent to email successfully!');
+      } else {
+        // Create blob and download/preview
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+
+        if (reportAction === 'preview') {
+          // Open in new tab
+          window.open(url, '_blank');
+          toast.success('Report opened in new tab');
+        } else {
+          // Download
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${reportType}_report.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+          toast.success('Report downloaded successfully');
+        }
+      }
+    } catch (error) {
+      console.error('Report generation error:', error);
+      toast.error('Failed to generate report');
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -211,11 +286,13 @@ export default function Configuration() {
       </div>
 
       <Tabs defaultValue="features" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="features">Feature Flags</TabsTrigger>
-          <TabsTrigger value="crons">Cron Jobs</TabsTrigger>
-          <TabsTrigger value="system">System Config</TabsTrigger>
-          <TabsTrigger value="commands">Critical Commands</TabsTrigger>
+        <TabsList className="flex flex-col h-auto md:grid md:w-full md:grid-cols-6 gap-2 md:gap-0">
+          <TabsTrigger value="features" className="w-full">Feature Flags</TabsTrigger>
+          <TabsTrigger value="crons" className="w-full">Cron Jobs</TabsTrigger>
+          <TabsTrigger value="system" className="w-full">System Config</TabsTrigger>
+          <TabsTrigger value="commands" className="w-full">Critical Commands</TabsTrigger>
+          <TabsTrigger value="database" className="w-full">Database</TabsTrigger>
+          <TabsTrigger value="reports" className="w-full">Reports</TabsTrigger>
         </TabsList>
 
         {/* Feature Flags Tab */}
@@ -519,31 +596,257 @@ export default function Configuration() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Database Management Tab */}
+        <TabsContent value="database" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Database Management</CardTitle>
+              <CardDescription>Manage database collections and cleanup operations</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-red-100 dark:bg-red-900/40 rounded-full">
+                    <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-red-900 dark:text-red-300">Danger Zone</h3>
+                    <p className="text-sm text-red-700 dark:text-red-400">Irreversible actions that affect the entire database</p>
+                  </div>
+                </div>
+                <Button
+                  variant="destructive"
+                  onClick={() => handleCleanClick('all')}
+                  disabled={executing === 'clean-all'}
+                >
+                  {executing === 'clean-all' ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Cleaning...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Clean Entire Database
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Collections</h3>
+                <div className="grid grid-cols-1 gap-4">
+                  {dbStats.map((collection) => (
+                    <div
+                      key={collection.name}
+                      className="flex items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800 hover:border-indigo-500 dark:hover:border-indigo-400 transition-all cursor-pointer"
+                      onClick={() => {
+                        setSelectedCollection(collection.name);
+                        setCollectionViewerOpen(true);
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Database className="w-5 h-5 text-gray-500" />
+                        <div>
+                          <h4 className="font-medium text-gray-900 dark:text-white">{collection.name}</h4>
+                          <p className="text-sm text-gray-500">{collection.count} documents</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCollection(collection.name);
+                            setCollectionViewerOpen(true);
+                          }}
+                        >
+                          <Database className="w-4 h-4 mr-2" />
+                          View Data
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCleanClick(collection.name);
+                          }}
+                          disabled={executing === `clean-${collection.name}`}
+                        >
+                          {executing === `clean-${collection.name}` ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4 mr-2" />
+                          )}
+                          Clean
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {dbStats.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      No collections found or failed to load stats
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Reports Tab */}
+        <TabsContent value="reports" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Report Generation</CardTitle>
+              <CardDescription>Generate, preview, and email PDF reports</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Report Type Selector */}
+              <div className="space-y-2">
+                <Label htmlFor="reportType">Select Report Type</Label>
+                <select
+                  id="reportType"
+                  value={reportType}
+                  onChange={(e) => setReportType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                >
+                  <option value="customer-financial">Customer Financial Report</option>
+                  <option value="partner-financial">Partner Financial Report</option>
+                </select>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-2">
+                <Label>Choose Action</Label>
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    onClick={() => {
+                      setReportAction('preview');
+                      handleGenerateReport();
+                    }}
+                    disabled={generating}
+                    variant="outline"
+                  >
+                    {generating && reportAction === 'preview' ? (
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Database className="w-4 h-4 mr-2" />
+                    )}
+                    Preview
+                  </Button>
+
+                  <Button
+                    onClick={() => {
+                      setReportAction('email');
+                      handleGenerateReport();
+                    }}
+                    disabled={generating}
+                    variant="outline"
+                  >
+                    {generating && reportAction === 'email' ? (
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                    )}
+                    Email Me
+                  </Button>
+
+                  <Button
+                    onClick={() => {
+                      setReportAction('download');
+                      handleGenerateReport();
+                    }}
+                    disabled={generating}
+                  >
+                    {generating && reportAction === 'download' ? (
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    Download
+                  </Button>
+                </div>
+              </div>
+
+              {/* Info Section */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                      Report Generation Tips:
+                    </p>
+                    <ul className="text-sm text-blue-700 dark:text-blue-300 list-disc list-inside space-y-1">
+                      <li><strong>Preview:</strong> Opens the PDF in a new browser tab</li>
+                      <li><strong>Email Me:</strong> Sends the report to your email address</li>
+                      <li><strong>Download:</strong> Downloads the PDF file directly</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Confirmation Dialog */}
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Command Execution</DialogTitle>
+            <DialogTitle>
+              {cleanTarget ? 'Confirm Database Cleanup' : 'Confirm Command Execution'}
+            </DialogTitle>
             <DialogDescription>
-              Are you sure you want to execute this command? This action may have significant impact on the system.
+              {cleanTarget ? (
+                <div className="space-y-2">
+                  <p className="font-semibold text-red-600">Warning: This action is irreversible!</p>
+                  <p>
+                    Are you sure you want to clean {cleanTarget === 'all' ? 'the ENTIRE database' : `the "${cleanTarget}" collection`}?
+                    All data will be permanently deleted.
+                  </p>
+                </div>
+              ) : (
+                'Are you sure you want to execute this command? This action may have significant impact on the system.'
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setConfirmDialogOpen(false); setSelectedCommand(null); }}>
+            <Button variant="outline" onClick={() => { setConfirmDialogOpen(false); setSelectedCommand(null); setCleanTarget(null); }}>
               Cancel
             </Button>
             <Button
               variant="destructive"
-              onClick={() => selectedCommand && handleExecuteCommand(selectedCommand)}
-              disabled={executing === `command-${selectedCommand}`}
+              onClick={() => {
+                if (cleanTarget) {
+                  handleCleanDatabase(cleanTarget);
+                } else if (selectedCommand) {
+                  handleExecuteCommand(selectedCommand);
+                }
+              }}
+              disabled={executing !== null}
             >
-              {executing === `command-${selectedCommand}` ? 'Executing...' : 'Execute Command'}
+              {executing !== null ? 'Processing...' : (cleanTarget ? 'Yes, Clean It' : 'Execute Command')}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Collection Viewer Modal */}
+      <CollectionViewerModal
+        open={collectionViewerOpen}
+        onOpenChange={(open) => {
+          setCollectionViewerOpen(open);
+          if (!open) {
+            // Refresh collection stats when modal closes
+            fetchConfigurationData();
+          }
+        }}
+        collectionName={selectedCollection}
+      />
     </div>
   );
 }

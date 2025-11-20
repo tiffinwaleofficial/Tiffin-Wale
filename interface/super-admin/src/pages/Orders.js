@@ -6,9 +6,19 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Eye, RefreshCw } from 'lucide-react';
+import { Eye, RefreshCw, Trash2 } from 'lucide-react';
 import apiClient from '@/config/api';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const statusColors = {
   pending: 'bg-yellow-500',
@@ -26,6 +36,9 @@ export default function Orders() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -44,6 +57,10 @@ export default function Orders() {
       const data = response.data?.orders || response.data?.data || (Array.isArray(response.data) ? response.data : []);
       setOrders(Array.isArray(data) ? data : []);
     } catch (error) {
+      // Ignore cancelled requests
+      if (error.name === 'CanceledError' || error.message?.includes('cancelled')) {
+        return;
+      }
       console.error('Orders fetch error:', error);
       toast.error('Failed to load orders');
     } finally {
@@ -71,6 +88,29 @@ export default function Orders() {
     } catch (error) {
       console.error('Order details fetch error:', error);
       toast.error('Failed to load order details');
+    }
+  };
+
+  const handleDeleteClick = (order) => {
+    setOrderToDelete(order);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!orderToDelete) return;
+    setDeleting(true);
+    try {
+      const id = orderToDelete?.id || orderToDelete?._id || orderToDelete;
+      await apiClient.delete(`/super-admin/orders/${id}`);
+      toast.success('Order deleted successfully');
+      fetchOrders();
+      setDeleteDialogOpen(false);
+      setOrderToDelete(null);
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('Failed to delete order');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -182,7 +222,7 @@ export default function Orders() {
                   <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="w-[200px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -194,7 +234,7 @@ export default function Orders() {
                   const totalAmount = order.total_amount || order.totalAmount || order.amount || 0;
                   const orderStatus = order.status || 'pending';
                   const createdAt = order.createdAt || order.created_at;
-                  
+
                   return (
                     <TableRow key={orderId} data-testid={`order-row-${orderId}`}>
                       <TableCell className="font-medium">#{orderId}</TableCell>
@@ -224,96 +264,104 @@ export default function Orders() {
                       <TableCell>
                         {createdAt ? new Date(createdAt).toLocaleDateString() : 'N/A'}
                       </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => viewOrderDetails(orderId)}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-2xl">
-                            <DialogHeader>
-                              <DialogTitle>Order Details</DialogTitle>
-                            </DialogHeader>
-                            {selectedOrder && (
-                              <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-500">Order ID</p>
-                                    <p className="text-base">#{selectedOrder.id || selectedOrder._id || 'N/A'}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-500">Customer</p>
-                                    <p className="text-base">{getCustomerName(selectedOrder) || 'N/A'}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-500">Partner</p>
-                                    <p className="text-base">{getPartnerName(selectedOrder) || 'N/A'}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-500">Amount</p>
-                                    <p className="text-base">₹{((selectedOrder.total_amount || selectedOrder.totalAmount || selectedOrder.amount || 0)).toFixed(2)}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-500">Status</p>
-                                    <Badge className={statusColors[selectedOrder.status] || 'bg-gray-500'}>
-                                      {selectedOrder.status || 'N/A'}
-                                    </Badge>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-500">Date</p>
-                                    <p className="text-base">{selectedOrder.createdAt || selectedOrder.created_at ? new Date(selectedOrder.createdAt || selectedOrder.created_at).toLocaleString() : 'N/A'}</p>
-                                  </div>
-                                  <div className="col-span-2">
-                                    <p className="text-sm font-medium text-gray-500">Items</p>
-                                    <ul className="list-disc list-inside space-y-1">
-                                      {(selectedOrder.items || selectedOrder.orderItems || []).map((item, idx) => {
-                                        if (typeof item === 'string') {
-                                          return <li key={idx}>{item}</li>;
-                                        }
-                                        // Handle item objects with mealId, name, title, etc.
-                                        const itemName = item.name || item.title || item.mealId || item.mealName || 'Unknown Item';
-                                        const quantity = item.quantity ? ` (x${item.quantity})` : '';
-                                        const price = item.price ? ` - ₹${item.price}` : '';
-                                        const instructions = item.specialInstructions ? ` - ${item.specialInstructions}` : '';
-                                        return (
-                                          <li key={idx}>
-                                            {itemName}{quantity}{price}{instructions}
-                                          </li>
-                                        );
-                                      })}
-                                    </ul>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => viewOrderDetails(orderId)}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle>Order Details</DialogTitle>
+                              </DialogHeader>
+                              {selectedOrder && (
+                                <div className="space-y-4">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-500">Order ID</p>
+                                      <p className="text-base">#{selectedOrder.id || selectedOrder._id || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-500">Customer</p>
+                                      <p className="text-base">{getCustomerName(selectedOrder) || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-500">Partner</p>
+                                      <p className="text-base">{getPartnerName(selectedOrder) || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-500">Amount</p>
+                                      <p className="text-base">₹{((selectedOrder.total_amount || selectedOrder.totalAmount || selectedOrder.amount || 0)).toFixed(2)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-500">Status</p>
+                                      <Badge className={statusColors[selectedOrder.status] || 'bg-gray-500'}>
+                                        {selectedOrder.status || 'N/A'}
+                                      </Badge>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-500">Date</p>
+                                      <p className="text-base">{selectedOrder.createdAt || selectedOrder.created_at ? new Date(selectedOrder.createdAt || selectedOrder.created_at).toLocaleString() : 'N/A'}</p>
+                                    </div>
+                                    <div className="col-span-2">
+                                      <p className="text-sm font-medium text-gray-500">Items</p>
+                                      <ul className="list-disc list-inside space-y-1">
+                                        {(selectedOrder.items || selectedOrder.orderItems || []).map((item, idx) => {
+                                          if (typeof item === 'string') {
+                                            return <li key={idx}>{item}</li>;
+                                          }
+                                          // Handle item objects with mealId, name, title, etc.
+                                          const itemName = item.name || item.title || item.mealId || item.mealName || 'Unknown Item';
+                                          const quantity = item.quantity ? ` (x${item.quantity})` : '';
+                                          const price = item.price ? ` - ₹${item.price}` : '';
+                                          const instructions = item.specialInstructions ? ` - ${item.specialInstructions}` : '';
+                                          return (
+                                            <li key={idx}>
+                                              {itemName}{quantity}{price}{instructions}
+                                            </li>
+                                          );
+                                        })}
+                                      </ul>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            )}
-                          </DialogContent>
-                        </Dialog>
-                        <Select
-                          onValueChange={(value) => updateStatus(orderId, value)}
-                          data-testid={`order-action-${orderId}`}
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue placeholder="Update" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="confirmed">Confirmed</SelectItem>
-                            <SelectItem value="preparing">Preparing</SelectItem>
-                            <SelectItem value="ready">Ready</SelectItem>
-                            <SelectItem value="delivering">Delivering</SelectItem>
-                            <SelectItem value="delivered">Delivered</SelectItem>
-                            <SelectItem value="cancelled">Cancelled</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                              )}
+                            </DialogContent>
+                          </Dialog>
+                          <Select
+                            onValueChange={(value) => updateStatus(orderId, value)}
+                            data-testid={`order-action-${orderId}`}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue placeholder="Update" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="confirmed">Confirmed</SelectItem>
+                              <SelectItem value="preparing">Preparing</SelectItem>
+                              <SelectItem value="ready">Ready</SelectItem>
+                              <SelectItem value="delivering">Delivering</SelectItem>
+                              <SelectItem value="delivered">Delivered</SelectItem>
+                              <SelectItem value="cancelled">Cancelled</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => handleDeleteClick(order)}
+                            data-testid={`order-delete-${orderId}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
               </TableBody>
@@ -321,6 +369,33 @@ export default function Orders() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Order</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this order? This action cannot be undone.
+              {orderToDelete && (
+                <span className="block mt-2 font-medium">
+                  Order ID: {orderToDelete?.id || orderToDelete?._id}
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { LayoutDashboard, Users, ShoppingBag, Calendar, MessageSquare, Menu as MenuIcon, Utensils, DollarSign, LogOut, Sun, Moon, User, Settings, UserCircle } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingBag, Calendar, MessageSquare, Menu as MenuIcon, Utensils, DollarSign, LogOut, Sun, Moon, User, Settings, UserCircle, CreditCard, Star, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 
@@ -14,6 +14,9 @@ const menuItems = [
   { path: '/subscriptions', label: 'Subscriptions', icon: Calendar },
   { path: '/menu', label: 'Menu', icon: Utensils },
   { path: '/support', label: 'Support', icon: MessageSquare },
+  { path: '/payments', label: 'Payments', icon: CreditCard },
+  { path: '/reviews', label: 'Reviews', icon: Star },
+  { path: '/feedback', label: 'Feedback', icon: FileText },
   { path: '/revenue', label: 'Revenue', icon: DollarSign },
   { path: '/profile', label: 'Profile', icon: UserCircle },
   { path: '/configuration', label: 'Configuration', icon: Settings },

@@ -18,11 +18,13 @@ export class CustomerFinancialReportDataGenerator {
     const company = companyInfo();
 
     // Format dates
-    const generationDate = dummyData.generationDate || new Date().toLocaleDateString("en-IN", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    const generationDate =
+      dummyData.generationDate ||
+      new Date().toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
 
     const reportPeriod = dummyData.reportPeriod || "All Time";
 
@@ -47,7 +49,8 @@ export class CustomerFinancialReportDataGenerator {
     // Prepare metrics
     const metrics = {
       currentMonth: {
-        newSubscriptions: dummyData.metrics?.currentMonth?.newSubscriptions || 0,
+        newSubscriptions:
+          dummyData.metrics?.currentMonth?.newSubscriptions || 0,
         usersOnboarded: dummyData.metrics?.currentMonth?.usersOnboarded || 0,
         revenue: dummyData.metrics?.currentMonth?.revenue || 0,
         growthPercent: dummyData.metrics?.currentMonth?.growthPercent || 0,
@@ -121,4 +124,3 @@ export class CustomerFinancialReportDataGenerator {
     };
   }
 }
-

@@ -1,19 +1,23 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, ActivityIndicator } from 'react-native';
-import { Calendar, Star, ChevronRight, Plus, ShoppingBag, Package, Clock, Truck } from 'lucide-react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, ActivityIndicator, useWindowDimensions, FlatList } from 'react-native';
+import { Calendar, ChevronRight, Package, Clock, Sun, History, CalendarClock } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/auth/AuthProvider';
-import { OrderCard } from '@/components/OrderCard';
+import { OrderCard } from '@/components/cards/OrderCard';
 import { useTranslation } from '@/hooks/useTranslation';
 import { api, Order, OrderStatus } from '@/lib/api';
 import { nativeWebSocketService } from '@/services/nativeWebSocketService';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function OrdersScreen() {
   const router = useRouter();
   useAuth();
   const { t } = useTranslation('orders');
+  const { width } = useWindowDimensions();
+  const { theme } = useTheme();
 
   const [todayOrders, setTodayOrders] = useState<Order[]>([]);
   const [upcomingOrders, setUpcomingOrders] = useState<Order[]>([]);
@@ -22,20 +26,26 @@ export default function OrdersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'today' | 'upcoming' | 'past'>('today');
 
-  const ordersMapRef = useRef<Map<string, Order>>(new Map());
+  const flatListRef = useRef<FlatList>(null);
+
+  // Tab definitions
+  const tabs = [
+    { key: 'today', title: 'Today', icon: Sun },
+    { key: 'upcoming', title: 'Upcoming', icon: CalendarClock },
+    { key: 'past', title: 'Past', icon: History },
+  ];
 
   // Fetch orders on mount only
   useEffect(() => {
-    fetchAllOrders(false); // Use cache on mount
+    fetchAllOrders(false);
   }, []);
 
   // Refresh only when screen comes into focus after being away
   useFocusEffect(
     useCallback(() => {
-      // Only refresh if data might be stale (not on initial mount)
       const timer = setTimeout(() => {
-        fetchAllOrders(true); // Force refresh when screen focused
-      }, 300); // Small delay to avoid double fetch
+        fetchAllOrders(true);
+      }, 300);
       return () => clearTimeout(timer);
     }, [])
   );
@@ -43,88 +53,51 @@ export default function OrdersScreen() {
   // Setup WebSocket for real-time order updates
   useEffect(() => {
     const handleOrderUpdate = (data: any) => {
-      if (__DEV__) console.log('📡 Orders page: Real-time order update:', data);
-      
-      // Handle both string and ObjectId comparison
       const orderIdString = typeof data.orderId === 'string' ? data.orderId : String(data.orderId);
-      
-      // Update order in state if it exists
-      setTodayOrders(prevOrders => 
-        prevOrders.map(order => {
-          const currentOrderId = typeof order._id === 'string' ? order._id : String(order._id);
-          return currentOrderId === orderIdString
-            ? { ...order, status: data.status as OrderStatus }
-            : order;
-        })
-      );
-      
-      setUpcomingOrders(prevOrders => 
-        prevOrders.map(order => {
-          const currentOrderId = typeof order._id === 'string' ? order._id : String(order._id);
-          return currentOrderId === orderIdString
-            ? { ...order, status: data.status as OrderStatus }
-            : order;
-        })
-      );
-      
-      setPastOrders(prevOrders => 
-        prevOrders.map(order => {
-          const currentOrderId = typeof order._id === 'string' ? order._id : String(order._id);
-          return currentOrderId === orderIdString
-            ? { ...order, status: data.status as OrderStatus }
-            : order;
-        })
-      );
+      const updateOrder = (orders: Order[]) => orders.map(order => {
+        const currentOrderId = typeof order._id === 'string' ? order._id : String(order._id);
+        return currentOrderId === orderIdString ? { ...order, status: data.status as OrderStatus } : order;
+      });
+
+      setTodayOrders(prev => updateOrder(prev));
+      setUpcomingOrders(prev => updateOrder(prev));
+      setPastOrders(prev => updateOrder(prev));
     };
 
     nativeWebSocketService.on('order_update', handleOrderUpdate);
-
     return () => {
       nativeWebSocketService.off('order_update', handleOrderUpdate);
     };
   }, []);
 
-  // Join order rooms when orders are loaded
+  // Join order rooms
   useEffect(() => {
     const allOrderIds = [
-      ...todayOrders.map(o => typeof o._id === 'string' ? o._id : String(o._id)),
-      ...upcomingOrders.map(o => typeof o._id === 'string' ? o._id : String(o._id)),
-      ...pastOrders.map(o => typeof o._id === 'string' ? o._id : String(o._id)),
-    ].filter(Boolean) as string[];
+      ...todayOrders, ...upcomingOrders, ...pastOrders
+    ].map(o => typeof o._id === 'string' ? o._id : String(o._id)).filter(Boolean) as string[];
 
-    allOrderIds.forEach(orderId => {
-      nativeWebSocketService.joinOrderRoom(orderId);
-    });
-
+    allOrderIds.forEach(id => nativeWebSocketService.joinOrderRoom(id));
     return () => {
-      allOrderIds.forEach(orderId => {
-        nativeWebSocketService.leaveOrderRoom(orderId);
-      });
+      allOrderIds.forEach(id => nativeWebSocketService.leaveOrderRoom(id));
     };
   }, [todayOrders, upcomingOrders, pastOrders]);
 
   const fetchAllOrders = async (forceRefresh = false) => {
     try {
-      if (!forceRefresh) {
-        // On initial load, show cached data immediately if available
-        setLoading(true);
-      }
-      
-      // Single API call - no duplicates
+      if (!forceRefresh) setLoading(true);
+
       const [todayData, upcomingData, pastData] = await Promise.all([
         api.orders.getTodaysOrders(forceRefresh),
         api.orders.getUpcomingOrders(forceRefresh),
         api.orders.getPastOrders(1, 10, forceRefresh),
       ]);
-      
+
       setTodayOrders(todayData);
       setUpcomingOrders(upcomingData);
       setPastOrders(pastData.orders);
     } catch (error: any) {
       console.error('Failed to fetch orders:', error);
-      if (forceRefresh) {
-        Alert.alert('Error', 'Failed to refresh orders');
-      }
+      if (forceRefresh) Alert.alert('Error', 'Failed to refresh orders');
     } finally {
       setLoading(false);
     }
@@ -132,62 +105,60 @@ export default function OrdersScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchAllOrders();
-      setRefreshing(false);
+    await fetchAllOrders(true);
+    setRefreshing(false);
   };
 
-  const handleRateOrder = (orderId: string) => {
-    router.push(`/rate-meal?orderId=${orderId}`);
+  const handleTabPress = (index: number) => {
+    const tabKey = tabs[index].key as 'today' | 'upcoming' | 'past';
+    setActiveTab(tabKey);
+    flatListRef.current?.scrollToIndex({ index, animated: true });
   };
 
-  const handleTrackOrder = (orderId: string) => {
-    router.push(`/track?orderId=${orderId}`);
-  };
-
-
-
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      const now = new Date();
-      const diffTime = now.getTime() - date.getTime();
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-      
-      if (diffDays === 0) {
-        return t('today');
-      } else if (diffDays === 1) {
-        return t('yesterday');
-      } else if (diffDays < 7) {
-        return t('daysAgo', { count: diffDays });
-      } else {
-        return date.toLocaleDateString('en-US', { 
-          month: 'short', 
-          day: 'numeric',
-          year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-        });
-      }
-    } catch {
-      return t('invalidDate');
+  const handleScroll = (event: any) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / width);
+    const tabKey = tabs[index].key as 'today' | 'upcoming' | 'past';
+    if (activeTab !== tabKey) {
+      setActiveTab(tabKey);
     }
   };
 
-  const getCurrentOrders = () => {
-    switch (activeTab) {
-      case 'today':
-        return todayOrders;
-      case 'upcoming':
-        return upcomingOrders;
-      case 'past':
-        return pastOrders;
-      default:
-        return [];
-    }
+  const renderEmptyState = (type: 'today' | 'upcoming' | 'past') => {
+    const config = {
+      today: {
+        icon: <Sun size={64} color="#CCCCCC" />,
+        title: 'No Orders Today',
+        description: 'You have no scheduled deliveries for today',
+      },
+      upcoming: {
+        icon: <CalendarClock size={64} color="#CCCCCC" />,
+        title: 'No Upcoming Orders',
+        description: 'Subscribe to a plan to see your upcoming deliveries',
+      },
+      past: {
+        icon: <History size={64} color="#CCCCCC" />,
+        title: 'No Past Orders',
+        description: 'Your order history will appear here',
+      },
+    }[type];
+
+    return (
+      <View style={styles.emptyContainer}>
+        {config.icon}
+        <Text style={styles.emptyTitle}>{config.title}</Text>
+        <Text style={styles.emptyDescription}>{config.description}</Text>
+        {type !== 'past' && (
+          <TouchableOpacity onPress={() => router.push('/plans')} style={styles.exploreButton}>
+            <Text style={styles.exploreButtonText}>Explore Plans</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
   };
 
-  const currentOrders = getCurrentOrders();
-
-  const renderContent = () => {
-    if (loading && currentOrders.length === 0) {
+  const renderOrderList = (data: Order[], type: 'today' | 'upcoming' | 'past') => {
+    if (loading && data.length === 0) {
       return (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#FF9B42" />
@@ -196,135 +167,89 @@ export default function OrdersScreen() {
       );
     }
 
-    if (currentOrders.length === 0) {
-      const emptyConfig = {
-        today: {
-          icon: <Clock size={64} color="#CCCCCC" />,
-          title: 'No Orders Today',
-          description: 'You have no scheduled deliveries for today',
-        },
-        upcoming: {
-          icon: <Package size={64} color="#CCCCCC" />,
-          title: 'No Upcoming Orders',
-          description: 'Subscribe to a plan to see your upcoming deliveries',
-        },
-        past: {
-          icon: <Calendar size={64} color="#CCCCCC" />,
-          title: 'No Past Orders',
-          description: 'Your order history will appear here',
-        },
-      };
+    if (data.length === 0) {
+      return <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF9B42']} tintColor="#FF9B42" />}
+      >
+        {renderEmptyState(type)}
+      </ScrollView>;
+    }
 
-      const config = emptyConfig[activeTab];
-
-        return (
-          <View style={styles.emptyContainer}>
-          {config.icon}
-          <Text style={styles.emptyTitle}>{config.title}</Text>
-          <Text style={styles.emptyDescription}>{config.description}</Text>
-          {activeTab !== 'past' && (
-            <TouchableOpacity 
-              onPress={() => router.push('/plans')}
-              style={styles.exploreButton}
-            >
-              <Text style={styles.exploreButtonText}>Explore Plans</Text>
-            </TouchableOpacity>
-          )}
-          </View>
-        );
-      }
-
-      return (
-        <View style={styles.listContainer}>
-        {currentOrders.map((order, index) => (
-            <Animated.View 
-            key={order._id} 
-              entering={FadeInDown.delay(index * 100).duration(400)}
-            >
-            <OrderCard 
-              order={order}
-              onRate={handleRateOrder}
-              onTrack={handleTrackOrder}
-              />
-            </Animated.View>
-          ))}
-        </View>
-      );
+    return (
+      <FlatList
+        data={data}
+        keyExtractor={(item) => String(item._id)}
+        renderItem={({ item, index }) => (
+          <Animated.View entering={FadeInDown.delay(index * 100).duration(400)}>
+            <OrderCard
+              order={item}
+              onRate={(id) => router.push(`/rate-meal?orderId=${id}`)}
+              onTrack={(id) => router.push(`/track?orderId=${id}`)}
+            />
+          </Animated.View>
+        )}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF9B42']} tintColor="#FF9B42" />}
+      />
+    );
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{t('orderHistory')}</Text>
       </View>
 
-      {/* Tab Navigation */}
+      {/* Modern Tab Bar */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[
-            styles.tab,
-            activeTab === 'today' && styles.activeTab
-          ]}
-          onPress={() => setActiveTab('today')}
-        >
-          <Clock size={18} color={activeTab === 'today' ? '#FF9B42' : '#999'} />
-          <Text style={[
-            styles.tabText,
-            activeTab === 'today' && styles.activeTabText
-          ]}>
-            Today ({todayOrders.length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.tab,
-            activeTab === 'upcoming' && styles.activeTab
-          ]}
-          onPress={() => setActiveTab('upcoming')}
-        >
-          <Package size={18} color={activeTab === 'upcoming' ? '#FF9B42' : '#999'} />
-          <Text style={[
-            styles.tabText,
-            activeTab === 'upcoming' && styles.activeTabText
-          ]}>
-            Upcoming ({upcomingOrders.length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.tab,
-            activeTab === 'past' && styles.activeTab
-          ]}
-          onPress={() => setActiveTab('past')}
-        >
-          <Calendar size={18} color={activeTab === 'past' ? '#FF9B42' : '#999'} />
-          <Text style={[
-            styles.tabText,
-            activeTab === 'past' && styles.activeTabText
-          ]}>
-            Past
-          </Text>
-        </TouchableOpacity>
+        {tabs.map((tab, index) => {
+          const isActive = activeTab === tab.key;
+          const Icon = tab.icon;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tab, isActive && styles.activeTab]}
+              onPress={() => handleTabPress(index)}
+              activeOpacity={0.7}
+            >
+              <Icon size={18} color={isActive ? '#FF9B42' : '#999'} strokeWidth={isActive ? 2.5 : 2} />
+              <Text style={[styles.tabText, isActive && styles.activeTabText]}>
+                {tab.title}
+              </Text>
+              {isActive && (
+                <View style={styles.activeIndicator} />
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
-      {/* Content */}
-      <ScrollView 
-        style={styles.content}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh}
-            colors={['#FF9B42']}
-            tintColor="#FF9B42"
-          />
-        }
-      >
-        {renderContent()}
-      </ScrollView>
-
-    </View>
+      {/* Swipeable Content */}
+      <FlatList
+        ref={flatListRef}
+        data={tabs}
+        keyExtractor={(item) => item.key}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        renderItem={({ item }) => (
+          <View style={{ width, height: '100%', flex: 1 }}>
+            {renderOrderList(
+              item.key === 'today' ? todayOrders : item.key === 'upcoming' ? upcomingOrders : pastOrders,
+              item.key as 'today' | 'upcoming' | 'past'
+            )}
+          </View>
+        )}
+        initialScrollIndex={0}
+        getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
+        contentContainerStyle={{ flexGrow: 1 }}
+      />
+    </SafeAreaView>
   );
 }
 
@@ -335,52 +260,60 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingVertical: 16,
     backgroundColor: '#FFFAF0',
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 28,
+    fontFamily: 'Poppins-Bold',
     color: '#333333',
   },
   tabContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginBottom: 20,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
     marginHorizontal: 20,
-    padding: 4,
+    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 8,
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
   },
   activeTab: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: '#FF9B42' + '15', // 15% opacity orange
   },
   tabText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#666666',
+    fontFamily: 'Poppins-Medium',
+    color: '#999999',
   },
   activeTabText: {
-    color: '#333333',
+    color: '#FF9B42',
+    fontFamily: 'Poppins-SemiBold',
   },
-  content: {
-    flex: 1,
+  activeIndicator: {
+    position: 'absolute',
+    bottom: -6,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'transparent', // Hidden for now, can be enabled if needed
+  },
+  listContent: {
     paddingHorizontal: 20,
+    paddingBottom: 100,
+    paddingTop: 8,
   },
   centerContainer: {
     flex: 1,
@@ -389,149 +322,48 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   loadingText: {
-    fontSize: 16,
-    color: '#666666',
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#F44336',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  retryButton: {
-    backgroundColor: '#FF9B42',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  retryButtonText: {
-    color: '#FFFFFF',
+    marginTop: 12,
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Poppins-Regular',
+    color: '#666666',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: 80,
+    paddingHorizontal: 32,
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     color: '#333333',
-    marginTop: 20,
+    marginTop: 24,
     marginBottom: 8,
+    textAlign: 'center',
   },
   emptyDescription: {
     fontSize: 14,
+    fontFamily: 'Poppins-Regular',
     color: '#666666',
     textAlign: 'center',
     marginBottom: 32,
-    paddingHorizontal: 20,
+    lineHeight: 22,
   },
   exploreButton: {
     backgroundColor: '#FF9B42',
     paddingHorizontal: 32,
     paddingVertical: 16,
-    borderRadius: 12,
-  },
-  exploreButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  listContainer: {
-    paddingBottom: 100,
-  },
-  mealCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  mealHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  mealHeaderLeft: {
-    flex: 1,
-  },
-  mealType: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: 2,
-  },
-  mealDate: {
-    fontSize: 12,
-    color: '#666666',
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    textTransform: 'uppercase',
-  },
-  mealContent: {
-    marginBottom: 12,
-  },
-  mealName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: 4,
-  },
-  restaurantName: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 4,
-  },
-  mealDescription: {
-    fontSize: 12,
-    color: '#999999',
-    lineHeight: 16,
-  },
-  mealFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  rateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  rateButtonText: {
-    fontSize: 12,
-    color: '#FF9B42',
-    fontWeight: '600',
-  },
-  addButton: {
-    position: 'absolute',
-    bottom: 30,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#FF9B42',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#FF9B42',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
+  },
+  exploreButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
   },
 });

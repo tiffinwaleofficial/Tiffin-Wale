@@ -77,21 +77,33 @@ export class ReportService {
   /**
    * Generate order receipt PDF
    */
-  async generateOrderReceipt(dto: OrderReceiptDto): Promise<{ buffer: Buffer; filename: string }> {
+  async generateOrderReceipt(
+    dto: OrderReceiptDto,
+  ): Promise<{ buffer: Buffer; filename: string }> {
     try {
       const orderData = await this.prepareOrderReceiptData(dto.orderId);
-      const pdfBuffer = await this.pdfService.generate("order-receipt", orderData);
+      const pdfBuffer = await this.pdfService.generate(
+        "order-receipt",
+        orderData,
+      );
       const filename = this.pdfService.getFilename("order-receipt", orderData);
-      
+
       // Only save if auto-save is enabled in config
       const config = this.pdfService.getConfig();
       if (config.storage.saveOnGeneration) {
-        await this.pdfStorageService.savePdf(pdfBuffer, filename, "order-receipts");
+        await this.pdfStorageService.savePdf(
+          pdfBuffer,
+          filename,
+          "order-receipts",
+        );
       }
-      
+
       return { buffer: pdfBuffer, filename };
     } catch (error) {
-      this.logger.error(`Error generating order receipt: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error generating order receipt: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -99,7 +111,9 @@ export class ReportService {
   /**
    * Generate subscription report PDF
    */
-  async generateSubscriptionReport(dto: SubscriptionReportDto): Promise<{ buffer: Buffer; filename: string }> {
+  async generateSubscriptionReport(
+    dto: SubscriptionReportDto,
+  ): Promise<{ buffer: Buffer; filename: string }> {
     try {
       const subscriptionData = await this.prepareSubscriptionReportData(
         dto.subscriptionId,
@@ -108,18 +122,31 @@ export class ReportService {
         dto.includeHistory,
       );
 
-      const pdfBuffer = await this.pdfService.generate("subscription-report", subscriptionData);
-      const filename = this.pdfService.getFilename("subscription-report", subscriptionData);
-      
+      const pdfBuffer = await this.pdfService.generate(
+        "subscription-report",
+        subscriptionData,
+      );
+      const filename = this.pdfService.getFilename(
+        "subscription-report",
+        subscriptionData,
+      );
+
       // Only save if auto-save is enabled in config
       const config = this.pdfService.getConfig();
       if (config.storage.saveOnGeneration) {
-        await this.pdfStorageService.savePdf(pdfBuffer, filename, "subscriptions");
+        await this.pdfStorageService.savePdf(
+          pdfBuffer,
+          filename,
+          "subscriptions",
+        );
       }
-      
+
       return { buffer: pdfBuffer, filename };
     } catch (error) {
-      this.logger.error(`Error generating subscription report: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error generating subscription report: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -127,7 +154,9 @@ export class ReportService {
   /**
    * Generate partner contract PDF
    */
-  async generatePartnerContract(dto: PartnerContractDto): Promise<{ buffer: Buffer; filename: string }> {
+  async generatePartnerContract(
+    dto: PartnerContractDto,
+  ): Promise<{ buffer: Buffer; filename: string }> {
     try {
       const contractData = await this.preparePartnerContractData(
         dto.partnerId,
@@ -135,18 +164,27 @@ export class ReportService {
         dto.terms,
       );
 
-      const pdfBuffer = await this.pdfService.generate("partner-contract", contractData);
-      const filename = this.pdfService.getFilename("partner-contract", contractData);
-      
+      const pdfBuffer = await this.pdfService.generate(
+        "partner-contract",
+        contractData,
+      );
+      const filename = this.pdfService.getFilename(
+        "partner-contract",
+        contractData,
+      );
+
       // Only save if auto-save is enabled in config
       const config = this.pdfService.getConfig();
       if (config.storage.saveOnGeneration) {
         await this.pdfStorageService.savePdf(pdfBuffer, filename, "contracts");
       }
-      
+
       return { buffer: pdfBuffer, filename };
     } catch (error) {
-      this.logger.error(`Error generating partner contract: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error generating partner contract: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -154,21 +192,26 @@ export class ReportService {
   /**
    * Generate invoice PDF
    */
-  async generateInvoice(dto: InvoiceDto): Promise<{ buffer: Buffer; filename: string }> {
+  async generateInvoice(
+    dto: InvoiceDto,
+  ): Promise<{ buffer: Buffer; filename: string }> {
     try {
       const invoiceData = await this.prepareInvoiceData(dto);
       const pdfBuffer = await this.pdfService.generate("invoice", invoiceData);
       const filename = this.pdfService.getFilename("invoice", invoiceData);
-      
+
       // Only save if auto-save is enabled in config
       const config = this.pdfService.getConfig();
       if (config.storage.saveOnGeneration) {
         await this.pdfStorageService.savePdf(pdfBuffer, filename, "invoices");
       }
-      
+
       return { buffer: pdfBuffer, filename };
     } catch (error) {
-      this.logger.error(`Error generating invoice: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error generating invoice: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -176,7 +219,9 @@ export class ReportService {
   /**
    * Generate legal document PDF
    */
-  async generateLegalDocument(dto: LegalDocumentDto): Promise<{ buffer: Buffer; filename: string }> {
+  async generateLegalDocument(
+    dto: LegalDocumentDto,
+  ): Promise<{ buffer: Buffer; filename: string }> {
     try {
       const legalData: LegalDocumentData = {
         documentId: `DOC-${Date.now()}`,
@@ -196,18 +241,28 @@ export class ReportService {
         })),
       };
 
-      const pdfBuffer = await this.pdfService.generate("legal-document", legalData);
+      const pdfBuffer = await this.pdfService.generate(
+        "legal-document",
+        legalData,
+      );
       const filename = this.pdfService.getFilename("legal-document", legalData);
-      
+
       // Only save if auto-save is enabled in config
       const config = this.pdfService.getConfig();
       if (config.storage.saveOnGeneration) {
-        await this.pdfStorageService.savePdf(pdfBuffer, filename, "legal-documents");
+        await this.pdfStorageService.savePdf(
+          pdfBuffer,
+          filename,
+          "legal-documents",
+        );
       }
-      
+
       return { buffer: pdfBuffer, filename };
     } catch (error) {
-      this.logger.error(`Error generating legal document: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error generating legal document: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -215,29 +270,38 @@ export class ReportService {
   /**
    * Prepare order receipt data from order ID
    */
-  private async prepareOrderReceiptData(orderId: string): Promise<OrderReceiptData> {
+  private async prepareOrderReceiptData(
+    orderId: string,
+  ): Promise<OrderReceiptData> {
     const order = await this.orderService.findById(orderId);
     if (!order) {
       throw new NotFoundException(`Order with ID ${orderId} not found`);
     }
 
     const customer = await this.userService.findById(
-      typeof order.customer === "string" ? order.customer : order.customer._id.toString(),
+      typeof order.customer === "string"
+        ? order.customer
+        : order.customer._id.toString(),
     );
     if (!customer) {
       throw new NotFoundException("Customer not found");
     }
 
-    const partnerId = typeof order.businessPartner === "string" 
-      ? order.businessPartner 
-      : order.businessPartner._id.toString();
+    const partnerId =
+      typeof order.businessPartner === "string"
+        ? order.businessPartner
+        : order.businessPartner._id.toString();
 
     const partner = await this.partnerService.findById(partnerId);
     if (!partner) {
       throw new NotFoundException("Partner not found");
     }
 
-    return this.orderReceiptDataGenerator.prepareOrderReceiptData(order, customer, partner);
+    return this.orderReceiptDataGenerator.prepareOrderReceiptData(
+      order,
+      customer,
+      partner,
+    );
   }
 
   /**
@@ -251,16 +315,19 @@ export class ReportService {
   ): Promise<SubscriptionReportData> {
     const subscription = await this.subscriptionService.findOne(subscriptionId);
     if (!subscription) {
-      throw new NotFoundException(`Subscription with ID ${subscriptionId} not found`);
+      throw new NotFoundException(
+        `Subscription with ID ${subscriptionId} not found`,
+      );
     }
 
     let plan;
     if (typeof subscription.plan === "object" && subscription.plan !== null) {
       plan = subscription.plan;
     } else {
-      const planId = typeof subscription.plan === "string" 
-        ? subscription.plan 
-        : subscription.plan._id.toString();
+      const planId =
+        typeof subscription.plan === "string"
+          ? subscription.plan
+          : subscription.plan._id.toString();
       plan = await this.subscriptionPlanService.findOne(planId);
     }
 
@@ -269,8 +336,8 @@ export class ReportService {
     }
 
     const customer = await this.userService.findById(
-      typeof subscription.customer === "string" 
-        ? subscription.customer 
+      typeof subscription.customer === "string"
+        ? subscription.customer
         : subscription.customer._id.toString(),
     );
     if (!customer) {
@@ -302,7 +369,9 @@ export class ReportService {
       throw new NotFoundException(`Partner with ID ${partnerId} not found`);
     }
 
-    const partnerUser = await this.userService.findById(partner.user.toString());
+    const partnerUser = await this.userService.findById(
+      partner.user.toString(),
+    );
     if (!partnerUser) {
       throw new NotFoundException("Partner user not found");
     }
@@ -330,7 +399,9 @@ export class ReportService {
       }
 
       const customer = await this.userService.findById(
-        typeof order.customer === "string" ? order.customer : order.customer._id.toString(),
+        typeof order.customer === "string"
+          ? order.customer
+          : order.customer._id.toString(),
       );
       if (!customer) {
         throw new NotFoundException("Customer not found");
@@ -340,21 +411,28 @@ export class ReportService {
     }
 
     if (dto.type === "subscription" && dto.subscriptionId) {
-      const subscription = await this.subscriptionService.findOne(dto.subscriptionId);
+      const subscription = await this.subscriptionService.findOne(
+        dto.subscriptionId,
+      );
       if (!subscription) {
-        throw new NotFoundException(`Subscription with ID ${dto.subscriptionId} not found`);
+        throw new NotFoundException(
+          `Subscription with ID ${dto.subscriptionId} not found`,
+        );
       }
 
       const customer = await this.userService.findById(
-        typeof subscription.customer === "string" 
-          ? subscription.customer 
+        typeof subscription.customer === "string"
+          ? subscription.customer
           : subscription.customer._id.toString(),
       );
       if (!customer) {
         throw new NotFoundException("Customer not found");
       }
 
-      return this.invoiceDataGenerator.prepareInvoiceFromSubscription(subscription, customer);
+      return this.invoiceDataGenerator.prepareInvoiceFromSubscription(
+        subscription,
+        customer,
+      );
     }
 
     throw new BadRequestException(
@@ -365,22 +443,27 @@ export class ReportService {
   /**
    * Generate Partner MoU PDF
    */
-  async generatePartnerMou(dto: PartnerMouDto): Promise<{ buffer: Buffer; filename: string }> {
+  async generatePartnerMou(
+    dto: PartnerMouDto,
+  ): Promise<{ buffer: Buffer; filename: string }> {
     try {
       const mouData = await this.preparePartnerMouData(dto);
 
       const pdfBuffer = await this.pdfService.generate("partner-mou", mouData);
       const filename = this.pdfService.getFilename("partner-mou", mouData);
-      
+
       // Only save if auto-save is enabled in config
       const config = this.pdfService.getConfig();
       if (config.storage.saveOnGeneration) {
         await this.pdfStorageService.savePdf(pdfBuffer, filename, "contracts");
       }
-      
+
       return { buffer: pdfBuffer, filename };
     } catch (error) {
-      this.logger.error(`Error generating partner MoU: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error generating partner MoU: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -388,22 +471,33 @@ export class ReportService {
   /**
    * Generate Service Agreement PDF
    */
-  async generateServiceAgreement(dto: ServiceAgreementDto): Promise<{ buffer: Buffer; filename: string }> {
+  async generateServiceAgreement(
+    dto: ServiceAgreementDto,
+  ): Promise<{ buffer: Buffer; filename: string }> {
     try {
       const agreementData = await this.prepareServiceAgreementData(dto);
 
-      const pdfBuffer = await this.pdfService.generate("service-agreement", agreementData);
-      const filename = this.pdfService.getFilename("service-agreement", agreementData);
-      
+      const pdfBuffer = await this.pdfService.generate(
+        "service-agreement",
+        agreementData,
+      );
+      const filename = this.pdfService.getFilename(
+        "service-agreement",
+        agreementData,
+      );
+
       // Only save if auto-save is enabled in config
       const config = this.pdfService.getConfig();
       if (config.storage.saveOnGeneration) {
         await this.pdfStorageService.savePdf(pdfBuffer, filename, "contracts");
       }
-      
+
       return { buffer: pdfBuffer, filename };
     } catch (error) {
-      this.logger.error(`Error generating service agreement: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error generating service agreement: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -411,22 +505,31 @@ export class ReportService {
   /**
    * Generate Partner NDA PDF
    */
-  async generatePartnerNda(dto: PartnerNdaDto): Promise<{ buffer: Buffer; filename: string }> {
+  async generatePartnerNda(
+    dto: PartnerNdaDto,
+  ): Promise<{ buffer: Buffer; filename: string }> {
     try {
       const ndaData = await this.preparePartnerNdaData(dto);
 
       const pdfBuffer = await this.pdfService.generate("partner-nda", ndaData);
       const filename = this.pdfService.getFilename("partner-nda", ndaData);
-      
+
       // Only save if auto-save is enabled in config
       const config = this.pdfService.getConfig();
       if (config.storage.saveOnGeneration) {
-        await this.pdfStorageService.savePdf(pdfBuffer, filename, "legal-documents");
+        await this.pdfStorageService.savePdf(
+          pdfBuffer,
+          filename,
+          "legal-documents",
+        );
       }
-      
+
       return { buffer: pdfBuffer, filename };
     } catch (error) {
-      this.logger.error(`Error generating partner NDA: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error generating partner NDA: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -434,16 +537,18 @@ export class ReportService {
   /**
    * Prepare Partner MoU data
    */
-  private async preparePartnerMouData(dto: PartnerMouDto): Promise<PartnerMouData> {
+  private async preparePartnerMouData(
+    dto: PartnerMouDto,
+  ): Promise<PartnerMouData> {
     // If partnerData is provided, use it directly; otherwise fetch from database
     if (dto.partnerData) {
       // Create mock partner and user objects from provided data
       const mockPartner = {
         _id: { toString: () => Date.now().toString(16) },
-        businessName: dto.partnerData.businessName || '',
-        address: dto.partnerData.address || '',
-        contactEmail: dto.partnerData.contactEmail || '',
-        contactPhone: dto.partnerData.contactPhone || '',
+        businessName: dto.partnerData.businessName || "",
+        address: dto.partnerData.address || "",
+        contactEmail: dto.partnerData.contactEmail || "",
+        contactPhone: dto.partnerData.contactPhone || "",
         whatsappNumber: dto.partnerData.whatsappNumber,
         gstNumber: dto.partnerData.gstNumber,
         licenseNumber: dto.partnerData.licenseNumber,
@@ -454,10 +559,10 @@ export class ReportService {
       } as any;
 
       const mockUser = {
-        firstName: dto.partnerData.ownerFirstName || '',
-        lastName: dto.partnerData.ownerLastName || '',
-        email: dto.partnerData.contactEmail || '',
-        phoneNumber: dto.partnerData.contactPhone || '',
+        firstName: dto.partnerData.ownerFirstName || "",
+        lastName: dto.partnerData.ownerLastName || "",
+        email: dto.partnerData.contactEmail || "",
+        phoneNumber: dto.partnerData.contactPhone || "",
       } as any;
 
       return this.partnerMouDataGenerator.preparePartnerMouData(
@@ -479,7 +584,9 @@ export class ReportService {
 
     // Fetch from database
     if (!dto.partnerId) {
-      throw new BadRequestException("Either partnerId or partnerData must be provided");
+      throw new BadRequestException(
+        "Either partnerId or partnerData must be provided",
+      );
     }
 
     const partner = await this.partnerService.findById(dto.partnerId);
@@ -487,7 +594,9 @@ export class ReportService {
       throw new NotFoundException(`Partner with ID ${dto.partnerId} not found`);
     }
 
-    const partnerUser = await this.userService.findById(partner.user.toString());
+    const partnerUser = await this.userService.findById(
+      partner.user.toString(),
+    );
     if (!partnerUser) {
       throw new NotFoundException("Partner user not found");
     }
@@ -512,15 +621,17 @@ export class ReportService {
   /**
    * Prepare Service Agreement data
    */
-  private async prepareServiceAgreementData(dto: ServiceAgreementDto): Promise<ServiceAgreementData> {
+  private async prepareServiceAgreementData(
+    dto: ServiceAgreementDto,
+  ): Promise<ServiceAgreementData> {
     // If partnerData is provided, use it directly; otherwise fetch from database
     if (dto.partnerData) {
       const mockPartner = {
         _id: { toString: () => Date.now().toString(16) },
-        businessName: dto.partnerData.businessName || '',
-        address: dto.partnerData.address || '',
-        contactEmail: dto.partnerData.contactEmail || '',
-        contactPhone: dto.partnerData.contactPhone || '',
+        businessName: dto.partnerData.businessName || "",
+        address: dto.partnerData.address || "",
+        contactEmail: dto.partnerData.contactEmail || "",
+        contactPhone: dto.partnerData.contactPhone || "",
         whatsappNumber: dto.partnerData.whatsappNumber,
         gstNumber: dto.partnerData.gstNumber,
         licenseNumber: dto.partnerData.licenseNumber,
@@ -532,10 +643,10 @@ export class ReportService {
       } as any;
 
       const mockUser = {
-        firstName: dto.partnerData.ownerFirstName || '',
-        lastName: dto.partnerData.ownerLastName || '',
-        email: dto.partnerData.contactEmail || '',
-        phoneNumber: dto.partnerData.contactPhone || '',
+        firstName: dto.partnerData.ownerFirstName || "",
+        lastName: dto.partnerData.ownerLastName || "",
+        email: dto.partnerData.contactEmail || "",
+        phoneNumber: dto.partnerData.contactPhone || "",
       } as any;
 
       return this.serviceAgreementDataGenerator.prepareServiceAgreementData(
@@ -563,7 +674,9 @@ export class ReportService {
 
     // Fetch from database
     if (!dto.partnerId) {
-      throw new BadRequestException("Either partnerId or partnerData must be provided");
+      throw new BadRequestException(
+        "Either partnerId or partnerData must be provided",
+      );
     }
 
     const partner = await this.partnerService.findById(dto.partnerId);
@@ -571,7 +684,9 @@ export class ReportService {
       throw new NotFoundException(`Partner with ID ${dto.partnerId} not found`);
     }
 
-    const partnerUser = await this.userService.findById(partner.user.toString());
+    const partnerUser = await this.userService.findById(
+      partner.user.toString(),
+    );
     if (!partnerUser) {
       throw new NotFoundException("Partner user not found");
     }
@@ -602,23 +717,25 @@ export class ReportService {
   /**
    * Prepare Partner NDA data
    */
-  private async preparePartnerNdaData(dto: PartnerNdaDto): Promise<PartnerNdaData> {
+  private async preparePartnerNdaData(
+    dto: PartnerNdaDto,
+  ): Promise<PartnerNdaData> {
     // If partnerData is provided, use it directly; otherwise fetch from database
     if (dto.partnerData) {
       const mockPartner = {
         _id: { toString: () => Date.now().toString(16) },
-        businessName: dto.partnerData.businessName || '',
-        address: dto.partnerData.address || '',
-        contactEmail: dto.partnerData.contactEmail || '',
-        contactPhone: dto.partnerData.contactPhone || '',
+        businessName: dto.partnerData.businessName || "",
+        address: dto.partnerData.address || "",
+        contactEmail: dto.partnerData.contactEmail || "",
+        contactPhone: dto.partnerData.contactPhone || "",
         gstNumber: dto.partnerData.gstNumber,
       } as any;
 
       const mockUser = {
-        firstName: dto.partnerData.ownerFirstName || '',
-        lastName: dto.partnerData.ownerLastName || '',
-        email: dto.partnerData.contactEmail || '',
-        phoneNumber: dto.partnerData.contactPhone || '',
+        firstName: dto.partnerData.ownerFirstName || "",
+        lastName: dto.partnerData.ownerLastName || "",
+        email: dto.partnerData.contactEmail || "",
+        phoneNumber: dto.partnerData.contactPhone || "",
       } as any;
 
       return this.partnerNdaDataGenerator.preparePartnerNdaData(
@@ -638,7 +755,9 @@ export class ReportService {
 
     // Fetch from database
     if (!dto.partnerId) {
-      throw new BadRequestException("Either partnerId or partnerData must be provided");
+      throw new BadRequestException(
+        "Either partnerId or partnerData must be provided",
+      );
     }
 
     const partner = await this.partnerService.findById(dto.partnerId);
@@ -646,7 +765,9 @@ export class ReportService {
       throw new NotFoundException(`Partner with ID ${dto.partnerId} not found`);
     }
 
-    const partnerUser = await this.userService.findById(partner.user.toString());
+    const partnerUser = await this.userService.findById(
+      partner.user.toString(),
+    );
     if (!partnerUser) {
       throw new NotFoundException("Partner user not found");
     }
@@ -674,22 +795,33 @@ export class ReportService {
   ): Promise<{ buffer: Buffer; filename: string }> {
     try {
       const logoImageBase64 = this.pdfService.getLogoImageBase64();
-      const reportData = await this.customerFinancialReportDataGenerator.prepareCustomerFinancialReportData(
-        dto,
-        logoImageBase64,
-      );
+      const reportData =
+        await this.customerFinancialReportDataGenerator.prepareCustomerFinancialReportData(
+          dto,
+          logoImageBase64,
+        );
 
-      const pdfBuffer = await this.pdfService.generate("finance/customer-financial-report", reportData);
+      const pdfBuffer = await this.pdfService.generate(
+        "finance/customer-financial-report",
+        reportData,
+      );
       const filename = `Customer Financial Report - ${reportData.generationDate}.pdf`;
 
       const config = this.pdfService.getConfig();
       if (config.storage.saveOnGeneration) {
-        await this.pdfStorageService.savePdf(pdfBuffer, filename, "financial-reports");
+        await this.pdfStorageService.savePdf(
+          pdfBuffer,
+          filename,
+          "financial-reports",
+        );
       }
 
       return { buffer: pdfBuffer, filename };
     } catch (error) {
-      this.logger.error(`Error generating customer financial report: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error generating customer financial report: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -702,22 +834,33 @@ export class ReportService {
   ): Promise<{ buffer: Buffer; filename: string }> {
     try {
       const logoImageBase64 = this.pdfService.getLogoImageBase64();
-      const reportData = await this.partnerFinancialReportDataGenerator.preparePartnerFinancialReportData(
-        dto,
-        logoImageBase64,
-      );
+      const reportData =
+        await this.partnerFinancialReportDataGenerator.preparePartnerFinancialReportData(
+          dto,
+          logoImageBase64,
+        );
 
-      const pdfBuffer = await this.pdfService.generate("finance/partner-financial-report", reportData);
+      const pdfBuffer = await this.pdfService.generate(
+        "finance/partner-financial-report",
+        reportData,
+      );
       const filename = `Partner Financial Report - ${reportData.generationDate}.pdf`;
 
       const config = this.pdfService.getConfig();
       if (config.storage.saveOnGeneration) {
-        await this.pdfStorageService.savePdf(pdfBuffer, filename, "financial-reports");
+        await this.pdfStorageService.savePdf(
+          pdfBuffer,
+          filename,
+          "financial-reports",
+        );
       }
 
       return { buffer: pdfBuffer, filename };
     } catch (error) {
-      this.logger.error(`Error generating partner financial report: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error generating partner financial report: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }

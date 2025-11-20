@@ -16,6 +16,11 @@ import { UserModule } from "../user/user.module";
 import { AdminModule } from "../admin/admin.module";
 import { SystemModule } from "../system/system.module";
 import { RedisModule } from "../redis/redis.module";
+import { ReviewModule } from "../review/review.module";
+import { MealModule } from "../meal/meal.module";
+import { AnalyticsModule } from "../analytics/analytics.module";
+import { ReportModule } from "../report/report.module";
+import { EmailModule } from "../email/email.module";
 import { Payment, PaymentSchema } from "../payment/schemas/payment.schema";
 import { Partner, PartnerSchema } from "../partner/schemas/partner.schema";
 import {
@@ -43,8 +48,14 @@ import {
     UserModule,
     AdminModule,
     SystemModule,
+    ReviewModule,
+    MealModule,
+    AnalyticsModule,
+    ReportModule,
+    EmailModule,
+    RedisModule,
   ],
   controllers: [SuperAdminController],
   providers: [SuperAdminService],
 })
-export class SuperAdminModule {}
+export class SuperAdminModule { }

@@ -41,7 +41,11 @@ interface WebSocketCallback {
   (data: Record<string, unknown>): void;
 }
 
+import { generateIdempotencyKey, generateRequestHash, isStateChangingMethod } from './idempotency';
 import { API_BASE_URL } from './apiConfig';
+
+// Request deduplication map: tracks active requests by idempotency key
+const activeRequests = new Map<string, AbortController>();
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -64,13 +68,13 @@ apiClient.interceptors.request.use(
 
       // Use SecureTokenManager for secure token management (handles refresh automatically)
       const token = await secureTokenManager.getAccessToken();
-      
+
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
         if (__DEV__) console.log('🔐 SecureTokenManager: Adding auth token to request:', config.url);
       } else {
         if (__DEV__) console.warn('⚠️ SecureTokenManager: No valid token available for request:', config.url);
-        
+
         // Check if user should be authenticated
         const hasTokens = await secureTokenManager.hasTokens();
         if (!hasTokens) {
@@ -80,7 +84,43 @@ apiClient.interceptors.request.use(
     } catch (error) {
       console.error('❌ SecureTokenManager: Error in request interceptor:', error);
     }
-    
+
+    // Request deduplication for state-changing methods
+    const method = config.method?.toUpperCase() || 'GET';
+
+    // Only apply idempotency to state-changing methods
+    if (isStateChangingMethod(method)) {
+      const requestKey = generateRequestHash(method, config.url || '', config.data);
+
+      if (activeRequests.has(requestKey)) {
+        // Cancel this NEW duplicate request - another identical request is already in flight
+        const controller = new AbortController();
+        config.signal = controller.signal;
+        controller.abort('Duplicate request cancelled - another identical request is already in progress');
+
+        if (__DEV__) console.log('🚫 Duplicate request cancelled:', requestKey);
+        return config; // Return early, request will be cancelled
+      }
+
+      // Create new abort controller for this request
+      const controller = new AbortController();
+      activeRequests.set(requestKey, controller);
+      config.signal = controller.signal;
+
+      // Add idempotency key
+      const idempotencyKey = generateIdempotencyKey();
+      config.headers['Idempotency-Key'] = idempotencyKey;
+
+      // Store metadata for cleanup (using a custom property on config)
+      // @ts-ignore - adding custom metadata
+      config.metadata = {
+        requestKey,
+        idempotencyKey,
+      };
+
+      if (__DEV__) console.log('🔑 Idempotency key added:', idempotencyKey);
+    }
+
     return config;
   },
   (error: AxiosError): Promise<never> => {
@@ -89,28 +129,47 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor for handling token refresh
+// Response interceptor for handling token refresh and cleanup
 apiClient.interceptors.response.use(
-  (response: AxiosResponse): AxiosResponse => response,
+  (response: AxiosResponse): AxiosResponse => {
+    // Clean up active request tracking on success
+    // @ts-ignore - accessing custom metadata
+    if (response.config?.metadata?.requestKey) {
+      // @ts-ignore
+      activeRequests.delete(response.config.metadata.requestKey);
+    }
+    return response;
+  },
   async (error: AxiosError): Promise<never> => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-    
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean; metadata?: { requestKey: string } };
+
+    // Clean up active request tracking
+    if (originalRequest?.metadata?.requestKey) {
+      activeRequests.delete(originalRequest.metadata.requestKey);
+    }
+
+    // Handle cancelled requests (duplicate requests)
+    if (axios.isCancel(error) || error.name === 'CanceledError') {
+      if (__DEV__) console.log('🚫 Request was cancelled:', error.message);
+      return Promise.reject(error);
+    }
+
     // Skip interceptor for logout calls to prevent infinite loops
     if (originalRequest.url?.includes('/api/auth/logout')) {
       if (__DEV__) console.log('🚪 Skipping interceptor for logout call');
       return Promise.reject(error);
     }
-    
+
     // Handle 401 Unauthorized (token expired) using TokenManager
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (__DEV__) console.log('🚨 401 Unauthorized error for:', originalRequest.url);
       if (__DEV__) console.log('🔍 Error response:', error.response.data);
-      
+
       originalRequest._retry = true;
-      
+
       try {
         if (__DEV__) console.log('🔄 SecureTokenManager: Attempting to refresh token...');
-        
+
         // Use SecureTokenManager to handle token refresh
         const refreshToken = await secureTokenManager.getRefreshToken();
         if (!refreshToken) {
@@ -121,51 +180,51 @@ apiClient.interceptors.response.use(
         // Call refresh endpoint directly
         const refreshResponse = await apiClient.post('/api/auth/refresh', { refreshToken });
         const { accessToken, refreshToken: newRefreshToken } = refreshResponse.data;
-        
+
         // Store new tokens
         await secureTokenManager.storeTokens({
           accessToken,
           refreshToken: newRefreshToken || refreshToken
         });
-        
+
         const newToken = accessToken;
-        
+
         if (newToken) {
           if (__DEV__) console.log('✅ SecureTokenManager: Token refreshed successfully');
-          
+
           // Retry the original request with new token
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return apiClient(originalRequest);
         } else {
           if (__DEV__) console.log('❌ SecureTokenManager: Token refresh failed');
-          
+
           // Clear all tokens and emit auth error
           await secureTokenManager.clearAll();
-          
+
           // Emit logout event for the app to handle
           DeviceEventEmitter.emit('auth_error', {
             type: 'token_refresh_failed',
             message: 'Session expired. Please login again.'
           });
         }
-        
+
         console.log('❌ No refresh token available or refresh failed');
       } catch (refreshError) {
         console.error('❌ Token refresh failed:', refreshError);
       }
-      
+
       // If refresh failed, clear all tokens and user data
       console.log('🧹 Clearing all auth tokens due to failed refresh');
       try {
         await AsyncStorage.multiRemove(['auth_token', 'refresh_token', 'user_data']);
-        
+
         // Emit a custom event to notify the app about auth failure
         DeviceEventEmitter.emit('auth:token-expired');
       } catch (clearError) {
         console.error('❌ Error clearing tokens:', clearError);
       }
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -185,7 +244,7 @@ const api = {
       console.log('🌐 API Client: Making POST request to /api/auth/register');
       console.log('📤 Request URL:', `${API_BASE_URL}/api/auth/register`);
       console.log('📤 Request data:', userData);
-      
+
       try {
         const response = await apiClient.post<LoginResponse>('/api/auth/register', userData);
         console.log('✅ API Response status:', response.status);
@@ -225,7 +284,7 @@ const api = {
       await apiClient.post('/api/auth/reset-password', { token, newPassword });
     },
   },
-  
+
   // User endpoints
   user: {
     getProfile: async () => {
@@ -237,7 +296,7 @@ const api = {
       return response.data;
     },
   },
-  
+
   // Customer endpoints
   customer: {
     getProfile: async (): Promise<CustomerProfile> => {
@@ -282,7 +341,7 @@ const api = {
         label: address.type || 'Other',
         isDefault: address.isDefault,
       };
-      
+
       const response = await apiClient.post<any>('/api/customers/addresses', backendAddress);
       // Transform backend response to frontend format
       const backendData = response.data;
@@ -311,7 +370,7 @@ const api = {
         label: address.type || 'Other',
         isDefault: address.isDefault,
       };
-      
+
       const response = await apiClient.patch<any>(`/api/customers/addresses/${id}`, backendAddress);
       // Transform backend response to frontend format
       const backendData = response.data;
@@ -422,9 +481,9 @@ const api = {
       } else if (data.menuItemId) {
         endpoint = `/api/reviews/menu-item/${data.menuItemId}`;
       }
-      
+
       console.log('🔍 API Client: Creating review at endpoint:', endpoint, 'with data:', data);
-      
+
       const response = await apiClient.post<Review>(endpoint, {
         rating: data.rating,
         comment: data.comment,
@@ -605,7 +664,7 @@ const api = {
   subscriptions: {
     getCurrent: async (): Promise<Subscription | null> => {
       try {
-      const response = await apiClient.get('/api/subscriptions/me/current');
+        const response = await apiClient.get('/api/subscriptions/me/current');
         return response.data || null;
       } catch (error: any) {
         // Handle 404 as no subscription (not an error)
@@ -623,19 +682,19 @@ const api = {
       // Get current user ID from auth store
       const authStore = useAuthStore.getState();
       const userId = authStore.user?.id;
-      
+
       if (!userId) {
         throw new Error('User not authenticated');
       }
-      
+
       // Calculate subscription dates
       const startDate = new Date();
       const endDate = new Date();
       endDate.setMonth(endDate.getMonth() + 1); // Default to 1 month
-      
+
       // Get plan details to calculate total amount
       const plan = await api.subscriptionPlans.getById(planId);
-      
+
       const subscriptionData = {
         customer: userId,
         plan: planId,
@@ -648,7 +707,7 @@ const api = {
         isPaid: false,
         customizations: [],
       };
-      
+
       const response = await apiClient.post('/api/subscriptions', subscriptionData);
       return response.data;
     },
@@ -706,7 +765,7 @@ const api = {
     },
   },
 
-  
+
   // Upload endpoints
   upload: {
     uploadImage: async (file: FormData, type: string = 'general'): Promise<{ url: string; publicId: string; type: string }> => {
@@ -722,39 +781,39 @@ const api = {
       return response.data;
     },
   },
-  
+
   // WebSocket real-time methods
   websocket: {
     connect: async (): Promise<void> => {
       const wsManager = getWebSocketManager(API_BASE_URL);
       await wsManager.connect();
     },
-    
+
     disconnect: (): void => {
       const wsManager = getWebSocketManager(API_BASE_URL);
       wsManager.disconnect();
     },
-    
+
     subscribe: (channel: string, callback: WebSocketCallback): string => {
       const wsManager = getWebSocketManager(API_BASE_URL);
       return wsManager.subscribe(channel, callback);
     },
-    
+
     unsubscribe: (subscriptionId: string): void => {
       const wsManager = getWebSocketManager(API_BASE_URL);
       wsManager.unsubscribe(subscriptionId);
     },
-    
+
     send: (message: WebSocketMessage): void => {
       const wsManager = getWebSocketManager(API_BASE_URL);
       wsManager.send(message);
     },
-    
+
     isConnected: (): boolean => {
       const wsManager = getWebSocketManager(API_BASE_URL);
       return wsManager.getState().isConnected;
     },
-    
+
     getState: () => {
       const wsManager = getWebSocketManager(API_BASE_URL);
       return wsManager.getState();

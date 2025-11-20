@@ -32,6 +32,8 @@ import { EmailModule } from "./modules/email/email.module";
 import { RedisModule } from "./modules/redis/redis.module";
 import { AIModule } from "./modules/ai/ai.module";
 import { ReportModule } from "./modules/report/report.module";
+import { IdempotencyModule } from "./modules/idempotency/idempotency.module";
+import { IdempotencyMiddleware } from "./modules/idempotency/idempotency.middleware";
 
 @Module({
   imports: [
@@ -77,6 +79,7 @@ import { ReportModule } from "./modules/report/report.module";
     ReviewModule,
     EmailModule,
     ReportModule,
+    IdempotencyModule,
   ],
   controllers: [],
   providers: [],
@@ -85,5 +88,8 @@ export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     // Apply analytics middleware to all API routes
     consumer.apply(AnalyticsMiddleware).forRoutes("*");
+    // Apply idempotency middleware after analytics (but before route handlers)
+    // This ensures idempotency is checked for all routes
+    consumer.apply(IdempotencyMiddleware).forRoutes("*");
   }
 }

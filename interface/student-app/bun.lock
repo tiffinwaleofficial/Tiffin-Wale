@@ -42,6 +42,7 @@
         "expo-web-browser": "^15.0.8",
         "firebase": "^12.4.0",
         "i18next": "^25.6.0",
+        "js-yaml": "^4.1.1",
         "jwt-decode": "^4.0.0",
         "lucide-react-native": "^0.475.0",
         "react": "19.1.0",
@@ -68,6 +69,7 @@
         "@expo/cli": "^54.0.10",
         "@testing-library/jest-native": "^5.4.3",
         "@testing-library/react-native": "^12.8.0",
+        "@types/js-yaml": "^4.0.9",
         "@types/react": "~19.1.10",
         "@types/react-native": "^0.72.8",
         "jest": "^29.7.0",
@@ -614,6 +616,8 @@
     "@types/istanbul-lib-report": ["@types/istanbul-lib-report@3.0.3", "", { "dependencies": { "@types/istanbul-lib-coverage": "*" } }, ""],
 
     "@types/istanbul-reports": ["@types/istanbul-reports@3.0.4", "", { "dependencies": { "@types/istanbul-lib-report": "*" } }, ""],
+
+    "@types/js-yaml": ["@types/js-yaml@4.0.9", "", {}, "sha512-k4MGaQl5TGo/iipqb2UDG2UwjXziSWkh0uysQelTlJpX1qGlpUZYm8PnO4DxG1qBomtJUdYJ6qR6xdIah10JLg=="],
 
     "@types/jsdom": ["@types/jsdom@20.0.1", "", { "dependencies": { "@types/node": "*", "@types/tough-cookie": "*", "parse5": "^7.0.0" } }, ""],
 
@@ -1289,7 +1293,7 @@
 
     "js-tokens": ["js-tokens@4.0.0", "", {}, ""],
 
-    "js-yaml": ["js-yaml@4.1.0", "", { "dependencies": { "argparse": "^2.0.1" }, "bin": "bin/js-yaml.js" }, ""],
+    "js-yaml": ["js-yaml@4.1.1", "", { "dependencies": { "argparse": "^2.0.1" }, "bin": { "js-yaml": "bin/js-yaml.js" } }, "sha512-qQKT4zQxXl8lLwBtHMWwaTcGfFOZviOJet3Oy/xmGk2gZH677CJM9EvtfdSkgWcATZhj/55JZ0rmy3myCT5lsA=="],
 
     "jsc-safe-url": ["jsc-safe-url@0.2.4", "", {}, ""],
 
@@ -1958,6 +1962,8 @@
     "@expo/prebuild-config/semver": ["semver@7.7.3", "", { "bin": "bin/semver.js" }, ""],
 
     "@expo/xcpretty/@babel/code-frame": ["@babel/code-frame@7.10.4", "", { "dependencies": { "@babel/highlight": "^7.10.4" } }, ""],
+
+    "@expo/xcpretty/js-yaml": ["js-yaml@4.1.0", "", { "dependencies": { "argparse": "^2.0.1" }, "bin": "bin/js-yaml.js" }, ""],
 
     "@isaacs/cliui/string-width": ["string-width@5.1.2", "", { "dependencies": { "eastasianwidth": "^0.2.0", "emoji-regex": "^9.2.2", "strip-ansi": "^7.0.1" } }, ""],
 

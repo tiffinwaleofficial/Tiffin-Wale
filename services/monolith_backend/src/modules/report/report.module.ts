@@ -1,12 +1,12 @@
-import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import { ReportController } from './report.controller';
-import { ReportService } from './report.service';
-import { OrderModule } from '../order/order.module';
-import { SubscriptionModule } from '../subscription/subscription.module';
-import { PartnerModule } from '../partner/partner.module';
-import { UserModule } from '../user/user.module';
-import { PdfStorageService } from './formats/pdf/storage/pdf-storage.service';
+import { Module } from "@nestjs/common";
+import { MongooseModule } from "@nestjs/mongoose";
+import { ReportController } from "./report.controller";
+import { ReportService } from "./report.service";
+import { OrderModule } from "../order/order.module";
+import { SubscriptionModule } from "../subscription/subscription.module";
+import { PartnerModule } from "../partner/partner.module";
+import { UserModule } from "../user/user.module";
+import { PdfStorageService } from "./formats/pdf/storage/pdf-storage.service";
 import {
   OrderReceiptDataGenerator,
   SubscriptionReportDataGenerator,
@@ -17,13 +17,15 @@ import {
   PartnerNdaDataGenerator,
   CustomerFinancialReportDataGenerator,
   PartnerFinancialReportDataGenerator,
-} from './generators';
-import { ReportLog, ReportLogSchema } from './schemas/report-log.schema';
-import { PdfService } from './formats/pdf/pdf.service';
+} from "./generators";
+import { ReportLog, ReportLogSchema } from "./schemas/report-log.schema";
+import { PdfService } from "./formats/pdf/pdf.service";
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: ReportLog.name, schema: ReportLogSchema }]),
+    MongooseModule.forFeature([
+      { name: ReportLog.name, schema: ReportLogSchema },
+    ]),
     OrderModule,
     SubscriptionModule,
     PartnerModule,

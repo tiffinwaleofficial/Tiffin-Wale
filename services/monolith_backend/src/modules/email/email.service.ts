@@ -701,7 +701,7 @@ export class EmailService {
   /**
    * Core method to send templated emails
    */
-  private async sendTemplateEmail(
+  async sendTemplateEmail(
     emailData: EmailData,
     userId?: string,
   ): Promise<EmailResult> {
@@ -774,6 +774,7 @@ export class EmailService {
           cc: emailData.cc,
           bcc: emailData.bcc,
           replyTo: emailData.replyTo,
+          attachments: emailData.attachments,
         });
 
         // Fallback to Resend if Mailjet fails and auto-fallback is enabled
@@ -792,6 +793,7 @@ export class EmailService {
               cc: emailData.cc,
               bcc: emailData.bcc,
               replyTo: emailData.replyTo,
+              attachments: emailData.attachments,
             });
 
             if (response.error) {

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Image, Dimensions, Animated } from 'react-native';
+import { View, Text, StyleSheet, Image, Dimensions, Animated, Modal, StatusBar } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
@@ -47,58 +47,63 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
   }, [fadeAnim, scaleAnim, slideAnim, onComplete]);
 
   return (
-    <View style={styles.container} pointerEvents="box-none">
-      <LinearGradient
-        colors={['#FF9B42', '#FFB366', '#FF9B42']}
-        style={styles.gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.content}>
-          {/* Logo/Icon */}
-          <Animated.View 
-            style={[
-              styles.logoContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ scale: scaleAnim }]
-              }
-            ]}
-          >
-            <Image
-              source={require('@/assets/images/icon.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-          </Animated.View>
+    <Modal visible={true} transparent={false} animationType="fade" statusBarTranslucent>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <View style={styles.container}>
+        <LinearGradient
+          colors={['#FF9B42', '#FF8C00']}
+          style={styles.gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.content}>
+            {/* Logo/Icon */}
+            <Animated.View
+              style={[
+                styles.logoContainer,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ scale: scaleAnim }]
+                }
+              ]}
+            >
+              <View style={styles.logoCircle}>
+                <Image
+                  source={require('@/assets/images/icon.png')}
+                  style={styles.logo}
+                  resizeMode="contain"
+                />
+              </View>
+            </Animated.View>
 
-          {/* Brand Text */}
-          <Animated.View 
-            style={[
-              styles.textContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }]
-              }
-            ]}
-          >
-            <Text style={styles.brandName}>TiffinWale</Text>
-            <Text style={styles.tagline}>Delicious meals for bachelors</Text>
-            <Text style={styles.subtitle}>Setting up your dashboard...</Text>
-          </Animated.View>
+            {/* Brand Text */}
+            <Animated.View
+              style={[
+                styles.textContainer,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }]
+                }
+              ]}
+            >
+              <Text style={styles.brandName}>TiffinWale</Text>
+              <Text style={styles.tagline}>Delicious meals for bachelors</Text>
+            </Animated.View>
 
-          {/* Loading Dots Animation */}
-          <Animated.View 
-            style={[
-              styles.loadingContainer,
-              { opacity: fadeAnim }
-            ]}
-          >
-            <LoadingDots />
-          </Animated.View>
-        </View>
-      </LinearGradient>
-    </View>
+            {/* Loading Indicator */}
+            <Animated.View
+              style={[
+                styles.loadingContainer,
+                { opacity: fadeAnim }
+              ]}
+            >
+              <Text style={styles.loadingText}>Setting up your dashboard...</Text>
+              <LoadingDots />
+            </Animated.View>
+          </View>
+        </LinearGradient>
+      </View>
+    </Modal>
   );
 };
 
@@ -115,9 +120,9 @@ const LoadingDots: React.FC = () => {
         Animated.timing(dot2, { toValue: 1, duration: 300, useNativeDriver: true }),
         Animated.timing(dot3, { toValue: 1, duration: 300, useNativeDriver: true }),
         Animated.parallel([
-          Animated.timing(dot1, { toValue: 0, duration: 300, useNativeDriver: true }),
-          Animated.timing(dot2, { toValue: 0, duration: 300, useNativeDriver: true }),
-          Animated.timing(dot3, { toValue: 0, duration: 300, useNativeDriver: true }),
+          Animated.timing(dot1, { toValue: 0.3, duration: 300, useNativeDriver: true }),
+          Animated.timing(dot2, { toValue: 0.3, duration: 300, useNativeDriver: true }),
+          Animated.timing(dot3, { toValue: 0.3, duration: 300, useNativeDriver: true }),
         ]),
       ]).start(() => animateDots());
     };
@@ -136,15 +141,8 @@ const LoadingDots: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
-    top: -100, // Extend beyond screen bounds
-    left: 0,
-    right: 0,
-    bottom: -100, // Extend beyond screen bounds
-    zIndex: 99999,
-    width: width,
-    height: height + 200, // Make it taller to cover tabs
-    backgroundColor: '#FF9B42', // Fallback background
+    flex: 1,
+    backgroundColor: '#FF9B42',
   },
   gradient: {
     flex: 1,
@@ -155,19 +153,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
+    width: '100%',
   },
   logoContainer: {
     marginBottom: 40,
+    alignItems: 'center',
+  },
+  logoCircle: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 20,
-    elevation: 10,
+    elevation: 15,
   },
   logo: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 100,
+    height: 100,
   },
   textContainer: {
     alignItems: 'center',
@@ -175,47 +182,45 @@ const styles = StyleSheet.create({
   },
   brandName: {
     fontSize: 42,
-    fontWeight: '800',
+    fontFamily: 'Poppins-Bold',
     color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 8,
-    letterSpacing: -1,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    letterSpacing: -0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
   tagline: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: '#FFFFFF',
+    fontSize: 16,
+    fontFamily: 'Poppins-Medium',
+    color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
-    marginBottom: 24,
-    opacity: 0.9,
     letterSpacing: 0.5,
-  },
-  subtitle: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    opacity: 0.8,
-    letterSpacing: 0.3,
   },
   loadingContainer: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 80,
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 8,
   },
   dotsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 4,
   },
 });
 

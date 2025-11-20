@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
-import { Home, Receipt, Navigation, Package, UserCircle } from 'lucide-react-native';
+import { View } from 'react-native';
+import { Home, ShoppingBag, MapPin, Utensils, User } from 'lucide-react-native';
 import { ProtectedRoute } from '@/auth/AuthMiddleware';
 
 export default function TabLayout() {
@@ -12,17 +13,22 @@ export default function TabLayout() {
           tabBarStyle: {
             display: 'flex',
             backgroundColor: '#FFFFFF',
-            height: 64,
-            paddingBottom: 4,
-            paddingTop: 4,
+            height: 70,
+            paddingBottom: 8,
+            paddingTop: 8,
             borderTopWidth: 1,
             borderTopColor: '#EEEEEE',
+            elevation: 8,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
           },
           tabBarShowLabel: true,
           tabBarLabelStyle: {
             fontFamily: 'Poppins-Medium',
-            fontSize: 12,
-            marginBottom: 4,
+            fontSize: 11,
+            marginTop: 4,
           },
           headerShown: false,
         }}
@@ -31,12 +37,22 @@ export default function TabLayout() {
           name="index"
           options={{
             title: 'Home',
-            tabBarIcon: ({ color, size, focused }) => (
-              <Home 
-                size={focused ? size + 2 : size} 
-                color={color}
-                strokeWidth={focused ? 2.5 : 2}
-              />
+            tabBarIcon: ({ color, focused }) => (
+              <View style={{
+                width: 48,
+                height: 36,
+                borderRadius: 12,
+                backgroundColor: focused ? '#FF9B42' + '15' : 'transparent',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
+                <Home
+                  size={24}
+                  color={focused ? '#FF9B42' : color}
+                  strokeWidth={focused ? 2.5 : 2}
+                  fill={focused ? '#FF9B42' + '20' : 'none'}
+                />
+              </View>
             ),
           }}
         />
@@ -44,12 +60,22 @@ export default function TabLayout() {
           name="orders"
           options={{
             title: 'Orders',
-            tabBarIcon: ({ color, size, focused }) => (
-              <Receipt 
-                size={focused ? size + 2 : size} 
-                color={color}
-                strokeWidth={focused ? 2.5 : 2}
-              />
+            tabBarIcon: ({ color, focused }) => (
+              <View style={{
+                width: 48,
+                height: 36,
+                borderRadius: 12,
+                backgroundColor: focused ? '#FF9B42' + '15' : 'transparent',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
+                <ShoppingBag
+                  size={24}
+                  color={focused ? '#FF9B42' : color}
+                  strokeWidth={focused ? 2.5 : 2}
+                  fill={focused ? '#FF9B42' + '20' : 'none'}
+                />
+              </View>
             ),
           }}
         />
@@ -57,12 +83,22 @@ export default function TabLayout() {
           name="track"
           options={{
             title: 'Track',
-            tabBarIcon: ({ color, size, focused }) => (
-              <Navigation 
-                size={focused ? size + 2 : size} 
-                color={color}
-                strokeWidth={focused ? 2.5 : 2}
-              />
+            tabBarIcon: ({ color, focused }) => (
+              <View style={{
+                width: 48,
+                height: 36,
+                borderRadius: 12,
+                backgroundColor: focused ? '#FF9B42' + '15' : 'transparent',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
+                <MapPin
+                  size={24}
+                  color={focused ? '#FF9B42' : color}
+                  strokeWidth={focused ? 2.5 : 2}
+                  fill={focused ? '#FF9B42' + '20' : 'none'}
+                />
+              </View>
             ),
           }}
         />
@@ -70,12 +106,22 @@ export default function TabLayout() {
           name="plans"
           options={{
             title: 'Plans',
-            tabBarIcon: ({ color, size, focused }) => (
-              <Package 
-                size={focused ? size + 2 : size} 
-                color={color}
-                strokeWidth={focused ? 2.5 : 2}
-              />
+            tabBarIcon: ({ color, focused }) => (
+              <View style={{
+                width: 48,
+                height: 36,
+                borderRadius: 12,
+                backgroundColor: focused ? '#FF9B42' + '15' : 'transparent',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
+                <Utensils
+                  size={24}
+                  color={focused ? '#FF9B42' : color}
+                  strokeWidth={focused ? 2.5 : 2}
+                  fill={focused ? '#FF9B42' + '20' : 'none'}
+                />
+              </View>
             ),
           }}
         />
@@ -83,12 +129,22 @@ export default function TabLayout() {
           name="profile"
           options={{
             title: 'Profile',
-            tabBarIcon: ({ color, size, focused }) => (
-              <UserCircle 
-                size={focused ? size + 2 : size} 
-                color={color}
-                strokeWidth={focused ? 2.5 : 2}
-              />
+            tabBarIcon: ({ color, focused }) => (
+              <View style={{
+                width: 48,
+                height: 36,
+                borderRadius: 12,
+                backgroundColor: focused ? '#FF9B42' + '15' : 'transparent',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
+                <User
+                  size={24}
+                  color={focused ? '#FF9B42' : color}
+                  strokeWidth={focused ? 2.5 : 2}
+                  fill={focused ? '#FF9B42' + '20' : 'none'}
+                />
+              </View>
             ),
           }}
         />

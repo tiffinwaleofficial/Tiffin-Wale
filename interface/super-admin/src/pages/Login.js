@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,7 +16,18 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    e.stopPropagation(); // Prevent form submission propagation
+    e.stopPropagation();
+    
+    // Prevent any default form behavior
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault();
+    }
+    
+    // Don't proceed if already loading
+    if (loading) {
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -31,9 +42,11 @@ export default function Login() {
         localStorage.setItem('admin_user', JSON.stringify(user));
         
         toast.success('Login successful!');
-        navigate('/');
+        // Use replace instead of navigate to prevent back button issues
+        navigate('/', { replace: true });
       } else {
         toast.error('Invalid response from server');
+        setLoading(false);
       }
     } catch (error) {
       // Prevent page reload on error
@@ -42,7 +55,6 @@ export default function Login() {
                           error.message || 
                           'Login failed. Please check your credentials.';
       toast.error(errorMessage);
-    } finally {
       setLoading(false);
     }
   };
@@ -58,7 +70,7 @@ export default function Login() {
           <CardDescription>Sign in to your super admin account</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4" data-testid="login-form" noValidate>
+          <form onSubmit={handleLogin} className="space-y-4" data-testid="login-form" noValidate autoComplete="off">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -95,6 +107,18 @@ export default function Login() {
           <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
             <p className="text-xs text-gray-600 dark:text-gray-400 text-center mb-2">Demo Credentials:</p>
             <p className="text-sm text-gray-700 dark:text-gray-300 text-center font-mono">admin@tiffinwale.com / admin123</p>
+          </div>
+
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Don't have an account?{' '}
+              <Link
+                to="/signup"
+                className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+              >
+                Create one
+              </Link>
+            </p>
           </div>
         </CardContent>
       </Card>
